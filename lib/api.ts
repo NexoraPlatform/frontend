@@ -1,0 +1,521 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+class ApiClient {
+  private baseURL: string;
+  private token: string | null = null;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+
+    // Get token from localStorage if available
+    if (typeof window !== 'undefined') {
+      this.token = localStorage.getItem('auth_token');
+    }
+  }
+
+  setToken(token: string) {
+    this.token = token;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', token);
+    }
+  }
+
+  removeToken() {
+    this.token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+    }
+  }
+
+  private async request<T>(
+      endpoint: string,
+      options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+        ...options.headers,
+      },
+      credentials: 'include',
+      ...options,
+    };
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        return {} as T;
+      }
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
+
+  // Auth endpoints
+  async login(credentials: { email: string; password: string }) {
+    const response = await this.request<{
+      access_token: string;
+      user: any;
+    }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+
+    this.setToken(response.access_token);
+    return response;
+  }
+
+  async register(userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    role?: string;
+  }) {
+    const response = await this.request<{
+      access_token: string;
+      user: any;
+    }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+
+    this.setToken(response.access_token);
+    return response;
+  }
+
+  async getProfile() {
+    return this.request<any>('/auth/profile');
+  }
+
+  async getTestExamsDetails() {
+    return this.request<any>('/auth/test-exams-details');
+  }
+
+  async getTestResult(id: string) {
+    return this.request<any>(`/test/result/${id}`);
+  }
+
+  // Services endpoints
+  async getServices(params?: {
+    search?: string;
+    categoryId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minRating?: number;
+    skills?: string[];
+    location?: string;
+    sortBy?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v.toString()));
+        } else {
+          searchParams.append(key, value.toString());
+        }
+      }
+    });
+
+    return this.request<any>(`/services?${searchParams.toString()}`);
+  }
+
+  // Servicii disponibile pentru prestatori să se înscrie
+  async getAvailableServicesForProvider(categoryId?: string) {
+    const params = categoryId ? `?categoryId=${categoryId}` : '';
+    return this.request<any>(`/services/available-for-providers${params}`);
+  }
+
+  async getAllServices() {
+    return this.request<any>('/admin/services');
+  }
+
+  async getService(id: string) {
+    return this.request<any>(`/services/${id}`);
+  }
+
+  async createService(serviceData: any) {
+    return this.request<any>('/admin/services', {
+      method: 'POST',
+      body: JSON.stringify(serviceData),
+    });
+  }
+
+  async updateService(id: string, serviceData: any) {
+    return this.request<any>(`/admin/services/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(serviceData),
+    });
+  }
+
+  async deleteService(id: string) {
+    return this.request<any>(`/admin/services/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateServiceStatus(serviceId: string, status: string) {
+    return this.request<any>(`/admin/services/${serviceId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Service Provider endpoints
+  async addServiceProvider(serviceId: string, providerData: any) {
+    return this.request<any>(`/services/${serviceId}/providers`, {
+      method: 'POST',
+      body: JSON.stringify(providerData),
+    });
+  }
+
+  async updateServiceProvider(serviceId: string, providerId: string, providerData: any) {
+    return this.request<any>(`/services/${serviceId}/providers/${providerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(providerData),
+    });
+  }
+
+  async removeServiceProvider(serviceId: string, providerId: string) {
+    return this.request<any>(`/services/${serviceId}/providers/${providerId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Categories endpoints
+  async getCategories() {
+    return this.request<any>('/categories');
+  }
+
+  async getAllCategories() {
+    return this.request<any>('/admin/categories');
+  }
+
+  async getCategoryById(categoryId: any) {
+    return this.request<any>('/admin/categories/' + categoryId, {
+      method: 'GET',
+    });
+  }
+
+  async createCategory(categoryData: any) {
+    return this.request<any>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async updateCategory(id: string, categoryData: any) {
+    return this.request<any>(`/admin/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.request<any>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Users endpoints
+  async getUsers(params?: any) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v.toString()));
+        } else {
+          searchParams.append(key, value.toString());
+        }
+      }
+    });
+
+    return this.request<any>(`/admin/users?${searchParams.toString()}`);
+  }
+
+  async createUser(userData: any) {
+    return this.request<any>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(userId: string) {
+    return this.request<any>(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getProviders(params?: any) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v.toString()));
+        } else {
+          searchParams.append(key, value.toString());
+        }
+      }
+    });
+
+    return this.request<any>(`/users/providers?${searchParams.toString()}`);
+  }
+
+  async updateUserStatus(userId: string, status: string) {
+    return this.request<any>(`/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Orders endpoints
+  async getOrders(params?: any) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/admin/orders?${searchParams.toString()}`);
+  }
+
+  async createOrder(orderData: any) {
+    return this.request<any>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  async updateOrder(id: string, orderData: any) {
+    return this.request<any>(`/orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  // Reviews endpoints
+  async getReviews(params?: any) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/reviews?${searchParams.toString()}`);
+  }
+
+  async createReview(reviewData: any) {
+    return this.request<any>('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    });
+  }
+
+  // Admin endpoints
+  async getAdminStats() {
+    return this.request<any>('/admin/stats');
+  }
+
+  // Search endpoints
+  async globalSearch(query: string, filters?: any) {
+    const searchParams = new URLSearchParams();
+    searchParams.append('q', query);
+
+    Object.entries(filters || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v.toString()));
+        } else {
+          searchParams.append(key, value.toString());
+        }
+      }
+    });
+
+    return this.request<any>(`/search?${searchParams.toString()}`);
+  }
+
+  async getSearchSuggestions(query: string) {
+    return this.request<any>(`/search/suggestions?q=${encodeURIComponent(query)}`);
+  }
+
+  async getTrendingSearches() {
+    return this.request<any>('/search/trending');
+  }
+
+  async getCalls(params?: {
+    serviceId?: string;
+    user_id?: string;
+    passed: number;
+    date_time: string;
+    test_result_id: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/admin/calls?${searchParams.toString()}`);
+  }
+
+  // Tests endpoints
+  async getTests(params?: {
+    serviceId?: string;
+    level?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/admin/tests?${searchParams.toString()}`);
+  }
+
+  async getAvailableTests() {
+    return this.request<any>('/tests/available');
+  }
+
+  async getTest(id: string) {
+    return this.request<any>(`/tests/${id}`);
+  }
+
+  async findByServiceAndLevel(serviceId: string, level: string) {
+    return this.request<any>(`/tests/service/${serviceId}/level/${level}`);
+  }
+
+  async createTest(testData: any) {
+    console.log(this.token)
+    return this.request<any>('/admin/tests', {
+      method: 'POST',
+      headers: {
+      'Content-Type': 'application/json',
+    ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+    },
+      body: JSON.stringify(testData),
+    });
+  }
+
+  async updateTest(id: string, testData: any) {
+    return this.request<any>(`/tests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(testData),
+    });
+  }
+
+  async deleteTest(id: string) {
+    return this.request<any>(`/tests/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateCallStatus(callId: string, status: string, noteText: string | null) {
+    return this.request<any>(`/admin/calls/${callId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, note: noteText }),
+    });
+  }
+
+  async updateTestStatus(testId: string, status: string) {
+    return this.request<any>(`/tests/${testId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async takeTest(testId: string, testData: any) {
+    return this.request<any>(`/tests/${testId}/take`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify(testData),
+    });
+  }
+
+  async getTestResults(params?: {
+    userId?: string;
+    testId?: string;
+    passed?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/tests/results/all?${searchParams.toString()}`);
+  }
+
+  async getMyTestResults(params?: {
+    testId?: string;
+    passed?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/tests/results/my?${searchParams.toString()}`);
+  }
+
+  async getTestStatistics(testId: string) {
+    return this.request<any>(`/tests/${testId}/statistics`);
+  }
+
+  // API pentru certificări
+  async getCertifications(userId?: string) {
+    const endpoint = userId ? `/certifications/${userId}` : '/certifications';
+    return this.request<any>(endpoint);
+  }
+
+  async createCertification(certificationData: any) {
+    return this.request<any>('/certifications', {
+      method: 'POST',
+      body: JSON.stringify(certificationData),
+    });
+  }
+}
+
+export const apiClient = new ApiClient(API_BASE_URL);
+export default apiClient;
