@@ -29,7 +29,7 @@ import CallIcon from "@mui/icons-material/Call";
 
 export default function AdminDashboard() {
   const { data: statsData, loading: statsLoading } = useAdminStats();
-  console.log(statsData);
+
   const stats = [
     {
       title: 'Utilizatori Totali',

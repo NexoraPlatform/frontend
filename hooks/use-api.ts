@@ -113,3 +113,49 @@ export function useMyTestResults(params?: any) {
 export function useTestStatistics(testId: string) {
   return useApi(() => apiClient.getTestStatistics(testId), [testId]);
 }
+
+// Provider Profile hooks
+export function useProviderProfileById(providerId: string) {
+  return useApi(() => apiClient.getProviderProfileById(providerId), [providerId]);
+}
+
+export function useProviderProfile() {
+  return useApi(() => apiClient.getProviderProfile(), []);
+}
+
+export function useGetProviderProfileByUrl(url: string) {
+  return useApi(() => apiClient.getProviderProfileByUrl(url), [url]);
+}
+
+export function useProviderServices(providerId: string) {
+  return useApi(() => apiClient.getProviderServices(providerId), [providerId]);
+}
+
+export function useProviderReviews(providerId: string, params?: any) {
+  return useApi(() => apiClient.getProviderReviews(providerId, params), [providerId, JSON.stringify(params)]);
+}
+
+export function useProviderPortfolio(providerId: string) {
+  return useApi(() => apiClient.getProviderPortfolio(providerId), [providerId]);
+}
+
+export function useGetLanguages() {
+  return useApi(() => apiClient.getLanguages(), []);
+}
+
+// Projects hooks
+export function useProjects(params?: any) {
+  return useApi(() => apiClient.getProjects(params), [JSON.stringify(params)]);
+}
+
+export function useProject(id: string) {
+  return useApi(() => apiClient.getProject(id), [id]);
+}
+
+export function useSuggestedProviders(serviceId: string, technologies: string[]) {
+  return useApi(() => apiClient.getSuggestedProviders(serviceId, technologies), [serviceId, JSON.stringify(technologies)]);
+}
+
+export function useTechnologies() {
+  return useApi(() => apiClient.getTechnologies(), []);
+}

@@ -417,7 +417,6 @@ class ApiClient {
   }
 
   async createTest(testData: any) {
-    console.log(this.token)
     return this.request<any>('/admin/tests', {
       method: 'POST',
       headers: {
@@ -515,7 +514,133 @@ class ApiClient {
       body: JSON.stringify(certificationData),
     });
   }
+
+  // Provider Profile endpoints
+  async getProviderProfileById(providerId: string) {
+    return this.request<any>(`/users/providers/${providerId}`);
+  }
+
+  async getProviderProfile() {
+    return this.request<any>(`/users/providers/profile`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
+  async updateProviderProfile(profileData: any) {
+    return this.request<any>('/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(profileData),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      },
+    });
+  }
+
+  async uploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    return this.request<any>('/users/avatar', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      },
+    });
+  }
+
+  async getProviderServices(providerId: string) {
+    return this.request<any>(`/users/providers/${providerId}/services`);
+  }
+
+  async getProviderReviews(providerId: string, params?: {
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/reviews?revieweeId=${providerId}&${searchParams.toString()}`);
+  }
+
+  async getProviderPortfolio(providerId: string) {
+    return this.request<any>(`/users/providers/${providerId}/portfolio`);
+  }
+
+  async getLanguages() {
+    return this.request<any>('/languages');
+  }
+
+  async getProviderProfileByUrl(url: string) {
+    return this.request<any>(`/provider/${url}`);
+  }
+
+  // Projects endpoints
+  async getProjects(params?: {
+    clientId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/projects?${searchParams.toString()}`);
+  }
+
+  async createProject(projectData: any) {
+    return this.request<any>('/projects', {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+    });
+  }
+
+  async getProject(id: string) {
+    return this.request<any>(`/projects/${id}`);
+  }
+
+  async updateProject(id: string, projectData: any) {
+    return this.request<any>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(projectData),
+    });
+  }
+
+  async deleteProject(id: string) {
+    return this.request<any>(`/projects/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getSuggestedProviders(serviceId: string, technologies: string[]) {
+    const searchParams = new URLSearchParams();
+    searchParams.append('serviceId', serviceId);
+    technologies.forEach(tech => searchParams.append('technologies', tech));
+
+    return this.request<any>(`/providers/suggestions?${searchParams.toString()}`);
+  }
+
+  async getTechnologies() {
+    return this.request<any>('/technologies');
+  }
 }
+
+
 
 export const apiClient = new ApiClient(API_BASE_URL);
 export default apiClient;

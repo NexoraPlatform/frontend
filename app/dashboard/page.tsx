@@ -352,7 +352,7 @@ export default function DashboardPage() {
               {isProvider ? 'Servicii' : 'Favorite'}
             </TabsTrigger>
             <TabsTrigger value="messages">Mesaje</TabsTrigger>
-            <TabsTrigger value="profile">Profil</TabsTrigger>
+            <TabsTrigger onClick={() => router.push('/provider/profile')} value="">Profil</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">

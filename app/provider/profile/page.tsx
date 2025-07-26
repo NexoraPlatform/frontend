@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useRef, useCallback} from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -42,6 +42,23 @@ import {
     Trash2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import {useGetLanguages, useProviderProfile} from "@/hooks/use-api";
+import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
+import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import Cropper from 'react-easy-crop';
+import { getCroppedImg } from '@/components/ui/cropImage';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import apiClient from "@/lib/api";
+
+type Languages = {
+    id: number;
+    name: string;
+    code: string;
+    locale: string;
+    flag: string;
+    timezone: string;
+}
 
 export default function ProviderProfileEditPage() {
     const { user, loading } = useAuth();
@@ -50,6 +67,14 @@ export default function ProviderProfileEditPage() {
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
     const router = useRouter();
+    const { data: providerProfile, loading: profileLoading, refetch: refetchProfile } = useProviderProfile();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+    const [showCrop, setShowCrop] = useState(false);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const { data: languages, loading: languagesLoading } = useGetLanguages();
 
     const [profileData, setProfileData] = useState({
         // Basic Info
@@ -107,18 +132,21 @@ export default function ProviderProfileEditPage() {
         education: [] as Array<{
             degree: string;
             institution: string;
-            period: string;
-            description: string;
+            attended_from: string;
+            attended_to: string;
+            study_area: string;
         }>,
 
         // Work History
         workHistory: [] as Array<{
             position: string;
             company: string;
-            period: string;
-            type: string;
+            city: string;
+            country: string;
+            start_date: string;
+            end_date: string;
             description: string;
-            technologies: string[];
+            current_working: boolean;
         }>,
 
         // Portfolio
@@ -128,35 +156,112 @@ export default function ProviderProfileEditPage() {
             image: string;
             technologies: string[];
             url: string;
+            role: string;
         }>
     });
 
-    const [newLanguage, setNewLanguage] = useState({ name: '', level: 'Începător', flag: '' });
+
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+    const validate = () => {
+        const newErrors: { [key: string]: string } = {};
+        if (!profileData.firstName.trim()) {
+            newErrors.firstName = 'Prenumele este obligatoriu';
+        }
+        if (!profileData.lastName.trim()) {
+            newErrors.lastName = 'Numele este obligatoriu';
+        }
+        if (!profileData.email.trim()) {
+            newErrors.email = 'Adresa de email este obligatoriu';
+        }
+        if (!profileData.phone.trim()) {
+            newErrors.phone = 'Numarul de telefon este obligatoriu';
+        }
+        if (!profileData.bio.trim()) {
+            newErrors.bio = 'Descrierea este obligatoriu';
+        }
+        if (!profileData.availability.status.trim()) {
+            newErrors.availability_status = 'Statusul curent este obligatoriu';
+        }
+        if (!profileData.availability.hoursPerWeek) {
+            newErrors.hours_per_week = 'Ore pe saptamana este obligatoriu';
+        }
+        // alte validări...
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const [newLanguage, setNewLanguage] = useState({ name: '', level: 'Basic', flag: '' });
     const [newSkill, setNewSkill] = useState({ name: '', level: 'Începător', years: 1 });
     const [newCertification, setNewCertification] = useState({
         name: '', issuer: '', date: '', credentialId: '', verified: false
     });
     const [newEducation, setNewEducation] = useState({
-        degree: '', institution: '', period: '', description: ''
+        degree: '', institution: '', attended_from: '', attended_to: '', study_area: ''
     });
     const [newWork, setNewWork] = useState({
-        position: '', company: '', period: '', type: 'Full-time', description: '', technologies: [] as string[]
+        position: '', company: '', city: '', country: '', start_date: '', end_date: '', description: '', current_working: false
     });
     const [newPortfolio, setNewPortfolio] = useState({
-        title: '', description: '', image: '', technologies: [] as string[], url: ''
+        title: '', description: '', image: '', role: '', technologies: [] as string[], url: ''
     });
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading && !user && !profileLoading) {
             router.push('/auth/signin');
         }
-        if (user && user.role !== 'PROVIDER') {
+        if (user && providerProfile && user.role !== 'PROVIDER') {
             router.push('/dashboard');
         }
-        if (user) {
+        if (user && providerProfile) {
             loadProfileData();
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, profileLoading, providerProfile]);
+
+    function readFile(file: File): Promise<string | ArrayBuffer | null> {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => resolve(reader.result));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const imageDataUrl = await readFile(file);
+            setImageSrc(imageDataUrl as string);
+            setShowCrop(true);
+        }
+    };
+
+    const onCropComplete = useCallback((_: any, croppedPixels: any) => {
+        setCroppedAreaPixels(croppedPixels);
+    }, []);
+
+    const handleUpload = async () => {
+        if (!imageSrc || !croppedAreaPixels) return;
+
+        const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+
+        // Convertim base64 în Blob
+        const blob = await fetch(croppedImage as string).then(r => r.blob());
+
+        // Convertim Blob în File (pentru a trimite cu uploadAvatar)
+        const file = new File([blob], 'avatar_' + user?.firstName + '-' + user?.lastName + '.jpg', { type: 'image/jpeg' });
+
+        try {
+            const response = await apiClient.uploadAvatar(file); // apel metoda ta
+
+            // Exemplu: răspunsul conține URL-ul imaginii salvate în Laravel
+            const imageUrl = response.url || null;
+
+            setProfileData((prev: any) => ({ ...prev, avatar: imageUrl }));
+            setShowCrop(false);
+        } catch (error) {
+            console.error('Eroare la încărcarea avatarului:', error);
+        }
+    };
 
     const loadProfileData = async () => {
         try {
@@ -164,24 +269,139 @@ export default function ProviderProfileEditPage() {
             // This would be replaced with actual API call
             setProfileData(prev => ({
                 ...prev,
-                firstName: user?.firstName || '',
-                lastName: user?.lastName || '',
-                email: user?.email || '',
-                // Add other existing data
+                firstName: providerProfile.firstName,
+                lastName: providerProfile.lastName,
+                email: providerProfile.email,
+                phone: providerProfile.phone || '',
+                bio: providerProfile.profile?.bio || '',
+                company: providerProfile?.company || '',
+                website: providerProfile.profile?.website || '',
+                location: providerProfile.profile?.location || '',
+                avatar: providerProfile?.avatar || '',
+
+                // Availability
+                availability: {
+                    status: providerProfile.profile?.availability || 'available',
+                    hoursPerWeek: providerProfile.profile?.working_hours_per_week || '',
+                    timezone: providerProfile?.timezone || 'Europe/Bucharest',
+                    workingHours: {
+                        monday: {
+                            start: providerProfile.profile?.working_monday_from || '',
+                            end: providerProfile.profile?.working_monday_to || '',
+                            enabled: providerProfile.profile?.working_monday_enabled || false
+                        },
+                        tuesday: {
+                            start: providerProfile.profile?.working_tuesday_from || '',
+                            end: providerProfile.profile?.working_tuesday_to || '',
+                            enabled: providerProfile.profile?.working_tuesday_enabled || false
+                        },
+                        wednesday: {
+                            start: providerProfile.profile?.working_wednesday_from || '',
+                            end: providerProfile.profile?.working_wednesday_to || '',
+                            enabled: providerProfile.profile?.working_wednesday_enabled || false
+                        },
+                        thursday: {
+                            start: providerProfile.profile?.working_thursday_from || '',
+                            end: providerProfile.profile?.working_thursday_to || '',
+                            enabled: providerProfile.profile?.working_thursday_enabled || false
+                        },
+                        friday: {
+                            start: providerProfile.profile?.working_friday_from || '',
+                            end: providerProfile.profile?.working_friday_to || '',
+                            enabled: providerProfile.profile?.working_friday_enabled || false
+                        },
+                        saturday: {
+                            start: providerProfile.profile?.working_saturday_from || '',
+                            end: providerProfile.profile?.working_saturday_to || '',
+                            enabled: providerProfile.profile?.working_saturday_enabled || false
+                        },
+                        sunday: {
+                            start: providerProfile.profile?.working_sunday_from || '',
+                            end: providerProfile.profile?.working_sunday_to || '',
+                            enabled: providerProfile.profile?.working_sunday_enabled || false
+                        }
+                    },
+                    responseTime: providerProfile.profile?.answer_hour || '2'
+                },
+
+                // Languages
+                languages: (providerProfile.languages || []).map((lang: any) => ({
+                    name: lang.language || '',
+                    level: lang.proficiency || '',
+                })),
+
+                // Skills
+                skills: [] as Array<{
+                    name: string;
+                    level: string;
+                    years: number;
+                }>,
+
+                // Certifications
+                certifications: (providerProfile.certifications || []).map((cert: any) => ({
+                    name: cert.name || '',
+                    issuer: cert.issuer_name || '',
+                    date: cert.issued_at || '',
+                    credentialId: cert.credential_id || '',
+                    verified: cert.verified || ''
+                })),
+
+                // Education
+                education: (providerProfile.education || []).map((edu: any) => ({
+                    degree: edu.degree || '',
+                    institution: edu.institution || '',
+                    attended_from: edu.attended_from || '',
+                    attended_to: edu.attended_to || '',
+                    study_area: edu.study_area || '',
+                })),
+                // Work History
+                workHistory: (providerProfile.work_history || []).map((work: any) => ({
+                    position: work.position || '',
+                    company: work.company || '',
+                    city: work.city || '',
+                    country: work.country || '',
+                    start_date: work.start_date || '',
+                    end_date: work.end_date || '',
+                    description: work.description || '',
+                    current_working: work.current_working || ''
+                })),
+
+                // Portfolio
+                portfolio: (providerProfile.portfolio || []).map((item: any) => ({
+                    title: item.project_title || '',
+                    description: item.description || '',
+                    image: item.image || '',
+                    role: item.role || '',
+                    technologies: item.technologies_used || [],
+                    url: item.url || '',
+                }))
+
             }));
+
+            // profileData.languages.map((language => {
+            //     setProfileData(prev => ({
+            //         ...prev,
+            //         languages: [...prev.languages, {
+            //             name: language.name,
+            //             level: language.level,
+            //             flag: language.flag || ''
+            //         }]
+            //     });
+            // });
         } catch (error: any) {
             setError('Nu s-au putut încărca datele profilului');
         }
     };
 
     const handleSave = async () => {
+        if (!validate()) return;
         setSaving(true);
         setError('');
         setSuccess('');
 
         try {
             // Save profile data
-            // await apiClient.updateProfile(profileData);
+            await apiClient.updateProviderProfile(profileData);
             setSuccess('Profilul a fost actualizat cu succes!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (error: any) {
@@ -197,7 +417,7 @@ export default function ProviderProfileEditPage() {
                 ...prev,
                 languages: [...prev.languages, { ...newLanguage }]
             }));
-            setNewLanguage({ name: '', level: 'Începător', flag: '' });
+            setNewLanguage({ name: '', level: 'Basic', flag: '' });
         }
     };
 
@@ -248,7 +468,7 @@ export default function ProviderProfileEditPage() {
                 ...prev,
                 education: [...prev.education, { ...newEducation }]
             }));
-            setNewEducation({ degree: '', institution: '', period: '', description: '' });
+            setNewEducation({ degree: '', institution: '', attended_from: '', attended_to: '', study_area: '' });
         }
     };
 
@@ -265,7 +485,7 @@ export default function ProviderProfileEditPage() {
                 ...prev,
                 workHistory: [...prev.workHistory, { ...newWork }]
             }));
-            setNewWork({ position: '', company: '', period: '', type: 'Full-time', description: '', technologies: [] });
+            setNewWork({ position: '', company: '', city: '', country: '', start_date: '', end_date: '', description: '', current_working: false });
         }
     };
 
@@ -282,7 +502,7 @@ export default function ProviderProfileEditPage() {
                 ...prev,
                 portfolio: [...prev.portfolio, { ...newPortfolio }]
             }));
-            setNewPortfolio({ title: '', description: '', image: '', technologies: [], url: '' });
+            setNewPortfolio({ title: '', description: '', image: '', role: '', technologies: [], url: '' });
         }
     };
 
@@ -293,7 +513,23 @@ export default function ProviderProfileEditPage() {
         }));
     };
 
-    const updateWorkingHours = (day: string, field: string, value: any) => {
+    type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+    type WorkingHour = {
+        start: string;
+        end: string;
+        enabled: boolean;
+    };
+    type WorkingHours = Record<WeekDay, WorkingHour>;
+    type Availability = {
+        status: string;
+        hoursPerWeek: number;
+        timezone: string;
+        workingHours: WorkingHours;
+        responseTime: string;
+    };
+
+    type WorkingHourField = keyof WorkingHour;
+    const updateWorkingHours = (day: WeekDay, field: WorkingHourField, value: any) => {
         setProfileData(prev => ({
             ...prev,
             availability: {
@@ -321,13 +557,13 @@ export default function ProviderProfileEditPage() {
         return null;
     }
 
-    const languageLevels = ['Nativ', 'Fluent', 'Avansat', 'Intermediar', 'Începător'];
+    const languageLevels = ['Native', 'Fluent', 'Conversational', 'Basic'];
     const skillLevels = ['Expert', 'Avansat', 'Intermediar', 'Începător'];
     const workTypes = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
     const availabilityStatuses = [
-        { value: 'available', label: 'Disponibil' },
-        { value: 'busy', label: 'Ocupat' },
-        { value: 'unavailable', label: 'Indisponibil' }
+        { value: 'AVAILABLE', label: 'Disponibil' },
+        { value: 'BUSY', label: 'Ocupat' },
+        { value: 'UNAVAILABLE', label: 'Indisponibil' }
     ];
 
     return (
@@ -383,7 +619,7 @@ export default function ProviderProfileEditPage() {
                     <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="basic">Informații de Bază</TabsTrigger>
                         <TabsTrigger value="availability">Disponibilitate</TabsTrigger>
-                        <TabsTrigger value="skills">Competențe</TabsTrigger>
+                        <TabsTrigger value="languages">Limbi & Certificări</TabsTrigger>
                         <TabsTrigger value="experience">Experiență</TabsTrigger>
                         <TabsTrigger value="education">Educație</TabsTrigger>
                         <TabsTrigger value="portfolio">Portofoliu</TabsTrigger>
@@ -403,11 +639,12 @@ export default function ProviderProfileEditPage() {
                                     <Avatar className="w-24 h-24">
                                         <AvatarImage src={profileData.avatar} />
                                         <AvatarFallback>
-                                            {profileData.firstName[0]}{profileData.lastName[0]}
+                                            {profileData.firstName?.[0]}
+                                            {profileData.lastName?.[0]}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <Button variant="outline">
+                                        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                                             <Upload className="w-4 h-4 mr-2" />
                                             Schimbă Poza
                                         </Button>
@@ -415,22 +652,53 @@ export default function ProviderProfileEditPage() {
                                             Recomandăm o poză profesională (max 2MB)
                                         </p>
                                     </div>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
                                 </div>
+
+                                <Dialog open={showCrop} onOpenChange={setShowCrop}>
+                                    <DialogContent className="max-w-[400px]">
+                                        <div className="relative w-full h-72 bg-gray-100">
+                                            {imageSrc && (
+                                                <Cropper
+                                                    image={imageSrc}
+                                                    crop={crop}
+                                                    zoom={zoom}
+                                                    aspect={1}
+                                                    cropShape="round"
+                                                    onCropChange={setCrop}
+                                                    onCropComplete={onCropComplete}
+                                                    onZoomChange={setZoom}
+                                                />
+                                            )}
+                                        </div>
+                                        <Button onClick={handleUpload} className="mt-4 w-full">
+                                            Salvează imaginea
+                                        </Button>
+                                    </DialogContent>
+                                </Dialog>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <Label htmlFor="firstName">Prenume *</Label>
+                                        <Label htmlFor="firstName" className={errors.firstName ? "text-red-500" : ""}>Prenume <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="firstName"
+                                            className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
                                             value={profileData.firstName}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="lastName">Nume *</Label>
+                                        <Label htmlFor="lastName" className={errors.lastName ? "text-red-500" : ""}>Nume <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="lastName"
+                                            className={errors.lastName ? "border-red-500 focus:ring-red-500" : ""}
                                             value={profileData.lastName}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
                                             required
@@ -440,9 +708,10 @@ export default function ProviderProfileEditPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <Label htmlFor="email">Email *</Label>
+                                        <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>Email <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="email"
+                                            className={errors.email ? "border-red-500 focus:ring-red-500" : ""}
                                             type="email"
                                             value={profileData.email}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
@@ -450,9 +719,10 @@ export default function ProviderProfileEditPage() {
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="phone">Telefon</Label>
+                                        <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>Telefon <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="phone"
+                                            className={errors.phone ? "border-red-500 focus:ring-red-500" : ""}
                                             value={profileData.phone}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
                                             placeholder="+40 123 456 789"
@@ -461,9 +731,10 @@ export default function ProviderProfileEditPage() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="bio">Descriere Profesională *</Label>
+                                    <Label htmlFor="bio" className={errors.bio ? "text-red-500" : ""}>Descriere Profesională <span className="text-red-500">*</span></Label>
                                     <Textarea
                                         id="bio"
+                                        className={errors.bio ? "border-red-500 focus:ring-red-500" : ""}
                                         value={profileData.bio}
                                         onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
                                         placeholder="Descrie-te pe scurt, experiența ta și ce te face special..."
@@ -520,7 +791,7 @@ export default function ProviderProfileEditPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div>
-                                        <Label htmlFor="status">Status Curent</Label>
+                                        <Label htmlFor="status" className={errors.availability_status ? "text-red-500" : ""}>Status Curent <span className="text-red-500">*</span> </Label>
                                         <Select
                                             value={profileData.availability.status}
                                             onValueChange={(value) => setProfileData(prev => ({
@@ -528,7 +799,7 @@ export default function ProviderProfileEditPage() {
                                                 availability: { ...prev.availability, status: value }
                                             }))}
                                         >
-                                            <SelectTrigger>
+                                            <SelectTrigger className={errors.availability_status ? "border-red-500 focus:ring-red-500" : ""}>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -543,9 +814,10 @@ export default function ProviderProfileEditPage() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <Label htmlFor="hoursPerWeek">Ore pe săptămână</Label>
+                                            <Label htmlFor="hoursPerWeek" className={errors.hours_per_week ? "text-red-500" : ""}>Ore pe săptămână <span className="text-red-500">*</span></Label>
                                             <Input
                                                 id="hoursPerWeek"
+                                                className={errors.hours_per_week ? "border-red-500 focus:ring-red-500" : ""}
                                                 type="number"
                                                 value={profileData.availability.hoursPerWeek}
                                                 onChange={(e) => setProfileData(prev => ({
@@ -569,11 +841,11 @@ export default function ProviderProfileEditPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="1 oră">1 oră</SelectItem>
-                                                    <SelectItem value="2 ore">2 ore</SelectItem>
-                                                    <SelectItem value="4 ore">4 ore</SelectItem>
-                                                    <SelectItem value="8 ore">8 ore</SelectItem>
-                                                    <SelectItem value="24 ore">24 ore</SelectItem>
+                                                    <SelectItem value="1">1 oră</SelectItem>
+                                                    <SelectItem value="2">2 ore</SelectItem>
+                                                    <SelectItem value="4">4 ore</SelectItem>
+                                                    <SelectItem value="8">8 ore</SelectItem>
+                                                    <SelectItem value="24">24 ore</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -592,7 +864,9 @@ export default function ProviderProfileEditPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="Europe/Bucharest">Europe/Bucharest (GMT+2)</SelectItem>
+                                                {languages.map((lang: Languages) => (
+                                                    <SelectItem key={lang.id} value={lang.timezone}>{lang.timezone}</SelectItem>
+                                                ))}
                                                 <SelectItem value="Europe/London">Europe/London (GMT+0)</SelectItem>
                                                 <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
                                                 <SelectItem value="Asia/Tokyo">Asia/Tokyo (GMT+9)</SelectItem>
@@ -615,7 +889,15 @@ export default function ProviderProfileEditPage() {
                                 <CardContent>
                                     <div className="space-y-4">
                                         {Object.entries(profileData.availability.workingHours).map(([day, hours]) => {
-                                            const dayNames = {
+                                            type WeekDay =
+                                                | 'monday'
+                                                | 'tuesday'
+                                                | 'wednesday'
+                                                | 'thursday'
+                                                | 'friday'
+                                                | 'saturday'
+                                                | 'sunday';
+                                            const dayNames: Record<WeekDay, string> = {
                                                 monday: 'Luni',
                                                 tuesday: 'Marți',
                                                 wednesday: 'Miercuri',
@@ -628,25 +910,25 @@ export default function ProviderProfileEditPage() {
                                             return (
                                                 <div key={day} className="flex items-center space-x-4">
                                                     <div className="w-20 text-sm font-medium">
-                                                        {dayNames[day]}
+                                                        {dayNames[day as WeekDay]}
                                                     </div>
                                                     <Switch
                                                         checked={hours.enabled}
-                                                        onCheckedChange={(checked) => updateWorkingHours(day, 'enabled', checked)}
+                                                        onCheckedChange={(checked) => updateWorkingHours(day as WeekDay, 'enabled', checked)}
                                                     />
                                                     {hours.enabled && (
                                                         <>
                                                             <Input
                                                                 type="time"
                                                                 value={hours.start}
-                                                                onChange={(e) => updateWorkingHours(day, 'start', e.target.value)}
+                                                                onChange={(e) => updateWorkingHours(day as WeekDay, 'start', e.target.value)}
                                                                 className="w-24"
                                                             />
                                                             <span className="text-muted-foreground">-</span>
                                                             <Input
                                                                 type="time"
                                                                 value={hours.end}
-                                                                onChange={(e) => updateWorkingHours(day, 'end', e.target.value)}
+                                                                onChange={(e) => updateWorkingHours(day as WeekDay, 'end', e.target.value)}
                                                                 className="w-24"
                                                             />
                                                         </>
@@ -661,7 +943,7 @@ export default function ProviderProfileEditPage() {
                     </TabsContent>
 
                     {/* Skills & Languages */}
-                    <TabsContent value="skills" className="space-y-6">
+                    <TabsContent value="languages" className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Languages */}
                             <Card>
@@ -672,12 +954,21 @@ export default function ProviderProfileEditPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <Input
-                                            placeholder="Limba"
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Select
                                             value={newLanguage.name}
-                                            onChange={(e) => setNewLanguage(prev => ({ ...prev, name: e.target.value }))}
-                                        />
+                                            onValueChange={(value) => setNewLanguage(prev => ({ ...prev, flag: value }))}
+                                            >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selectează o limbă" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {languages.map((lang: Languages) => (
+                                                    <SelectItem key={lang.id} value={lang.name}>{lang.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
                                         <Select
                                             value={newLanguage.level}
                                             onValueChange={(value) => setNewLanguage(prev => ({ ...prev, level: value }))}
@@ -691,7 +982,7 @@ export default function ProviderProfileEditPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Button onClick={addLanguage} size="sm">
+                                        <Button onClick={addLanguage} size="sm" className="col-span-2">
                                             <Plus className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -713,66 +1004,66 @@ export default function ProviderProfileEditPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Skills */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Code className="w-5 h-5" />
-                                        <span>Competențe Tehnice</span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-4 gap-2">
-                                        <Input
-                                            placeholder="Skill"
-                                            value={newSkill.name}
-                                            onChange={(e) => setNewSkill(prev => ({ ...prev, name: e.target.value }))}
-                                        />
-                                        <Select
-                                            value={newSkill.level}
-                                            onValueChange={(value) => setNewSkill(prev => ({ ...prev, level: value }))}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {skillLevels.map(level => (
-                                                    <SelectItem key={level} value={level}>{level}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Input
-                                            type="number"
-                                            placeholder="Ani"
-                                            value={newSkill.years}
-                                            onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) }))}
-                                            min="1"
-                                            max="20"
-                                        />
-                                        <Button onClick={addSkill} size="sm">
-                                            <Plus className="w-4 h-4" />
-                                        </Button>
-                                    </div>
+                            {/*/!* Skills *!/*/}
+                            {/*<Card>*/}
+                            {/*    <CardHeader>*/}
+                            {/*        <CardTitle className="flex items-center space-x-2">*/}
+                            {/*            <Code className="w-5 h-5" />*/}
+                            {/*            <span>Competențe Tehnice</span>*/}
+                            {/*        </CardTitle>*/}
+                            {/*    </CardHeader>*/}
+                            {/*    <CardContent className="space-y-4">*/}
+                            {/*        <div className="grid grid-cols-4 gap-2">*/}
+                            {/*            <Input*/}
+                            {/*                placeholder="Skill"*/}
+                            {/*                value={newSkill.name}*/}
+                            {/*                onChange={(e) => setNewSkill(prev => ({ ...prev, name: e.target.value }))}*/}
+                            {/*            />*/}
+                            {/*            <Select*/}
+                            {/*                value={newSkill.level}*/}
+                            {/*                onValueChange={(value) => setNewSkill(prev => ({ ...prev, level: value }))}*/}
+                            {/*            >*/}
+                            {/*                <SelectTrigger>*/}
+                            {/*                    <SelectValue />*/}
+                            {/*                </SelectTrigger>*/}
+                            {/*                <SelectContent>*/}
+                            {/*                    {skillLevels.map(level => (*/}
+                            {/*                        <SelectItem key={level} value={level}>{level}</SelectItem>*/}
+                            {/*                    ))}*/}
+                            {/*                </SelectContent>*/}
+                            {/*            </Select>*/}
+                            {/*            <Input*/}
+                            {/*                type="number"*/}
+                            {/*                placeholder="Ani"*/}
+                            {/*                value={newSkill.years}*/}
+                            {/*                onChange={(e) => setNewSkill(prev => ({ ...prev, years: parseInt(e.target.value) }))}*/}
+                            {/*                min="1"*/}
+                            {/*                max="20"*/}
+                            {/*            />*/}
+                            {/*            <Button onClick={addSkill} size="sm">*/}
+                            {/*                <Plus className="w-4 h-4" />*/}
+                            {/*            </Button>*/}
+                            {/*        </div>*/}
 
-                                    <div className="space-y-2">
-                                        {profileData.skills.map((skill, index) => (
-                                            <div key={index} className="flex items-center justify-between p-2 border rounded">
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="font-medium">{skill.name}</span>
-                                                    <Badge variant="outline">{skill.level}</Badge>
-                                                    <span className="text-sm text-muted-foreground">{skill.years} ani</span>
-                                                </div>
-                                                <Button variant="ghost" size="sm" onClick={() => removeSkill(index)}>
-                                                    <X className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            {/*        <div className="space-y-2">*/}
+                            {/*            {profileData.skills.map((skill, index) => (*/}
+                            {/*                <div key={index} className="flex items-center justify-between p-2 border rounded">*/}
+                            {/*                    <div className="flex items-center space-x-2">*/}
+                            {/*                        <span className="font-medium">{skill.name}</span>*/}
+                            {/*                        <Badge variant="outline">{skill.level}</Badge>*/}
+                            {/*                        <span className="text-sm text-muted-foreground">{skill.years} ani</span>*/}
+                            {/*                    </div>*/}
+                            {/*                    <Button variant="ghost" size="sm" onClick={() => removeSkill(index)}>*/}
+                            {/*                        <X className="w-4 h-4" />*/}
+                            {/*                    </Button>*/}
+                            {/*                </div>*/}
+                            {/*            ))}*/}
+                            {/*        </div>*/}
+                            {/*    </CardContent>*/}
+                            {/*</Card>*/}
 
                             {/* Certifications */}
-                            <Card className="lg:col-span-2">
+                            <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Award className="w-5 h-5" />
@@ -780,7 +1071,7 @@ export default function ProviderProfileEditPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-5 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
                                         <Input
                                             placeholder="Nume certificare"
                                             value={newCertification.name}
@@ -801,7 +1092,7 @@ export default function ProviderProfileEditPage() {
                                             value={newCertification.credentialId}
                                             onChange={(e) => setNewCertification(prev => ({ ...prev, credentialId: e.target.value }))}
                                         />
-                                        <Button onClick={addCertification} size="sm">
+                                        <Button onClick={addCertification} size="sm" className="col-span-2">
                                             <Plus className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -836,42 +1127,38 @@ export default function ProviderProfileEditPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-6 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <Input
+                                        className="!h-14"
                                         placeholder="Poziție"
                                         value={newWork.position}
                                         onChange={(e) => setNewWork(prev => ({ ...prev, position: e.target.value }))}
                                     />
                                     <Input
+                                        className="!h-14"
                                         placeholder="Companie"
                                         value={newWork.company}
                                         onChange={(e) => setNewWork(prev => ({ ...prev, company: e.target.value }))}
                                     />
-                                    <Input
-                                        placeholder="Perioada"
-                                        value={newWork.period}
-                                        onChange={(e) => setNewWork(prev => ({ ...prev, period: e.target.value }))}
-                                    />
-                                    <Select
-                                        value={newWork.type}
-                                        onValueChange={(value) => setNewWork(prev => ({ ...prev, type: value }))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {workTypes.map(type => (
-                                                <SelectItem key={type} value={type}>{type}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DatePicker label={'De la data de'} openTo="day"
+                                                    defaultValue={newWork.start_date ? dayjs(newWork.start_date) : dayjs()}
+                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, start_date: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
+                                        />
+                                        <DatePicker label={'Pana la'} openTo="day"
+                                                    defaultValue={newWork.end_date ? dayjs(newWork.end_date) : dayjs()}
+                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, end_date: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
+                                        />
+                                    </LocalizationProvider>
                                     <Textarea
                                         placeholder="Descriere"
                                         value={newWork.description}
                                         onChange={(e) => setNewWork(prev => ({ ...prev, description: e.target.value }))}
-                                        rows={1}
+                                        className="!h-14 min-h-[120px] col-span-2"
+                                        rows={2}
                                     />
-                                    <Button onClick={addWork} size="sm">
+                                    <div></div>
+                                    <Button onClick={addWork} size="sm" className="col-span-2">
                                         <Plus className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -883,15 +1170,9 @@ export default function ProviderProfileEditPage() {
                                                 <div className="flex-1">
                                                     <h3 className="font-semibold">{work.position}</h3>
                                                     <p className="text-blue-600">{work.company}</p>
-                                                    <p className="text-sm text-muted-foreground">{work.period} • {work.type}</p>
+                                                    <p className="text-blue-600">{work.city} {work.country}</p>
+                                                    <p className="text-sm text-muted-foreground">{work.start_date} • {work.current_working ? 'Present' : work.end_date}</p>
                                                     <p className="text-sm mt-2">{work.description}</p>
-                                                    <div className="flex flex-wrap gap-1 mt-2">
-                                                        {work.technologies.map((tech: string) => (
-                                                            <Badge key={tech} variant="secondary" className="text-xs">
-                                                                {tech}
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
                                                 </div>
                                                 <Button variant="ghost" size="sm" onClick={() => removeWork(index)}>
                                                     <X className="w-4 h-4" />
@@ -914,29 +1195,37 @@ export default function ProviderProfileEditPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-5 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <Input
+                                        className="!h-14"
                                         placeholder="Diplomă/Grad"
                                         value={newEducation.degree}
                                         onChange={(e) => setNewEducation(prev => ({ ...prev, degree: e.target.value }))}
                                     />
                                     <Input
+                                        className="!h-14"
                                         placeholder="Instituție"
                                         value={newEducation.institution}
                                         onChange={(e) => setNewEducation(prev => ({ ...prev, institution: e.target.value }))}
                                     />
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DatePicker label={'De la data de'} views={['month', 'year']} openTo="year"
+                                                    defaultValue={newEducation.attended_from ? dayjs(newEducation.attended_from) : dayjs()}
+                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, attended_to: val ? dayjs(val).format('YYYY-MM') : '' }))}
+                                        />
+                                        <DatePicker label={'Pana la'} views={['month', 'year']} openTo="year"
+                                                    defaultValue={newEducation.attended_to ? dayjs(newEducation.attended_to) : dayjs()}
+                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, attended_to: val ? dayjs(val).format('YYYY-MM') : '' }))}
+                                        />
+                                    </LocalizationProvider>
+
                                     <Input
-                                        placeholder="Perioada"
-                                        value={newEducation.period}
-                                        onChange={(e) => setNewEducation(prev => ({ ...prev, period: e.target.value }))}
+                                        className="!h-14"
+                                        placeholder="Domeniu de studiu"
+                                        value={newEducation.study_area}
+                                        onChange={(e) => setNewEducation(prev => ({ ...prev, study_area: e.target.value }))}
                                     />
-                                    <Textarea
-                                        placeholder="Descriere"
-                                        value={newEducation.description}
-                                        onChange={(e) => setNewEducation(prev => ({ ...prev, description: e.target.value }))}
-                                        rows={1}
-                                    />
-                                    <Button onClick={addEducation} size="sm">
+                                    <Button onClick={addEducation} size="sm" className="col-span-2">
                                         <Plus className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -948,8 +1237,9 @@ export default function ProviderProfileEditPage() {
                                                 <div>
                                                     <h3 className="font-semibold">{edu.degree}</h3>
                                                     <p className="text-blue-600">{edu.institution}</p>
-                                                    <p className="text-sm text-muted-foreground">{edu.period}</p>
-                                                    <p className="text-sm mt-2">{edu.description}</p>
+                                                    <p className="text-sm text-muted-foreground">{edu.attended_from}</p>
+                                                    <p className="text-sm text-muted-foreground">{edu.attended_to}</p>
+                                                    <p className="text-sm mt-2">{edu.study_area}</p>
                                                 </div>
                                                 <Button variant="ghost" size="sm" onClick={() => removeEducation(index)}>
                                                     <X className="w-4 h-4" />
@@ -975,17 +1265,11 @@ export default function ProviderProfileEditPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-5 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <Input
                                         placeholder="Titlu proiect"
                                         value={newPortfolio.title}
                                         onChange={(e) => setNewPortfolio(prev => ({ ...prev, title: e.target.value }))}
-                                    />
-                                    <Textarea
-                                        placeholder="Descriere"
-                                        value={newPortfolio.description}
-                                        onChange={(e) => setNewPortfolio(prev => ({ ...prev, description: e.target.value }))}
-                                        rows={1}
                                     />
                                     <Input
                                         placeholder="URL imagine"
@@ -996,6 +1280,17 @@ export default function ProviderProfileEditPage() {
                                         placeholder="URL proiect"
                                         value={newPortfolio.url}
                                         onChange={(e) => setNewPortfolio(prev => ({ ...prev, url: e.target.value }))}
+                                    />
+                                    <Input
+                                        placeholder="Rol in proiect"
+                                        value={newPortfolio.role}
+                                        onChange={(e) => setNewPortfolio(prev => ({ ...prev, role: e.target.value }))}
+                                    />
+                                    <Textarea
+                                        placeholder="Descriere"
+                                        value={newPortfolio.description}
+                                        onChange={(e) => setNewPortfolio(prev => ({ ...prev, description: e.target.value }))}
+                                        rows={1}
                                     />
                                     <Button onClick={addPortfolio} size="sm">
                                         <Plus className="w-4 h-4" />
