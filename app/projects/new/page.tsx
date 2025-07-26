@@ -71,6 +71,8 @@ interface SuggestedProvider {
     lastActive: string;
 }
 
+type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
 export default function NewProjectPage() {
     const { user, loading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
@@ -354,7 +356,7 @@ export default function NewProjectPage() {
         }
     };
 
-    const getPriorityBadge = (priority: string) => {
+    const getPriorityBadge = (priority: Priority) => {
         const colors = {
             'LOW': 'bg-green-100 text-green-800',
             'MEDIUM': 'bg-blue-100 text-blue-800',
@@ -861,14 +863,14 @@ export default function NewProjectPage() {
                                                 <h4 className="font-semibold mb-2">Detalii Proiect</h4>
                                                 <div className="space-y-2 text-sm">
                                                     <div><strong>Titlu:</strong> {formData.title}</div>
-                                                    <div><strong>Categorie:</strong> {categoriesData?.find(c => c.id === formData.serviceId)?.name}</div>
+                                                    <div><strong>Categorie:</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
                                                     <div><strong>Buget:</strong> {formData.budget} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
                                                     {formData.deadline && (
                                                         <div><strong>Deadline:</strong> {new Date(formData.deadline).toLocaleDateString('ro-RO')}</div>
                                                     )}
                                                     <div>
                                                         <strong>Prioritate:</strong>
-                                                        <Badge className={`ml-2 ${getPriorityBadge(formData.priority)}`}>
+                                                        <Badge className={`ml-2 ${getPriorityBadge(formData.priority as Priority)}`}>
                                                             {formData.priority}
                                                         </Badge>
                                                     </div>

@@ -216,7 +216,7 @@ export default function DashboardPage() {
     if (isProvider) {
       setShowServiceModal(true);
     } else {
-      router.push('/dashboard/projects/new');
+      router.push('/projects/new');
     }
   };
 
