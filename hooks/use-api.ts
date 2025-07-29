@@ -45,8 +45,16 @@ export function useCategories() {
   return useApi(() => apiClient.getCategories(), []);
 }
 
+export function useMainCategories() {
+  return useApi(() => apiClient.getMainCategories(), []);
+}
+
 export function useAdminCategories() {
   return useApi(() => apiClient.getAllCategories(), []);
+}
+
+export function useGetServicesGroupedByCategory() {
+    return useApi(() => apiClient.getServicesGroupedByCategory(), []);
 }
 
 export function useProviders(params?: any) {
@@ -150,10 +158,6 @@ export function useProjects(params?: any) {
 
 export function useProject(id: string) {
   return useApi(() => apiClient.getProject(id), [id]);
-}
-
-export function useSuggestedProviders(serviceId: string, technologies: string[]) {
-  return useApi(() => apiClient.getSuggestedProviders(serviceId, technologies), [serviceId, JSON.stringify(technologies)]);
 }
 
 export function useTechnologies() {

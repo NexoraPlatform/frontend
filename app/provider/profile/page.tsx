@@ -867,9 +867,6 @@ export default function ProviderProfileEditPage() {
                                                 {languages.map((lang: Languages) => (
                                                     <SelectItem key={lang.id} value={lang.timezone}>{lang.timezone}</SelectItem>
                                                 ))}
-                                                <SelectItem value="Europe/London">Europe/London (GMT+0)</SelectItem>
-                                                <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
-                                                <SelectItem value="Asia/Tokyo">Asia/Tokyo (GMT+9)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>

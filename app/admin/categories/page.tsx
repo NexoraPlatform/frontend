@@ -40,11 +40,11 @@ export default function AdminCategoriesPage() {
   };
 
   const categories = categoriesData?.categories || [];
-  const parentCategories = categories.filter((cat: any) => !cat.parentId);
-  const childCategories = categories.filter((cat: any) => cat.parentId);
+  const parentCategories = categories.filter((cat: any) => !cat.parent_id);
+  const childCategories = categories.filter((cat: any) => cat.parent_id);
 
   const getChildrenForParent = (parentId: string) => {
-    return childCategories.filter((cat: any) => cat.parentId === parentId);
+    return childCategories.filter((cat: any) => cat.parent_id === parentId);
   };
 
   return (
@@ -92,6 +92,7 @@ export default function AdminCategoriesPage() {
             <div className="space-y-4">
               {parentCategories.map((category: any) => {
                 const children = getChildrenForParent(category.id);
+
                 return (
                   <div key={category.id} className="border rounded-lg">
                     {/* Parent Category */}

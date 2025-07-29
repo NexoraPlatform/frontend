@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useMemo} from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -38,17 +38,54 @@ import {
     Eye,
     ArrowRight,
     Calendar,
-    Briefcase
+    Briefcase, EuroIcon
 } from 'lucide-react';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
-import { useCategories } from '@/hooks/use-api';
+import {useGetServicesGroupedByCategory, useMainCategories} from '@/hooks/use-api';
+import TitleIcon from '@mui/icons-material/Title';
+import DescriptionIcon from '@mui/icons-material/Description';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import utc from 'dayjs/plugin/utc';
 
-interface Technology {
+dayjs.extend(relativeTime);
+dayjs.extend(utc);
+
+import 'dayjs/locale/ro';
+import 'dayjs/locale/en';
+
+export function setDayjsLocale(locale: string) {
+    const supported = ['ro', 'en'];
+    if (supported.includes(locale)) {
+        dayjs.locale(locale);
+    } else {
+        dayjs.locale('ro');
+    }
+}
+
+type Technology = {
     id: string;
     name: string;
-    category: string;
-}
+    price: number;
+    slug?: string;
+    category: string; // copil
+    parentCategory: string; // părinte
+};
+
+type ServiceItem = {
+    id: string;
+    name: string;
+    slug?: string;
+    category_id: string;
+};
+
+type GroupedServices = Record<
+    string, // parentCategory
+    Record<string, ServiceItem[]> // childCategory -> services
+>;
 
 interface SuggestedProvider {
     id: string;
@@ -69,27 +106,75 @@ interface SuggestedProvider {
     matchReasons: string[];
     availability: string;
     lastActive: string;
+    level: string;
 }
 
-type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+type Visibility = 'PUBLIC' | 'PRIVATE' | 'TEAM_ONLY';
+
+const aiLoadingMessages = [
+    "Se analizează informațiile...",
+    "Se generează informațiile...",
+    "Se verifică datele...",
+    "Finalizare..."
+];
+
+type TechnologySelected = {
+    id: string;
+    name: string
+}
+
+type RecommendedProvider = {
+    role: string;
+    level: string;
+    service: string;
+}
+
+type FormData = {
+    title: string;
+    description: string;
+    requirements: string;
+    serviceId: string;
+    technologies: TechnologySelected[];
+    budget: string;
+    budgetType: string;
+    deadline: string;
+    visibility: string;
+    attachments: File[];
+    additionalInfo: string;
+    recommendedProviders: RecommendedProvider[];
+};
 
 export default function NewProjectPage() {
+    setDayjsLocale('ro');
     const { user, loading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         description: '',
         requirements: '',
         serviceId: '',
-        technologies: [] as string[],
+        technologies: [],
         budget: '',
-        budgetType: 'FIXED', // FIXED, HOURLY, MILESTONE
+        budgetType: 'FIXED',
         deadline: '',
-        priority: 'MEDIUM', // LOW, MEDIUM, HIGH, URGENT
+        visibility: 'PUBLIC',
         attachments: [] as File[],
-        additionalInfo: ''
+        additionalInfo: '',
+        recommendedProviders: []
     });
+    const [generatedAiOutput, setGeneratedAiOutput] = useState({
+        title: "",
+        description: "",
+        technologies: [],
+        estimated_budget: 0,
+        budget_type: "",
+        notes: "",
+        additional_services: [],
+        team_structure: []
+    });
+    const [aiLoading, setAiLoading] = useState(false);
 
+    const [skipValidation, setSkipValidation] = useState(false);
     const [availableTechnologies, setAvailableTechnologies] = useState<Technology[]>([]);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
     const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
@@ -97,9 +182,52 @@ export default function NewProjectPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [newTechnology, setNewTechnology] = useState('');
+    const [index, setIndex] = useState(0);
+    const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const router = useRouter();
-    const { data: categoriesData } = useCategories();
+    const { data: categoriesData } = useMainCategories();
+    const { data: servicesData } = useGetServicesGroupedByCategory();
+
+    const markedNamesSet = useMemo(() => {
+        const names = [
+            ...formData.technologies.map(t => t.name),
+            ...generatedAiOutput.technologies.map((t: any) => t.name),
+        ].filter(Boolean); // să excludem eventuale undefined sau empty strings
+
+        return new Set(names);
+    }, [formData.technologies, generatedAiOutput.technologies]);
+
+    const validate = () => {
+        const newErrors: { [key: string]: string } = {};
+        if (!formData.title.trim()) {
+            newErrors.title = 'Titlul este obligatoriu';
+        }
+        if (!formData.description.trim()) {
+            newErrors.lastName = 'Descrierea este obligatoriu';
+        }
+        if (!formData.visibility.trim()) {
+            newErrors.visibility = 'Tipul proiect este obligatoriu';
+        }
+        if (!formData.budget.trim()) {
+            newErrors.budget = 'Bugetul este obligatoriu';
+        }
+        if (!formData.budgetType.trim()) {
+            newErrors.budgetType = 'Tipul de buget este obligatoriu';
+        }
+        if (!formData.deadline.trim()) {
+            newErrors.deadline = 'Durata proiect este obligatoriu';
+        }
+
+        if (formData.technologies.length === 0) {
+            newErrors.technologies = 'Selecteaza minim o tehnologie';
+        }
+
+        // alte validări...
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     useEffect(() => {
         if (!loading && !user) {
@@ -108,7 +236,8 @@ export default function NewProjectPage() {
         if (user && user.role !== 'CLIENT') {
             router.push('/dashboard');
         }
-        loadTechnologies();
+
+
     }, [user, loading, router]);
 
     useEffect(() => {
@@ -119,192 +248,224 @@ export default function NewProjectPage() {
         }
     }, [formData.serviceId, formData.technologies]);
 
-    const loadTechnologies = async () => {
-        // Mock technologies - în realitate ar veni din API
-        const technologies: Technology[] = [
-            // Frontend
-            { id: '1', name: 'React', category: 'Frontend' },
-            { id: '2', name: 'Vue.js', category: 'Frontend' },
-            { id: '3', name: 'Angular', category: 'Frontend' },
-            { id: '4', name: 'Next.js', category: 'Frontend' },
-            { id: '5', name: 'Nuxt.js', category: 'Frontend' },
-            { id: '6', name: 'TypeScript', category: 'Frontend' },
-            { id: '7', name: 'JavaScript', category: 'Frontend' },
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIndex(i => (i + 1) % aiLoadingMessages.length);
+        }, 3000);
 
-            // Backend
-            { id: '8', name: 'Node.js', category: 'Backend' },
-            { id: '9', name: 'PHP', category: 'Backend' },
-            { id: '10', name: 'Laravel', category: 'Backend' },
-            { id: '11', name: 'Python', category: 'Backend' },
-            { id: '12', name: 'Django', category: 'Backend' },
-            { id: '13', name: 'Express.js', category: 'Backend' },
-
-            // Mobile
-            { id: '14', name: 'React Native', category: 'Mobile' },
-            { id: '15', name: 'Flutter', category: 'Mobile' },
-            { id: '16', name: 'Swift', category: 'Mobile' },
-            { id: '17', name: 'Kotlin', category: 'Mobile' },
-
-            // Database
-            { id: '18', name: 'MySQL', category: 'Database' },
-            { id: '19', name: 'PostgreSQL', category: 'Database' },
-            { id: '20', name: 'MongoDB', category: 'Database' },
-            { id: '21', name: 'Redis', category: 'Database' },
-
-            // Design
-            { id: '22', name: 'Figma', category: 'Design' },
-            { id: '23', name: 'Adobe XD', category: 'Design' },
-            { id: '24', name: 'Sketch', category: 'Design' },
-            { id: '25', name: 'Photoshop', category: 'Design' },
-
-            // CMS
-            { id: '26', name: 'WordPress', category: 'CMS' },
-            { id: '27', name: 'Shopify', category: 'CMS' },
-            { id: '28', name: 'Drupal', category: 'CMS' },
-
-            // Cloud
-            { id: '29', name: 'AWS', category: 'Cloud' },
-            { id: '30', name: 'Google Cloud', category: 'Cloud' },
-            { id: '31', name: 'Azure', category: 'Cloud' },
-            { id: '32', name: 'Docker', category: 'Cloud' }
-        ];
-
-        setAvailableTechnologies(technologies);
-    };
+        return () => clearInterval(interval);
+    }, []);
 
     const loadSuggestedProviders = async () => {
         setLoadingProviders(true);
         try {
+            let payload;
+            if (formData.recommendedProviders.length === 0) {
+                payload = formData.technologies.map(p => ({
+                    service: p.name,
+                    level: ''
+                }));
+            } else {
+                payload = formData.recommendedProviders.map(p => ({
+                    service: p.service,
+                    level: p.level
+                }));
+            }
+
+
+            const apiData = await apiClient.getSuggestedProviders(payload);
+
+            const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
+                return users.map(user => {
+                    const userService = user.services?.[0];
+                    const skills = user.services?.map((s: any) => s.service?.name).filter(Boolean) ?? [];
+
+                    return {
+                        id: String(user.id),
+                        firstName: user.firstName ?? '',
+                        lastName: user.lastName ?? '',
+                        avatar: user.avatar ?? '',
+                        rating: parseFloat(user.rating ?? '0'),
+                        reviewCount: user.reviewCount ?? 0,
+                        completedProjects: userService?.provider_project_count ?? 0,
+                        responseTime: user.profile.answer_hour,
+                        location: 'România',
+                        isVerified: (user.testVerified && user.callVerified),
+                        level: userService?.level ?? '—',
+                        skills,
+                        basePrice: 0,
+                        pricingType: 'FIXED',
+                        deliveryTime: 14,
+                        matchScore: 90,
+                        matchReasons: [
+                            `Nivel ${userService?.level ?? '—'}`,
+                            ...(skills.length ? [`Expert în ${skills.join(', ')}`] : []),
+                            user.testVerified ? 'Test trecut' : '',
+                            user.callVerified ? 'Verificare video completă' : ''
+                        ].filter(Boolean),
+                        availability: user.profile.availability,
+                        lastActive: user.last_active_at,
+                    };
+                });
+            };
+
+            const providers = mapToSuggestedProviders(apiData.providers);
+
             // Mock API call - în realitate ar veni din backend
-            const mockProviders: SuggestedProvider[] = [
-                {
-                    id: '1',
-                    firstName: 'Alexandru',
-                    lastName: 'Ionescu',
-                    avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
-                    rating: 4.9,
-                    reviewCount: 127,
-                    completedProjects: 89,
-                    responseTime: '2 ore',
-                    location: 'București, România',
-                    isVerified: true,
-                    skills: ['React', 'Node.js', 'TypeScript', 'MongoDB'],
-                    basePrice: 2500,
-                    pricingType: 'FIXED',
-                    deliveryTime: 14,
-                    matchScore: 95,
-                    matchReasons: ['Expert în React și Node.js', 'Experiență cu proiecte similare', 'Rating excelent'],
-                    availability: 'Disponibil',
-                    lastActive: 'Acum 2 ore'
-                },
-                {
-                    id: '2',
-                    firstName: 'Maria',
-                    lastName: 'Popescu',
-                    avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150',
-                    rating: 4.8,
-                    reviewCount: 95,
-                    completedProjects: 67,
-                    responseTime: '1 oră',
-                    location: 'Cluj-Napoca, România',
-                    isVerified: true,
-                    skills: ['React', 'Vue.js', 'TypeScript', 'PostgreSQL'],
-                    basePrice: 2200,
-                    pricingType: 'FIXED',
-                    deliveryTime: 12,
-                    matchScore: 92,
-                    matchReasons: ['Specialist în frontend modern', 'Livrare rapidă', 'Comunicare excelentă'],
-                    availability: 'Disponibil',
-                    lastActive: 'Acum 1 oră'
-                },
-                {
-                    id: '3',
-                    firstName: 'Andrei',
-                    lastName: 'Radu',
-                    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-                    rating: 4.7,
-                    reviewCount: 78,
-                    completedProjects: 45,
-                    responseTime: '3 ore',
-                    location: 'Timișoara, România',
-                    isVerified: true,
-                    skills: ['React', 'Node.js', 'Express.js', 'MySQL'],
-                    basePrice: 2000,
-                    pricingType: 'FIXED',
-                    deliveryTime: 16,
-                    matchScore: 88,
-                    matchReasons: ['Preț competitiv', 'Experiență solidă', 'Portofoliu impresionant'],
-                    availability: 'Ocupat - disponibil în 1 săptămână',
-                    lastActive: 'Acum 5 ore'
-                },
-                {
-                    id: '4',
-                    firstName: 'Diana',
-                    lastName: 'Stoica',
-                    avatar: 'https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=150',
-                    rating: 4.6,
-                    reviewCount: 52,
-                    completedProjects: 34,
-                    responseTime: '4 ore',
-                    location: 'Iași, România',
-                    isVerified: false,
-                    skills: ['React', 'TypeScript', 'Node.js', 'MongoDB'],
-                    basePrice: 1800,
-                    pricingType: 'HOURLY',
-                    deliveryTime: 18,
-                    matchScore: 85,
-                    matchReasons: ['Tarif atractiv', 'Tehnologii potrivite', 'Disponibilitate bună'],
-                    availability: 'Disponibil',
-                    lastActive: 'Acum 1 zi'
-                }
-            ];
+            // const mockProviders: SuggestedProvider[] = [
+            //     {
+            //         id: '1',
+            //         firstName: 'Alexandru',
+            //         lastName: 'Ionescu',
+            //         avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
+            //         rating: 4.9,
+            //         reviewCount: 127,
+            //         completedProjects: 89,
+            //         responseTime: '2 ore',
+            //         location: 'București, România',
+            //         isVerified: true,
+            //         skills: ['React', 'Node.js', 'TypeScript', 'MongoDB'],
+            //         basePrice: 2500,
+            //         pricingType: 'FIXED',
+            //         deliveryTime: 14,
+            //         matchScore: 95,
+            //         matchReasons: ['Expert în React și Node.js', 'Experiență cu proiecte similare', 'Rating excelent'],
+            //         availability: 'Disponibil',
+            //         lastActive: 'Acum 2 ore'
+            //     },
+            //     {
+            //         id: '2',
+            //         firstName: 'Maria',
+            //         lastName: 'Popescu',
+            //         avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150',
+            //         rating: 4.8,
+            //         reviewCount: 95,
+            //         completedProjects: 67,
+            //         responseTime: '1 oră',
+            //         location: 'Cluj-Napoca, România',
+            //         isVerified: true,
+            //         skills: ['React', 'Vue.js', 'TypeScript', 'PostgreSQL'],
+            //         basePrice: 2200,
+            //         pricingType: 'FIXED',
+            //         deliveryTime: 12,
+            //         matchScore: 92,
+            //         matchReasons: ['Specialist în frontend modern', 'Livrare rapidă', 'Comunicare excelentă'],
+            //         availability: 'Disponibil',
+            //         lastActive: 'Acum 1 oră'
+            //     },
+            //     {
+            //         id: '3',
+            //         firstName: 'Andrei',
+            //         lastName: 'Radu',
+            //         avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
+            //         rating: 4.7,
+            //         reviewCount: 78,
+            //         completedProjects: 45,
+            //         responseTime: '3 ore',
+            //         location: 'Timișoara, România',
+            //         isVerified: true,
+            //         skills: ['React', 'Node.js', 'Express.js', 'MySQL'],
+            //         basePrice: 2000,
+            //         pricingType: 'FIXED',
+            //         deliveryTime: 16,
+            //         matchScore: 88,
+            //         matchReasons: ['Preț competitiv', 'Experiență solidă', 'Portofoliu impresionant'],
+            //         availability: 'Ocupat - disponibil în 1 săptămână',
+            //         lastActive: 'Acum 5 ore'
+            //     },
+            //     {
+            //         id: '4',
+            //         firstName: 'Diana',
+            //         lastName: 'Stoica',
+            //         avatar: 'https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=150',
+            //         rating: 4.6,
+            //         reviewCount: 52,
+            //         completedProjects: 34,
+            //         responseTime: '4 ore',
+            //         location: 'Iași, România',
+            //         isVerified: false,
+            //         skills: ['React', 'TypeScript', 'Node.js', 'MongoDB'],
+            //         basePrice: 1800,
+            //         pricingType: 'HOURLY',
+            //         deliveryTime: 18,
+            //         matchScore: 85,
+            //         matchReasons: ['Tarif atractiv', 'Tehnologii potrivite', 'Disponibilitate bună'],
+            //         availability: 'Disponibil',
+            //         lastActive: 'Acum 1 zi'
+            //     }
+            // ];
 
             // Simulăm un delay pentru loading
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Filtrăm și sortăm prestatorii în funcție de tehnologiile selectate
-            const filteredProviders = mockProviders
-                .filter(provider =>
-                    formData.technologies.some(tech =>
-                        provider.skills.some(skill =>
-                            skill.toLowerCase().includes(tech.toLowerCase())
-                        )
-                    )
-                )
-                .sort((a, b) => b.matchScore - a.matchScore)
-                .slice(0, 5);
+            // const filteredProviders = mockProviders
+            //     .filter(provider =>
+            //         formData.technologies.some(tech =>
+            //             provider.skills.some(skill =>
+            //                 skill.toLowerCase().includes(tech.name.toLowerCase())
+            //             )
+            //         )
+            //     )
+            //     .sort((a, b) => b.matchScore - a.matchScore)
+            //     .slice(0, 5);
 
-            setSuggestedProviders(filteredProviders);
+            setSuggestedProviders(providers);
+            setFoundSuggestedProvider(apiData.found);
         } catch (error: any) {
-            setError('Nu s-au putut încărca prestatorii sugeriți');
+            setError('Nu s-au putut încărca prestatorii sugerați');
         } finally {
             setLoadingProviders(false);
         }
     };
 
-    const handleTechnologyToggle = (techName: string) => {
-        setFormData(prev => ({
-            ...prev,
-            technologies: prev.technologies.includes(techName)
-                ? prev.technologies.filter(t => t !== techName)
-                : [...prev.technologies, techName]
-        }));
+    type SkillLevel = 'JUNIOR' | 'MEDIUM' | 'SENIOR' | 'ADVANCED';
+
+    const SkillLevels: Record<SkillLevel, { color: string; progress: number }> = {
+        ADVANCED: { color: 'bg-red-100 text-red-800', progress: 95 },
+        SENIOR: { color: 'bg-purple-100 text-purple-800', progress: 80 },
+        MEDIUM: { color: 'bg-blue-100 text-blue-800', progress: 60 },
+        JUNIOR: { color: 'bg-green-100 text-green-800', progress: 30 },
+    };
+
+    const getSkillLevel = (level: string) => {
+        if (level in SkillLevels) {
+            return SkillLevels[level as SkillLevel];
+        }
+
+        return SkillLevels['JUNIOR'];
+    };
+
+    const handleTechnologyToggle = (techName: string, techId: string) => {
+        setFormData(prev => {
+            const exists = prev.technologies.some(t => t.name === techName && t.id === techId);
+
+            return {
+                ...prev,
+                technologies: exists
+                    ? prev.technologies.filter(t => !(t.name === techName && t.id === techId))
+                    : [...prev.technologies, { id: techId, name: techName }]
+            };
+        });
     };
 
     const addCustomTechnology = () => {
-        if (newTechnology.trim() && !formData.technologies.includes(newTechnology.trim())) {
+        if (newTechnology.trim() && !formData.technologies.some(t => t.name === newTechnology.trim())) {
             setFormData(prev => ({
                 ...prev,
-                technologies: [...prev.technologies, newTechnology.trim()]
+                technologies: [
+                    ...prev.technologies,
+                    { id: newTechnology.trim(), name: newTechnology.trim() }
+                ]
             }));
             setNewTechnology('');
         }
     };
 
-    const removeTechnology = (tech: string) => {
+    const removeTechnology = (tech: TechnologySelected) => {
         setFormData(prev => ({
             ...prev,
-            technologies: prev.technologies.filter(t => t !== tech)
+            technologies: prev.technologies.filter(t => t.id !== tech.id)
         }));
     };
 
@@ -316,7 +477,13 @@ export default function NewProjectPage() {
         );
     };
 
+    const getLastActiveText = (lastActiveAt: string): string => {
+        const time = dayjs.utc(lastActiveAt);
+        return `${time.fromNow()}`;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
+        setSkipValidation(false);
         e.preventDefault();
 
         if (selectedProviders.length === 0) {
@@ -356,14 +523,14 @@ export default function NewProjectPage() {
         }
     };
 
-    const getPriorityBadge = (priority: Priority) => {
+    const getVisibilityBadge = (visibility: Visibility) => {
         const colors = {
-            'LOW': 'bg-green-100 text-green-800',
-            'MEDIUM': 'bg-blue-100 text-blue-800',
-            'HIGH': 'bg-orange-100 text-orange-800',
+            'PUBLIC': 'bg-green-100 text-green-800',
+            'PRIVATE': 'bg-blue-100 text-blue-800',
+            'TEAM_ONLY': 'bg-orange-100 text-orange-800',
             'URGENT': 'bg-red-100 text-red-800'
         };
-        return colors[priority] || colors['MEDIUM'];
+        return colors[visibility] || colors['PUBLIC'];
     };
 
     const getAvailabilityColor = (availability: string) => {
@@ -372,13 +539,187 @@ export default function NewProjectPage() {
         return 'text-gray-600';
     };
 
-    const groupedTechnologies = availableTechnologies.reduce((acc, tech) => {
+    const getAvailabilityStatus = (status: string) => {
+        switch (status) {
+            case 'AVAILABLE':
+                return { color: 'bg-green-100 text-green-800', label: 'Disponibil', icon: CheckCircle };
+            case 'BUYS':
+                return { color: 'bg-yellow-100 text-yellow-800', label: 'Ocupat', icon: Clock };
+            case 'UNAVAILABLE':
+                return { color: 'bg-red-100 text-red-800', label: 'Indisponibil', icon: AlertCircle };
+            default:
+                return { color: 'bg-gray-100 text-gray-800', label: 'Necunoscut', icon: AlertCircle };
+        }
+    };
+
+
+    const transformGroupedServices = (
+        apiData: Record<string, Record<string, any[]> | any[]>
+    ): Technology[] => {
+        const result: Technology[] = [];
+
+        Object.entries(apiData).forEach(([parentCategory, value]) => {
+            // value poate fi fie array (dacă nu are copil), fie obiect cu copii
+            if (Array.isArray(value)) {
+                // fără copii
+                value.forEach((item) => {
+                    result.push({
+                        id: String(item.id),
+                        name: item.name,
+                        price: item.price,
+                        slug: item.slug,
+                        category: parentCategory,
+                        parentCategory: parentCategory,
+                    });
+                });
+            } else {
+                // are copii
+                Object.entries(value).forEach(([childCategory, services]) => {
+                    (services as any[]).forEach((item) => {
+                        result.push({
+                            id: String(item.id),
+                            name: item.name,
+                            price: item.price,
+                            slug: item.slug,
+                            category: childCategory,
+                            parentCategory: parentCategory,
+                        });
+                    });
+                });
+            }
+        });
+
+        return result;
+    };
+
+    const groupServicesByParentAndChild = (
+        apiData: Record<string, Record<string, ServiceItem[]> | ServiceItem[]>
+    ): GroupedServices => {
+        const grouped: GroupedServices = {};
+
+        Object.entries(apiData).forEach(([parentCategory, childOrServices]) => {
+            if (Array.isArray(childOrServices)) {
+                // Nu există subcategorii, grupăm direct sub parent
+                grouped[parentCategory] = {
+                    [parentCategory]: childOrServices,
+                };
+            } else {
+                // Există subcategorii
+                grouped[parentCategory] = {};
+
+                Object.entries(childOrServices).forEach(([childCategory, services]) => {
+                    grouped[parentCategory][childCategory] = services;
+                });
+            }
+        });
+
+        return grouped;
+    };
+
+    const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
+
+    const allTechnologies = servicesData
+        ? transformGroupedServices(servicesData)
+        : [];
+
+    const groupedTechnologies = allTechnologies.reduce((acc, tech) => {
         if (!acc[tech.category]) {
             acc[tech.category] = [];
         }
         acc[tech.category].push(tech);
         return acc;
     }, {} as Record<string, Technology[]>);
+
+    const generateDescription = async () => {
+        const newErrors: { [key: string]: string } = {};
+        if (!formData.title.trim()) {
+            newErrors.title = 'Titlul este obligatoriu';
+        }
+        if (!formData.description.trim()) {
+            newErrors.description = 'Descrierea este obligatoriu';
+        }
+        setErrors(newErrors);
+
+        if (Object.keys(newErrors).length === 0) return;
+
+        setSkipValidation(true);
+        setAiLoading(true);
+
+        try {
+            const generatedOutput = await apiClient.generateProjectInformation(formData);
+            setGeneratedAiOutput(generatedOutput);
+            setFormData(prev => ({
+                ...prev,
+                recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
+                    role: member.role,
+                    level: member.level,
+                    service: member.service
+                })),
+            }));
+        } catch (e: any) {
+            console.error ('Error generating AI output:', e);
+        } finally {
+            setAiLoading(false);
+        }
+    }
+
+    const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
+        setSkipValidation(true);
+        setFormData(prev => ({
+           ...prev,
+            [field]: generatedText,
+        }));
+    }
+
+    const handleUseGeneratedTechnologies = (technologies: string[]) => {
+        setFormData(prev => {
+            const existing = prev.technologies;
+
+            const newTechs = technologies
+                .filter((techName) => !existing.some(t => t.name.toLowerCase() === techName.toLowerCase()))
+                .map((techName) => ({ id: techName, name: techName }));
+
+            return {
+                ...prev,
+                technologies: [...existing, ...newTechs]
+            };
+        });
+    };
+
+    const handleUseGeneratedSuggestedTechnologies = (technologies: string[]) => {
+        setFormData(prev => {
+            const existing = prev.technologies;
+
+            const newTechs = technologies
+                .filter((techName) => !existing.some(t => t.name.toLowerCase() === techName.toLowerCase()))
+                .map((techName) => ({ id: techName, name: techName }));
+
+            return {
+                ...prev,
+                technologies: [...existing, ...newTechs]
+            };
+        });
+    };
+
+    // const handleUpdateServicesByCategory = async (categoryId: string) => {
+    //     const childrensAndServices = await apiClient.getServicesGroupedByCategory(categoryId);
+    //     const test = await apiClient.getServicesGroupedByCategory();
+    //
+    //     console.log(test);
+    //     const technologies: Technology[] = [];
+    //     Object.entries(childrensAndServices).forEach(([categoryName, services]) => {
+    //         (services as any[]).forEach((service) => {
+    //             technologies.push({
+    //                 id: String(service.id),
+    //                 name: service.name,
+    //                 category: categoryName,
+    //             });
+    //         });
+    //     });
+    //
+    //     setAvailableTechnologies(technologies);
+    //
+    // }
 
     if (loading) {
         return (
@@ -388,9 +729,37 @@ export default function NewProjectPage() {
         );
     }
 
+    if (aiLoading) {
+        return (
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+                <svg
+                    className="animate-spin h-12 w-12 text-blue-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                >
+                    <circle
+                        className="opacity-25"
+                        cx="12" cy="12" r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                    />
+                    <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                </svg>
+                <p className="text-lg font-medium text-gray-700">{aiLoadingMessages[index]}</p>
+            </div>
+
+        );
+    }
+
     if (!user || user.role !== 'CLIENT') {
         return null;
     }
+
 
     return (
         <div className="min-h-screen bg-background">
@@ -417,7 +786,7 @@ export default function NewProjectPage() {
                         <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="details">Detalii Proiect</TabsTrigger>
                             <TabsTrigger value="providers" disabled={!formData.serviceId || formData.technologies.length === 0}>
-                                Prestatori Sugeriți
+                                Prestatori Sugerați
                             </TabsTrigger>
                             <TabsTrigger value="review" disabled={selectedProviders.length === 0}>
                                 Revizuire & Trimitere
@@ -426,218 +795,369 @@ export default function NewProjectPage() {
 
                         {/* Detalii Proiect */}
                         <TabsContent value="details" className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <FileText className="w-5 h-5" />
-                                        <span>Informații Generale</span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div>
-                                        <Label htmlFor="title">Titlu Proiect *</Label>
-                                        <Input
-                                            id="title"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                            placeholder="ex: Website modern pentru afacerea mea"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="description">Descriere Detaliată *</Label>
-                                        <Textarea
-                                            id="description"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                            placeholder="Descrie în detaliu ce vrei să realizezi, care sunt obiectivele și așteptările tale..."
-                                            rows={5}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="requirements">Cerințe Specifice</Label>
-                                        <Textarea
-                                            id="requirements"
-                                            value={formData.requirements}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                                            placeholder="Cerințe tehnice, funcționalități specifice, integrări necesare..."
-                                            rows={3}
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label htmlFor="serviceId">Categorie Serviciu *</Label>
-                                            <Select value={formData.serviceId} onValueChange={(value) => setFormData(prev => ({ ...prev, serviceId: value }))}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selectează categoria" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {(categoriesData || []).map((category: any) => (
-                                                        <SelectItem key={category.id} value={category.id}>
-                                                            {category.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="priority">Prioritate</Label>
-                                            <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="LOW">Scăzută</SelectItem>
-                                                    <SelectItem value="MEDIUM">Medie</SelectItem>
-                                                    <SelectItem value="HIGH">Înaltă</SelectItem>
-                                                    <SelectItem value="URGENT">Urgentă</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Code className="w-5 h-5" />
-                                        <span>Tehnologii și Skills</span>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Selectează tehnologiile necesare pentru proiectul tău
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Tehnologii selectate */}
-                                    {formData.technologies.length > 0 && (
-                                        <div>
-                                            <Label className="mb-3 block">Tehnologii Selectate ({formData.technologies.length})</Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {formData.technologies.map((tech) => (
-                                                    <Badge key={tech} variant="default" className="flex items-center space-x-1">
-                                                        <span>{tech}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeTechnology(tech)}
-                                                            className="ml-1 hover:text-red-300"
-                                                        >
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                    </Badge>
-                                                ))}
+                            <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
+                                <div>
+                                    <Card className="mb-6">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <FileText className="w-5 h-5" />
+                                                <span>Informații Generale</span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            <div>
+                                                <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">Titlu Proiect <span className="text-red-500">*</span></Label>
+                                                <Input
+                                                    id="title"
+                                                    className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
+                                                    value={formData.title}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                                    placeholder="ex: Website modern pentru afacerea mea"
+                                                    required
+                                                />
                                             </div>
-                                        </div>
-                                    )}
 
-                                    {/* Adaugă tehnologie personalizată */}
-                                    <div>
-                                        <Label>Adaugă Tehnologie Personalizată</Label>
-                                        <div className="flex space-x-2 mt-2">
-                                            <Input
-                                                value={newTechnology}
-                                                onChange={(e) => setNewTechnology(e.target.value)}
-                                                placeholder="ex: GraphQL, Redis, etc."
-                                                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
-                                            />
-                                            <Button type="button" onClick={addCustomTechnology} variant="outline">
-                                                <Plus className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
+                                            <div>
+                                                <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">Descriere Detaliată <span className="text-red-500">*</span></Label>
+                                                <Textarea
+                                                    id="description"
+                                                    className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
+                                                    value={formData.description}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                                    placeholder="Descrie în detaliu ce vrei să realizezi, care sunt obiectivele și așteptările tale..."
+                                                    rows={5}
+                                                    required
+                                                />
+                                            </div>
 
-                                    {/* Tehnologii disponibile grupate */}
-                                    <div className="space-y-4">
-                                        {Object.entries(groupedTechnologies).map(([category, techs]) => (
-                                            <div key={category}>
-                                                <Label className="text-sm font-semibold text-primary mb-2 block">
-                                                    {category}
-                                                </Label>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                                    {techs.map((tech) => (
-                                                        <div key={tech.id} className="flex items-center space-x-2">
-                                                            <Checkbox
-                                                                id={tech.id}
-                                                                checked={formData.technologies.includes(tech.name)}
-                                                                onCheckedChange={() => handleTechnologyToggle(tech.name)}
-                                                            />
-                                                            <Label htmlFor={tech.id} className="text-sm cursor-pointer">
-                                                                {tech.name}
-                                                            </Label>
-                                                        </div>
-                                                    ))}
+                                            <div>
+                                                <Label htmlFor="requirements">Cerințe Specifice</Label>
+                                                <Textarea
+                                                    id="requirements"
+                                                    value={formData.requirements}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+                                                    placeholder="Cerințe tehnice, funcționalități specifice, integrări necesare..."
+                                                    rows={3}
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/*<div>*/}
+                                                {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
+                                                {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
+                                                {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
+                                                {/*    }}>*/}
+                                                {/*        <SelectTrigger>*/}
+                                                {/*            <SelectValue placeholder="Selectează categoria" />*/}
+                                                {/*        </SelectTrigger>*/}
+                                                {/*        <SelectContent>*/}
+                                                {/*            {(categoriesData || []).map((category: any) => (*/}
+                                                {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
+                                                {/*                    {category.name}*/}
+                                                {/*                </SelectItem>*/}
+                                                {/*            ))}*/}
+                                                {/*        </SelectContent>*/}
+                                                {/*    </Select>*/}
+                                                {/*</div>*/}
+
+                                                <div>
+                                                    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>
+                                                    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>
+                                                        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>
+                                                            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="PUBLIC">Public</SelectItem>
+                                                            <SelectItem value="PRIVATE">Privat</SelectItem>
+                                                            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                        </CardContent>
+                                    </Card>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <DollarSign className="w-5 h-5" />
-                                        <span>Buget și Timeline</span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div>
-                                        <Label className="mb-3 block">Tip Buget *</Label>
-                                        <RadioGroup value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="FIXED" id="fixed" />
-                                                <Label htmlFor="fixed">Preț Fix per Proiect</Label>
+                                    <Card className="mb-6">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <Code className="w-5 h-5" />
+                                                <span className={errors.technologies ? "text-red-500" : ""}>Servicii și Tehnologii</span>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                Selectează serviciile necesare pentru proiectul tău
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            {/* Tehnologii selectate */}
+                                            {formData.technologies.length > 0 && (
+                                                <div>
+                                                    <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>Servicii Selectate ({formData.technologies.length})</Label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {formData.technologies.map((tech) => (
+                                                            <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
+                                                                <span>{tech.name}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeTechnology(tech)}
+                                                                    className="ml-1 hover:text-red-300"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Adaugă tehnologie personalizată */}
+                                            <div>
+                                                <Label className={errors.technologies ? "text-red-500" : ""}>Adaugă Tehnologie Personalizată</Label>
+                                                <div className="flex space-x-2 mt-2">
+                                                    <Input
+                                                        value={newTechnology}
+                                                        className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
+                                                        onChange={(e) => setNewTechnology(e.target.value)}
+                                                        placeholder="ex: GraphQL, Redis, etc."
+                                                        onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
+                                                    />
+                                                    <Button type="button" onClick={addCustomTechnology} variant="outline">
+                                                        <Plus className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="HOURLY" id="hourly" />
-                                                <Label htmlFor="hourly">Tarif pe Oră</Label>
+
+                                            {/* Tehnologii disponibile grupate */}
+                                            <div className="space-y-6">
+                                                {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
+                                                    <div key={parentCategory}>
+                                                        {/* Categoria părinte - text mai mare */}
+                                                        <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
+
+                                                        {/* Categorii copil */}
+                                                        {Object.entries(childCategories).map(([childCategory, services]) => (
+                                                            <div key={childCategory} className="mb-6">
+                                                                {/* Categoria copil */}
+                                                                <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
+
+                                                                {/* Lista serviciilor */}
+                                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                                    {services.map((service) => (
+                                                                        <div key={service.id} className="flex items-center space-x-2">
+                                                                            <Checkbox
+                                                                                id={service.id}
+                                                                                // checked={formData.technologies.some(t => t.id === service.id)}
+                                                                                checked={markedNamesSet.has(service.name)}
+                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id)}
+                                                                            />
+                                                                            <Label htmlFor={service.id} className="text-sm cursor-pointer">
+                                                                                {service.name}
+                                                                            </Label>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="MILESTONE" id="milestone" />
-                                                <Label htmlFor="milestone">Plată per Milestone</Label>
+
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <DollarSign className="w-5 h-5" />
+                                                <span>Buget și Timeline</span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            <div>
+                                                <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>Tip Buget <span className="text-red-500">*</span></Label>
+                                                <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
+                                                    value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
+                                                    <div className="flex items-center space-x-2">
+                                                        <RadioGroupItem value="FIXED" id="fixed" />
+                                                        <Label htmlFor="fixed">Preț Fix per Proiect</Label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <RadioGroupItem value="HOURLY" id="hourly" />
+                                                        <Label htmlFor="hourly">Tarif pe Oră</Label>
+                                                    </div>
+                                                </RadioGroup>
                                             </div>
-                                        </RadioGroup>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label htmlFor="budget">
-                                                Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} *
-                                            </Label>
-                                            <Input
-                                                id="budget"
-                                                type="number"
-                                                value={formData.budget}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                                placeholder={formData.budgetType === 'HOURLY' ? '50' : '2500'}
-                                                required
-                                            />
-                                        </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
+                                                        Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} *
+                                                    </Label>
+                                                    <Input
+                                                        id="budget"
+                                                        className={errors.buget ? "text-red-500" : ""}
+                                                        type="number"
+                                                        value={formData.budget}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
+                                                        placeholder={formData.budgetType === 'HOURLY' ? '50' : '2500'}
+                                                        required={!skipValidation}
+                                                    />
+                                                </div>
 
-                                        <div>
-                                            <Label htmlFor="deadline">Deadline Dorit</Label>
-                                            <Input
-                                                id="deadline"
-                                                type="date"
-                                                value={formData.deadline}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                                                min={new Date().toISOString().split('T')[0]}
-                                            />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                                <div>
+                                                    <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">Durata proiect <span className="text-red-500">*</span></Label>
+                                                    <Select
+                                                        value={formData.deadline}
+                                                        onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
+                                                    >
+                                                        <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
+                                                            <SelectValue placeholder="Selectează termenul limită" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="1day">1 zi</SelectItem>
+                                                            <SelectItem value="1week">1 saptamana</SelectItem>
+                                                            <SelectItem value="2week">2 saptamani</SelectItem>
+                                                            <SelectItem value="3week">3 saptamani</SelectItem>
+                                                            <SelectItem value="1month">1 luna</SelectItem>
+                                                            <SelectItem value="3month">3 luni</SelectItem>
+                                                            <SelectItem value="6month">6 luni</SelectItem>
+                                                            <SelectItem value="1year">1 an</SelectItem>
+                                                            <SelectItem value="1plusyear">1+ ani</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                                <div>
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <AutoAwesomeIcon className="w-5 h-5" />
+                                                <span>Genereaza cu AI</span>
+                                            </CardTitle>
+                                            <CardDescription className="flex items-center space-x-2">
+                                                Bazat pe cerintele scrise in descriere + restul informatiilor genereaza o descriere mai detaliată, sugereaza tehnologiile si/sau serviciile pentru proiect + buget recomandat.
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            {generatedAiOutput.title.trim() && (
+                                                <h2 className="font-bold">Informatii sugerate:</h2>
+                                            )}
+                                            {generatedAiOutput?.title.trim() && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Titlu: </span> {generatedAiOutput?.title}
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
+                                                        <TitleIcon />
+                                                        Foloseste titlu
+                                                    </a>
+                                                </>
+                                            )}
 
+                                            {generatedAiOutput?.description.trim() && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Descriere: </span> {generatedAiOutput?.description}
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                       onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
+                                                    <DescriptionIcon />
+                                                        Foloseste descrierea
+                                                    </a>
+                                                </>
+                                            )}
+
+                                            {generatedAiOutput?.technologies.length > 0 && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Tehnologii sugerate: </span>
+                                                        <ul className="ml-6 list-disc">
+                                                            {generatedAiOutput?.technologies.map((tech, index) => (
+                                                                <li key={index}>{tech}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                       onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
+                                                        <AddCircleIcon />
+                                                        Foloseste Tehnologii
+                                                    </a>
+                                                </>
+                                            )}
+
+                                            {generatedAiOutput?.additional_services.length > 0 && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Servicii aditionale sugerate: </span>
+                                                        <ul className="ml-6 list-disc">
+                                                            {generatedAiOutput?.additional_services.map((tech, index) => (
+                                                                <li key={index}>{tech}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                       onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
+                                                        <AddCircleIcon />
+                                                        Adauga Servicii Aditionale
+                                                    </a>
+                                                </>
+                                            )}
+
+                                            {generatedAiOutput?.team_structure.length > 0 && (
+                                                <div>
+                                                    <span className="text-sm text-black font-bold">Structura echipa: </span>
+                                                        {generatedAiOutput?.team_structure.map((team: {role: string, level: string, count: number, estimated_cost: number}, index) => (
+                                                            <div key={index}>
+                                                                <span className="text-sm text-black font-bold">Rol:</span> {team.role} - {team.count} {team.count === 1 ? 'persoana': 'persoane'} - Nivel {team.level}  - {team.estimated_cost} RON estimat
+                                                            </div>
+                                                        ))}
+
+                                                </div>
+                                            )}
+
+                                            {generatedAiOutput?.estimated_budget !== 0 && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Buget total estimat: </span> {generatedAiOutput?.estimated_budget} {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                       onClick={() => {
+                                                        handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
+                                                        handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
+                                                    }}>
+                                                        <EuroIcon />
+                                                        Foloseste Bugetul
+                                                    </a>
+                                                </>
+                                            )}
+
+                                            {generatedAiOutput?.notes.trim() && (
+                                                <div>
+                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes}
+                                                </div>
+                                            )}
+
+                                            <div className="col-span-2">
+                                                <Button size="sm" className="w-full" onClick={() => generateDescription()}>
+                                                    <AutoAwesomeIcon className="w-4 h-4 me-2" />
+                                                    Imbunătățește Descrierea cu AI
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
                             <div className="flex justify-end">
                                 <Button
                                     type="button"
-                                    onClick={() => setActiveTab('providers')}
-                                    disabled={!formData.serviceId || formData.technologies.length === 0}
+                                    onClick={() => {
+                                        if (!validate()) return;
+                                        setActiveTab('providers');
+                                        loadSuggestedProviders();
+                                    }}
+                                    disabled={formData.technologies.length === 0}
                                     className="px-8"
                                 >
                                     Continuă la Prestatori
@@ -646,16 +1166,17 @@ export default function NewProjectPage() {
                             </div>
                         </TabsContent>
 
-                        {/* Prestatori Sugeriți */}
+                        {/* Prestatori Sugerați */}
                         <TabsContent value="providers" className="space-y-6">
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Users className="w-5 h-5" />
-                                        <span>Prestatori Sugeriți</span>
+                                        <span>Prestatori Sugerați</span>
                                     </CardTitle>
                                     <CardDescription>
-                                        Prestatori care se potrivesc cu cerințele proiectului tău
+                                        Prestatori care se potrivesc cu cerințele proiectului tău<br />
+                                        <span className="text-red-500 font-bold">{!foundSuggestedProvider ? 'Nu avem sugestii de prestatori dar puteti folosi urmatorii prestatori' : ''}</span>
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -730,7 +1251,7 @@ export default function NewProjectPage() {
                                                                         </div>
                                                                         <div className="flex items-center space-x-1">
                                                                             <Clock className="w-4 h-4" />
-                                                                            <span>Răspuns în {provider.responseTime}</span>
+                                                                            <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
                                                                         </div>
                                                                     </div>
 
@@ -764,23 +1285,36 @@ export default function NewProjectPage() {
                                                             </div>
 
                                                             <div className="text-right space-y-2">
-                                                                <div className="text-2xl font-bold text-green-600">
-                                                                    {provider.basePrice.toLocaleString()} RON
+                                                                <div className="text-2xl font-bold">
+                                                                    <span className={`font-semibold px-2.5 py-0.5 rounded-full ${getSkillLevel(provider.level).color}`}>
+                                                                      {provider.level}
+                                                                    </span>
+
                                                                 </div>
-                                                                <div className="text-sm text-muted-foreground">
-                                                                    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}
-                                                                </div>
+                                                                {/*<div className="text-sm text-muted-foreground">*/}
+                                                                {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                                {/*</div>*/}
                                                                 <div className="text-sm">
-                                                                    <div className="flex items-center space-x-1">
+                                                                    <div className="flex items-center space-x-1 justify-end">
                                                                         <Calendar className="w-3 h-3" />
                                                                         <span>{provider.deliveryTime} zile</span>
                                                                     </div>
                                                                 </div>
-                                                                <div className={`text-sm font-medium ${getAvailabilityColor(provider.availability)}`}>
-                                                                    {provider.availability}
+
+                                                                <div className={`flex items-center justify-end space-x-2 mb-3`}>
+                                                                    <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
+                                                                        {
+                                                                            (() => {
+                                                                                const Icon = getAvailabilityStatus(provider.availability).icon;
+                                                                                return <Icon className="mr-1 w-4 h-4" />;
+                                                                            })()
+                                                                        }
+                                                                        {provider.availability}
+                                                                    </Badge>
+
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground">
-                                                                    Activ {provider.lastActive}
+                                                                    Activ {getLastActiveText(provider.lastActive)}
                                                                 </div>
 
                                                                 <div className="flex space-x-2 mt-4">
@@ -794,11 +1328,6 @@ export default function NewProjectPage() {
                                                                     </Button>
                                                                 </div>
 
-                                                                <Checkbox
-                                                                    checked={selectedProviders.includes(provider.id)}
-                                                                    onCheckedChange={() => handleProviderSelect(provider.id)}
-                                                                    className="mt-4"
-                                                                />
                                                             </div>
                                                         </div>
                                                     </CardContent>
@@ -869,9 +1398,9 @@ export default function NewProjectPage() {
                                                         <div><strong>Deadline:</strong> {new Date(formData.deadline).toLocaleDateString('ro-RO')}</div>
                                                     )}
                                                     <div>
-                                                        <strong>Prioritate:</strong>
-                                                        <Badge className={`ml-2 ${getPriorityBadge(formData.priority as Priority)}`}>
-                                                            {formData.priority}
+                                                        <strong>Tip proiect:</strong>
+                                                        <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>
+                                                            {formData.visibility}
                                                         </Badge>
                                                     </div>
                                                 </div>
@@ -881,8 +1410,8 @@ export default function NewProjectPage() {
                                                 <h4 className="font-semibold mb-2">Tehnologii ({formData.technologies.length})</h4>
                                                 <div className="flex flex-wrap gap-1">
                                                     {formData.technologies.map((tech) => (
-                                                        <Badge key={tech} variant="outline" className="text-xs">
-                                                            {tech}
+                                                        <Badge key={tech.id} variant="outline" className="text-xs">
+                                                            {tech.name}
                                                         </Badge>
                                                     ))}
                                                 </div>
@@ -907,7 +1436,7 @@ export default function NewProjectPage() {
                                                                     {provider.firstName} {provider.lastName}
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground">
-                                                                    {provider.basePrice.toLocaleString()} RON • {provider.matchScore}% potrivire
+                                                                    • {provider.matchScore}% potrivire
                                                                 </div>
                                                             </div>
                                                         </div>

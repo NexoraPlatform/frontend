@@ -170,6 +170,14 @@ class ApiClient {
     });
   }
 
+  async getServicesByCategoryId(categoryId: string) {
+    return this.request<any>(`/services/category/${categoryId}`);
+  }
+
+  async getServicesGroupedByCategory() {
+    return this.request<any>('/services/categories/grouped');
+  }
+
   async deleteService(id: string) {
     return this.request<any>(`/admin/services/${id}`, {
       method: 'DELETE',
@@ -209,12 +217,22 @@ class ApiClient {
     return this.request<any>('/categories');
   }
 
+  async getMainCategories() {
+    return this.request<any>('/categories/main');
+  }
+
   async getAllCategories() {
     return this.request<any>('/admin/categories');
   }
 
   async getCategoryById(categoryId: any) {
     return this.request<any>('/admin/categories/' + categoryId, {
+      method: 'GET',
+    });
+  }
+
+  async getCategorySlugById(categoryId: any) {
+    return this.request<any>(`/admin/categories/${categoryId}/slug`, {
       method: 'GET',
     });
   }
@@ -627,16 +645,44 @@ class ApiClient {
     });
   }
 
-  async getSuggestedProviders(serviceId: string, technologies: string[]) {
-    const searchParams = new URLSearchParams();
-    searchParams.append('serviceId', serviceId);
-    technologies.forEach(tech => searchParams.append('technologies', tech));
+  async getSuggestedProviders(services: { service: string; level: string }[]) {
+    console.log(services)
 
-    return this.request<any>(`/providers/suggestions?${searchParams.toString()}`);
+    return this.request<any>(`/providers/suggestions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        services: services,
+      }),
+        headers: {
+            'Content-Type': 'application/json',
+            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+        },
+    });
   }
 
   async getTechnologies() {
     return this.request<any>('/technologies');
+  }
+
+  async generateProjectInformation(projectData: any) {
+    return this.request<any>('/projects/generate-information-by-ai', {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
+  async updateLastActive() {
+    return this.request<any>('/users/active', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+        }
+    });
   }
 }
 

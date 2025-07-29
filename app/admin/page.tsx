@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAdminStats } from '@/hooks/use-api';
 import CallIcon from "@mui/icons-material/Call";
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 
 export default function AdminDashboard() {
   const { data: statsData, loading: statsLoading } = useAdminStats();

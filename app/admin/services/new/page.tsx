@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, AlertCircle, Loader2, X } from 'lucide-react';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import {InputAdornment, TextField} from "@mui/material";
 
 export default function NewServicePage() {
   const [formData, setFormData] = useState({
@@ -30,6 +31,7 @@ export default function NewServicePage() {
   const [error, setError] = useState('');
   const [newSkill, setNewSkill] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
 
   const router = useRouter();
   const { data: categoriesData } = useCategories();
@@ -103,12 +105,39 @@ export default function NewServicePage() {
     }
   };
 
+  const handleCategoryChange = async (categoryId: string) => {
+    try {
+      const categorySlug = await apiClient.getCategorySlugById(categoryId);
+
+      setSelectedCategorySlug(categorySlug);
+    } catch (error: any) {
+      setError('Nu s-a putut încărca categoria');
+    }
+  }
+
   const removeTag = (tag: string) => {
     setFormData(prev => ({
       ...prev,
       tags: prev.tags.filter(t => t !== tag)
     }));
   };
+
+  const buildCategoryOptions = (categories: any[], parentId: number | null = null, level = 0): any[] => {
+    let result: any[] = [];
+    categories
+        .filter(cat => cat.parent_id === parentId)
+        .forEach(cat => {
+          result.push({
+            ...cat,
+            displayName: `${'--'.repeat(level)} ${cat.name}`,
+          });
+          result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
+        });
+    return result;
+  };
+
+
+  const categoryOptions = buildCategoryOptions(categoriesData || []);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -158,12 +187,21 @@ export default function NewServicePage() {
 
               <div>
                 <Label htmlFor="slug">Slug (URL) *</Label>
-                <Input
-                    id="slug"
-                    value={formData.slug}
-                    onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                    placeholder="ex: dezvoltare-web"
+                <TextField
                     required
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    placeholder="ex: creare-aplicatie"
+                    slotProps={{
+                      input: {
+                        startAdornment: selectedCategorySlug ? (
+                            <InputAdornment position="start">
+                              {selectedCategorySlug}/
+                            </InputAdornment>
+                        ) : undefined,
+                      },
+                    }}
+                    fullWidth
                 />
                 <p className="text-sm text-muted-foreground mt-1">
                   Se generează automat din nume. Folosit în URL-uri.
@@ -195,15 +233,24 @@ export default function NewServicePage() {
 
               <div>
                 <Label htmlFor="category_id">Categorie *</Label>
-                <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
-                  <SelectTrigger id="category_id" name="category_id">
+                <Select
+                    value={typeof formData.category_id === 'string' ? formData.category_id : String(formData.category_id)}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, category_id: value });
+                      handleCategoryChange(value);
+                    }}
+                >
+                  <SelectTrigger>
                     <SelectValue placeholder="Selectează categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(categoriesData || []).map((category: any) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
+                    {categoryOptions.map((category: any) => (
+                        <SelectItem
+                            key={category.id}
+                            value={typeof category.id === 'string' ? category.id : String(category.id)}
+                        >
+                          {category.displayName.trim()}
+                        </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

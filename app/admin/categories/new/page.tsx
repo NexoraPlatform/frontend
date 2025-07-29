@@ -98,25 +98,39 @@ export default function NewCategoryPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const newSlug = generateSlug(formData.name, formData.parentId);
+    setFormData((prev) => ({ ...prev, slug: newSlug }));
+  }, [formData.name, formData.parentId]);
 
   const handleNameChange = (name: string) => {
     setFormData(prev => ({
       ...prev,
       name,
       // Auto-generate slug if not manually set
-      slug: prev.slug === generateSlug(prev.name) || prev.slug === ''
-        ? generateSlug(name)
+      slug: prev.slug === generateSlug(prev.name, prev.parentId) || prev.slug === ''
+        ? generateSlug(name, prev.parentId)
         : prev.slug
     }));
   };
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+  const generateSlug = (name: string, parentId: string) => {
+    const parentName = categoriesData?.categories?.find(
+        (category: any) => category.id === Number(parentId)
+    )?.name;
+
+    const slugify = (text: string) =>
+        text
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim();
+
+    const nameSlug = slugify(name);
+    const parentSlug = parentName ? slugify(parentName) : null;
+
+    return parentSlug ? `${parentSlug}/${nameSlug}` : `${nameSlug}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,7 +139,7 @@ export default function NewCategoryPage() {
     setError('');
 
     try {
-      const slug = formData.slug || generateSlug(formData.name);
+      const slug = formData.slug || generateSlug(formData.name, formData.parentId);
       await apiClient.createCategory({
         ...formData,
         slug,
@@ -294,7 +308,7 @@ export default function NewCategoryPage() {
                   <SelectContent>
                     <SelectItem value="none">Fără părinte (categorie principală)</SelectItem>
                     {parentCategories.map((category: any) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={String(category.id)}>
                         {category.name}
                       </SelectItem>
                     ))}
