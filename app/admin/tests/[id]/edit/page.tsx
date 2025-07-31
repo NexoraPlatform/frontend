@@ -214,7 +214,7 @@ export default function EditTestPage({ params }: EditTestPageProps) {
   };
 
   const editQuestion = (index: number) => {
-    console.log(questions[index]);
+
     setCurrentQuestion(questions[index]);
     setEditingQuestionIndex(index);
   };

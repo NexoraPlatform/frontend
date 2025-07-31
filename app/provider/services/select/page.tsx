@@ -66,11 +66,8 @@ export default function SelectServicesPage() {
     setLoadingServices(true);
     setError('');
     try {
-      console.log('Loading services for category:', categoryId);
-
       // Folosim endpoint-ul specific pentru prestatori
       const response = await apiClient.getAvailableServicesForProvider(categoryId);
-      console.log('API Response:', response);
 
       setServices(response.services || []);
 

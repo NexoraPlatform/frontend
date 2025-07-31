@@ -131,7 +131,6 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
         try {
             // Load provider profile
             const providerData = await apiClient.getProviderProfileByUrl(id);
-            console.log(providerData);
 
             const userLanguages = (providerData.languages || []).map((lang: any) => {
                 const match = languages.find((l: Languages) => l.name.toLowerCase() === lang.language?.toLowerCase());
@@ -142,7 +141,7 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
                     flag: match?.flag || '🇷🇴',
                 };
             });
-console.log(userLanguages)
+
             const providerInfo = {
                 id: params.id,
                 firstName: providerData.firstName,
@@ -289,7 +288,7 @@ console.log(userLanguages)
             };
 
             const providerServices = await apiClient.getProviderServices(providerData.id);
-            console.log(providerServices);
+
             // Provider services data
             const services: ServiceDisplay[] = providerServices.map((item: ProviderService) => ({
                 id: item.service.id.toString(),

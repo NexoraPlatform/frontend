@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
     Plus,
     X,
@@ -38,7 +39,9 @@ import {
     Eye,
     ArrowRight,
     Calendar,
-    Briefcase, EuroIcon
+    Briefcase, EuroIcon,
+    Filter,
+    ChevronDown
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
@@ -71,8 +74,8 @@ type Technology = {
     name: string;
     price: number;
     slug?: string;
-    category: string; // copil
-    parentCategory: string; // părinte
+    category: string;
+    parentCategory: string;
 };
 
 type ServiceItem = {
@@ -83,8 +86,8 @@ type ServiceItem = {
 };
 
 type GroupedServices = Record<
-    string, // parentCategory
-    Record<string, ServiceItem[]> // childCategory -> services
+    string,
+    Record<string, ServiceItem[]>
 >;
 
 interface SuggestedProvider {
@@ -144,6 +147,22 @@ type FormData = {
     recommendedProviders: RecommendedProvider[];
 };
 
+interface PaginationMeta {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+    from: number;
+    to: number;
+}
+
+interface ProviderSuggestionsResponse {
+    found: boolean;
+    fallback: boolean;
+    providers: SuggestedProvider[];
+    pagination: PaginationMeta;
+}
+
 export default function NewProjectPage() {
     setDayjsLocale('ro');
     const { user, loading } = useAuth();
@@ -175,7 +194,6 @@ export default function NewProjectPage() {
     const [aiLoading, setAiLoading] = useState(false);
 
     const [skipValidation, setSkipValidation] = useState(false);
-    const [availableTechnologies, setAvailableTechnologies] = useState<Technology[]>([]);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
     const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
     const [loadingProviders, setLoadingProviders] = useState(false);
@@ -185,19 +203,54 @@ export default function NewProjectPage() {
     const [index, setIndex] = useState(0);
     const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [providerSearchTerm, setProviderSearchTerm] = useState('');
+    const [selectedServiceFilters, setSelectedServiceFilters] = useState<string[]>([]);
+    const [skillLevelFilter, setSkillLevelFilter] = useState<string[]>([]);
+    const [availableServices, setAvailableServices] = useState<any[]>([]);
 
     const router = useRouter();
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
 
+    const skillLevels = [
+        { value: 'JUNIOR', label: 'Junior', color: 'bg-green-100 text-green-800', icon: '🌱' },
+        { value: 'MEDIU', label: 'Mediu', color: 'bg-blue-100 text-blue-800', icon: '⚡' },
+        { value: 'SENIOR', label: 'Senior', color: 'bg-purple-100 text-purple-800', icon: '🚀' },
+        { value: 'AVANSAT', label: 'Avansat', color: 'bg-orange-100 text-orange-800', icon: '👑' }
+    ];
+
     const markedNamesSet = useMemo(() => {
         const names = [
             ...formData.technologies.map(t => t.name),
             ...generatedAiOutput.technologies.map((t: any) => t.name),
-        ].filter(Boolean); // să excludem eventuale undefined sau empty strings
+        ].filter(Boolean);
 
         return new Set(names);
     }, [formData.technologies, generatedAiOutput.technologies]);
+
+    // Filter providers based on search and service filters
+    const filteredProviders = suggestedProviders.filter(provider => {
+        // Search filter
+        const searchMatch = !providerSearchTerm ||
+            provider.firstName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
+            provider.lastName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
+            provider.location.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
+            provider.skills.some(skill => skill.toLowerCase().includes(providerSearchTerm.toLowerCase()));
+
+        // Service filter - check if provider offers any of the selected services
+        const serviceMatch = selectedServiceFilters.length === 0 ||
+            selectedServiceFilters.some(serviceId =>
+                // This would need to be implemented based on your provider-service relationship
+                // For now, we'll assume all providers match all services
+                true
+            );
+
+        // Apply skill level filter
+        const skillLevelMatch = skillLevelFilter.length === 0 ||
+            skillLevelFilter.includes(provider.level || 'MEDIU');
+
+        return searchMatch && serviceMatch && skillLevelMatch;
+    });
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
@@ -207,10 +260,10 @@ export default function NewProjectPage() {
         if (!formData.description.trim()) {
             newErrors.lastName = 'Descrierea este obligatoriu';
         }
-        if (!formData.visibility.trim()) {
-            newErrors.visibility = 'Tipul proiect este obligatoriu';
-        }
-        if (!formData.budget.trim()) {
+        // if (!formData.visibility.trim()) {
+        //     newErrors.visibility = 'Tipul proiect este obligatoriu';
+        // }
+        if (String(formData.budget).trim() === '') {
             newErrors.budget = 'Bugetul este obligatoriu';
         }
         if (!formData.budgetType.trim()) {
@@ -228,6 +281,27 @@ export default function NewProjectPage() {
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
+
+    const handleSkillLevelFilterChange = (level: string, checked: boolean) => {
+        setSkillLevelFilter(prev =>
+            checked
+                ? [...prev, level]
+                : prev.filter(l => l !== level)
+        );
+    };
+
+    // Load available services for filtering
+    useEffect(() => {
+        const loadAvailableServices = async () => {
+            try {
+                const response = await apiClient.getAllServices();
+                setAvailableServices(response.services || []);
+            } catch (error) {
+                console.error('Failed to load services:', error);
+            }
+        };
+        loadAvailableServices();
+    }, []);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -256,29 +330,30 @@ export default function NewProjectPage() {
         return () => clearInterval(interval);
     }, []);
 
+    const buildProviderMatchPayload = (): { service: string; level: string }[] => {
+        if (formData.recommendedProviders.length > 0) {
+            return formData.recommendedProviders.map(p => ({
+                service: p.service,
+                level: p.level || '', // fallback
+            }));
+        }
+
+        return formData.technologies.map(t => ({
+            service: t.name,
+            level: '',
+        }));
+    };
+
     const loadSuggestedProviders = async () => {
         setLoadingProviders(true);
         try {
-            let payload;
-            if (formData.recommendedProviders.length === 0) {
-                payload = formData.technologies.map(p => ({
-                    service: p.name,
-                    level: ''
-                }));
-            } else {
-                payload = formData.recommendedProviders.map(p => ({
-                    service: p.service,
-                    level: p.level
-                }));
-            }
-
+            const payload = buildProviderMatchPayload();
 
             const apiData = await apiClient.getSuggestedProviders(payload);
-
             const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
                 return users.map(user => {
-                    const userService = user.services?.[0];
-                    const skills = user.services?.map((s: any) => s.service?.name).filter(Boolean) ?? [];
+                    // user.services este string[] (nume servicii)
+                    const skills = Array.isArray(user.services) ? user.services.filter(Boolean) : [];
 
                     return {
                         id: String(user.id),
@@ -287,128 +362,30 @@ export default function NewProjectPage() {
                         avatar: user.avatar ?? '',
                         rating: parseFloat(user.rating ?? '0'),
                         reviewCount: user.reviewCount ?? 0,
-                        completedProjects: userService?.provider_project_count ?? 0,
-                        responseTime: user.profile.answer_hour,
-                        location: 'România',
-                        isVerified: (user.testVerified && user.callVerified),
-                        level: userService?.level ?? '—',
+                        completedProjects: user.completedProjects ?? 0,
+                        responseTime: user.responseTime ?? '—',
+                        location: user.location ?? 'România',
+                        isVerified: Boolean(user.isVerified),
+                        level: user.level ?? '—',
                         skills,
-                        basePrice: 0,
-                        pricingType: 'FIXED',
-                        deliveryTime: 14,
-                        matchScore: 90,
-                        matchReasons: [
-                            `Nivel ${userService?.level ?? '—'}`,
-                            ...(skills.length ? [`Expert în ${skills.join(', ')}`] : []),
-                            user.testVerified ? 'Test trecut' : '',
-                            user.callVerified ? 'Verificare video completă' : ''
-                        ].filter(Boolean),
-                        availability: user.profile.availability,
-                        lastActive: user.last_active_at,
+                        basePrice: user.basePrice ?? 0,
+                        pricingType: user.pricingType ?? 'FIXED',
+                        deliveryTime: user.deliveryTime ?? 14,
+                        matchScore: user.matchScore ?? 0,
+                        matchReasons: Array.isArray(user.matchReasons) ? user.matchReasons.filter(Boolean) : [],
+                        availability: user.availability ?? '—',
+                        lastActive: user.lastActive ?? '',
                     };
                 });
             };
 
+            console.log(mapToSuggestedProviders(apiData.providers))
             const providers = mapToSuggestedProviders(apiData.providers);
 
-            // Mock API call - în realitate ar veni din backend
-            // const mockProviders: SuggestedProvider[] = [
-            //     {
-            //         id: '1',
-            //         firstName: 'Alexandru',
-            //         lastName: 'Ionescu',
-            //         avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
-            //         rating: 4.9,
-            //         reviewCount: 127,
-            //         completedProjects: 89,
-            //         responseTime: '2 ore',
-            //         location: 'București, România',
-            //         isVerified: true,
-            //         skills: ['React', 'Node.js', 'TypeScript', 'MongoDB'],
-            //         basePrice: 2500,
-            //         pricingType: 'FIXED',
-            //         deliveryTime: 14,
-            //         matchScore: 95,
-            //         matchReasons: ['Expert în React și Node.js', 'Experiență cu proiecte similare', 'Rating excelent'],
-            //         availability: 'Disponibil',
-            //         lastActive: 'Acum 2 ore'
-            //     },
-            //     {
-            //         id: '2',
-            //         firstName: 'Maria',
-            //         lastName: 'Popescu',
-            //         avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150',
-            //         rating: 4.8,
-            //         reviewCount: 95,
-            //         completedProjects: 67,
-            //         responseTime: '1 oră',
-            //         location: 'Cluj-Napoca, România',
-            //         isVerified: true,
-            //         skills: ['React', 'Vue.js', 'TypeScript', 'PostgreSQL'],
-            //         basePrice: 2200,
-            //         pricingType: 'FIXED',
-            //         deliveryTime: 12,
-            //         matchScore: 92,
-            //         matchReasons: ['Specialist în frontend modern', 'Livrare rapidă', 'Comunicare excelentă'],
-            //         availability: 'Disponibil',
-            //         lastActive: 'Acum 1 oră'
-            //     },
-            //     {
-            //         id: '3',
-            //         firstName: 'Andrei',
-            //         lastName: 'Radu',
-            //         avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-            //         rating: 4.7,
-            //         reviewCount: 78,
-            //         completedProjects: 45,
-            //         responseTime: '3 ore',
-            //         location: 'Timișoara, România',
-            //         isVerified: true,
-            //         skills: ['React', 'Node.js', 'Express.js', 'MySQL'],
-            //         basePrice: 2000,
-            //         pricingType: 'FIXED',
-            //         deliveryTime: 16,
-            //         matchScore: 88,
-            //         matchReasons: ['Preț competitiv', 'Experiență solidă', 'Portofoliu impresionant'],
-            //         availability: 'Ocupat - disponibil în 1 săptămână',
-            //         lastActive: 'Acum 5 ore'
-            //     },
-            //     {
-            //         id: '4',
-            //         firstName: 'Diana',
-            //         lastName: 'Stoica',
-            //         avatar: 'https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=150',
-            //         rating: 4.6,
-            //         reviewCount: 52,
-            //         completedProjects: 34,
-            //         responseTime: '4 ore',
-            //         location: 'Iași, România',
-            //         isVerified: false,
-            //         skills: ['React', 'TypeScript', 'Node.js', 'MongoDB'],
-            //         basePrice: 1800,
-            //         pricingType: 'HOURLY',
-            //         deliveryTime: 18,
-            //         matchScore: 85,
-            //         matchReasons: ['Tarif atractiv', 'Tehnologii potrivite', 'Disponibilitate bună'],
-            //         availability: 'Disponibil',
-            //         lastActive: 'Acum 1 zi'
-            //     }
-            // ];
 
             // Simulăm un delay pentru loading
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Filtrăm și sortăm prestatorii în funcție de tehnologiile selectate
-            // const filteredProviders = mockProviders
-            //     .filter(provider =>
-            //         formData.technologies.some(tech =>
-            //             provider.skills.some(skill =>
-            //                 skill.toLowerCase().includes(tech.name.toLowerCase())
-            //             )
-            //         )
-            //     )
-            //     .sort((a, b) => b.matchScore - a.matchScore)
-            //     .slice(0, 5);
 
             setSuggestedProviders(providers);
             setFoundSuggestedProvider(apiData.found);
@@ -638,9 +615,10 @@ export default function NewProjectPage() {
         if (!formData.description.trim()) {
             newErrors.description = 'Descrierea este obligatoriu';
         }
+
         setErrors(newErrors);
 
-        if (Object.keys(newErrors).length === 0) return;
+        if (Object.keys(newErrors).length !== 0) return;
 
         setSkipValidation(true);
         setAiLoading(true);
@@ -666,7 +644,7 @@ export default function NewProjectPage() {
     const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
         setSkipValidation(true);
         setFormData(prev => ({
-           ...prev,
+            ...prev,
             [field]: generatedText,
         }));
     }
@@ -860,19 +838,19 @@ export default function NewProjectPage() {
                                                 {/*    </Select>*/}
                                                 {/*</div>*/}
 
-                                                <div>
-                                                    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>
-                                                    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>
-                                                        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>
-                                                            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="PUBLIC">Public</SelectItem>
-                                                            <SelectItem value="PRIVATE">Privat</SelectItem>
-                                                            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
+                                                {/*<div>*/}
+                                                {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
+                                                {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
+                                                {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
+                                                {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
+                                                {/*        </SelectTrigger>*/}
+                                                {/*        <SelectContent>*/}
+                                                {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
+                                                {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
+                                                {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
+                                                {/*        </SelectContent>*/}
+                                                {/*    </Select>*/}
+                                                {/*</div>*/}
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -975,7 +953,7 @@ export default function NewProjectPage() {
                                             <div>
                                                 <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>Tip Buget <span className="text-red-500">*</span></Label>
                                                 <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
+                                                            value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="FIXED" id="fixed" />
                                                         <Label htmlFor="fixed">Preț Fix per Proiect</Label>
@@ -990,7 +968,7 @@ export default function NewProjectPage() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
-                                                        Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} *
+                                                        Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
                                                         id="budget"
@@ -1063,7 +1041,7 @@ export default function NewProjectPage() {
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
-                                                    <DescriptionIcon />
+                                                        <DescriptionIcon />
                                                         Foloseste descrierea
                                                     </a>
                                                 </>
@@ -1108,11 +1086,11 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.team_structure.length > 0 && (
                                                 <div>
                                                     <span className="text-sm text-black font-bold">Structura echipa: </span>
-                                                        {generatedAiOutput?.team_structure.map((team: {role: string, level: string, count: number, estimated_cost: number}, index) => (
-                                                            <div key={index}>
-                                                                <span className="text-sm text-black font-bold">Rol:</span> {team.role} - {team.count} {team.count === 1 ? 'persoana': 'persoane'} - Nivel {team.level}  - {team.estimated_cost} RON estimat
-                                                            </div>
-                                                        ))}
+                                                    {generatedAiOutput?.team_structure.map((team: {role: string, level: string, count: number, estimated_cost: number}, index) => (
+                                                        <div key={index}>
+                                                            <span className="text-sm text-black font-bold">Rol:</span> {team.role} - {team.count} {team.count === 1 ? 'persoana': 'persoane'} - Nivel {team.level}  - {team.estimated_cost} RON estimat
+                                                        </div>
+                                                    ))}
 
                                                 </div>
                                             )}
@@ -1124,9 +1102,9 @@ export default function NewProjectPage() {
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => {
-                                                        handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
-                                                        handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
-                                                    }}>
+                                                           handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
+                                                           handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
+                                                       }}>
                                                         <EuroIcon />
                                                         Foloseste Bugetul
                                                     </a>
@@ -1140,7 +1118,7 @@ export default function NewProjectPage() {
                                             )}
 
                                             <div className="col-span-2">
-                                                <Button size="sm" className="w-full" onClick={() => generateDescription()}>
+                                                <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
                                                     <AutoAwesomeIcon className="w-4 h-4 me-2" />
                                                     Imbunătățește Descrierea cu AI
                                                 </Button>
@@ -1172,7 +1150,7 @@ export default function NewProjectPage() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Users className="w-5 h-5" />
-                                        <span>Prestatori Sugerați</span>
+                                        <span>Prestatori Sugerați ({filteredProviders.length})</span>
                                     </CardTitle>
                                     <CardDescription>
                                         Prestatori care se potrivesc cu cerințele proiectului tău<br />
@@ -1197,142 +1175,373 @@ export default function NewProjectPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
-                                            {suggestedProviders.map((provider) => (
-                                                <Card
-                                                    key={provider.id}
-                                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                        selectedProviders.includes(provider.id)
-                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                            : 'border-gray-200 hover:border-blue-300'
-                                                    }`}
-                                                    onClick={() => handleProviderSelect(provider.id)}
-                                                >
-                                                    <CardContent className="p-6">
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="flex items-start space-x-4 flex-1">
-                                                                <div className="relative">
-                                                                    <Avatar className="w-16 h-16">
-                                                                        <AvatarImage src={provider.avatar} />
-                                                                        <AvatarFallback>
-                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    {provider.isVerified && (
-                                                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                            <CheckCircle className="w-4 h-4 text-white" />
+                                            {/* Search and Filter Bar */}
+                                            <div className="mb-6 space-y-4">
+                                                <div className="flex flex-col md:flex-row gap-4">
+                                                    {/* Search Bar */}
+                                                    <div className="flex-1">
+                                                        <div className="relative">
+                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                                            <Input
+                                                                placeholder="Caută prestatori după nume, locație sau skills..."
+                                                                value={providerSearchTerm}
+                                                                onChange={(e) => setProviderSearchTerm(e.target.value)}
+                                                                className="pl-10"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Service Filter Dropdown */}
+                                                    <div className="md:w-64">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="outline" className="w-full justify-between">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Filter className="w-4 h-4" />
+                                                                        <span>
+                                                                            {selectedServiceFilters.length === 0
+                                                                                ? 'Filtrează servicii'
+                                                                                : `${selectedServiceFilters.length} servicii`
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                    <ChevronDown className="w-4 h-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
+                                                                <div className="p-2 max-h-80 overflow-y-auto">
+                                                                    <div className="text-sm font-medium mb-2">Filtrează după servicii:</div>
+                                                                    {availableServices.map((service) => (
+                                                                        <div key={service.id} className="flex items-center space-x-2 py-1">
+                                                                            <Checkbox
+                                                                                id={`service-${service.id}`}
+                                                                                checked={selectedServiceFilters.includes(service.id)}
+                                                                                onCheckedChange={(checked) => {
+                                                                                    if (checked) {
+                                                                                        setSelectedServiceFilters(prev => [...prev, service.id]);
+                                                                                    } else {
+                                                                                        setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                            <label
+                                                                                htmlFor={`service-${service.id}`}
+                                                                                className="text-sm cursor-pointer flex-1"
+                                                                            >
+                                                                                {service.name}
+                                                                            </label>
+                                                                        </div>
+                                                                    ))}
+                                                                    {availableServices.length === 0 && (
+                                                                        <div className="text-sm text-muted-foreground py-2">
+                                                                            Nu există servicii disponibile
                                                                         </div>
                                                                     )}
                                                                 </div>
-
-                                                                <div className="flex-1">
-                                                                    <div className="flex items-center space-x-2 mb-2">
-                                                                        <h3 className="text-lg font-semibold">
-                                                                            {provider.firstName} {provider.lastName}
-                                                                        </h3>
-                                                                        <Badge className="bg-green-100 text-green-800">
-                                                                            {provider.matchScore}% potrivire
-                                                                        </Badge>
-                                                                        {provider.isVerified && (
-                                                                            <Badge className="bg-blue-100 text-blue-800">
-                                                                                Verificat
-                                                                            </Badge>
-                                                                        )}
+                                                                {selectedServiceFilters.length > 0 && (
+                                                                    <div className="border-t p-2">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setSelectedServiceFilters([])}
+                                                                            className="w-full text-xs"
+                                                                        >
+                                                                            <X className="w-3 h-3 mr-1" />
+                                                                            Resetează filtrele
+                                                                        </Button>
                                                                     </div>
+                                                                )}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
 
-                                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                        <div className="flex items-center space-x-1">
-                                                                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                            <span className="font-medium">{provider.rating}</span>
-                                                                            <span>({provider.reviewCount} recenzii)</span>
-                                                                        </div>
-                                                                        <div className="flex items-center space-x-1">
-                                                                            <MapPin className="w-4 h-4" />
-                                                                            <span>{provider.location}</span>
-                                                                        </div>
-                                                                        <div className="flex items-center space-x-1">
-                                                                            <Clock className="w-4 h-4" />
-                                                                            <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
-                                                                        </div>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="outline" className="min-w-40">
+                                                                <Target className="w-4 h-4 mr-2" />
+                                                                {skillLevelFilter.length > 0 ? `${skillLevelFilter.length} niveluri` : 'Nivel Skill'}
+                                                                <ChevronDown className="w-4 h-4 ml-2" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
+                                                            <div className="p-2">
+                                                                <div className="text-sm font-medium mb-2">Selectează nivelurile:</div>
+                                                                {skillLevels.map(level => (
+                                                                    <div key={level.value} className="flex items-center space-x-2 py-1">
+                                                                        <Checkbox
+                                                                            id={`skill-${level.value}`}
+                                                                            checked={skillLevelFilter.includes(level.value)}
+                                                                            onCheckedChange={(checked) =>
+                                                                                handleSkillLevelFilterChange(level.value, checked as boolean)
+                                                                            }
+                                                                        />
+                                                                        <label
+                                                                            htmlFor={`skill-${level.value}`}
+                                                                            className="flex items-center space-x-2 cursor-pointer flex-1"
+                                                                        >
+                                                                            <span>{level.icon}</span>
+                                                                            <span className="text-sm">{level.label}</span>
+                                                                        </label>
                                                                     </div>
-
-                                                                    <div className="flex flex-wrap gap-1 mb-3">
-                                                                        {provider.skills.slice(0, 4).map((skill) => (
-                                                                            <Badge key={skill} variant="outline" className="text-xs">
-                                                                                {skill}
-                                                                            </Badge>
-                                                                        ))}
-                                                                        {provider.skills.length > 4 && (
-                                                                            <Badge variant="outline" className="text-xs">
-                                                                                +{provider.skills.length - 4}
-                                                                            </Badge>
-                                                                        )}
+                                                                ))}
+                                                                {skillLevelFilter.length > 0 && (
+                                                                    <div className="pt-2 mt-2 border-t">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setSkillLevelFilter([])}
+                                                                            className="w-full text-xs"
+                                                                        >
+                                                                            Resetează Nivelurile
+                                                                        </Button>
                                                                     </div>
-
-                                                                    <div className="space-y-1">
-                                                                        <div className="text-sm font-medium text-green-600">
-                                                                            De ce este potrivit:
-                                                                        </div>
-                                                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                                                            {provider.matchReasons.map((reason, index) => (
-                                                                                <li key={index} className="flex items-center space-x-2">
-                                                                                    <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                    <span>{reason}</span>
-                                                                                </li>
-                                                                            ))}
-                                                                        </ul>
-                                                                    </div>
-                                                                </div>
+                                                                )}
                                                             </div>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
 
-                                                            <div className="text-right space-y-2">
-                                                                <div className="text-2xl font-bold">
-                                                                    <span className={`font-semibold px-2.5 py-0.5 rounded-full ${getSkillLevel(provider.level).color}`}>
-                                                                      {provider.level}
-                                                                    </span>
+                                                {/* Active Filters Display */}
+                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="text-sm text-muted-foreground">Filtre active:</span>
 
-                                                                </div>
-                                                                {/*<div className="text-sm text-muted-foreground">*/}
-                                                                {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                {/*</div>*/}
-                                                                <div className="text-sm">
-                                                                    <div className="flex items-center space-x-1 justify-end">
-                                                                        <Calendar className="w-3 h-3" />
-                                                                        <span>{provider.deliveryTime} zile</span>
+                                                        {providerSearchTerm && (
+                                                            <Badge variant="secondary" className="flex items-center space-x-1">
+                                                                <Search className="w-3 h-3" />
+                                                                <span>&#34;{providerSearchTerm}&#34;</span>
+                                                                <button
+                                                                    onClick={() => setProviderSearchTerm('')}
+                                                                    className="ml-1 hover:text-red-500"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </Badge>
+                                                        )}
+
+                                                        {selectedServiceFilters.map(serviceId => {
+                                                            const service = availableServices.find(s => s.id === serviceId);
+                                                            return service ? (
+                                                                <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
+                                                                    <span>{service.name}</span>
+                                                                    <button
+                                                                        onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
+                                                                        className="ml-1 hover:text-red-500"
+                                                                    >
+                                                                        <X className="w-3 h-3" />
+                                                                    </button>
+                                                                </Badge>
+                                                            ) : null;
+                                                        })}
+
+                                                        {skillLevelFilter.map(level => {
+                                                            const levelInfo = skillLevels.find(l => l.value === level);
+                                                            return (
+                                                                <Badge key={level} variant="secondary" className="flex items-center space-x-1">
+                                                                    <span>{levelInfo?.icon}</span>
+                                                                    <span>{levelInfo?.label}</span>
+                                                                    <button
+                                                                        onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
+                                                                        className="ml-1 hover:text-red-500"
+                                                                    >
+                                                                        <X className="w-3 h-3" />
+                                                                    </button>
+                                                                </Badge>
+                                                            );
+                                                        })}
+
+                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setProviderSearchTerm('');
+                                                                    setSelectedServiceFilters([]);
+                                                                    setSkillLevelFilter([]);
+                                                                }}
+                                                                className="text-xs h-6"
+                                                            >
+                                                                Resetează toate
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {filteredProviders.length === 0 ? (
+                                                <div className="text-center py-8">
+                                                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                                    <h3 className="text-lg font-medium mb-2">Nu s-au găsit prestatori</h3>
+                                                    <p className="text-muted-foreground mb-4">
+                                                        Încearcă să modifici filtrele sau termenii de căutare
+                                                    </p>
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setProviderSearchTerm('');
+                                                            setSelectedServiceFilters([]);
+                                                            setSkillLevelFilter([]);
+                                                        }}
+                                                    >
+                                                        Resetează filtrele
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {filteredProviders.map((provider) => (
+                                                        <Card
+                                                            key={provider.id}
+                                                            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                                                                selectedProviders.includes(provider.id)
+                                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
+                                                                    : 'border-gray-200 hover:border-blue-300'
+                                                            }`}
+                                                            onClick={() => handleProviderSelect(provider.id)}
+                                                        >
+                                                            <CardContent className="p-6">
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="flex items-start space-x-4 flex-1">
+                                                                        <div className="relative">
+                                                                            <Avatar className="w-16 h-16">
+                                                                                <AvatarImage src={provider.avatar} />
+                                                                                <AvatarFallback>
+                                                                                    {provider.firstName[0]}{provider.lastName[0]}
+                                                                                </AvatarFallback>
+                                                                            </Avatar>
+                                                                            {provider.isVerified && (
+                                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                    <CheckCircle className="w-4 h-4 text-white" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center space-x-2 mb-2">
+                                                                                <span className="font-medium">{provider.firstName} {provider.lastName}</span>
+                                                                                {provider.isVerified && (
+                                                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                                                )}
+                                                                                <Badge className={
+                                                                                    skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                    'bg-blue-100 text-blue-800'
+                                                                                }>
+                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}
+                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
+                                                                                </Badge>
+                                                                            </div>
+                                                                            <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+                                                                                <h3 className="text-lg font-semibold">
+                                                                                    {provider.firstName} {provider.lastName}
+                                                                                </h3>
+                                                                                <Badge className="bg-green-100 text-green-800">
+                                                                                    {provider.matchScore}% potrivire
+                                                                                </Badge>
+                                                                                {provider.isVerified && (
+                                                                                    <Badge className="bg-blue-100 text-blue-800">
+                                                                                        Verificat
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                                                                                <div className="flex items-center space-x-1">
+                                                                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                                                    <span className="font-medium">{provider.rating}</span>
+                                                                                    <span>({provider.reviewCount} recenzii)</span>
+                                                                                </div>
+                                                                                <div className="flex items-center space-x-1">
+                                                                                    <MapPin className="w-4 h-4" />
+                                                                                    <span>{provider.location}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center space-x-1">
+                                                                                    <Clock className="w-4 h-4" />
+                                                                                    <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                                                {provider.skills.slice(0, 4).map((skill) => (
+                                                                                    <Badge key={skill} variant="outline" className="text-xs">
+                                                                                        {skill}
+                                                                                    </Badge>
+                                                                                ))}
+                                                                                {provider.skills.length > 4 && (
+                                                                                    <Badge variant="outline" className="text-xs">
+                                                                                        +{provider.skills.length - 4}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div className="space-y-1">
+                                                                                <div className="text-sm font-medium text-green-600">
+                                                                                    De ce este potrivit:
+                                                                                </div>
+                                                                                <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                    {provider.matchReasons.map((reason, index) => (
+                                                                                        <li key={index} className="flex items-center space-x-2">
+                                                                                            <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                                            <span>{reason}</span>
+                                                                                        </li>
+                                                                                    ))}
+                                                                                </ul>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="text-right space-y-2">
+                                                                        <div className="text-2xl font-bold">
+                                                                            <span className={`font-semibold px-2.5 py-0.5 rounded-full ${getSkillLevel(provider.level).color}`}>
+                                                                              {provider.level}
+                                                                            </span>
+
+                                                                        </div>
+                                                                        {/*<div className="text-sm text-muted-foreground">*/}
+                                                                        {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                                        {/*</div>*/}
+                                                                        {/*<div className="text-sm">*/}
+                                                                        {/*    <div className="flex items-center space-x-1 justify-end">*/}
+                                                                        {/*        <Calendar className="w-3 h-3" />*/}
+                                                                        {/*        <span>{provider.deliveryTime} zile</span>*/}
+                                                                        {/*    </div>*/}
+                                                                        {/*</div>*/}
+
+                                                                        <div className={`flex items-center justify-end space-x-2 mb-3`}>
+                                                                            <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
+                                                                                {
+                                                                                    (() => {
+                                                                                        const Icon = getAvailabilityStatus(provider.availability).icon;
+                                                                                        return <Icon className="mr-1 w-4 h-4" />;
+                                                                                    })()
+                                                                                }
+                                                                                {provider.availability}
+                                                                            </Badge>
+
+                                                                        </div>
+                                                                        <div className="text-xs text-muted-foreground">
+                                                                            Activ {getLastActiveText(provider.lastActive)}
+                                                                        </div>
+
+                                                                        <div className="flex space-x-2 mt-4">
+                                                                            <Button variant="outline" size="sm">
+                                                                                <Eye className="w-3 h-3 mr-1" />
+                                                                                Profil
+                                                                            </Button>
+                                                                            <Button variant="outline" size="sm">
+                                                                                <MessageSquare className="w-3 h-3 mr-1" />
+                                                                                Mesaj
+                                                                            </Button>
+                                                                        </div>
+
                                                                     </div>
                                                                 </div>
 
-                                                                <div className={`flex items-center justify-end space-x-2 mb-3`}>
-                                                                    <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
-                                                                        {
-                                                                            (() => {
-                                                                                const Icon = getAvailabilityStatus(provider.availability).icon;
-                                                                                return <Icon className="mr-1 w-4 h-4" />;
-                                                                            })()
-                                                                        }
-                                                                        {provider.availability}
-                                                                    </Badge>
+                                                            </CardContent>
+                                                        </Card>
+                                                    ))}
 
-                                                                </div>
-                                                                <div className="text-xs text-muted-foreground">
-                                                                    Activ {getLastActiveText(provider.lastActive)}
-                                                                </div>
 
-                                                                <div className="flex space-x-2 mt-4">
-                                                                    <Button variant="outline" size="sm">
-                                                                        <Eye className="w-3 h-3 mr-1" />
-                                                                        Profil
-                                                                    </Button>
-                                                                    <Button variant="outline" size="sm">
-                                                                        <MessageSquare className="w-3 h-3 mr-1" />
-                                                                        Mesaj
-                                                                    </Button>
-                                                                </div>
-
-                                                            </div>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
+                                                </>
+                                            )}
                                         </div>
                                     )}
 
@@ -1397,12 +1606,12 @@ export default function NewProjectPage() {
                                                     {formData.deadline && (
                                                         <div><strong>Deadline:</strong> {new Date(formData.deadline).toLocaleDateString('ro-RO')}</div>
                                                     )}
-                                                    <div>
-                                                        <strong>Tip proiect:</strong>
-                                                        <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>
-                                                            {formData.visibility}
-                                                        </Badge>
-                                                    </div>
+                                                    {/*<div>*/}
+                                                    {/*    <strong>Tip proiect:</strong>*/}
+                                                    {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
+                                                    {/*        {formData.visibility}*/}
+                                                    {/*    </Badge>*/}
+                                                    {/*</div>*/}
                                                 </div>
                                             </div>
 

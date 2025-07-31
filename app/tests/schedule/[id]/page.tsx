@@ -41,7 +41,7 @@ export default function ScheduleCall({ params }: CallSchedulePageProps) {
     const loadService = async (serviceId: string) => {
         try {
             const serviceData = await apiClient.getTestResult(serviceId);
-            console.log('Service Data:', serviceData);
+
             setService(serviceData);
         } catch (error: any) {
         }

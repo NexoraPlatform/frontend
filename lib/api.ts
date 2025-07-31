@@ -645,18 +645,17 @@ class ApiClient {
     });
   }
 
-  async getSuggestedProviders(services: { service: string; level: string }[]) {
-    console.log(services)
+  async getSuggestedProviders(
+      services: { service: string; level: string }[]
+  ) {
 
     return this.request<any>(`/providers/suggestions`, {
       method: 'POST',
-      body: JSON.stringify({
-        services: services,
-      }),
-        headers: {
-            'Content-Type': 'application/json',
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        },
+      body: JSON.stringify({ services }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
     });
   }
 
