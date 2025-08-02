@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useAuth } from '@/contexts/auth-context';
 import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
+import { NotificationBell } from '@/components/notification-bell';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -105,12 +106,7 @@ export function Header() {
               {user && (
                   <>
                     {/* Notifications */}
-                    <Button variant="ghost" size="icon" className="relative w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105">
-                      <Bell className="h-5 w-5" />
-                      <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs border-2 border-background">
-                        3
-                      </Badge>
-                    </Button>
+                    <NotificationBell />
 
                     {/* Messages */}
                     <Button variant="ghost" size="icon" className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105">

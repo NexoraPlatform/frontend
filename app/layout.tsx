@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/auth-context';
 import ActivityTracker from '@/components/ActivityTracker';
+import {NotificationProvider} from "@/contexts/notification-context";
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -23,16 +24,18 @@ export default function RootLayout({
     <html lang="ro" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <ActivityTracker />
-            {children}
-            <Toaster />
-          </ThemeProvider>
+            <NotificationProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <ActivityTracker />
+                {children}
+                <Toaster />
+              </ThemeProvider>
+            </NotificationProvider>
         </AuthProvider>
       </body>
     </html>

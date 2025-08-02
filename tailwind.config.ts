@@ -22,6 +22,7 @@ const config: Config = {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        stripe: '#635BFF',
         'custom-purple': '#8a37ea',
         card: {
           DEFAULT: 'hsl(var(--card))',

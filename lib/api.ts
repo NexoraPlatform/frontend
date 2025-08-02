@@ -683,6 +683,76 @@ class ApiClient {
         }
     });
   }
+
+  async handleStripeOnboarding(email: string) {
+    return this.request<any>('/stripe/onboard-link', {
+      method: 'POST',
+      body: JSON.stringify({email: email}),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    });
+  }
+
+  async getStripeAccountStatus() {
+    return this.request<any>('/stripe/account-status', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    });
+  }
+
+  // Notifications endpoints
+  async getNotifications(params?: {
+    unreadOnly?: boolean;
+    type?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request<any>(`/notifications?${searchParams.toString()}`);
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    return this.request<any>(`/notifications/${notificationId}/read`, {
+      method: 'PATCH'
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request<any>('/notifications/read-all', {
+      method: 'PATCH'
+    });
+  }
+
+  async deleteNotification(notificationId: string) {
+    return this.request<any>(`/notifications/${notificationId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async sendNotification(data: {
+    userIds: string[];
+    title: string;
+    message: string;
+    type: string;
+    data?: any;
+    webPushOnly?: boolean;
+  }) {
+    return this.request<any>('/notifications/send', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
 }
 
 

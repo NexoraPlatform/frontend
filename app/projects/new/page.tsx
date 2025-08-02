@@ -172,6 +172,11 @@ interface ProviderSuggestionsResponse {
     pagination: PaginationMeta;
 }
 
+type SelectedProvider = {
+    id: string;
+    matchScore: number;
+};
+
 export default function NewProjectPage() {
     setDayjsLocale('ro');
     const { user, loading } = useAuth();
@@ -206,7 +211,7 @@ export default function NewProjectPage() {
 
     const [skipValidation, setSkipValidation] = useState(false);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
-    const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
+    const [selectedProviders, setSelectedProviders] = useState<SelectedProvider[]>([]);
     const [loadingProviders, setLoadingProviders] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -497,12 +502,15 @@ export default function NewProjectPage() {
         }));
     };
 
-    const handleProviderSelect = (providerId: string) => {
-        setSelectedProviders(prev =>
-            prev.includes(providerId)
-                ? prev.filter(id => id !== providerId)
-                : [...prev, providerId]
-        );
+    const handleProviderSelect = (providerId: string, matchScore: number) => {
+        setSelectedProviders(prev => {
+            const exists = prev.find(p => p.id === providerId);
+            if (exists) {
+                return prev.filter(p => p.id !== providerId);
+            } else {
+                return [...prev, { id: providerId, matchScore: matchScore }];
+            }
+        });
     };
 
     const getLastActiveText = (lastActiveAt: string): string => {
@@ -1467,11 +1475,11 @@ export default function NewProjectPage() {
                                                             <Card
                                                                 key={provider.id}
                                                                 className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                                    selectedProviders.includes(provider.id)
+                                                                    selectedProviders.some(p => p.id === provider.id)
                                                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
                                                                         : 'border-gray-200 hover:border-blue-300'
                                                                 }`}
-                                                                onClick={() => handleProviderSelect(provider.id)}
+                                                                onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
                                                             >
                                                                 <CardContent className="p-6">
                                                                     <div className="flex items-start justify-between">
@@ -1758,7 +1766,7 @@ export default function NewProjectPage() {
                                                     <div><strong>Categorie:</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
                                                     <div><strong>Buget:</strong> {formData.budget} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
                                                     {formData.deadline && (
-                                                        <div><strong>Deadline:</strong> {new Date(formData.deadline).toLocaleDateString('ro-RO')}</div>
+                                                        <div><strong>Deadline:</strong> {formatDeadline(formData.deadline)}</div>
                                                     )}
                                                     {/*<div>*/}
                                                     {/*    <strong>Tip proiect:</strong>*/}
@@ -1784,10 +1792,10 @@ export default function NewProjectPage() {
                                         <div>
                                             <h4 className="font-semibold mb-2">Prestatori Selectați ({selectedProviders.length})</h4>
                                             <div className="space-y-2">
-                                                {selectedProviders.map(providerId => {
-                                                    const provider = suggestedProviders.find(p => p.id === providerId);
+                                                {selectedProviders.map(selectedProvider => {
+                                                    const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
                                                     return provider ? (
-                                                        <div key={providerId} className="flex items-center space-x-3 p-2 border rounded">
+                                                        <div key={selectedProvider.id} className="flex items-center space-x-3 p-2 border rounded">
                                                             <Avatar className="w-8 h-8">
                                                                 <AvatarImage src={provider.avatar} />
                                                                 <AvatarFallback className="text-xs">

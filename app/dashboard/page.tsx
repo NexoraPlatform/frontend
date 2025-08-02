@@ -37,6 +37,8 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import {useTestExamDetails} from "@/hooks/use-api";
 import { DateTime } from 'luxon';
+import apiClient from "@/lib/api";
+import {SiStripe} from "react-icons/si";
 
 type TestResult = {
   id: number;
@@ -86,6 +88,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: testExamDetails } = useTestExamDetails();
   const [enabledMap, setEnabledMap] = useState<Record<number, boolean>>({});
+  const [stripeOnboarded, setStripeOnboarded] = useState(false);
   const filteredExamData = testExamDetails?.filter(
       (item: TestResult) =>
           item.passed === 'YES' &&
@@ -121,6 +124,16 @@ export default function DashboardPage() {
       router.push('/auth/signin');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    const checkStripeOnboarding = async () => {
+      const response = await apiClient.getStripeAccountStatus();
+
+      setStripeOnboarded(response.isVerified);
+    }
+
+    checkStripeOnboarding();
+  }, []);
 
   if (loading) {
     return (
@@ -235,6 +248,24 @@ export default function DashboardPage() {
     }
   }
 
+  const getStripeOnboardingUrl = async () => {
+    try {
+      const response = await apiClient.handleStripeOnboarding(user.email);
+
+        if (!response || !response.url) {
+            console.error('No URL returned from Stripe onboarding');
+            return null;
+        }
+
+        window.location.href = response.url;
+
+      console.log(response);
+    } catch (error) {
+      console.error('Error fetching Stripe onboarding URL:', error);
+      return null;
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -255,6 +286,10 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              {isProvider && (<Button className="bg-stripe" onClick={getStripeOnboardingUrl}>
+                <SiStripe className="w-4 h-4 mr-2" />
+                {stripeOnboarded ? 'Actualizeaza datele Stripe' : 'Conecteaza-te la Stripe'}
+              </Button>)}
               <Button onClick={handleNewService}>
                 <Plus className="w-4 h-4 mr-2" />
                 {isProvider ? 'Serviciu Nou' : 'Proiect Nou'}
