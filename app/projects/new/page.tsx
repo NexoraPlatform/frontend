@@ -38,10 +38,11 @@ import {
     Heart,
     Eye,
     ArrowRight,
+    ArrowLeft,
     Calendar,
     Briefcase, EuroIcon,
     Filter,
-    ChevronDown
+    ChevronDown, BadgeAlert
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
@@ -53,6 +54,7 @@ import { apiClient } from '@/lib/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
+import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -90,6 +92,11 @@ type GroupedServices = Record<
     Record<string, ServiceItem[]>
 >;
 
+type matchReasons = {
+    passed: boolean;
+    message: string;
+}
+
 interface SuggestedProvider {
     id: string;
     firstName: string;
@@ -101,12 +108,13 @@ interface SuggestedProvider {
     responseTime: string;
     location: string;
     isVerified: boolean;
+    profileUrl: string;
     skills: string[];
     basePrice: number;
     pricingType: string;
     deliveryTime: number;
     matchScore: number;
-    matchReasons: string[];
+    matchReasons: matchReasons[];
     availability: string;
     lastActive: string;
     level: string;
@@ -145,6 +153,7 @@ type FormData = {
     attachments: File[];
     additionalInfo: string;
     recommendedProviders: RecommendedProvider[];
+    notes: string;
 };
 
 interface PaginationMeta {
@@ -179,7 +188,8 @@ export default function NewProjectPage() {
         visibility: 'PUBLIC',
         attachments: [] as File[],
         additionalInfo: '',
-        recommendedProviders: []
+        recommendedProviders: [],
+        notes: '',
     });
     const [generatedAiOutput, setGeneratedAiOutput] = useState({
         title: "",
@@ -188,6 +198,7 @@ export default function NewProjectPage() {
         estimated_budget: 0,
         budget_type: "",
         notes: "",
+        deadline: "",
         additional_services: [],
         team_structure: []
     });
@@ -206,6 +217,8 @@ export default function NewProjectPage() {
     const [providerSearchTerm, setProviderSearchTerm] = useState('');
     const [selectedServiceFilters, setSelectedServiceFilters] = useState<string[]>([]);
     const [skillLevelFilter, setSkillLevelFilter] = useState<string[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [providersPerPage] = useState(6); // 6 providers per page for better layout
     const [availableServices, setAvailableServices] = useState<any[]>([]);
 
     const router = useRouter();
@@ -216,7 +229,7 @@ export default function NewProjectPage() {
         { value: 'JUNIOR', label: 'Junior', color: 'bg-green-100 text-green-800', icon: '🌱' },
         { value: 'MEDIU', label: 'Mediu', color: 'bg-blue-100 text-blue-800', icon: '⚡' },
         { value: 'SENIOR', label: 'Senior', color: 'bg-purple-100 text-purple-800', icon: '🚀' },
-        { value: 'AVANSAT', label: 'Avansat', color: 'bg-orange-100 text-orange-800', icon: '👑' }
+        { value: 'EXPERT', label: 'Expert', color: 'bg-orange-100 text-orange-800', icon: '👑' }
     ];
 
     const markedNamesSet = useMemo(() => {
@@ -251,6 +264,26 @@ export default function NewProjectPage() {
 
         return searchMatch && serviceMatch && skillLevelMatch;
     });
+
+    // Pagination logic
+    const indexOfLastProvider = currentPage * providersPerPage;
+    const indexOfFirstProvider = indexOfLastProvider - providersPerPage;
+    const currentProviders = filteredProviders.slice(indexOfFirstProvider, indexOfLastProvider);
+    const totalPages = Math.ceil(filteredProviders.length / providersPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        // Scroll to providers section when changing page
+        const providersSection = document.getElementById('suggested-providers');
+        if (providersSection) {
+            providersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    // Reset to first page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [providerSearchTerm, selectedServiceFilters, skillLevelFilter]);
 
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
@@ -350,6 +383,7 @@ export default function NewProjectPage() {
             const payload = buildProviderMatchPayload();
 
             const apiData = await apiClient.getSuggestedProviders(payload);
+            console.log(apiData);
             const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
                 return users.map(user => {
                     // user.services este string[] (nume servicii)
@@ -360,6 +394,7 @@ export default function NewProjectPage() {
                         firstName: user.firstName ?? '',
                         lastName: user.lastName ?? '',
                         avatar: user.avatar ?? '',
+                        profileUrl: user.profileUrl ?? '',
                         rating: parseFloat(user.rating ?? '0'),
                         reviewCount: user.reviewCount ?? 0,
                         completedProjects: user.completedProjects ?? 0,
@@ -394,6 +429,22 @@ export default function NewProjectPage() {
         } finally {
             setLoadingProviders(false);
         }
+    };
+
+    const formatDeadline = (value: string): string => {
+        const map: Record<string, string> = {
+            '1day': '1 zi',
+            '1week': 'O săptămână',
+            '2weeks': '2 săptămâni',
+            '3weeks': '3 săptămâni',
+            '1month': '1 lună',
+            '3months': '3 luni',
+            '6months': '6 luni',
+            '1year': '1 an',
+            '1plusyear': '1+ ani',
+        };
+
+        return map[value] || value;
     };
 
     type SkillLevel = 'JUNIOR' | 'MEDIUM' | 'SENIOR' | 'ADVANCED';
@@ -478,7 +529,7 @@ export default function NewProjectPage() {
                 clientId: user?.id
             };
 
-            // await apiClient.createProject(projectData);
+            await apiClient.createProject(projectData);
 
             // Simulăm crearea proiectului
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -628,6 +679,7 @@ export default function NewProjectPage() {
             setGeneratedAiOutput(generatedOutput);
             setFormData(prev => ({
                 ...prev,
+                note: generatedOutput.notes || '',
                 recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
                     role: member.role,
                     level: member.level,
@@ -993,11 +1045,11 @@ export default function NewProjectPage() {
                                                         <SelectContent>
                                                             <SelectItem value="1day">1 zi</SelectItem>
                                                             <SelectItem value="1week">1 saptamana</SelectItem>
-                                                            <SelectItem value="2week">2 saptamani</SelectItem>
-                                                            <SelectItem value="3week">3 saptamani</SelectItem>
+                                                            <SelectItem value="2weeks">2 saptamani</SelectItem>
+                                                            <SelectItem value="3weeks">3 saptamani</SelectItem>
                                                             <SelectItem value="1month">1 luna</SelectItem>
-                                                            <SelectItem value="3month">3 luni</SelectItem>
-                                                            <SelectItem value="6month">6 luni</SelectItem>
+                                                            <SelectItem value="3months">3 luni</SelectItem>
+                                                            <SelectItem value="6months">6 luni</SelectItem>
                                                             <SelectItem value="1year">1 an</SelectItem>
                                                             <SelectItem value="1plusyear">1+ ani</SelectItem>
                                                         </SelectContent>
@@ -1095,6 +1147,18 @@ export default function NewProjectPage() {
                                                 </div>
                                             )}
 
+                                            {generatedAiOutput.deadline.trim() && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Durata proiect: </span> {formatDeadline(generatedAiOutput?.deadline)}
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
+                                                        <AccessTimeFilledIcon />
+                                                        Foloseste durata recomandata
+                                                    </a>
+                                                </>
+                                            )}
+
                                             {generatedAiOutput?.estimated_budget !== 0 && (
                                                 <>
                                                     <div>
@@ -1146,11 +1210,14 @@ export default function NewProjectPage() {
 
                         {/* Prestatori Sugerați */}
                         <TabsContent value="providers" className="space-y-6">
-                            <Card>
+                            <Card id="suggested-providers">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Users className="w-5 h-5" />
-                                        <span>Prestatori Sugerați ({filteredProviders.length})</span>
+                                        <span>Prestatori Sugerați</span>
+                                        <Badge variant="outline">
+                                            {filteredProviders.length} găsiți • Pagina {currentPage} din {totalPages}
+                                        </Badge>
                                     </CardTitle>
                                     <CardDescription>
                                         Prestatori care se potrivesc cu cerințele proiectului tău<br />
@@ -1368,12 +1435,15 @@ export default function NewProjectPage() {
                                                 )}
                                             </div>
 
-                                            {filteredProviders.length === 0 ? (
+                                            {currentProviders.length === 0 ? (
                                                 <div className="text-center py-8">
                                                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                                                     <h3 className="text-lg font-medium mb-2">Nu s-au găsit prestatori</h3>
                                                     <p className="text-muted-foreground mb-4">
-                                                        Încearcă să modifici filtrele sau termenii de căutare
+                                                        {filteredProviders.length === 0
+                                                            ? "Încearcă să modifici filtrele sau să selectezi alte tehnologii"
+                                                            : "Nu există prestatori pe această pagină. Încearcă o altă pagină."
+                                                        }
                                                     </p>
                                                     <Button
                                                         variant="outline"
@@ -1381,165 +1451,249 @@ export default function NewProjectPage() {
                                                             setProviderSearchTerm('');
                                                             setSelectedServiceFilters([]);
                                                             setSkillLevelFilter([]);
+                                                            setCurrentPage(1);
                                                         }}
                                                     >
-                                                        Resetează filtrele
+                                                        Resetează Filtrele
                                                     </Button>
                                                 </div>
                                             ) : (
                                                 <>
-                                                    {filteredProviders.map((provider) => (
-                                                        <Card
-                                                            key={provider.id}
-                                                            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                                selectedProviders.includes(provider.id)
-                                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                                    : 'border-gray-200 hover:border-blue-300'
-                                                            }`}
-                                                            onClick={() => handleProviderSelect(provider.id)}
-                                                        >
-                                                            <CardContent className="p-6">
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className="flex items-start space-x-4 flex-1">
-                                                                        <div className="relative">
-                                                                            <Avatar className="w-16 h-16">
-                                                                                <AvatarImage src={provider.avatar} />
-                                                                                <AvatarFallback>
-                                                                                    {provider.firstName[0]}{provider.lastName[0]}
-                                                                                </AvatarFallback>
-                                                                            </Avatar>
-                                                                            {provider.isVerified && (
-                                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                    <CheckCircle className="w-4 h-4 text-white" />
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-
-                                                                        <div className="flex-1">
-                                                                            <div className="flex items-center space-x-2 mb-2">
-                                                                                <span className="font-medium">{provider.firstName} {provider.lastName}</span>
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                        {currentProviders.map((provider) => {
+                                                            const passedReasons = provider.matchReasons.filter(reason => reason.passed);
+                                                            const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
+                                                            return (
+                                                            <Card
+                                                                key={provider.id}
+                                                                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                                                                    selectedProviders.includes(provider.id)
+                                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
+                                                                        : 'border-gray-200 hover:border-blue-300'
+                                                                }`}
+                                                                onClick={() => handleProviderSelect(provider.id)}
+                                                            >
+                                                                <CardContent className="p-6">
+                                                                    <div className="flex items-start justify-between">
+                                                                        <div className="flex items-start space-x-4 flex-1">
+                                                                            <div className="relative">
+                                                                                <Avatar className="w-16 h-16">
+                                                                                    <AvatarImage src={provider.avatar} />
+                                                                                    <AvatarFallback>
+                                                                                        {provider.firstName[0]}{provider.lastName[0]}
+                                                                                    </AvatarFallback>
+                                                                                </Avatar>
                                                                                 {provider.isVerified && (
-                                                                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                                                                )}
-                                                                                <Badge className={
-                                                                                    skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                    'bg-blue-100 text-blue-800'
-                                                                                }>
-                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}
-                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
-                                                                                </Badge>
-                                                                            </div>
-                                                                            <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                <h3 className="text-lg font-semibold">
-                                                                                    {provider.firstName} {provider.lastName}
-                                                                                </h3>
-                                                                                <Badge className="bg-green-100 text-green-800">
-                                                                                    {provider.matchScore}% potrivire
-                                                                                </Badge>
-                                                                                {provider.isVerified && (
-                                                                                    <Badge className="bg-blue-100 text-blue-800">
-                                                                                        Verificat
-                                                                                    </Badge>
+                                                                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                        <CheckCircle className="w-4 h-4 text-white" />
+                                                                                    </div>
                                                                                 )}
                                                                             </div>
 
-                                                                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                                <div className="flex items-center space-x-1">
-                                                                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                                    <span className="font-medium">{provider.rating}</span>
-                                                                                    <span>({provider.reviewCount} recenzii)</span>
-                                                                                </div>
-                                                                                <div className="flex items-center space-x-1">
-                                                                                    <MapPin className="w-4 h-4" />
-                                                                                    <span>{provider.location}</span>
-                                                                                </div>
-                                                                                <div className="flex items-center space-x-1">
-                                                                                    <Clock className="w-4 h-4" />
-                                                                                    <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div className="flex flex-wrap gap-1 mb-3">
-                                                                                {provider.skills.slice(0, 4).map((skill) => (
-                                                                                    <Badge key={skill} variant="outline" className="text-xs">
-                                                                                        {skill}
+                                                                            <div className="flex-1">
+                                                                                <div className="flex items-center space-x-2 mb-2">
+                                                                                    <span className="font-medium">{provider.firstName} {provider.lastName}</span>
+                                                                                    {provider.isVerified && (
+                                                                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                                                                    )}
+                                                                                    <Badge className={
+                                                                                        skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                        'bg-blue-100 text-blue-800'
+                                                                                    }>
+                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
                                                                                     </Badge>
-                                                                                ))}
-                                                                                {provider.skills.length > 4 && (
-                                                                                    <Badge variant="outline" className="text-xs">
-                                                                                        +{provider.skills.length - 4}
-                                                                                    </Badge>
-                                                                                )}
-                                                                            </div>
-
-                                                                            <div className="space-y-1">
-                                                                                <div className="text-sm font-medium text-green-600">
-                                                                                    De ce este potrivit:
                                                                                 </div>
-                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                    {provider.matchReasons.map((reason, index) => (
-                                                                                        <li key={index} className="flex items-center space-x-2">
-                                                                                            <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                            <span>{reason}</span>
-                                                                                        </li>
+                                                                                <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+                                                                                    <h3 className="text-lg font-semibold">
+                                                                                        {provider.firstName} {provider.lastName}
+                                                                                    </h3>
+                                                                                    <Badge className="bg-green-100 text-green-800">
+                                                                                        {provider.matchScore}% potrivire
+                                                                                    </Badge>
+                                                                                    {provider.isVerified && (
+                                                                                        <Badge className="bg-blue-100 text-blue-800">
+                                                                                            Verificat
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                                                                                    <div className="flex items-center space-x-1">
+                                                                                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                                                        <span className="font-medium">{provider.rating}</span>
+                                                                                        <span>({provider.reviewCount} recenzii)</span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center space-x-1">
+                                                                                        <MapPin className="w-4 h-4" />
+                                                                                        <span>{provider.location}</span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center space-x-1">
+                                                                                        <Clock className="w-4 h-4" />
+                                                                                        <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="flex flex-wrap gap-1 mb-3">
+                                                                                    {provider.skills.slice(0, 4).map((skill) => (
+                                                                                        <Badge key={skill} variant="outline" className="text-xs">
+                                                                                            {skill}
+                                                                                        </Badge>
                                                                                     ))}
-                                                                                </ul>
+                                                                                    {provider.skills.length > 4 && (
+                                                                                        <Badge variant="outline" className="text-xs">
+                                                                                            +{provider.skills.length - 4}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                <div className="space-y-1">
+                                                                                    {/*<div className="text-sm font-medium text-green-600">*/}
+                                                                                    {/*    De ce este potrivit:*/}
+                                                                                    {/*</div>*/}
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                                                        {/* Coloana 1: Passed */}
+                                                                                        <div>
+                                                                                            <h4 className="text-sm font-medium text-green-600 mb-2">De ce este potrivit:</h4>
+                                                                                            <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                {passedReasons.map((reason, index) => (
+                                                                                                    <li key={`passed-${index}`} className="flex items-center space-x-2">
+                                                                                                        <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                                                        <span className="text-green-600">{reason.message}</span>
+                                                                                                    </li>
+                                                                                                ))}
+                                                                                            </ul>
+                                                                                        </div>
+
+                                                                                        {/* Coloana 2: Nepotriviri */}
+                                                                                        <div>
+                                                                                            <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                {failedReasons.map((reason, index) => (
+                                                                                                    <li key={`failed-${index}`} className="flex items-center space-x-2">
+                                                                                                        <BadgeAlert className="w-3 h-3 text-red-500" />
+                                                                                                        <span className="text-red-600">{reason.message}</span>
+                                                                                                    </li>
+                                                                                                ))}
+                                                                                            </ul>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
+
+                                                                        <div className="text-right space-y-2">
+                                                                            {/*<div className="text-sm text-muted-foreground">*/}
+                                                                            {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                                            {/*</div>*/}
+                                                                            {/*<div className="text-sm">*/}
+                                                                            {/*    <div className="flex items-center space-x-1 justify-end">*/}
+                                                                            {/*        <Calendar className="w-3 h-3" />*/}
+                                                                            {/*        <span>{provider.deliveryTime} zile</span>*/}
+                                                                            {/*    </div>*/}
+                                                                            {/*</div>*/}
+
+                                                                            <div className={`flex items-center justify-end space-x-2 mb-3`}>
+                                                                                <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
+                                                                                    {
+                                                                                        (() => {
+                                                                                            const Icon = getAvailabilityStatus(provider.availability).icon;
+                                                                                            return <Icon className="mr-1 w-4 h-4" />;
+                                                                                        })()
+                                                                                    }
+                                                                                    {provider.availability}
+                                                                                </Badge>
+
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground">
+                                                                                Activ {getLastActiveText(provider.lastActive)}
+                                                                            </div>
+
+                                                                            <div className="flex space-x-2 mt-4">
+                                                                                <a href={`/provider/${provider.profileUrl}`} target="_blank"
+                                                                                   className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                                                                                >
+                                                                                    <Eye className="w-3 h-3 mr-1" />
+                                                                                    Profil
+                                                                                </a>
+                                                                                <a
+                                                                                    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                                                                                >
+                                                                                    <MessageSquare className="w-3 h-3 mr-1" />
+                                                                                    Mesaj
+                                                                                </a>
+                                                                            </div>
+
+                                                                        </div>
                                                                     </div>
 
-                                                                    <div className="text-right space-y-2">
-                                                                        <div className="text-2xl font-bold">
-                                                                            <span className={`font-semibold px-2.5 py-0.5 rounded-full ${getSkillLevel(provider.level).color}`}>
-                                                                              {provider.level}
-                                                                            </span>
+                                                                </CardContent>
+                                                            </Card>
+                                                        );})}
+                                                    </div>
 
-                                                                        </div>
-                                                                        {/*<div className="text-sm text-muted-foreground">*/}
-                                                                        {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                        {/*</div>*/}
-                                                                        {/*<div className="text-sm">*/}
-                                                                        {/*    <div className="flex items-center space-x-1 justify-end">*/}
-                                                                        {/*        <Calendar className="w-3 h-3" />*/}
-                                                                        {/*        <span>{provider.deliveryTime} zile</span>*/}
-                                                                        {/*    </div>*/}
-                                                                        {/*</div>*/}
+                                                    {/* Pagination */}
+                                                    {totalPages > 1 && (
+                                                        <div className="flex items-center justify-between pt-6 border-t">
+                                                            <div className="text-sm text-muted-foreground">
+                                                                Afișând {indexOfFirstProvider + 1}-{Math.min(indexOfLastProvider, filteredProviders.length)} din {filteredProviders.length} prestatori
+                                                            </div>
 
-                                                                        <div className={`flex items-center justify-end space-x-2 mb-3`}>
-                                                                            <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
-                                                                                {
-                                                                                    (() => {
-                                                                                        const Icon = getAvailabilityStatus(provider.availability).icon;
-                                                                                        return <Icon className="mr-1 w-4 h-4" />;
-                                                                                    })()
-                                                                                }
-                                                                                {provider.availability}
-                                                                            </Badge>
+                                                            <div className="flex items-center space-x-2">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                                    disabled={currentPage === 1}
+                                                                    className="flex items-center space-x-1"
+                                                                >
+                                                                    <ArrowLeft className="w-4 h-4" />
+                                                                    <span>Anterior</span>
+                                                                </Button>
 
-                                                                        </div>
-                                                                        <div className="text-xs text-muted-foreground">
-                                                                            Activ {getLastActiveText(provider.lastActive)}
-                                                                        </div>
+                                                                <div className="flex items-center space-x-1">
+                                                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                                                        // Show first page, last page, current page, and pages around current
+                                                                        const showPage = page === 1 ||
+                                                                            page === totalPages ||
+                                                                            Math.abs(page - currentPage) <= 1;
 
-                                                                        <div className="flex space-x-2 mt-4">
-                                                                            <Button variant="outline" size="sm">
-                                                                                <Eye className="w-3 h-3 mr-1" />
-                                                                                Profil
+                                                                        if (!showPage && page === 2 && currentPage > 4) {
+                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                                                                        }
+
+                                                                        if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
+                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                                                                        }
+
+                                                                        if (!showPage) return null;
+
+                                                                        return (
+                                                                            <Button
+                                                                                key={page}
+                                                                                variant={currentPage === page ? "default" : "outline"}
+                                                                                size="sm"
+                                                                                onClick={() => handlePageChange(page)}
+                                                                                className="w-8 h-8 p-0"
+                                                                            >
+                                                                                {page}
                                                                             </Button>
-                                                                            <Button variant="outline" size="sm">
-                                                                                <MessageSquare className="w-3 h-3 mr-1" />
-                                                                                Mesaj
-                                                                            </Button>
-                                                                        </div>
-
-                                                                    </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
 
-                                                            </CardContent>
-                                                        </Card>
-                                                    ))}
-
-
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                                    disabled={currentPage === totalPages}
+                                                                    className="flex items-center space-x-1"
+                                                                >
+                                                                    <span>Următor</span>
+                                                                    <ArrowRight className="w-4 h-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
