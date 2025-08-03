@@ -645,6 +645,10 @@ class ApiClient {
     });
   }
 
+  async getClientProjects(clientId: string, limit?: number) {
+    return this.request<any>(`/projects/client/${clientId}/${limit}`);
+  }
+
   async getSuggestedProviders(
       services: { service: string; level: string }[]
   ) {
@@ -725,6 +729,30 @@ class ApiClient {
   async markNotificationAsRead(notificationId: string) {
     return this.request<any>(`/notifications/${notificationId}/read`, {
       method: 'PATCH'
+    });
+  }
+
+  async subscribeToNotifications(subscription: PushSubscription, navigator: Navigator) {
+    return this.request<any>('/notifications/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        userAgent: navigator.userAgent
+      })
+    });
+  }
+
+  async unsubscribeFromNotifications() {
+    return this.request<any>('/notifications/unsubscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
     });
   }
 

@@ -537,7 +537,30 @@ export default function NewProjectPage() {
                 clientId: user?.id
             };
 
-            await apiClient.createProject(projectData);
+            const createdProject = await apiClient.createProject(projectData);
+
+            // Send notifications to selected providers
+            if (selectedProviders.length > 0) {
+                try {
+                    await apiClient.sendNotification({
+                        userIds: selectedProviders.map(p => p.id),
+                        title: '🚀 Proiect Nou Disponibil!',
+                        message: `Un client caută servicii pentru: ${formData.title}. Buget: ${formData.budget} RON`,
+                        type: 'PROJECT_ADDED',
+                        data: {
+                            projectId: createdProject.id,
+                            projectTitle: formData.title,
+                            budget: formData.budget,
+                            budgetType: formData.budgetType,
+                            technologies: formData.technologies,
+                            clientName: user?.firstName + ' ' + user?.lastName
+                        }
+                    });
+                } catch (notificationError) {
+                    console.error('Failed to send notifications:', notificationError);
+                    // Don't fail the project creation if notifications fail
+                }
+            }
 
             // Simulăm crearea proiectului
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -1472,171 +1495,171 @@ export default function NewProjectPage() {
                                                             const passedReasons = provider.matchReasons.filter(reason => reason.passed);
                                                             const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
                                                             return (
-                                                            <Card
-                                                                key={provider.id}
-                                                                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                                    selectedProviders.some(p => p.id === provider.id)
-                                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                                        : 'border-gray-200 hover:border-blue-300'
-                                                                }`}
-                                                                onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
-                                                            >
-                                                                <CardContent className="p-6">
-                                                                    <div className="flex items-start justify-between">
-                                                                        <div className="flex items-start space-x-4 flex-1">
-                                                                            <div className="relative">
-                                                                                <Avatar className="w-16 h-16">
-                                                                                    <AvatarImage src={provider.avatar} />
-                                                                                    <AvatarFallback>
-                                                                                        {provider.firstName[0]}{provider.lastName[0]}
-                                                                                    </AvatarFallback>
-                                                                                </Avatar>
-                                                                                {provider.isVerified && (
-                                                                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                        <CheckCircle className="w-4 h-4 text-white" />
+                                                                <Card
+                                                                    key={provider.id}
+                                                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                                                                        selectedProviders.some(p => p.id === provider.id)
+                                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
+                                                                            : 'border-gray-200 hover:border-blue-300'
+                                                                    }`}
+                                                                    onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
+                                                                >
+                                                                    <CardContent className="p-6">
+                                                                        <div className="flex items-start justify-between">
+                                                                            <div className="flex items-start space-x-4 flex-1">
+                                                                                <div className="relative">
+                                                                                    <Avatar className="w-16 h-16">
+                                                                                        <AvatarImage src={provider.avatar} />
+                                                                                        <AvatarFallback>
+                                                                                            {provider.firstName[0]}{provider.lastName[0]}
+                                                                                        </AvatarFallback>
+                                                                                    </Avatar>
+                                                                                    {provider.isVerified && (
+                                                                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                            <CheckCircle className="w-4 h-4 text-white" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                <div className="flex-1">
+                                                                                    <div className="flex items-center space-x-2 mb-2">
+                                                                                        <span className="font-medium">{provider.firstName} {provider.lastName}</span>
+                                                                                        {provider.isVerified && (
+                                                                                            <CheckCircle className="w-4 h-4 text-green-500" />
+                                                                                        )}
+                                                                                        <Badge className={
+                                                                                            skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                            'bg-blue-100 text-blue-800'
+                                                                                        }>
+                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
+                                                                                        </Badge>
                                                                                     </div>
-                                                                                )}
+                                                                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+                                                                                        <h3 className="text-lg font-semibold">
+                                                                                            {provider.firstName} {provider.lastName}
+                                                                                        </h3>
+                                                                                        <Badge className="bg-green-100 text-green-800">
+                                                                                            {provider.matchScore}% potrivire
+                                                                                        </Badge>
+                                                                                        {provider.isVerified && (
+                                                                                            <Badge className="bg-blue-100 text-blue-800">
+                                                                                                Verificat
+                                                                                            </Badge>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                                                                                        <div className="flex items-center space-x-1">
+                                                                                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                                                            <span className="font-medium">{provider.rating}</span>
+                                                                                            <span>({provider.reviewCount} recenzii)</span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center space-x-1">
+                                                                                            <MapPin className="w-4 h-4" />
+                                                                                            <span>{provider.location}</span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center space-x-1">
+                                                                                            <Clock className="w-4 h-4" />
+                                                                                            <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    <div className="flex flex-wrap gap-1 mb-3">
+                                                                                        {provider.skills.slice(0, 4).map((skill) => (
+                                                                                            <Badge key={skill} variant="outline" className="text-xs">
+                                                                                                {skill}
+                                                                                            </Badge>
+                                                                                        ))}
+                                                                                        {provider.skills.length > 4 && (
+                                                                                            <Badge variant="outline" className="text-xs">
+                                                                                                +{provider.skills.length - 4}
+                                                                                            </Badge>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    <div className="space-y-1">
+                                                                                        {/*<div className="text-sm font-medium text-green-600">*/}
+                                                                                        {/*    De ce este potrivit:*/}
+                                                                                        {/*</div>*/}
+                                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                                                            {/* Coloana 1: Passed */}
+                                                                                            <div>
+                                                                                                <h4 className="text-sm font-medium text-green-600 mb-2">De ce este potrivit:</h4>
+                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                    {passedReasons.map((reason, index) => (
+                                                                                                        <li key={`passed-${index}`} className="flex items-center space-x-2">
+                                                                                                            <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                                                            <span className="text-green-600">{reason.message}</span>
+                                                                                                        </li>
+                                                                                                    ))}
+                                                                                                </ul>
+                                                                                            </div>
+
+                                                                                            {/* Coloana 2: Nepotriviri */}
+                                                                                            <div>
+                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                    {failedReasons.map((reason, index) => (
+                                                                                                        <li key={`failed-${index}`} className="flex items-center space-x-2">
+                                                                                                            <BadgeAlert className="w-3 h-3 text-red-500" />
+                                                                                                            <span className="text-red-600">{reason.message}</span>
+                                                                                                        </li>
+                                                                                                    ))}
+                                                                                                </ul>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
                                                                             </div>
 
-                                                                            <div className="flex-1">
-                                                                                <div className="flex items-center space-x-2 mb-2">
-                                                                                    <span className="font-medium">{provider.firstName} {provider.lastName}</span>
-                                                                                    {provider.isVerified && (
-                                                                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                                                                    )}
-                                                                                    <Badge className={
-                                                                                        skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                        'bg-blue-100 text-blue-800'
-                                                                                    }>
-                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
+                                                                            <div className="text-right space-y-2">
+                                                                                {/*<div className="text-sm text-muted-foreground">*/}
+                                                                                {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                                                {/*</div>*/}
+                                                                                {/*<div className="text-sm">*/}
+                                                                                {/*    <div className="flex items-center space-x-1 justify-end">*/}
+                                                                                {/*        <Calendar className="w-3 h-3" />*/}
+                                                                                {/*        <span>{provider.deliveryTime} zile</span>*/}
+                                                                                {/*    </div>*/}
+                                                                                {/*</div>*/}
+
+                                                                                <div className={`flex items-center justify-end space-x-2 mb-3`}>
+                                                                                    <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
+                                                                                        {
+                                                                                            (() => {
+                                                                                                const Icon = getAvailabilityStatus(provider.availability).icon;
+                                                                                                return <Icon className="mr-1 w-4 h-4" />;
+                                                                                            })()
+                                                                                        }
+                                                                                        {provider.availability}
                                                                                     </Badge>
+
                                                                                 </div>
-                                                                                <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                    <h3 className="text-lg font-semibold">
-                                                                                        {provider.firstName} {provider.lastName}
-                                                                                    </h3>
-                                                                                    <Badge className="bg-green-100 text-green-800">
-                                                                                        {provider.matchScore}% potrivire
-                                                                                    </Badge>
-                                                                                    {provider.isVerified && (
-                                                                                        <Badge className="bg-blue-100 text-blue-800">
-                                                                                            Verificat
-                                                                                        </Badge>
-                                                                                    )}
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    Activ {getLastActiveText(provider.lastActive)}
                                                                                 </div>
 
-                                                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                                    <div className="flex items-center space-x-1">
-                                                                                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                                        <span className="font-medium">{provider.rating}</span>
-                                                                                        <span>({provider.reviewCount} recenzii)</span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center space-x-1">
-                                                                                        <MapPin className="w-4 h-4" />
-                                                                                        <span>{provider.location}</span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center space-x-1">
-                                                                                        <Clock className="w-4 h-4" />
-                                                                                        <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
-                                                                                    </div>
+                                                                                <div className="flex space-x-2 mt-4">
+                                                                                    <a href={`/provider/${provider.profileUrl}`} target="_blank"
+                                                                                       className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                                                                                    >
+                                                                                        <Eye className="w-3 h-3 mr-1" />
+                                                                                        Profil
+                                                                                    </a>
+                                                                                    <a
+                                                                                        className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                                                                                    >
+                                                                                        <MessageSquare className="w-3 h-3 mr-1" />
+                                                                                        Mesaj
+                                                                                    </a>
                                                                                 </div>
 
-                                                                                <div className="flex flex-wrap gap-1 mb-3">
-                                                                                    {provider.skills.slice(0, 4).map((skill) => (
-                                                                                        <Badge key={skill} variant="outline" className="text-xs">
-                                                                                            {skill}
-                                                                                        </Badge>
-                                                                                    ))}
-                                                                                    {provider.skills.length > 4 && (
-                                                                                        <Badge variant="outline" className="text-xs">
-                                                                                            +{provider.skills.length - 4}
-                                                                                        </Badge>
-                                                                                    )}
-                                                                                </div>
-
-                                                                                <div className="space-y-1">
-                                                                                    {/*<div className="text-sm font-medium text-green-600">*/}
-                                                                                    {/*    De ce este potrivit:*/}
-                                                                                    {/*</div>*/}
-                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                                                        {/* Coloana 1: Passed */}
-                                                                                        <div>
-                                                                                            <h4 className="text-sm font-medium text-green-600 mb-2">De ce este potrivit:</h4>
-                                                                                            <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                {passedReasons.map((reason, index) => (
-                                                                                                    <li key={`passed-${index}`} className="flex items-center space-x-2">
-                                                                                                        <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                                        <span className="text-green-600">{reason.message}</span>
-                                                                                                    </li>
-                                                                                                ))}
-                                                                                            </ul>
-                                                                                        </div>
-
-                                                                                        {/* Coloana 2: Nepotriviri */}
-                                                                                        <div>
-                                                                                            <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                {failedReasons.map((reason, index) => (
-                                                                                                    <li key={`failed-${index}`} className="flex items-center space-x-2">
-                                                                                                        <BadgeAlert className="w-3 h-3 text-red-500" />
-                                                                                                        <span className="text-red-600">{reason.message}</span>
-                                                                                                    </li>
-                                                                                                ))}
-                                                                                            </ul>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
                                                                             </div>
                                                                         </div>
 
-                                                                        <div className="text-right space-y-2">
-                                                                            {/*<div className="text-sm text-muted-foreground">*/}
-                                                                            {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                            {/*</div>*/}
-                                                                            {/*<div className="text-sm">*/}
-                                                                            {/*    <div className="flex items-center space-x-1 justify-end">*/}
-                                                                            {/*        <Calendar className="w-3 h-3" />*/}
-                                                                            {/*        <span>{provider.deliveryTime} zile</span>*/}
-                                                                            {/*    </div>*/}
-                                                                            {/*</div>*/}
-
-                                                                            <div className={`flex items-center justify-end space-x-2 mb-3`}>
-                                                                                <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
-                                                                                    {
-                                                                                        (() => {
-                                                                                            const Icon = getAvailabilityStatus(provider.availability).icon;
-                                                                                            return <Icon className="mr-1 w-4 h-4" />;
-                                                                                        })()
-                                                                                    }
-                                                                                    {provider.availability}
-                                                                                </Badge>
-
-                                                                            </div>
-                                                                            <div className="text-xs text-muted-foreground">
-                                                                                Activ {getLastActiveText(provider.lastActive)}
-                                                                            </div>
-
-                                                                            <div className="flex space-x-2 mt-4">
-                                                                                <a href={`/provider/${provider.profileUrl}`} target="_blank"
-                                                                                   className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                >
-                                                                                    <Eye className="w-3 h-3 mr-1" />
-                                                                                    Profil
-                                                                                </a>
-                                                                                <a
-                                                                                    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                >
-                                                                                    <MessageSquare className="w-3 h-3 mr-1" />
-                                                                                    Mesaj
-                                                                                </a>
-                                                                            </div>
-
-                                                                        </div>
-                                                                    </div>
-
-                                                                </CardContent>
-                                                            </Card>
-                                                        );})}
+                                                                    </CardContent>
+                                                                </Card>
+                                                            );})}
                                                     </div>
 
                                                     {/* Pagination */}

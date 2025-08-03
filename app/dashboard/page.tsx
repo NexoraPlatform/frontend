@@ -89,6 +89,7 @@ export default function DashboardPage() {
   const { data: testExamDetails } = useTestExamDetails();
   const [enabledMap, setEnabledMap] = useState<Record<number, boolean>>({});
   const [stripeOnboarded, setStripeOnboarded] = useState(false);
+  const [latestClientProjects, setLatestClientProjects] = useState<any[]>([]);
   const filteredExamData = testExamDetails?.filter(
       (item: TestResult) =>
           item.passed === 'YES' &&
@@ -134,6 +135,17 @@ export default function DashboardPage() {
 
     checkStripeOnboarding();
   }, []);
+  const isClient = user?.role === 'CLIENT';
+
+  useEffect(() => {
+    if (!isClient) return;
+    const getLatestClientProjects = async () => {
+      const response = await apiClient.getClientProjects(user.id, 5);
+      setLatestClientProjects(response || []);
+    }
+
+    getLatestClientProjects();
+  }, [isClient, user]);
 
   if (loading) {
     return (
@@ -211,6 +223,23 @@ export default function DashboardPage() {
       dueDate: '2024-02-20'
     }
   ];
+console.log(latestClientProjects)
+
+  const formatDeadline = (value: string): string => {
+    const map: Record<string, string> = {
+      '1day': '1 zi',
+      '1week': 'O săptămână',
+      '2weeks': '2 săptămâni',
+      '3weeks': '3 săptămâni',
+      '1month': '1 lună',
+      '3months': '3 luni',
+      '6months': '6 luni',
+      '1year': '1 an',
+      '1plusyear': '1+ ani',
+    };
+
+    return map[value] || value;
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -218,6 +247,19 @@ export default function DashboardPage() {
         return <Badge className="bg-blue-100 text-blue-800">În progres</Badge>;
       case 'DELIVERED':
         return <Badge className="bg-green-100 text-green-800">Livrat</Badge>;
+      case 'PENDING':
+        return <Badge className="bg-yellow-100 text-yellow-800">În așteptare</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getProviderResponseBadge = (status: string) => {
+    switch (status) {
+      case 'REJECTED':
+        return <Badge className="bg-blue-100 text-red-600">Refuzat</Badge>;
+      case 'ACCEPTED':
+        return <Badge className="bg-green-100 text-green-800">Acceptat</Badge>;
       case 'PENDING':
         return <Badge className="bg-yellow-100 text-yellow-800">În așteptare</Badge>;
       default:
@@ -378,21 +420,21 @@ export default function DashboardPage() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-5 flex justify-around">
             <TabsTrigger value="overview">Prezentare</TabsTrigger>
             <TabsTrigger value="orders">
               {isProvider ? 'Comenzi' : 'Proiecte'}
             </TabsTrigger>
-            <TabsTrigger value="services">
-              {isProvider ? 'Servicii' : 'Favorite'}
-            </TabsTrigger>
+            {isProvider && <TabsTrigger value="services">
+              Servicii
+            </TabsTrigger>}
             <TabsTrigger value="messages">Mesaje</TabsTrigger>
-            <TabsTrigger onClick={() => router.push('/provider/profile')} value="">Profil</TabsTrigger>
+            {isProvider && <TabsTrigger onClick={() => router.push('/provider/profile')} value="">Profil</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredExamData?.length !== 0 && (
+            <div className={`grid grid-cols-1 ${isProvider ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-6`}>
+              {isProvider && filteredExamData?.length !== 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
@@ -478,21 +520,38 @@ export default function DashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Clock className="w-5 h-5" />
-                    <span>{isProvider ? 'Comenzi Recente' : 'Proiecte Recente'}</span>
+                    <span>{isProvider ? 'Comenzi Recente' : 'Ultimile Proiecte Adaugate'}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {!isProvider ? (
                     <div className="space-y-4">
-                      {recentOrders.map((order) => (
+                      {latestClientProjects.map((order) => (
                         <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="flex-1">
-                            <h4 className="font-medium">{order.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              Prestator: {order.client}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Termen: {order.dueDate}
+                            <h4 className="font-medium border-b border-gray-200 pb-2">{order.title}</h4>
+                            <h3 className="text-sm border-b border-gray-200 pb-2 pt-2">{order.description}</h3>
+                            <div className="text-sm pt-2">
+                              {order.selected_providers.length === 1 ? <span className="font-bold">Prestator</span> : <span className="font-bold">Prestatori</span>}:
+                                {order.selected_providers.map((provider: any, index: number) => (
+                                    <div key={index} className="ms-2 mt-1 w-[350px] flex justify-between border-b border-gray-200 pb-2">{provider.firstName} {provider.lastName} <span className="font-bold">Raspuns: {getProviderResponseBadge(provider.pivot.provider_response)}</span></div>
+                                ))}
+                            </div>
+                            <div className="text-sm border-b border-gray-200 pb-2 pt-2">
+                              <span className="font-bold">Servicii: </span>
+                              {order.existing_services.map((service: any, index: number) => (
+                                  <span key={index} className="mt-1">
+                                    {service.name}{index < order.existing_services.length - 1 && ','}
+                                  </span>
+                              ))}
+                              {order?.custom_services.map((service: any, index: number) => (
+                                  <span key={index} className="mt-1">
+                                    {service.name}{index < order.custom_services.length - 1 && ','}
+                                  </span>
+                              ))}
+                            </div>
+                            <p className="text-sm pt-2">
+                              <span className="font-bold">Termen:</span> {formatDeadline(order.project_duration)}
                             </p>
                           </div>
                           <div className="text-right">
@@ -519,55 +578,32 @@ export default function DashboardPage() {
               </Card>
 
               {/* Performance Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5" />
-                    <span>Performanță</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isProvider ? (
-                      <div className="text-center py-12">
-                        <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Certificări în așteptare</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Completează testele pentru a începe să oferi servicii
-                        </p>
-                        <Button onClick={handleStartServiceFlow}>
-                          <BookOpen className="w-4 h-4 mr-2" />
-                          Vezi Testele Disponibile
-                        </Button>
-                      </div>
-                  ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Proiecte Finalizate</span>
-                            <span>85%</span>
-                          </div>
-                          <Progress value={85} className="h-2" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Satisfacția Prestatorilor</span>
-                            <span>96%</span>
-                          </div>
-                          <Progress value={96} className="h-2" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>Timp de Răspuns</span>
-                            <span>92%</span>
-                          </div>
-                          <Progress value={92} className="h-2" />
-                        </div>
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+              {isProvider && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <TrendingUp className="w-5 h-5" />
+                      <span>Performanță</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
 
+                        <div className="text-center py-12">
+                          <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-medium mb-2">Certificări în așteptare</h3>
+                          <p className="text-muted-foreground mb-4">
+                            Completează testele pentru a începe să oferi servicii
+                          </p>
+                          <Button onClick={handleStartServiceFlow}>
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Vezi Testele Disponibile
+                          </Button>
+                        </div>
+
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
 
             {/* Quick Actions */}

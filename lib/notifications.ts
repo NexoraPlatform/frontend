@@ -1,4 +1,6 @@
 // Web Push Notifications Service
+import apiClient from "@/lib/api";
+
 export class NotificationService {
     private static instance: NotificationService;
     private registration: ServiceWorkerRegistration | null = null;
@@ -98,19 +100,9 @@ export class NotificationService {
 
     private async sendSubscriptionToServer(subscription: PushSubscription): Promise<void> {
         try {
-            const response = await fetch('/api/notifications/subscribe', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                },
-                body: JSON.stringify({
-                    subscription: subscription.toJSON(),
-                    userAgent: navigator.userAgent
-                })
-            });
+            const response = await apiClient.subscribeToNotifications(subscription, navigator);
 
-            if (!response.ok) {
+            if (!response.success) {
                 throw new Error('Failed to send subscription to server');
             }
         } catch (error) {
@@ -164,13 +156,7 @@ export class NotificationService {
             if (success) {
                 this.subscription = null;
                 // Notify server about unsubscription
-                await fetch('/api/notifications/unsubscribe', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                    }
-                });
+                await apiClient.unsubscribeFromNotifications();
             }
             return success;
         } catch (error) {
