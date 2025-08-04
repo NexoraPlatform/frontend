@@ -22,7 +22,6 @@ export class NotificationService {
         try {
             // Register service worker
             this.registration = await navigator.serviceWorker.register('/sw.js');
-            console.log('Service Worker registered:', this.registration);
 
             // Request notification permission
             const permission = await this.requestPermission();
@@ -71,8 +70,6 @@ export class NotificationService {
                 userVisibleOnly: true,
                 applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
             });
-
-            console.log('Push subscription:', this.subscription);
 
             // Send subscription to server
             await this.sendSubscriptionToServer(this.subscription);

@@ -138,6 +138,7 @@ type RecommendedProvider = {
     role: string;
     level: string;
     service: string;
+    estimated_cost: number;
 }
 
 type FormData = {
@@ -212,6 +213,7 @@ export default function NewProjectPage() {
     const [skipValidation, setSkipValidation] = useState(false);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
     const [selectedProviders, setSelectedProviders] = useState<SelectedProvider[]>([]);
+    const [providerBudgets, setProviderBudgets] = useState<{[key: string]: number}>({});
     const [loadingProviders, setLoadingProviders] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -392,7 +394,7 @@ export default function NewProjectPage() {
             const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
                 return users.map(user => {
                     // user.services este string[] (nume servicii)
-                    const skills = Array.isArray(user.services) ? user.services.filter(Boolean) : [];
+                    const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
 
                     return {
                         id: String(user.id),
@@ -506,11 +508,53 @@ export default function NewProjectPage() {
         setSelectedProviders(prev => {
             const exists = prev.find(p => p.id === providerId);
             if (exists) {
+                // Removing provider - remove their budget
+                console.log('Dada1');
+                console.log(formData);
+                setProviderBudgets(prevBudgets => {
+                    const { [providerId]: removed, ...rest } = prevBudgets;
+                    return rest;
+                });
                 return prev.filter(p => p.id !== providerId);
             } else {
-                return [...prev, { id: providerId, matchScore: matchScore }];
+
+                const newSelected = [...prev, { id: providerId, matchScore: matchScore }];
+                const equalBudget = Math.floor(Number(formData.budget) / newSelected.length);
+                setProviderBudgets(prevBudgets => ({
+                    ...prevBudgets,
+                    [providerId]: 0
+                }));
+
+                return newSelected;
             }
         });
+    };
+
+    const handleBudgetChange = (providerId: string, budget: number) => {
+        setProviderBudgets(prev => ({
+            ...prev,
+            [providerId]: budget
+        }));
+    };
+
+    const redistributeBudget = () => {
+        if (selectedProviders.length === 0) return;
+
+        const equalBudget = Math.floor(Number(formData.budget) / selectedProviders.length);
+        const newBudgets: {[key: string]: number} = {};
+        selectedProviders.forEach(provider => {
+            console.log(formData);
+            newBudgets[provider.id] = equalBudget;
+        });
+        setProviderBudgets(newBudgets);
+    };
+
+    const getTotalAllocatedBudget = () => {
+        return Object.values(providerBudgets).reduce((sum, budget) => sum + (budget || 0), 0);
+    };
+
+    const getRemainingBudget = () => {
+        return Number(formData.budget) - getTotalAllocatedBudget();
     };
 
     const getLastActiveText = (lastActiveAt: string): string => {
@@ -527,6 +571,13 @@ export default function NewProjectPage() {
             return;
         }
 
+        // Validate budget allocation
+        const totalAllocated = getTotalAllocatedBudget();
+        if (Math.abs(totalAllocated - Number(formData.budget)) > 1) {
+            setError('Bugetul total alocat trebuie să fie egal cu bugetul proiectului');
+            return;
+        }
+
         setSubmitting(true);
         setError('');
 
@@ -534,6 +585,7 @@ export default function NewProjectPage() {
             const projectData = {
                 ...formData,
                 selectedProviders,
+                providerBudgets,
                 clientId: user?.id
             };
 
@@ -714,7 +766,8 @@ export default function NewProjectPage() {
                 recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
                     role: member.role,
                     level: member.level,
-                    service: member.service
+                    service: member.service,
+                    estimated_cost: member.estimated_cost
                 })),
             }));
         } catch (e: any) {
@@ -1523,7 +1576,9 @@ export default function NewProjectPage() {
 
                                                                                 <div className="flex-1">
                                                                                     <div className="flex items-center space-x-2 mb-2">
-                                                                                        <span className="font-medium">{provider.firstName} {provider.lastName}</span>
+                                                                                        <h3 className="text-lg font-semibold">
+                                                                                            {provider.firstName} {provider.lastName}
+                                                                                        </h3>
                                                                                         {provider.isVerified && (
                                                                                             <CheckCircle className="w-4 h-4 text-green-500" />
                                                                                         )}
@@ -1536,9 +1591,6 @@ export default function NewProjectPage() {
                                                                                         </Badge>
                                                                                     </div>
                                                                                     <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                        <h3 className="text-lg font-semibold">
-                                                                                            {provider.firstName} {provider.lastName}
-                                                                                        </h3>
                                                                                         <Badge className="bg-green-100 text-green-800">
                                                                                             {provider.matchScore}% potrivire
                                                                                         </Badge>
@@ -1566,11 +1618,13 @@ export default function NewProjectPage() {
                                                                                     </div>
 
                                                                                     <div className="flex flex-wrap gap-1 mb-3">
-                                                                                        {provider.skills.slice(0, 4).map((skill) => (
-                                                                                            <Badge key={skill} variant="outline" className="text-xs">
-                                                                                                {skill}
-                                                                                            </Badge>
-                                                                                        ))}
+                                                                                        {provider.skills.map((skill, index) =>
+                                                                                            index < 4 ? (
+                                                                                                <Badge key={skill} variant="outline" className="text-xs">
+                                                                                                    {skill}
+                                                                                                </Badge>
+                                                                                            ) : null
+                                                                                        )}
                                                                                         {provider.skills.length > 4 && (
                                                                                             <Badge variant="outline" className="text-xs">
                                                                                                 +{provider.skills.length - 4}
@@ -1813,29 +1867,131 @@ export default function NewProjectPage() {
                                         </div>
 
                                         <div>
-                                            <h4 className="font-semibold mb-2">Prestatori Selectați ({selectedProviders.length})</h4>
-                                            <div className="space-y-2">
-                                                {selectedProviders.map(selectedProvider => {
-                                                    const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                    return provider ? (
-                                                        <div key={selectedProvider.id} className="flex items-center space-x-3 p-2 border rounded">
-                                                            <Avatar className="w-8 h-8">
-                                                                <AvatarImage src={provider.avatar} />
-                                                                <AvatarFallback className="text-xs">
-                                                                    {provider.firstName[0]}{provider.lastName[0]}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-sm">
-                                                                    {provider.firstName} {provider.lastName}
-                                                                </div>
-                                                                <div className="text-xs text-muted-foreground">
-                                                                    • {provider.matchScore}% potrivire
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-lg font-semibold">Prestatori Selectați ({selectedProviders.length})</h3>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={redistributeBudget}
+                                                            disabled={selectedProviders.length === 0}
+                                                        >
+                                                            <DollarSign className="w-4 h-4 mr-1" />
+                                                            Împarte Egal
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Budget Summary */}
+                                                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                                                    <CardContent className="p-4">
+                                                        <div className="grid grid-cols-3 gap-4 text-sm">
+                                                            <div>
+                                                                <div className="font-medium text-blue-900 dark:text-blue-100">Buget Total</div>
+                                                                <div className="text-lg font-bold text-blue-600">{Number(formData.budget).toLocaleString()} RON</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-medium text-green-900 dark:text-green-100">Alocat</div>
+                                                                <div className="text-lg font-bold text-green-600">{getTotalAllocatedBudget().toLocaleString()} RON</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-medium text-orange-900 dark:text-orange-100">Rămas</div>
+                                                                <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                                                    {getRemainingBudget().toLocaleString()} RON
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    ) : null;
-                                                })}
+                                                        {getRemainingBudget() !== 0 && (
+                                                            <Alert className="mt-3 border-orange-200 bg-orange-50">
+                                                                <AlertCircle className="h-4 w-4" />
+                                                                <AlertDescription className="text-orange-800">
+                                                                    {getRemainingBudget() > 0
+                                                                        ? `Mai ai ${getRemainingBudget().toLocaleString()} RON de alocat`
+                                                                        : `Ai depășit bugetul cu ${Math.abs(getRemainingBudget()).toLocaleString()} RON`
+                                                                    }
+                                                                </AlertDescription>
+                                                            </Alert>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+
+                                                <div className="space-y-3">
+                                                    {selectedProviders.map(selectedProvider => {
+                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                        if (!provider) return null;
+
+                                                        return (
+                                                            <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                                                                <div className="flex items-center space-x-3">
+                                                                    <Avatar className="w-10 h-10">
+                                                                        <AvatarImage src={provider.avatar} />
+                                                                        <AvatarFallback className="text-xs">
+                                                                            {provider.firstName[0]}{provider.lastName[0]}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div className="flex-1">
+                                                                        <div className="font-medium text-sm">
+                                                                            {provider.firstName} {provider.lastName}
+                                                                            <Badge className={
+                                                                                skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                'bg-blue-100 text-blue-800'
+                                                                            }>
+                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
+                                                                            </Badge>
+                                                                        </div>
+                                                                        <div className="text-xs text-muted-foreground">
+                                                                            • {provider.matchScore}% potrivire
+                                                                        </div>
+                                                                        <div className="flex flex-wrap gap-1 mb-3">
+                                                                            {provider.skills.map((skill, index) =>
+                                                                                index < 4 ? (
+                                                                                    <Badge key={skill} variant="outline" className="text-xs">
+                                                                                        {skill}
+                                                                                    </Badge>
+                                                                                ) : null
+                                                                            )}
+                                                                            {provider.skills.length > 4 && (
+                                                                                <Badge variant="outline" className="text-xs">
+                                                                                    +{provider.skills.length - 4}
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="mt-3 flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-3">
+                                                                        <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
+                                                                            Buget alocat:
+                                                                        </Label>
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <Input
+                                                                                id={`budget-${selectedProvider.id}`}
+                                                                                type="number"
+                                                                                value={providerBudgets[selectedProvider.id] || 0}
+                                                                                onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
+                                                                                className="w-32"
+                                                                                min="0"
+                                                                                max={Number(formData.budget)}
+                                                                            />
+                                                                            <span className="text-sm text-muted-foreground">RON</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1868,7 +2024,7 @@ export default function NewProjectPage() {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || getRemainingBudget() !== 0}
                                     className="px-8"
                                 >
                                     {submitting ? (

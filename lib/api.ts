@@ -621,6 +621,53 @@ class ApiClient {
     return this.request<any>(`/projects?${searchParams.toString()}`);
   }
 
+  async getProviderProjectRequests() {
+    return this.request<any>('/projects/requests', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
+  async respondToProjectRequest(projectId: string, response: {
+    response: 'ACCEPTED' | 'REJECTED';
+    proposedBudget?: number;
+  }) {
+    return this.request<any>(`/projects/${projectId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify(response),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
+  async getClientProjectRequests() {
+    return this.request<any>('/projects/my-requests', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
+  async respondToBudgetProposal(projectId: string, providerId: string, response: {
+    response: 'APPROVED' | 'REJECTED';
+  }) {
+    return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response`, {
+      method: 'POST',
+      body: JSON.stringify(response),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
   async createProject(projectData: any) {
     return this.request<any>('/projects', {
       method: 'POST',

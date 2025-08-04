@@ -163,3 +163,4 @@ export function useProject(id: string) {
 export function useTechnologies() {
   return useApi(() => apiClient.getTechnologies(), []);
 }
+
