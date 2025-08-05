@@ -85,7 +85,7 @@ export function TestimonialsSection() {
               </blockquote>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-6">
-                  
+
                   <Image
                     src={testimonials[currentTestimonial].avatar}
                     alt={testimonials[currentTestimonial].name} width={80} height={80}
@@ -109,6 +109,7 @@ export function TestimonialsSection() {
           <div className="flex justify-center space-x-3 mt-12">
             {testimonials.map((_, index) => (
               <button
+                  aria-label={`Mergi la pagin ${index}`}
                 key={index}
                 onClick={() => setCurrentTestimonial(index)}
                 className={`w-4 h-4 rounded-full transition-all duration-300 ${

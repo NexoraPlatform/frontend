@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  compress: true,
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,6 +10,7 @@ const nextConfig = {
     domains: ['images.pexels.com', 'localhost']
   },
   experimental: {
+    optimizeCss: true,
     serverComponentsExternalPackages: ['bcryptjs']
   },
   env: {

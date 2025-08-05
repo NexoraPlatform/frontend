@@ -62,7 +62,7 @@ dayjs.extend(utc);
 import 'dayjs/locale/ro';
 import 'dayjs/locale/en';
 
-export function setDayjsLocale(locale: string) {
+function setDayjsLocale(locale: string) {
     const supported = ['ro', 'en'];
     if (supported.includes(locale)) {
         dayjs.locale(locale);

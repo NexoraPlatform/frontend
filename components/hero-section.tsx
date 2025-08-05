@@ -127,7 +127,7 @@ export function HeroSection() {
           </div>
 
           {/* Enhanced Description */}
-          <div className="transform transition-all duration-1000 delay-400 translate-y-0 opacity-100">
+          <div className="transform transition-all duration-300 translate-y-0 opacity-100">
             <p className="text-2xl lg:text-3xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
               Conectează-te cu <span className="text-blue-600 font-bold">cei mai buni experți IT</span> din România.
               <br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.

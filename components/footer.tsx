@@ -34,16 +34,16 @@ export function Footer() {
               Platforma românească pentru servicii IT profesionale. Conectăm clienții cu experții potriviți pentru proiectele lor.
             </p>
             <div className="flex space-x-2">
-              <Button variant="ghost" size="icon">
+              <Button aria-label="Mergi pe pagina de Facebook" variant="ghost" size="icon">
                 <Facebook className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button aria-label="Mergi pe pagina de Twitter" variant="ghost" size="icon">
                 <Twitter className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button aria-label="Mergi pe pagina de Linkedin" variant="ghost" size="icon">
                 <Linkedin className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button aria-label="Mergi pe pagina de Instagram" variant="ghost" size="icon">
                 <Instagram className="h-4 w-4" />
               </Button>
             </div>

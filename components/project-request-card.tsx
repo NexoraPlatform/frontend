@@ -30,7 +30,7 @@ import Link from 'next/link';
 
 interface ProjectRequestCardProps {
     project: any;
-    onResponse: (projectId: string, response: 'ACCEPTED' | 'REJECTED', proposedBudget?: number) => void;
+    onResponse: (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => void;
 }
 
 export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardProps) {
