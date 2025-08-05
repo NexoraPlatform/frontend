@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import {
   Search,
   Code,
@@ -532,14 +533,17 @@ export default function Home() {
                   ))}
                 </div>
                 <blockquote className="text-3xl font-medium mb-12 leading-relaxed italic text-gray-700 dark:text-gray-300">
-                  "{testimonials[currentTestimonial].content}"
+                  &ldquo;{testimonials[currentTestimonial].content}&rdquo;
                 </blockquote>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-6">
-                    <img
+                    <Image
                       src={testimonials[currentTestimonial].avatar}
                       alt={testimonials[currentTestimonial].name}
+                      width={80}
+                      height={80}
                       className="w-20 h-20 rounded-full object-cover border-4 border-blue-200 dark:border-blue-800"
+                      priority
                     />
                     <div>
                       <div className="font-bold text-2xl">{testimonials[currentTestimonial].name}</div>
