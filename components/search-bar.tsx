@@ -267,7 +267,7 @@ export function SearchBar({
             {/* No results */}
             {!loading && query && suggestions.length === 0 && (
               <div className="p-4 text-center text-muted-foreground">
-                Nu am găsit sugestii pentru "{query}"
+                Nu am găsit sugestii pentru &quot;{query}&quot;
               </div>
             )}
           </CardContent>

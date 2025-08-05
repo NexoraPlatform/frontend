@@ -4,7 +4,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true,
+    unoptimized: false,
     domains: ['images.pexels.com', 'localhost']
   },
   experimental: {

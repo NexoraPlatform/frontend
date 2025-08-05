@@ -4,9 +4,32 @@ import { HeroSection } from '@/components/hero-section';
 import { TestimonialsSection } from '@/components/testimonials-section';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Code, Smartphone, Palette, TrendingUp, Shield, Users, Zap, Award, Globe, ChevronRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import {
+  Search,
+  Code,
+  Smartphone,
+  Palette,
+  TrendingUp,
+  Shield,
+  Zap,
+  Sparkles,
+  Rocket
+} from 'lucide-react';
 import Link from 'next/link';
+
+const Users = dynamic(() => import('lucide-react').then((m) => m.Users), { ssr: false });
+const Star = dynamic(() => import('lucide-react').then((m) => m.Star), { ssr: false });
+const CheckCircle = dynamic(() => import('lucide-react').then((m) => m.CheckCircle), { ssr: false });
+const Globe = dynamic(() => import('lucide-react').then((m) => m.Globe), { ssr: false });
+const Award = dynamic(() => import('lucide-react').then((m) => m.Award), { ssr: false });
+const Play = dynamic(() => import('lucide-react').then((m) => m.Play), { ssr: false });
+const ChevronRight = dynamic(() => import('lucide-react').then((m) => m.ChevronRight), { ssr: false });
+const Target = dynamic(() => import('lucide-react').then((m) => m.Target), { ssr: false });
+const Clock = dynamic(() => import('lucide-react').then((m) => m.Clock), { ssr: false });
 
 export default function Home() {
   const categories = [
