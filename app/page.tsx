@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import dynamic from 'next/dynamic';
 import {
   Search,
   Code,
@@ -14,28 +15,22 @@ import {
   Palette,
   TrendingUp,
   Shield,
-  Users,
-  Star,
-  ArrowRight,
-  CheckCircle,
   Zap,
-  Globe,
-  Award,
-  Play,
-  ChevronRight,
   Sparkles,
-  Target,
-  Clock,
-  DollarSign,
-  Rocket,
-  TrendingDown,
-  BarChart3,
-  Layers,
-  Lightbulb,
-  Infinity
+  Rocket
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+const Users = dynamic(() => import('lucide-react').then((m) => m.Users), { ssr: false });
+const Star = dynamic(() => import('lucide-react').then((m) => m.Star), { ssr: false });
+const CheckCircle = dynamic(() => import('lucide-react').then((m) => m.CheckCircle), { ssr: false });
+const Globe = dynamic(() => import('lucide-react').then((m) => m.Globe), { ssr: false });
+const Award = dynamic(() => import('lucide-react').then((m) => m.Award), { ssr: false });
+const Play = dynamic(() => import('lucide-react').then((m) => m.Play), { ssr: false });
+const ChevronRight = dynamic(() => import('lucide-react').then((m) => m.ChevronRight), { ssr: false });
+const Target = dynamic(() => import('lucide-react').then((m) => m.Target), { ssr: false });
+const Clock = dynamic(() => import('lucide-react').then((m) => m.Clock), { ssr: false });
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
