@@ -1,0 +1,237 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Search,
+  Rocket,
+  Sparkles,
+  Target,
+  Play,
+  Users,
+  CheckCircle,
+  Star,
+  Clock,
+  Code,
+  Palette,
+  Smartphone,
+  TrendingUp,
+  Shield,
+  Zap,
+} from 'lucide-react';
+
+export function HeroSection() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isVisible, setIsVisible] = useState(false);
+  const router = useRouter();
+
+  const stats = [
+    { number: '500+', label: 'Experți Verificați', icon: Users, change: '+12%' },
+    { number: '2,847', label: 'Proiecte Finalizate', icon: CheckCircle, change: '+23%' },
+    { number: '98.5%', label: 'Rata de Satisfacție', icon: Star, change: '+2.1%' },
+    { number: '24/7', label: 'Suport Tehnic', icon: Clock, change: 'Non-stop' },
+  ];
+
+  const floatingElements = [
+    { icon: Code, delay: 0, duration: 6 },
+    { icon: Palette, delay: 1, duration: 8 },
+    { icon: Smartphone, delay: 2, duration: 7 },
+    { icon: TrendingUp, delay: 3, duration: 9 },
+    { icon: Shield, delay: 4, duration: 6 },
+    { icon: Zap, delay: 5, duration: 8 },
+  ];
+
+  useEffect(() => {
+    setIsVisible(true);
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/services?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-100/30 to-purple-100/30 dark:from-transparent dark:via-blue-900/10 dark:to-purple-900/10" />
+
+        {/* Floating geometric shapes */}
+        <div className="absolute inset-0">
+          {floatingElements.map((element, index) => (
+            <div
+              key={index}
+              className="absolute animate-pulse opacity-10 dark:opacity-5"
+              style={{
+                left: `${20 + index * 15}%`,
+                top: `${10 + index * 12}%`,
+                animationDelay: `${element.delay}s`,
+                animationDuration: `${element.duration}s`,
+              }}
+            >
+              <element.icon className="w-16 h-16 text-blue-600" />
+            </div>
+          ))}
+        </div>
+
+        {/* Interactive cursor effect */}
+        <div
+          className="absolute w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl transition-all duration-1000 ease-out pointer-events-none"
+          style={{
+            left: mousePosition.x - 192,
+            top: mousePosition.y - 192,
+          }}
+        />
+      </div>
+
+      <div className="container mx-auto px-4 py-8 relative z-10">
+        <div className="max-w-6xl mx-auto text-center">
+          {/* Animated Badge */}
+          <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <Badge variant="secondary" className="mb-8 px-8 py-3 text-base font-semibold bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm">
+              <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
+              🚀 Platforma #1 pentru servicii IT în România
+              <div className="ml-3 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                LIVE
+              </div>
+            </Badge>
+          </div>
+
+          {/* Main Heading with Staggered Animation */}
+          <div className={`transform transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <h1 className="text-6xl lg:text-8xl font-black mb-8 leading-tight">
+              <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">
+                Transformă-ți
+              </span>
+              <span className="block text-foreground mt-2">
+                <span className="relative">
+                  ideile în
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg blur opacity-25 animate-pulse"></div>
+                </span>
+              </span>
+              <span className="block bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                realitate digitală
+              </span>
+            </h1>
+          </div>
+
+          {/* Enhanced Description */}
+          <div className={`transform transition-all duration-1000 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <p className="text-2xl lg:text-3xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
+              Conectează-te cu <span className="text-blue-600 font-bold">cei mai buni experți IT</span> din România.
+              <br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
+            </p>
+          </div>
+
+          {/* Enhanced Search Bar */}
+          <div className={`transform transition-all duration-1000 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className="max-w-4xl mx-auto mb-12">
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity animate-pulse"></div>
+                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl p-3 shadow-2xl border-2 border-white/20 dark:border-gray-800/20">
+                  <div className="flex items-center">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-8 top-1/2 transform -translate-y-1/2 text-muted-foreground w-7 h-7" />
+                      <Input
+                        placeholder="Caută servicii, tehnologii sau experți... (ex: dezvoltare React, logo design, SEO)"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-[98%] pl-20 pr-6 py-8 text-xl border-0 bg-transparent focus:ring-0 focus:outline-none placeholder:text-muted-foreground/70"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="mr-3 px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                    >
+                      <Rocket className="mr-3 w-6 h-6" />
+                      Caută Acum
+                    </Button>
+                  </div>
+                </div>
+              </form>
+
+              {/* Popular Tags */}
+              <div className="flex flex-wrap justify-center items-center gap-3 mt-8">
+                <span className="text-sm text-muted-foreground font-medium">Populare:</span>
+                {['React', 'WordPress', 'Logo Design', 'SEO', 'Mobile App', 'E-commerce'].map((tag) => (
+                  <Button
+                    key={tag}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:hover:border-blue-600 dark:hover:bg-blue-950 transition-all duration-200 transform hover:scale-105"
+                    onClick={() => {
+                      setSearchTerm(tag);
+                      router.push(`/services?search=${encodeURIComponent(tag)}`);
+                    }}
+                  >
+                    {tag}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className={`transform transition-all duration-1000 delay-800 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+              <Button size="lg" className="px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-200" asChild>
+                <Link href="#">
+                  <Target className="mr-3 w-6 h-6" />
+                  Alătură-te ca si client
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" className="px-12 py-8 text-xl font-bold border-3 border-blue-300 hover:border-blue-500 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:hover:border-blue-500 dark:text-blue-300 dark:hover:bg-blue-950 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200">
+                <Play className="mr-3 w-6 h-6" />
+                Alătură-te ca prestator
+              </Button>
+            </div>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className={`transform transition-all duration-1000 delay-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              {stats.map((stat, index) => (
+                <div key={index} className="group">
+                  <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <stat.icon className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <div className="text-3xl lg:text-4xl font-black text-blue-600 mb-2">
+                    {stat.number}
+                  </div>
+                  <div className="text-sm font-medium text-muted-foreground mb-1">
+                    {stat.label}
+                  </div>
+                  <div className="text-xs text-green-600 font-semibold">
+                    {stat.change}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Scroll Indicator */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+        <div className="w-6 h-10 border-2 border-blue-600 rounded-full flex justify-center">
+          <div className="w-1 h-3 bg-blue-600 rounded-full mt-2 animate-pulse"></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
