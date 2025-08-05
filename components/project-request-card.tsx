@@ -62,7 +62,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
         setResponding(true);
         try {
-            await onResponse(project.id, 'ACCEPTED', proposedBudget);
+            await onResponse(project.id, 'NEW_PROPOSE', proposedBudget);
             setShowBudgetProposal(false);
         } finally {
             setResponding(false);
@@ -138,7 +138,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
     const isProvider = user?.role === 'PROVIDER';
     const isClient = user?.role === 'CLIENT';
-
+    console.log(project);
     return (
         <Card className={`border-2 hover:shadow-lg transition-all duration-300 ${
             project.featured ? 'border-yellow-200 bg-yellow-50/30' : ''
@@ -161,17 +161,18 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         </p>
 
                         {/* Technologies */}
-                        {project.technologies && project.technologies.length > 0 && (
+                        {(project.existing_services && project.existing_services.length > 0)
+                            || (project.custom_services && project.custom_services.length > 0) && (
                             <div className="flex flex-wrap gap-1 mb-4">
-                                {project.technologies.slice(0, 5).map((tech: string) => (
-                                    <Badge key={tech} variant="outline" className="text-xs">
+                                {project.existing_services.slice(0, 5).map((tech: any, index: number) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
                                         <Code className="w-3 h-3 mr-1" />
-                                        {tech}
+                                        {tech.name}
                                     </Badge>
                                 ))}
-                                {project.technologies.length > 5 && (
+                                {(project.existing_services.length + project.custom_services.length) > 5 && (
                                     <Badge variant="outline" className="text-xs">
-                                        +{project.technologies.length - 5}
+                                        +{project.existing_services.length - 5}
                                     </Badge>
                                 )}
                             </div>
@@ -182,21 +183,23 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 <DollarSign className="w-4 h-4" />
                                 <span className="font-semibold text-green-600 text-base">
                                     {isProvider
-                                        ? `${project.allocatedBudget?.toLocaleString() || 0} RON`
+                                        ? `${project.selected_providers.find(
+                                            (provider: any) => provider.id === user?.id
+                                        ).pivot?.client_budget?.toLocaleString() || 0} RON`
                                         : `${project.budget?.toLocaleString() || 0} RON`
                                     }
                                 </span>
-                                {isProvider && project.totalBudget && (
+                                {isProvider && project.budget && (
                                     <span className="text-xs">
-                                        (din {project.totalBudget.toLocaleString()} RON total)
+                                        (din {project.budget.toLocaleString()} RON total)
                                     </span>
                                 )}
                             </div>
                             <div className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
                                 <span>
-                                    {project.deadline
-                                        ? `Deadline: ${new Date(project.deadline).toLocaleDateString('ro-RO')}`
+                                    {project.project_duration
+                                        ? `Deadline: ${formatDeadline(project.project_duration)}`
                                         : 'Fără deadline fix'
                                     }
                                 </span>

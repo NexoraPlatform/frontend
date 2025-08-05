@@ -6,11 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="936f30aa-4d19-43b6-901a-7cb3f6dac2a1" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/client/project-requests/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/client/project-requests/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/projects/new/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/projects/new/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hooks/use-api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/use-api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/project-request-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/project-request-card.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/notifications.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/notifications.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,7 +109,7 @@
       <workItem from="1753549260208" duration="50622000" />
       <workItem from="1753858894127" duration="31610000" />
       <workItem from="1754122648890" duration="319000" />
-      <workItem from="1754122971815" duration="36841000" />
+      <workItem from="1754122971815" duration="41711000" />
     </task>
     <servers />
   </component>

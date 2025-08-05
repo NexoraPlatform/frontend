@@ -170,14 +170,15 @@ export default function ClientProjectRequestsPage() {
 
                                 <CardContent>
                                     {/* Technologies */}
-                                    {project.technologies && project.technologies.length > 0 && (
+                                    {(project.existing_services && project.existing_services.length > 0)
+                                        || (project.custom_services && project.custom_services.length > 0) && (
                                         <div className="mb-4">
                                             <div className="text-sm font-medium mb-2">Tehnologii:</div>
                                             <div className="flex flex-wrap gap-1">
-                                                {project.technologies.map((tech: string) => (
-                                                    <Badge key={tech} variant="outline" className="text-xs">
+                                                {project.existing_services.map((tech: any, index: number) => (
+                                                    <Badge key={index} variant="outline" className="text-xs">
                                                         <Code className="w-3 h-3 mr-1" />
-                                                        {tech}
+                                                        {tech.name}
                                                     </Badge>
                                                 ))}
                                             </div>

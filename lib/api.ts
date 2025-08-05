@@ -632,7 +632,7 @@ class ApiClient {
   }
 
   async respondToProjectRequest(projectId: string, response: {
-    response: 'ACCEPTED' | 'REJECTED';
+    response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
     proposedBudget?: number;
   }) {
     return this.request<any>(`/projects/${projectId}/respond`, {

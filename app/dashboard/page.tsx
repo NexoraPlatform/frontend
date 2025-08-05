@@ -7,121 +7,84 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import CallIcon from '@mui/icons-material/Call';
-import Tooltip from '@mui/material/Tooltip';
+import { Progress } from '@/components/ui/progress';
 import {
   User,
+  Briefcase,
+  DollarSign,
   Star,
   TrendingUp,
-  DollarSign,
   Clock,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Search,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Eye,
   MessageSquare,
+  Calendar,
+  Target,
+  Users,
   FileText,
   Settings,
-  Plus,
-  Calendar,
-  Award,
-  Target,
+  Bell,
+  Heart,
+  Bookmark,
+  BarChart3,
   Zap,
-  Loader2,
-  BookOpen,
+  Award,
   Shield,
-  PlayCircle,
-  Search
+  Globe,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  ExternalLink,
+  MapPin,
+  Phone,
+  Mail,
+  Building,
+  Code,
+  Palette,
+  Smartphone,
+  TrendingDown,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import {useTestExamDetails} from "@/hooks/use-api";
-import { DateTime } from 'luxon';
-import apiClient from "@/lib/api";
-import {SiStripe} from "react-icons/si";
 import { ProjectRequestCard } from '@/components/project-request-card';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-
-type TestResult = {
-  id: number;
-  skill_test_id: number;
-  test_result_id: number;
-  user_id: number;
-  service_id: number;
-  score: number;
-  passed: string;
-  timeSpent: number;
-  taken_at: string;
-  totalQuestions: number;
-  created_at: string;
-  updated_at: string;
-  call_schedule: {
-    id: number;
-    user_id: number;
-    date_time: string;
-    passed: boolean;
-    created_at: string | null;
-    updated_at: string | null;
-    service_id: number;
-    test_result_id: number;
-    timezone: string;
-    call_date_time_iso: string;
-    call_url: string;
-  };
-  service: {
-    id: number;
-    name: string;
-    description: string;
-    slug: string;
-    category_id: number;
-    category: {
-      id: number;
-      name: string;
-      description: string;
-      slug: string;
-    };
-  };
-};
+import { formatDistanceToNow } from 'date-fns';
+import { ro } from 'date-fns/locale';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectsError, setProjectsError] = useState('');
+
+  // Filters and pagination for projects
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const projectsPerPage = 6;
+
   const router = useRouter();
-  const { data: testExamDetails } = useTestExamDetails();
-  const [enabledMap, setEnabledMap] = useState<Record<number, boolean>>({});
-  const [stripeOnboarded, setStripeOnboarded] = useState(false);
-  const [latestClientProjects, setLatestClientProjects] = useState<any[]>([]);
-  const [clientProjects, setClientProjects] = useState<any[]>([]);
-  const filteredExamData = testExamDetails?.filter(
-      (item: TestResult) =>
-          item.passed === 'YES' &&
-          item.call_schedule &&
-          !item.call_schedule.passed
-  );
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const updatedMap: Record<number, boolean> = {};
-
-      filteredExamData.forEach((exam: TestResult) => {
-        const timezone = exam.call_schedule?.timezone || 'UTC';
-
-        const scheduledDate = DateTime.fromISO(exam.call_schedule?.call_date_time_iso, { zone: 'utc' }).setZone(timezone);
-        const now = DateTime.now().setZone(timezone);
-
-        const diffMinutes = scheduledDate.diff(now, 'minutes').minutes;
-
-        const nowPlus10 = now.plus({ minutes: 10 });
-        const isPastWindow = nowPlus10 > scheduledDate;
-
-        updatedMap[exam.id] = diffMinutes <= 5 || !isPastWindow;
-      });
-
-      setEnabledMap(updatedMap);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [filteredExamData]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -130,40 +93,214 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    const checkStripeOnboarding = async () => {
-      const response = await apiClient.getStripeAccountStatus();
-
-      setStripeOnboarded(response.isVerified);
+    if (user && activeTab === 'projects') {
+      loadProjects();
     }
+  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage]);
 
-    checkStripeOnboarding();
-  }, []);
-  const isClient = user?.role === 'CLIENT';
+  const loadProjects = async () => {
+    setLoadingProjects(true);
+    setProjectsError('');
+    try {
+      let response;
+      if (user?.role === 'PROVIDER') {
+        response = await apiClient.getProviderProjectRequests();
+      } else {
+        response = await apiClient.getClientProjectRequests();
+      }
 
-  useEffect(() => {
-    if (!isClient) return;
-    const getLatestClientProjects = async () => {
-      const response = await apiClient.getClientProjects(user.id, 5);
-      setLatestClientProjects(response || []);
+      let filteredProjects = response || [];
+
+      // Apply search filter
+      if (searchTerm) {
+        filteredProjects = filteredProjects.filter((project: any) =>
+            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Apply status filter
+      if (statusFilter !== 'all') {
+        filteredProjects = filteredProjects.filter((project: any) => {
+          if (user?.role === 'PROVIDER') {
+            return project.status === statusFilter;
+          } else {
+            return project.status === statusFilter;
+          }
+        });
+      }
+
+      // Apply sorting
+      filteredProjects.sort((a: any, b: any) => {
+        let aValue, bValue;
+        switch (sortBy) {
+          case 'title':
+            aValue = a.title.toLowerCase();
+            bValue = b.title.toLowerCase();
+            break;
+          case 'budget':
+            aValue = user?.role === 'PROVIDER' ? a.budget : a.budget;
+            bValue = user?.role === 'PROVIDER' ? b.budget : b.budget;
+            break;
+          case 'oldest':
+            aValue = new Date(a.created_at).getTime();
+            bValue = new Date(b.created_at).getTime();
+            break;
+          default: // newest
+            aValue = new Date(a.created_at).getTime();
+            bValue = new Date(b.created_at).getTime();
+            break;
+        }
+
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      // Calculate pagination
+      const total = filteredProjects.length;
+      setTotalPages(Math.ceil(total / projectsPerPage));
+
+      // Apply pagination
+      const startIndex = (currentPage - 1) * projectsPerPage;
+      const paginatedProjects = filteredProjects.slice(startIndex, startIndex + projectsPerPage);
+
+      setProjects(paginatedProjects);
+    } catch (error: any) {
+      setProjectsError('Nu s-au putut încărca proiectele: ' + error.message);
+    } finally {
+      setLoadingProjects(false);
     }
+  };
 
-    const getClientProjects = async () => {
-        const response = await apiClient.getClientProjects(user.id);
-        setClientProjects(response || []);
+  const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
+    try {
+      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget });
+      toast.success(response === 'ACCEPTED' ? 'Proiect acceptat!' : 'Proiect respins');
+      loadProjects();
+    } catch (error: any) {
+      toast.error('Eroare: ' + error.message);
     }
+  };
 
-    if (activeTab === 'orders') {
-      getClientProjects();
-    }
-    getLatestClientProjects();
-  }, [activeTab, isClient, user]);
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setSortBy('newest');
+    setSortOrder('desc');
+    setCurrentPage(1);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const getVisiblePages = () => {
+      const delta = 2;
+      const range = [];
+      const rangeWithDots = [];
+
+      for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+        range.push(i);
+      }
+
+      if (currentPage - delta > 2) {
+        rangeWithDots.push(1, '...');
+      } else {
+        rangeWithDots.push(1);
+      }
+
+      rangeWithDots.push(...range);
+
+      if (currentPage + delta < totalPages - 1) {
+        rangeWithDots.push('...', totalPages);
+      } else {
+        rangeWithDots.push(totalPages);
+      }
+
+      return rangeWithDots;
+    };
+
+    const visiblePages = getVisiblePages();
+
+    return (
+        <div className="flex items-center justify-between mt-8 pt-6 border-t">
+          <div className="text-sm text-muted-foreground">
+            Afișând {Math.min((currentPage - 1) * projectsPerPage + 1, projects.length)} - {Math.min(currentPage * projectsPerPage, projects.length)} din {projects.length} proiecte
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Anterior
+            </Button>
+
+            {visiblePages.map((page, index) => (
+                <Button
+                    key={index}
+                    variant={page === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                    disabled={page === '...'}
+                    className="w-10"
+                >
+                  {page}
+                </Button>
+            ))}
+
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+            >
+              Următor
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+    );
+  };
+
+  const getClientStatusOptions = () => [
+    { value: 'all', label: 'Toate Statusurile' },
+    { value: 'PENDING_RESPONSES', label: 'Așteaptă Răspunsuri' },
+    { value: 'IN_PROGRESS', label: 'În Progres' },
+    { value: 'COMPLETED', label: 'Finalizate' },
+    { value: 'CANCELLED', label: 'Anulate' }
+  ];
+
+  const getProviderStatusOptions = () => [
+    { value: 'all', label: 'Toate Statusurile' },
+    { value: 'PENDING', label: 'În Așteptare' },
+    { value: 'ACCEPTED', label: 'Acceptate' },
+    { value: 'REJECTED', label: 'Respinse' },
+    { value: 'BUDGET_PROPOSED', label: 'Buget Propus' }
+  ];
+
+  const getSortOptions = () => [
+    { value: 'newest', label: 'Cele Mai Noi' },
+    { value: 'oldest', label: 'Cele Mai Vechi' },
+    { value: 'budget', label: 'Buget' },
+    { value: 'title', label: 'Titlu' }
+  ];
 
   if (loading) {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Se încarcă...</p>
+            <p>Se încarcă dashboard-ul...</p>
           </div>
         </div>
     );
@@ -173,446 +310,113 @@ export default function DashboardPage() {
     return null;
   }
 
-  const isProvider = user.role === 'PROVIDER';
-  const testVerified = user.testVerified;
-  const callVerified = user.callVerified;
-
-  const stats = [
-    {
-      title: isProvider ? 'Servicii Active' : 'Comenzi Active',
-      value: isProvider ? '0' : '3',
-      change: isProvider ? 'Adaugă primul serviciu' : '+2 această lună',
-      icon: FileText,
-      color: 'text-blue-600'
-    },
-    {
-      title: isProvider ? 'Venituri Totale' : 'Cheltuieli Totale',
-      value: isProvider ? '0 RON' : '12,500 RON',
-      change: isProvider ? 'După certificare' : '+15% față de luna trecută',
-      icon: DollarSign,
-      color: 'text-green-600'
-    },
-    {
-      title: 'Rating Mediu',
-      value: '0',
-      change: isProvider ? 'După primele comenzi' : '0 recenzii',
-      icon: Star,
-      color: 'text-yellow-600'
-    },
-    {
-      title: 'Mesaje Noi',
-      value: '0',
-      change: 'Niciun mesaj nou',
-      icon: MessageSquare,
-      color: 'text-purple-600'
-    }
-  ];
-
-  const recentOrders = [
-    {
-      id: '1',
-      title: 'Dezvoltare Website E-commerce',
-      client: 'Maria Popescu',
-      amount: '3,500 RON',
-      status: 'IN_PROGRESS',
-      dueDate: '2024-02-15'
-    },
-    {
-      id: '2',
-      title: 'Design Logo și Branding',
-      client: 'Alexandru Ionescu',
-      amount: '800 RON',
-      status: 'DELIVERED',
-      dueDate: '2024-02-10'
-    },
-    {
-      id: '3',
-      title: 'Optimizare SEO',
-      client: 'Diana Radu',
-      amount: '1,200 RON',
-      status: 'PENDING',
-      dueDate: '2024-02-20'
-    }
-  ];
-
-  const formatDeadline = (value: string): string => {
-    const map: Record<string, string> = {
-      '1day': '1 zi',
-      '1week': 'O săptămână',
-      '2weeks': '2 săptămâni',
-      '3weeks': '3 săptămâni',
-      '1month': '1 lună',
-      '3months': '3 luni',
-      '6months': '6 luni',
-      '1year': '1 an',
-      '1plusyear': '1+ ani',
-    };
-
-    return map[value] || value;
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'IN_PROGRESS':
-        return <Badge className="bg-blue-100 text-blue-800">În progres</Badge>;
-      case 'DELIVERED':
-        return <Badge className="bg-green-100 text-green-800">Livrat</Badge>;
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-800">În așteptare</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getProviderResponseBadge = (status: string) => {
-    switch (status) {
-      case 'REJECTED':
-        return <Badge className="bg-blue-100 text-red-600">Refuzat</Badge>;
-      case 'ACCEPTED':
-        return <Badge className="bg-green-100 text-green-800">Acceptat</Badge>;
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-800">În așteptare</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const handleNewService = () => {
-    if (isProvider) {
-      setShowServiceModal(true);
+  // Mock data for overview stats
+  const getOverviewStats = () => {
+    if (user.role === 'PROVIDER') {
+      return [
+        { title: 'Proiecte Active', value: '3', change: '+2 această lună', icon: Briefcase, color: 'text-blue-600' },
+        { title: 'Venituri Luna', value: '4,500 RON', change: '+15% față de luna trecută', icon: DollarSign, color: 'text-green-600' },
+        { title: 'Rating Mediu', value: '4.8', change: '+0.2 această lună', icon: Star, color: 'text-yellow-600' },
+        { title: 'Cereri Noi', value: '7', change: '+3 astăzi', icon: Bell, color: 'text-purple-600' }
+      ];
     } else {
-      router.push('/projects/new');
+      return [
+        { title: 'Proiecte Postate', value: '5', change: '+2 această lună', icon: FileText, color: 'text-blue-600' },
+        { title: 'Buget Cheltuit', value: '12,000 RON', change: '+25% această lună', icon: DollarSign, color: 'text-green-600' },
+        { title: 'Proiecte Finalizate', value: '3', change: '100% rata de succes', icon: CheckCircle, color: 'text-green-600' },
+        { title: 'Prestatori Activi', value: '8', change: '+2 noi colaboratori', icon: Users, color: 'text-purple-600' }
+      ];
     }
   };
 
-  const handleStartServiceFlow = () => {
-    setShowServiceModal(false);
-    router.push('/provider/services/select');
-  };
-
-  const handleScheduleCall = (examId: number) => () => {
-    router.push('/tests/schedule/' + examId);
-  };
-
-  const handleConnectCall = (callUrl: string | null) => () => {
-    if (callUrl) {
-      window.open(callUrl, '_blank');
-    }
-  }
-
-  const getStripeOnboardingUrl = async () => {
-    try {
-      const response = await apiClient.handleStripeOnboarding(user.email);
-
-      if (!response || !response.url) {
-        console.error('No URL returned from Stripe onboarding');
-        return null;
-      }
-
-      window.location.href = response.url;
-    } catch (error) {
-      console.error('Error fetching Stripe onboarding URL:', error);
-      return null;
-    }
-  }
+  const overviewStats = getOverviewStats();
 
   return (
       <div className="min-h-screen bg-background">
         <Header />
 
         <div className="container mx-auto px-4 py-8">
-          {/* Welcome Section */}
+          {/* Welcome Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold mb-2">
-                  Bun venit, {user.firstName}!
+                  Bun venit, {user.firstName}! 👋
                 </h1>
                 <p className="text-muted-foreground">
-                  {isProvider
-                      ? 'Gestionează serviciile și comenzile tale'
-                      : 'Urmărește proiectele și colaborările tale'
+                  {user.role === 'PROVIDER'
+                      ? 'Gestionează-ți serviciile și proiectele active'
+                      : 'Urmărește-ți proiectele și găsește experții potriviți'
                   }
                 </p>
               </div>
-              <div className="flex items-center space-x-4">
-                {isProvider && (<Button className="bg-stripe" onClick={getStripeOnboardingUrl}>
-                  <SiStripe className="w-4 h-4 mr-2" />
-                  {stripeOnboarded ? 'Actualizeaza datele Stripe' : 'Conecteaza-te la Stripe'}
-                </Button>)}
-                <Button onClick={handleNewService}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  {isProvider ? 'Serviciu Nou' : 'Proiect Nou'}
-                </Button>
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={user.avatar || ''} />
-                  <AvatarFallback>
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback className="text-lg">
                     {user.firstName[0]}{user.lastName[0]}
                   </AvatarFallback>
                 </Avatar>
+                <div>
+                  <div className="font-semibold">{user.firstName} {user.lastName}</div>
+                  <Badge className={user.role === 'PROVIDER' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
+                    {user.role === 'PROVIDER' ? 'Prestator' : 'Client'}
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Provider Service Modal */}
-          {showServiceModal && isProvider && (
-              <Alert className="mb-6 border-blue-200 bg-blue-50">
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold mb-2">Adaugă Serviciu Nou</h3>
-                      <p className="text-sm mb-4">
-                        Pentru a oferi servicii pe platformă, urmează acești pași:
-                      </p>
-                      <div className="space-y-2 text-sm mb-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
-                          <span>Selectează serviciile pe care vrei să le prestezi</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
-                          <span>Alege nivelul tău pentru fiecare serviciu</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
-                          <span>Susții testele de competență</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</div>
-                          <span>Setezi tarifele și începi să primești comenzi</span>
-                        </div>
-                      </div>
-                      <div className="flex space-x-3">
-                        <Button size="sm" onClick={handleStartServiceFlow}>
-                          <PlayCircle className="w-4 h-4 mr-2" />
-                          Începe Procesul
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => router.push('/services')}>
-                          <Search className="w-4 h-4 mr-2" />
-                          Vezi Servicii Disponibile
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setShowServiceModal(false)}>
-                          Închide
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-          )}
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-                <Card key={index} className="border-2 hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">
-                          {stat.title}
-                        </p>
-                        <p className="text-2xl font-bold">{stat.value}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {stat.change}
-                        </p>
-                      </div>
-                      <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform`}>
-                        <stat.icon className="w-6 h-6" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-            ))}
-          </div>
-
-          {/* Main Content Tabs */}
+          {/* Dashboard Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 flex justify-around">
-              <TabsTrigger value="overview">Prezentare</TabsTrigger>
-              <TabsTrigger value="orders">
-                {isProvider ? 'Comenzi' : 'Proiecte'}
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview" className="flex items-center space-x-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Prezentare</span>
               </TabsTrigger>
-              {isProvider && <TabsTrigger value="services">
-                Servicii
-              </TabsTrigger>}
-              <TabsTrigger value="messages">Mesaje</TabsTrigger>
-              {isProvider && <TabsTrigger onClick={() => router.push('/provider/profile')} value="">Profil</TabsTrigger>}
+              <TabsTrigger value="projects" className="flex items-center space-x-2">
+                <Briefcase className="w-4 h-4" />
+                <span>Proiecte</span>
+              </TabsTrigger>
+              <TabsTrigger value="services" className="flex items-center space-x-2">
+                <Target className="w-4 h-4" />
+                <span>Servicii</span>
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="flex items-center space-x-2">
+                <MessageSquare className="w-4 h-4" />
+                <span>Mesaje</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center space-x-2">
+                <Settings className="w-4 h-4" />
+                <span>Setări</span>
+              </TabsTrigger>
             </TabsList>
 
+            {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
-              <div className={`grid grid-cols-1 ${isProvider ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-6`}>
-                {isProvider && filteredExamData?.length !== 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <ScheduleIcon className="w-5 h-5" />
-                          <span>Verificări</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {filteredExamData?.map((exam: TestResult) => {
-                            const scheduledDate = DateTime.fromISO(exam.call_schedule?.date_time, { setZone: true });
-
-                            const formattedDate = scheduledDate.toFormat('dd.MM.yyyy HH:mm');
-                            const isCallScheduled = !!exam.call_schedule?.date_time;
-                            const isCallPassed = exam.call_schedule?.passed;
-                            const isButtonEnabled = enabledMap[exam.id];
-
-                            return (
-                                <div key={exam.id}>
-                                  <p>{exam.service.category.name}</p>
-                                  <span className="text-sm text-muted-foreground mb-4">
-                                  {exam.service.name} –{' '}
-                                    {exam.passed === 'YES' ? (
-                                        <>
-                                          <span className="text-green-600 font-semibold">Trecut</span>
-                                          {!isCallPassed && !isCallScheduled && (
-                                              <span> - Examen – <a href="#">Programează apel aici</a></span>
-                                          )}
-                                        </>
-                                    ) : (
-                                        <span className="text-red-600 font-semibold">Picat</span>
-                                    )}
-                    </span>
-
-                                  <div className="flex items-center space-x-2 text-sm">
-                                    <Progress value={exam.score} className="h-2" />
-                                    {exam.score}%
-                                  </div>
-
-                                  <div className="mt-2">
-                                    {!isCallPassed && !isCallScheduled && (
-                                        <Button className="w-full" onClick={handleScheduleCall(exam.id)}>
-                                          <ScheduleIcon className="w-4 h-4 mr-2" />
-                                          Programează-te
-                                        </Button>
-                                    )}
-
-                                    {isCallScheduled && (
-                                        <>
-                                          <p className="text-center mt-5">
-                                            Programat pentru call-ul de verificare la data de {formattedDate}
-                                          </p>
-                                          <Tooltip
-                                              title={
-                                                isButtonEnabled
-                                                    ? ''
-                                                    : 'Butonul va fi activat automat cu 5 minute înainte de apel.'
-                                              }
-                                          >
-                            <span>
-                              <Button
-                                  className="w-full mt-2"
-                                  disabled={!isButtonEnabled}
-                                  onClick={handleConnectCall(exam.call_schedule.call_url)}
-                              >
-                                <CallIcon className="w-4 h-4 mr-2" />
-                                Conectează-te
-                              </Button>
-                            </span>
-                                          </Tooltip>
-                                        </>
-                                    )}
-                                  </div>
-                                </div>
-                            );
-                          })}
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {overviewStats.map((stat, index) => (
+                    <Card key={index} className="border-2 hover:shadow-lg transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">
+                              {stat.title}
+                            </p>
+                            <p className="text-2xl font-bold">{stat.value}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {stat.change}
+                            </p>
+                          </div>
+                          <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color}`}>
+                            <stat.icon className="w-6 h-6" />
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
-                )}
-                {/* Recent Orders */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Clock className="w-5 h-5" />
-                      <span>{isProvider ? 'Comenzi Recente' : 'Ultimile Proiecte Adaugate'}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {!isProvider ? (
-                        <div className="space-y-4">
-                          {latestClientProjects.map((order) => (
-                              <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                <div className="flex-1">
-                                  <h4 className="font-medium border-b border-gray-200 pb-2">{order.title}</h4>
-                                  <h3 className="text-sm border-b border-gray-200 pb-2 pt-2">{order.description}</h3>
-                                  <div className="text-sm pt-2">
-                                    {order.selected_providers.length === 1 ? <span className="font-bold">Prestator</span> : <span className="font-bold">Prestatori</span>}:
-                                    {order.selected_providers.map((provider: any, index: number) => (
-                                        <div key={index} className="ms-2 mt-1 w-[350px] flex justify-between border-b border-gray-200 pb-2">{provider.firstName} {provider.lastName} <span className="font-bold">Raspuns: {getProviderResponseBadge(provider.pivot.provider_response)}</span></div>
-                                    ))}
-                                  </div>
-                                  <div className="text-sm border-b border-gray-200 pb-2 pt-2">
-                                    <span className="font-bold">Servicii: </span>
-                                    {order.existing_services.map((service: any, index: number) => (
-                                        <span key={index} className="mt-1">
-                                    {service.name}{index < order.existing_services.length - 1 && ','}
-                                  </span>
-                                    ))}
-                                    {order?.custom_services.map((service: any, index: number) => (
-                                        <span key={index} className="mt-1">
-                                    {service.name}{index < order.custom_services.length - 1 && ','}
-                                  </span>
-                                    ))}
-                                  </div>
-                                  <p className="text-sm pt-2">
-                                    <span className="font-bold">Termen:</span> {formatDeadline(order.project_duration)}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-bold text-green-600">{order.amount}</p>
-                                  {getStatusBadge(order.status)}
-                                </div>
-                              </div>
-                          ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12">
-                          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-medium mb-2">Nicio comandă încă</h3>
-                          <p className="text-muted-foreground mb-4">
-                            După certificare vei putea primi comenzi
-                          </p>
-                          <Button onClick={handleStartServiceFlow}>
-                            <PlayCircle className="w-4 h-4 mr-2" />
-                            Începe Evaluarea
-                          </Button>
-                        </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Performance Chart */}
-                {isProvider && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <TrendingUp className="w-5 h-5" />
-                          <span>Performanță</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-
-                        <div className="text-center py-12">
-                          <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-medium mb-2">Certificări în așteptare</h3>
-                          <p className="text-muted-foreground mb-4">
-                            Completează testele pentru a începe să oferi servicii
-                          </p>
-                          <Button onClick={handleStartServiceFlow}>
-                            <BookOpen className="w-4 h-4 mr-2" />
-                            Vezi Testele Disponibile
-                          </Button>
-                        </div>
-
-                      </CardContent>
-                    </Card>
-                )}
+                ))}
               </div>
-
 
               {/* Quick Actions */}
               <Card>
@@ -621,114 +425,368 @@ export default function DashboardPage() {
                     <Zap className="w-5 h-5" />
                     <span>Acțiuni Rapide</span>
                   </CardTitle>
+                  <CardDescription>
+                    {user.role === 'PROVIDER'
+                        ? 'Acțiuni frecvente pentru gestionarea activității tale'
+                        : 'Începe un proiect nou sau gestionează proiectele existente'
+                    }
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Button variant="outline" className="h-20 flex flex-col space-y-2" onClick={handleNewService}>
-                      <Plus className="w-6 h-6" />
-                      <span className="text-sm">
-                      {isProvider ? 'Serviciu Nou' : 'Proiect Nou'}
-                    </span>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col space-y-2">
-                      <MessageSquare className="w-6 h-6" />
-                      <span className="text-sm">Mesaje</span>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col space-y-2">
-                      <Calendar className="w-6 h-6" />
-                      <span className="text-sm">Calendar</span>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col space-y-2">
-                      <Settings className="w-6 h-6" />
-                      <span className="text-sm">Setări</span>
-                    </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {user.role === 'PROVIDER' ? (
+                        <>
+                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                            <Link href="/provider/services/select">
+                              <Plus className="w-6 h-6" />
+                              <span>Adaugă Servicii</span>
+                            </Link>
+                          </Button>
+                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                            <Link href="/provider/profile">
+                              <Edit className="w-6 h-6" />
+                              <span>Editează Profil</span>
+                            </Link>
+                          </Button>
+                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                            <Link href="/tests">
+                              <Award className="w-6 h-6" />
+                              <span>Susține Teste</span>
+                            </Link>
+                          </Button>
+                        </>
+                    ) : (
+                        <>
+                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                            <Link href="/projects/new">
+                              <Plus className="w-6 h-6" />
+                              <span>Proiect Nou</span>
+                            </Link>
+                          </Button>
+                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                            <Link href="/servicii">
+                              <Search className="w-6 h-6" />
+                              <span>Caută Servicii</span>
+                            </Link>
+                          </Button>
+                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                            <Link href="/projects">
+                              <Eye className="w-6 h-6" />
+                              <span>Explorează Proiecte</span>
+                            </Link>
+                          </Button>
+                        </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Clock className="w-5 h-5" />
+                    <span>Activitate Recentă</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {user.role === 'PROVIDER' ? (
+                        <>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Proiect finalizat cu succes</p>
+                              <p className="text-xs text-muted-foreground">Website E-commerce • Acum 2 ore</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                              <Bell className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Cerere nouă de proiect</p>
+                              <p className="text-xs text-muted-foreground">Aplicație Mobile • Acum 5 ore</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                              <Star className="w-4 h-4 text-yellow-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Recenzie nouă primită</p>
+                              <p className="text-xs text-muted-foreground">5 stele de la Maria P. • Ieri</p>
+                            </div>
+                          </div>
+                        </>
+                    ) : (
+                        <>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Prestator a acceptat proiectul</p>
+                              <p className="text-xs text-muted-foreground">Website React • Acum 1 oră</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                              <DollarSign className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Propunere de buget primită</p>
+                              <p className="text-xs text-muted-foreground">3,200 RON pentru Logo Design • Acum 3 ore</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                              <Plus className="w-4 h-4 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">Proiect nou postat</p>
+                              <p className="text-xs text-muted-foreground">Aplicație Mobile • Ieri</p>
+                            </div>
+                          </div>
+                        </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="orders">
-              {isProvider ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>
-                        {isProvider ? 'Comenzile Mele' : 'Proiectele Mele'}
-                      </CardTitle>
-                      <CardDescription>
-                        Gestionează toate comenzile și urmărește progresul
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="text-center py-12">
-                        <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">
-                          {isProvider ? 'Comenzi în dezvoltare' : 'Proiecte în dezvoltare'}
-                        </h3>
-                        <p className="text-muted-foreground">
-
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-              ) : clientProjects.map((order) => (
-                  <ProjectRequestCard key={order.id} project={order} onResponse={(projectId, response, proposedBudget) => {
-                    // Poți implementa aici logica sau apela altă funcție
-                    console.log(projectId, response, proposedBudget);
-                  }} />
-              ))}
-
-            </TabsContent>
-
-            <TabsContent value="services">
+            {/* Projects Tab */}
+            <TabsContent value="projects" className="space-y-6">
+              {/* Filters and Search */}
               <Card>
-                <CardHeader>
-                  <CardTitle>
-                    {isProvider ? 'Serviciile Mele' : 'Servicii Favorite'}
-                  </CardTitle>
-                  <CardDescription>
-                    {isProvider
-                        ? 'Gestionează serviciile pe care le oferi'
-                        : 'Serviciile salvate și favorite'
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isProvider ? (
-                      <div className="text-center py-12">
-                        <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Servicii în dezvoltare</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Pentru a oferi servicii, trebuie să treci testele de competență
-                        </p>
-                        <div className="flex justify-center space-x-3">
-                          <Button onClick={handleStartServiceFlow}>
-                            <PlayCircle className="w-4 h-4 mr-2" />
-                            Începe Evaluarea
-                          </Button>
-                          <Button variant="outline" onClick={() => router.push('/services')}>
-                            <Search className="w-4 h-4 mr-2" />
-                            Vezi Servicii Disponibile
-                          </Button>
-                        </div>
+                <CardContent className="p-6">
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    {/* Search Bar */}
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                            placeholder="Caută proiecte după titlu sau descriere..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                              setSearchTerm(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                            className="pl-10"
+                        />
                       </div>
-                  ) : (
-                      <div className="text-center py-12">
-                        <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Favorite în dezvoltare</h3>
-                        <p className="text-muted-foreground">
-                          Această secțiune va afișa serviciile tale favorite
-                        </p>
+                    </div>
+
+                    {/* Status Filter */}
+                    <Select value={statusFilter} onValueChange={(value) => {
+                      setStatusFilter(value);
+                      setCurrentPage(1);
+                    }}>
+                      <SelectTrigger className="w-full lg:w-64">
+                        <Filter className="w-4 h-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(user.role === 'PROVIDER' ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Sort Options */}
+                    <div className="flex space-x-2">
+                      <Select value={sortBy} onValueChange={(value) => {
+                        setSortBy(value);
+                        setCurrentPage(1);
+                      }}>
+                        <SelectTrigger className="w-full lg:w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getSortOptions().map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={toggleSortOrder}
+                          className="flex-shrink-0"
+                      >
+                        {sortOrder === 'asc' ? (
+                            <ArrowUp className="w-4 h-4" />
+                        ) : (
+                            <ArrowDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Active Filters */}
+                  {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
+                      <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
+                        <span className="text-sm font-medium text-muted-foreground">Filtre active:</span>
+
+                        {searchTerm && (
+                            <Badge variant="secondary" className="flex items-center space-x-1">
+                              <span>Căutare: {searchTerm}</span>
+                              <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                        )}
+
+                        {statusFilter !== 'all' && (
+                            <Badge variant="secondary" className="flex items-center space-x-1">
+                              <span>Status: {(user.role === 'PROVIDER' ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label}</span>
+                              <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                        )}
+
+                        {(sortBy !== 'newest' || sortOrder !== 'desc') && (
+                            <Badge variant="secondary" className="flex items-center space-x-1">
+                              <span>Sortare: {getSortOptions().find(o => o.value === sortBy)?.label} ({sortOrder === 'asc' ? 'Crescător' : 'Descrescător'})</span>
+                              <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                        )}
+
+                        <Button variant="outline" size="sm" onClick={resetFilters}>
+                          Resetează Toate
+                        </Button>
                       </div>
                   )}
                 </CardContent>
               </Card>
+
+              {/* Projects Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {user.role === 'PROVIDER' ? 'Cereri de Proiecte' : 'Proiectele Mele'}
+                  </h2>
+                  <p className="text-muted-foreground">
+                    {loadingProjects ? 'Se încarcă...' : `${projects.length} proiecte găsite`}
+                  </p>
+                </div>
+
+                {user.role === 'CLIENT' && (
+                    <Button asChild>
+                      <Link href="/projects/new">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Proiect Nou
+                      </Link>
+                    </Button>
+                )}
+              </div>
+
+              {/* Projects List */}
+              {loadingProjects ? (
+                  <div className="flex justify-center items-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </div>
+              ) : projectsError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{projectsError}</AlertDescription>
+                  </Alert>
+              ) : projects.length === 0 ? (
+                  <Card>
+                    <CardContent className="text-center py-20">
+                      <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">
+                        {user.role === 'PROVIDER' ? 'Nu ai cereri de proiecte' : 'Nu ai proiecte create'}
+                      </h3>
+                      <p className="text-muted-foreground mb-6">
+                        {user.role === 'PROVIDER'
+                            ? 'Când clienții vor crea proiecte și te vor selecta, le vei vedea aici'
+                            : 'Creează primul tău proiect pentru a începe colaborarea cu prestatorii'
+                        }
+                      </p>
+                      {user.role === 'CLIENT' && (
+                          <Button asChild>
+                            <Link href="/projects/new">
+                              <Plus className="w-4 h-4 mr-2" />
+                              Creează Primul Proiect
+                            </Link>
+                          </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+              ) : (
+                  <div className="space-y-6">
+                    {projects.map((project) => (
+                        <ProjectRequestCard
+                            key={project.id}
+                            project={project}
+                            onResponse={handleProjectResponse}
+                        />
+                    ))}
+
+                    {renderPagination()}
+                  </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="messages">
+            {/* Services Tab */}
+            <TabsContent value="services" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Mesaje</CardTitle>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="w-5 h-5" />
+                    <span>{user.role === 'PROVIDER' ? 'Serviciile Mele' : 'Servicii Favorite'}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {user.role === 'PROVIDER'
+                        ? 'Gestionează serviciile pe care le oferi'
+                        : 'Serviciile pe care le urmărești'
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      {user.role === 'PROVIDER' ? 'Nu oferi încă servicii' : 'Nu ai servicii favorite'}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {user.role === 'PROVIDER'
+                          ? 'Adaugă servicii pentru a începe să primești comenzi'
+                          : 'Salvează serviciile care te interesează pentru acces rapid'
+                      }
+                    </p>
+                    {user.role === 'PROVIDER' && (
+                        <Button asChild>
+                          <Link href="/provider/services/select">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Adaugă Primul Serviciu
+                          </Link>
+                        </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Messages Tab */}
+            <TabsContent value="messages" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <MessageSquare className="w-5 h-5" />
+                    <span>Mesaje</span>
+                  </CardTitle>
                   <CardDescription>
                     Conversațiile tale cu clienții și prestatorii
                   </CardDescription>
@@ -736,33 +794,126 @@ export default function DashboardPage() {
                 <CardContent>
                   <div className="text-center py-12">
                     <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Chat în dezvoltare</h3>
+                    <h3 className="text-lg font-medium mb-2">Nu ai mesaje</h3>
                     <p className="text-muted-foreground">
-                      Sistemul de mesagerie va fi disponibil în curând
+                      Conversațiile tale vor apărea aici
                     </p>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="profile">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profilul Meu</CardTitle>
-                  <CardDescription>
-                    Gestionează informațiile profilului tău
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Profil în dezvoltare</h3>
-                    <p className="text-muted-foreground">
-                      Setările profilului vor fi disponibile în curând
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Profile Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <User className="w-5 h-5" />
+                      <span>Setări Profil</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>
+                          {user.firstName[0]}{user.lastName[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-medium">{user.firstName} {user.lastName}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={user.role === 'PROVIDER' ? '/provider/profile' : '/settings/profile'}>
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editează
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Notification Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Bell className="w-5 h-5" />
+                      <span>Setări Notificări</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">Email Notifications</div>
+                          <div className="text-sm text-muted-foreground">
+                            Primește notificări prin email
+                          </div>
+                        </div>
+                        <input type="checkbox" defaultChecked className="rounded" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">Push Notifications</div>
+                          <div className="text-sm text-muted-foreground">
+                            Notificări în browser
+                          </div>
+                        </div>
+                        <input type="checkbox" defaultChecked className="rounded" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Account Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Shield className="w-5 h-5" />
+                      <span>Securitate Cont</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Schimbă Parola
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Autentificare cu 2 Factori
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Globe className="w-4 h-4 mr-2" />
+                      Preferințe Limbă
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Billing (for clients) */}
+                {user.role === 'CLIENT' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <DollarSign className="w-5 h-5" />
+                          <span>Facturare</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Button variant="outline" className="w-full justify-start">
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          Metode de Plată
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start">
+                          <FileText className="w-4 h-4 mr-2" />
+                          Istoric Facturi
+                        </Button>
+                      </CardContent>
+                    </Card>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
