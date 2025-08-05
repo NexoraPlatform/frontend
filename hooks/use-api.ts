@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '../lib/api';
 
 export function useApi<T>(
   apiCall: () => Promise<T>,
