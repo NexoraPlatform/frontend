@@ -1,4 +1,3 @@
-// pages/dashboard/stripe-onboard-success.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
