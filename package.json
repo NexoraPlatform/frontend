@@ -10,7 +10,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "vitest run"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
@@ -97,7 +98,10 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/luxon": "^3.6.2",
-    "@types/react-date-range": "^1.4.10"
+    "@types/react-date-range": "^1.4.10",
+    "@testing-library/react": "^14.0.0",
+    "jsdom": "^24.0.0",
+    "vitest": "^1.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
