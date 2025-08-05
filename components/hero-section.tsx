@@ -27,7 +27,6 @@ import {
 export function HeroSection() {
   const [searchTerm, setSearchTerm] = useState('');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState(false);
   const router = useRouter();
 
   const stats = [
@@ -47,7 +46,6 @@ export function HeroSection() {
   ];
 
   useEffect(() => {
-    setIsVisible(true);
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
@@ -100,7 +98,7 @@ export function HeroSection() {
       <div className="container mx-auto px-4 py-8 relative z-10">
         <div className="max-w-6xl mx-auto text-center">
           {/* Animated Badge */}
-          <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className="transform transition-all duration-1000 translate-y-0 opacity-100">
             <Badge variant="secondary" className="mb-8 px-8 py-3 text-base font-semibold bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm">
               <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
               🚀 Platforma #1 pentru servicii IT în România
@@ -111,7 +109,7 @@ export function HeroSection() {
           </div>
 
           {/* Main Heading with Staggered Animation */}
-          <div className={`transform transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className="transform transition-all duration-1000 delay-200 translate-y-0 opacity-100">
             <h1 className="text-6xl lg:text-8xl font-black mb-8 leading-tight">
               <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">
                 Transformă-ți
@@ -129,7 +127,7 @@ export function HeroSection() {
           </div>
 
           {/* Enhanced Description */}
-          <div className={`transform transition-all duration-1000 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className="transform transition-all duration-1000 delay-400 translate-y-0 opacity-100">
             <p className="text-2xl lg:text-3xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
               Conectează-te cu <span className="text-blue-600 font-bold">cei mai buni experți IT</span> din România.
               <br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
@@ -137,7 +135,7 @@ export function HeroSection() {
           </div>
 
           {/* Enhanced Search Bar */}
-          <div className={`transform transition-all duration-1000 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className="transform transition-all duration-1000 delay-600 translate-y-0 opacity-100">
             <div className="max-w-4xl mx-auto mb-12">
               <form onSubmit={handleSearch} className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity animate-pulse"></div>
@@ -186,7 +184,7 @@ export function HeroSection() {
           </div>
 
           {/* CTA Buttons */}
-          <div className={`transform transition-all duration-1000 delay-800 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className="transform transition-all duration-1000 delay-800 translate-y-0 opacity-100">
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
               <Button size="lg" className="px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-200" asChild>
                 <Link href="#">
@@ -202,7 +200,7 @@ export function HeroSection() {
           </div>
 
           {/* Trust Indicators */}
-          <div className={`transform transition-all duration-1000 delay-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className="transform transition-all duration-1000 delay-1000 translate-y-0 opacity-100">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               {stats.map((stat, index) => (
                 <div key={index} className="group">

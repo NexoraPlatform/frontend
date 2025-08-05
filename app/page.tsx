@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Code, Smartphone, Palette, TrendingUp, Shield, Users, Zap, Award, Globe, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import {
