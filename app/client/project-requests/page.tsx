@@ -1,36 +1,37 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import {useEffect, useRef, useState} from 'react';
+import {useRouter} from 'next/navigation';
+import {Header} from '@/components/header';
+import {Footer} from '@/components/footer';
+import {Button} from '@/components/ui/button';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
+import {Alert, AlertDescription} from '@/components/ui/alert';
 import {
-    CheckCircle,
-    XCircle,
-    Clock,
-    DollarSign,
-    User,
     Calendar,
-    Target,
-    Loader2,
-    AlertCircle,
-    Star,
-    MapPin,
+    CheckCircle,
+    Clock,
     Code,
+    DollarSign,
     Eye,
-    MessageSquare
+    Loader2,
+    MapPin,
+    MessageSquare,
+    Star,
+    Target,
+    User,
+    XCircle
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { apiClient } from '@/lib/api';
-import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
+import {Dialog, DialogContent} from '@/components/ui/dialog';
+import {useAuth} from '@/contexts/auth-context';
+import {apiClient} from '@/lib/api';
+import {toast} from 'sonner';
+import {formatDistanceToNow} from 'date-fns';
+import {ro} from 'date-fns/locale';
 import {loadStripe} from "@stripe/stripe-js";
+import {DialogTitle} from "@mui/material";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -44,10 +45,17 @@ export default function ClientProjectRequestsPage() {
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
+    const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const cardElementRef = useRef<any>(null);
+    const stripeRef = useRef<any>(null);
+    const elementsRef = useRef<any>(null);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [success, setSuccess] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/auth/signin');
+            // router.push('/auth/signin');
         }
         if (user && user.role !== 'CLIENT') {
             router.push('/dashboard');
@@ -56,6 +64,64 @@ export default function ClientProjectRequestsPage() {
             loadProjects();
         }
     }, [user, loading, router]);
+
+    useEffect(() => {
+        if (checkoutDialogOpen) {
+            async function initStripe() {
+                const stripe = await stripePromise;
+                if (!stripe) return console.error('Stripe nu s-a încărcat.');
+
+                const elements = stripe.elements();
+                const cardElement = elements.create('card');
+                cardElement.mount('#card-element');
+
+                // Salvezi pentru confirmare ulterioară
+                stripeRef.current = stripe;
+                elementsRef.current = elements;
+                cardElementRef.current = cardElement;
+            }
+
+            initStripe();
+        }
+
+        return () => {
+            // Demontezi elementul când se închide
+            cardElementRef.current?.unmount?.();
+            cardElementRef.current = null;
+        };
+    }, [checkoutDialogOpen]);
+
+    const handlePayment = async (project_id: any) => {
+        setErrorMessage('');
+
+        const stripe = stripeRef.current;
+        const cardElement = cardElementRef.current;
+
+        if (!stripe || !cardElement) {
+            setErrorMessage('Stripe nu e gata.');
+            return;
+        }
+
+        const result = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+                card: cardElement,
+                billing_details: {
+                    name: `${user?.firstName} ${user?.lastName}`,
+                    email: user?.email,
+                },
+            },
+        });
+
+        await apiClient.setPaymentIntent(project_id, result.paymentIntent.id);
+
+        if (result.error) {
+            setErrorMessage(result.error.message || 'Eroare la plată');
+        } else if (result.paymentIntent.status === 'requires_capture' || result.paymentIntent.status === 'succeeded') {
+            setSuccess(true);
+            // Poți închide dialogul, face redirect, etc.
+        }
+
+    };
 
     const loadProjects = async () => {
         try {
@@ -72,7 +138,12 @@ export default function ClientProjectRequestsPage() {
         // router.push(response.url);
         try {
             const response = await apiClient.getPaymentSession(project_id);
-
+            if (response.clientSecret) {
+                setClientSecret(response.clientSecret);
+                setCheckoutDialogOpen(true);
+            } else {
+                throw new Error('Client secret not found in response');
+            }
 
         } catch (err) {
             console.error('Checkout error:', err);
@@ -305,8 +376,8 @@ export default function ClientProjectRequestsPage() {
                                     {/* Project Actions */}
                                     <div className="flex space-x-3 mt-6 pt-4 border-t">
                                         <Button variant="outline" size="sm"
-                                        onClick={() => handleProjectFinish(project.id)}>
-                                            Blocheaa banii intr-un cont escrow
+                                        onClick={() => getClientSecret(project.id)}>
+                                            Blocheaza banii intr-un cont escrow pentru a putea continua
                                         </Button>
                                         <Button variant="outline" size="sm">
                                             <Eye className="w-4 h-4 mr-2" />
@@ -317,12 +388,36 @@ export default function ClientProjectRequestsPage() {
                                             Mesaje
                                         </Button>
                                     </div>
+                                    <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
+                                        <DialogContent className="max-w-[400px] space-y-4">
+                                            <DialogTitle>
+                                                Plătiți pentru a începe proiectul
+                                            </DialogTitle>
+
+                                            <div id="card-element" className="border p-2 rounded-md" />
+
+                                            {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>}
+                                            {success && <div className="text-green-500 text-sm">Plata a fost autorizată!</div>}
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handlePayment(project.id)}
+                                                disabled={loading}
+                                                className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition"
+                                            >
+                                                {loading ? 'Se procesează...' : 'Plătește acum'}
+                                            </button>
+                                        </DialogContent>
+                                    </Dialog>
                                 </CardContent>
                             </Card>
+
+
                         ))}
                     </div>
                 )}
             </div>
+
 
             <Footer />
         </div>

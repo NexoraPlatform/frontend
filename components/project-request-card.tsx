@@ -21,12 +21,13 @@ import {
     Target,
     Code,
     MapPin,
-    Star, Users, Eye, MessageSquare
+    Star, Users, Eye, MessageSquare, BookOpen, Plus
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import {useAuth} from "@/contexts/auth-context";
 import Link from 'next/link';
+import apiClient from "@/lib/api";
 
 interface ProjectRequestCardProps {
     project: any;
@@ -142,6 +143,24 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         }
     };
 
+    const getStripeOnboardingUrl = async () => {
+        try {
+            if (!user) return;
+            const response = await apiClient.handleStripeOnboarding(user.email);
+
+            if (!response || !response.url) {
+                console.error('No URL returned from Stripe onboarding');
+                return null;
+            }
+
+            window.location.href = response.url;
+
+        } catch (error) {
+            console.error('Error fetching Stripe onboarding URL:', error);
+            return null;
+        }
+    }
+
     const formatDeadline = (value: string): string => {
         const map: Record<string, string> = {
             '1day': '1 zi',
@@ -164,7 +183,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
     const isProvider = user?.role === 'PROVIDER';
     const isClient = user?.role === 'CLIENT';
-    console.log(selectedProvider);
+
     return (
         <Card className={`border-2 hover:shadow-lg transition-all duration-300 ${
             project.featured ? 'border-yellow-200 bg-yellow-50/30' : ''
@@ -173,6 +192,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
+
                             <h3 className="text-xl font-semibold">{project.title}</h3>
                             {project.featured && (
                                 <Badge className="bg-yellow-100 text-yellow-800">
@@ -287,135 +307,155 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
             </CardHeader>
 
             <CardContent>
-                {/* Budget Proposal Section for Providers */}
-                {isProvider && showBudgetProposal && (
-                    <Alert className="mb-4 border-blue-200 bg-blue-50">
-                        <Edit className="h-4 w-4" />
-                        <AlertDescription>
-                            <div className="space-y-3">
-                                <div>
-                                    <Label htmlFor="proposedBudget" className="text-sm font-medium">
-                                        Propune un buget nou:
-                                    </Label>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                        <Input
-                                            id="proposedBudget"
-                                            type="number"
-                                            value={proposedBudget}
-                                            onChange={(e) => setProposedBudget(parseInt(e.target.value) || 0)}
-                                            className="w-32"
-                                            min="1"
-                                        />
-                                        <span className="text-sm">RON</span>
+                {user?.stripe_account_id ? (
+                    <>
+                        {isProvider && showBudgetProposal && (
+                            <Alert className="mb-4 border-blue-200 bg-blue-50">
+                                <Edit className="h-4 w-4" />
+                                <AlertDescription>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <Label htmlFor="proposedBudget" className="text-sm font-medium">
+                                                Propune un buget nou:
+                                            </Label>
+                                            <div className="flex items-center space-x-2 mt-1">
+                                                <Input
+                                                    id="proposedBudget"
+                                                    type="number"
+                                                    value={proposedBudget}
+                                                    onChange={(e) => setProposedBudget(parseInt(e.target.value) || 0)}
+                                                    className="w-32"
+                                                    min="1"
+                                                />
+                                                <span className="text-sm">RON</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Buget alocat: {project.allocatedBudget?.toLocaleString()} RON
+                                            </p>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={handleProposeBudget}
+                                                disabled={responding || proposedBudget <= 0}
+                                            >
+                                                <Send className="w-4 h-4 mr-1" />
+                                                Trimite Propunerea
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setShowBudgetProposal(false)}
+                                            >
+                                                Anulează
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Buget alocat: {project.allocatedBudget?.toLocaleString()} RON
-                                    </p>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <Button
-                                        size="sm"
-                                        onClick={handleProposeBudget}
-                                        disabled={responding || proposedBudget <= 0}
-                                    >
-                                        <Send className="w-4 h-4 mr-1" />
-                                        Trimite Propunerea
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setShowBudgetProposal(false)}
-                                    >
-                                        Anulează
-                                    </Button>
-                                </div>
-                            </div>
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                {/* Provider Actions */}
-                {isProvider && project.status === 'PENDING' && (
-                    <div className="flex space-x-3">
-                        <Button
-                            onClick={handleAccept}
-                            disabled={responding || selectedProvider.pivot?.provider_response === 'ACCEPTED'}
-                            className="flex-1"
-                        >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Acceptă Proiectul
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowBudgetProposal(true)}
-                            disabled={responding || selectedProvider.pivot?.provider_response === 'NEW_PROPOSE' || selectedProvider.pivot?.provider_response === 'ACCEPTED'}
-                        >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Propune Buget
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={handleReject}
-                            disabled={responding}
-                        >
-                            <XCircle className="w-4 h-4 mr-2" />
-                            Respinge
-                        </Button>
-                    </div>
-                )}
-
-                {/* Client Actions */}
-                {isClient && (
-                    <div className="flex space-x-3">
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href={`/projects/${project.id}`}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                Vezi Detalii
-                            </Link>
-                        </Button>
-                        <Button variant="outline" size="sm">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Mesaje
-                        </Button>
-                        {project.status === 'PENDING_RESPONSES' && (
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={`/client/project-requests`}>
-                                    <Users className="w-4 h-4 mr-2" />
-                                    Vezi Răspunsuri
-                                </Link>
-                            </Button>
+                                </AlertDescription>
+                            </Alert>
                         )}
+
+                        {/* Provider Actions */}
+                        {isProvider && project.status === 'PENDING' && (
+                            <div className="flex space-x-3">
+                                <Button
+                                    onClick={handleAccept}
+                                    disabled={responding || selectedProvider.pivot?.provider_response === 'ACCEPTED'}
+                                    className="flex-1"
+                                >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Acceptă Proiectul
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowBudgetProposal(true)}
+                                    disabled={responding || selectedProvider.pivot?.provider_response === 'NEW_PROPOSE' || selectedProvider.pivot?.provider_response === 'ACCEPTED'}
+                                >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Propune Buget
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleReject}
+                                    disabled={responding}
+                                >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Respinge
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Client Actions */}
+                        {isClient && (
+                            <div className="flex space-x-3">
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/projects/${project.id}`}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        Vezi Detalii
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                    Mesaje
+                                </Button>
+                                {project.status === 'PENDING_RESPONSES' && (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/client/project-requests`}>
+                                            <Users className="w-4 h-4 mr-2" />
+                                            Vezi Răspunsuri
+                                        </Link>
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Status Messages */}
+                        {isProvider && project.status === 'BUDGET_PROPOSED' && (
+                            <Alert className="mt-4 border-blue-200 bg-blue-50">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Ai propus un buget de {project.proposedBudget?.toLocaleString()} RON.
+                                    Aștepți răspunsul clientului.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {isProvider && project.status === 'ACCEPTED' && (
+                            <Alert className="mt-4 border-green-200 bg-green-50">
+                                <CheckCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Ai acceptat acest proiect! Clientul a fost notificat.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {isProvider && project.status === 'REJECTED' && (
+                            <Alert className="mt-4 border-red-200 bg-red-50">
+                                <XCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Ai respins acest proiect.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </>
+                ) : (
+                    <div className="text-center py-12">
+                        <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Nu ai contul Stripe setat</h3>
+                        <p className="text-muted-foreground mb-4">
+                            Setează contul tău Stripe pentru a putea accepta proiecte și propune bugete.
+                        </p>
+                            <Button
+                                variant="outline" size="sm" className="ms-2 bg-stripe"
+                                onClick={getStripeOnboardingUrl}
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Seteaza cont Stripe
+                            </Button>
                     </div>
-                )}
+                    )}
+                {/* Budget Proposal Section for Providers */}
 
-                {/* Status Messages */}
-                {isProvider && project.status === 'BUDGET_PROPOSED' && (
-                    <Alert className="mt-4 border-blue-200 bg-blue-50">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Ai propus un buget de {project.proposedBudget?.toLocaleString()} RON.
-                            Aștepți răspunsul clientului.
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                {isProvider && project.status === 'ACCEPTED' && (
-                    <Alert className="mt-4 border-green-200 bg-green-50">
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Ai acceptat acest proiect! Clientul a fost notificat.
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                {isProvider && project.status === 'REJECTED' && (
-                    <Alert className="mt-4 border-red-200 bg-red-50">
-                        <XCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Ai respins acest proiect.
-                        </AlertDescription>
-                    </Alert>
-                )}
             </CardContent>
         </Card>
     );

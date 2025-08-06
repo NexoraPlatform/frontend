@@ -837,9 +837,21 @@ class ApiClient {
     return this.request<any>(`/stripe/session/payment/${project_id}`);
   }
 
+  async setPaymentIntent(project_id: string, pi: string) {
+    return this.request<any>(`/stripe/payment-intent/${project_id}`, {
+      method: 'POST',
+      body: JSON.stringify({ payment_intent: pi }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
   async finishProject(project_id: string) {
     return this.request<any>(`/stripe/capture/payment/${project_id}`);
   }
+
 }
 
 

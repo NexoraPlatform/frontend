@@ -14,6 +14,7 @@ interface User {
   avatar?: string;
   testVerified: boolean;
   callVerified: boolean;
+  stripe_account_id?: string;
 }
 
 interface AuthContextType {
