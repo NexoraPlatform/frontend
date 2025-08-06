@@ -67,6 +67,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import Link from 'next/link';
+import {SiStripe} from "react-icons/si";
 
 export default function DashboardClient() {
   const { user, loading } = useAuth();
@@ -109,7 +110,7 @@ export default function DashboardClient() {
         response = await apiClient.getClientProjectRequests();
       }
 
-      let filteredProjects = response || [];
+      let filteredProjects = response.projects || [];
 
       // Apply search filter
       if (searchTerm) {
@@ -188,6 +189,25 @@ export default function DashboardClient() {
       toast.error('Eroare: ' + error.message);
     }
   };
+
+  const getStripeOnboardingUrl = async () => {
+    try {
+      if (!user) return;
+      const response = await apiClient.handleStripeOnboarding(user.email);
+
+      if (!response || !response.url) {
+        console.error('No URL returned from Stripe onboarding');
+        return null;
+      }
+
+      window.location.href = response.url;
+
+      console.log(response);
+    } catch (error) {
+      console.error('Error fetching Stripe onboarding URL:', error);
+      return null;
+    }
+  }
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -366,6 +386,13 @@ export default function DashboardClient() {
                   <Badge className={user.role === 'PROVIDER' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
                     {user.role === 'PROVIDER' ? 'Prestator' : 'Client'}
                   </Badge>
+                  <Button variant="outline" size="sm" className="ms-2 bg-stripe"
+                          onClick={getStripeOnboardingUrl}
+                  >
+                    <SiStripe className="w-4 h-4 mr-2" />
+                    Verifica stripe
+                  </Button>
+
                 </div>
               </div>
             </div>

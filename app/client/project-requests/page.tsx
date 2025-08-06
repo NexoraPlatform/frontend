@@ -30,6 +30,13 @@ import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
+import {loadStripe} from "@stripe/stripe-js";
+
+if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
+    throw new Error('Stripe public key is not defined in environment variables');
+}
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 export default function ClientProjectRequestsPage() {
     const { user, loading } = useAuth();
@@ -60,6 +67,25 @@ export default function ClientProjectRequestsPage() {
             setLoadingProjects(false);
         }
     };
+
+    const getClientSecret = async (project_id: string) => {
+        // router.push(response.url);
+        try {
+            const response = await apiClient.getPaymentSession(project_id);
+
+
+        } catch (err) {
+            console.error('Checkout error:', err);
+        }
+    }
+
+    const handleProjectFinish = async (projectId: string) => {
+        const response = await apiClient.finishProject(projectId);
+
+        const stripe = await stripePromise;
+
+
+    }
 
     const handleBudgetResponse = async (
         projectId: string,
@@ -278,6 +304,10 @@ export default function ClientProjectRequestsPage() {
 
                                     {/* Project Actions */}
                                     <div className="flex space-x-3 mt-6 pt-4 border-t">
+                                        <Button variant="outline" size="sm"
+                                        onClick={() => handleProjectFinish(project.id)}>
+                                            Blocheaa banii intr-un cont escrow
+                                        </Button>
                                         <Button variant="outline" size="sm">
                                             <Eye className="w-4 h-4 mr-2" />
                                             Vezi Detalii

@@ -828,6 +828,18 @@ class ApiClient {
       body: JSON.stringify(data)
     });
   }
+
+  async getPaymentLink(project_id: string) {
+    return this.request<any>(`/stripe/payment/${project_id}`);
+  }
+
+  async getPaymentSession(project_id: string) {
+    return this.request<any>(`/stripe/session/payment/${project_id}`);
+  }
+
+  async finishProject(project_id: string) {
+    return this.request<any>(`/stripe/capture/payment/${project_id}`);
+  }
 }
 
 
