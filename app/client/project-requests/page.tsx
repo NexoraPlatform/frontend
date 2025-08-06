@@ -64,13 +64,13 @@ export default function ClientProjectRequestsPage() {
     const handleBudgetResponse = async (
         projectId: string,
         providerId: string,
-        response: 'APPROVED' | 'REJECTED'
+        response: 'ACCEPTED' | 'REJECTED'
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
             await apiClient.respondToBudgetProposal(projectId, providerId, { response });
             await loadProjects();
-            toast.success(response === 'APPROVED' ? 'Buget aprobat!' : 'Buget respins');
+            toast.success(response === 'ACCEPTED' ? 'Buget aprobat!' : 'Buget respins');
         } catch (error: any) {
             toast.error('Eroare: ' + error.message);
         } finally {
@@ -86,7 +86,7 @@ export default function ClientProjectRequestsPage() {
                 return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Acceptat</Badge>;
             case 'REJECTED':
                 return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Respins</Badge>;
-            case 'BUDGET_PROPOSED':
+            case 'NEW_PROPOSE':
                 return <Badge className="bg-blue-100 text-blue-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
@@ -224,8 +224,8 @@ export default function ClientProjectRequestsPage() {
                                                     </div>
 
                                                     {/* Budget Proposal */}
-                                                    {provider.status === 'BUDGET_PROPOSED' && (
-                                                        <Alert className="mt-3 border-blue-200 bg-blue-50">
+                                                    {provider.status === 'NEW_PROPOSE' && (
+                                                        <Alert className={`mt-3 border-blue-200 bg-blue-50`}>
                                                             <DollarSign className="h-4 w-4" />
                                                             <AlertDescription>
                                                                 <div className="flex items-center justify-between">
@@ -241,8 +241,8 @@ export default function ClientProjectRequestsPage() {
                                                                     <div className="flex space-x-2">
                                                                         <Button
                                                                             size="sm"
-                                                                            onClick={() => handleBudgetResponse(project.id, provider.id, 'APPROVED')}
-                                                                            disabled={responding === `${project.id}-${provider.id}`}
+                                                                            onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
+                                                                            disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
                                                                         >
                                                                             <CheckCircle className="w-4 h-4 mr-1" />
                                                                             Aprobă

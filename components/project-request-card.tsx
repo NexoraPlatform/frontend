@@ -81,7 +81,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                     return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Acceptat</Badge>;
                 case 'REJECTED':
                     return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Respins</Badge>;
-                case 'BUDGET_PROPOSED':
+                case 'NEW_PROPOSE':
                     return <Badge className="bg-blue-100 text-blue-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
                 default:
                     return <Badge variant="secondary">{status}</Badge>;
@@ -89,7 +89,9 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         } else {
             // Client statuses
             switch (status) {
-                case 'PENDING_RESPONSES':
+                case 'ACCEPTED':
+                    return <Badge className="bg-amber-600 text-white"><Clock className="w-3 h-3 mr-1" />Acceptat</Badge>;
+                case 'PENDING':
                     return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Așteaptă răspunsuri</Badge>;
                 case 'IN_PROGRESS':
                     return <Badge className="bg-blue-100 text-blue-800"><Target className="w-3 h-3 mr-1" />În progres</Badge>;
@@ -102,6 +104,30 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
             }
         }
     };
+
+    const getClientStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Așteaptare răspuns client</Badge>;
+            case 'ACCEPTED':
+                return <Badge className="bg-amber-600 text-white"><Clock className="w-3 h-3 mr-1" />Buget acceptat</Badge>;
+            case 'REJECTED':
+                return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Buget refuzatt</Badge>;
+        }
+    }
+
+    const getProviderStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Așteaptare răspuns client</Badge>;
+            case 'ACCEPTED':
+                return <Badge className="bg-green-600 text-white"><Clock className="w-3 h-3 mr-1" />Proiect acceptat</Badge>;
+            case 'REJECTED':
+                return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Buget refuzatt</Badge>;
+            case 'NEW_PROPOSE':
+                return <Badge className="bg-blue-100 text-blue-800"><Target className="w-3 h-3 mr-1" />Buget propus</Badge>;
+        }
+    }
 
     const getBudgetTypeBadge = (type: string) => {
         switch (type) {
@@ -138,7 +164,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
     const isProvider = user?.role === 'PROVIDER';
     const isClient = user?.role === 'CLIENT';
-    console.log(project);
+    console.log(selectedProvider);
     return (
         <Card className={`border-2 hover:shadow-lg transition-all duration-300 ${
             project.featured ? 'border-yellow-200 bg-yellow-50/30' : ''
@@ -154,6 +180,8 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 </Badge>
                             )}
                             {getStatusBadge(project.status)}
+                            {getClientStatusBadge(selectedProvider?.pivot?.client_budget_approved)}
+                            {getProviderStatusBadge(selectedProvider?.pivot?.provider_response)}
                         </div>
 
                         <p className="text-muted-foreground mb-4 leading-relaxed line-clamp-2">
@@ -185,12 +213,19 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                     {isProvider
                                         ? `${project.selected_providers.find(
                                             (provider: any) => provider.id === user?.id
-                                        ).pivot?.client_budget?.toLocaleString() || 0} RON`
+                                        ).pivot?.client_budget_approved === 'ACCEPTED' ? project.selected_providers.find(
+                                            (provider: any) => provider.id === user?.id
+                                        ).pivot?.provider_budgets?.toLocaleString() || 0 : (project.selected_providers.find(
+                                            (provider: any) => provider.id === user?.id
+                                        ).pivot?.client_budget?.toLocaleString() || 0)} RON`
                                         : `${project.budget?.toLocaleString() || 0} RON`
                                     }
                                 </span>
                                 {isProvider && project.budget && (
                                     <span className="text-xs">
+                                        {project.selected_providers.find(
+                                            (provider: any) => provider.id === user?.id
+                                        ).pivot?.client_budget_approved !== 'ACCEPTED' && (`buget propus: <strong>{selectedProvider?.pivot?.provider_budgets}</strong> RON`)}
                                         (din {project.budget.toLocaleString()} RON total)
                                     </span>
                                 )}
@@ -304,7 +339,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                     <div className="flex space-x-3">
                         <Button
                             onClick={handleAccept}
-                            disabled={responding}
+                            disabled={responding || selectedProvider.pivot?.provider_response === 'ACCEPTED'}
                             className="flex-1"
                         >
                             <CheckCircle className="w-4 h-4 mr-2" />
@@ -313,7 +348,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         <Button
                             variant="outline"
                             onClick={() => setShowBudgetProposal(true)}
-                            disabled={responding}
+                            disabled={responding || selectedProvider.pivot?.provider_response === 'NEW_PROPOSE' || selectedProvider.pivot?.provider_response === 'ACCEPTED'}
                         >
                             <Edit className="w-4 h-4 mr-2" />
                             Propune Buget

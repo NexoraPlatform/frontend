@@ -656,7 +656,7 @@ class ApiClient {
   }
 
   async respondToBudgetProposal(projectId: string, providerId: string, response: {
-    response: 'APPROVED' | 'REJECTED';
+    response: 'ACCEPTED' | 'REJECTED';
   }) {
     return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response`, {
       method: 'POST',

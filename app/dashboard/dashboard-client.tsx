@@ -178,7 +178,11 @@ export default function DashboardClient() {
   const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
     try {
       await apiClient.respondToProjectRequest(projectId, { response, proposedBudget });
-      toast.success(response === 'ACCEPTED' ? 'Proiect acceptat!' : 'Proiect respins');
+      let message = '';
+      if (response === 'ACCEPTED') message = 'Proiect acceptat';
+      else if (response === 'REJECTED') message = 'Proiect respins';
+      else if (response === 'NEW_PROPOSE') message = 'Propunere de buget trimisă';
+      toast.success(message);
       loadProjects();
     } catch (error: any) {
       toast.error('Eroare: ' + error.message);
