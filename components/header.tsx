@@ -24,7 +24,7 @@ export function Header() {
 
   const navigation = [
     { name: 'Acasă', href: '/' },
-    { name: 'Servicii', href: '/services' },
+    { name: 'Servicii', href: '/servicii' },
     { name: 'Proiecte', href: '/projects' },
     { name: 'Despre', href: '/despre' },
     { name: 'Ajutor', href: '/ajutor' },
@@ -45,15 +45,32 @@ export function Header() {
   };
 
   return (
-      <header className={`sticky top-0 z-50 w-full transition-all duration-500 ${
-          isScrolled
-              ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
-              : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
-      }`}>
+      <header
+          className={`sticky top-0 z-50 w-full transition-all duration-500 ${
+              isScrolled
+                  ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
+                  : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
+          }`}
+          role="banner"
+          aria-label="Navigare principală"
+      >
+        {/* Skip to main content link for accessibility */}
+        <a
+            href="#main-content"
+            className="skip-link focus-visible:focus-visible"
+            aria-label="Sari la conținutul principal"
+        >
+          Sari la conținut
+        </a>
+
         <div className="container mx-auto px-4">
           <div className="flex h-20 items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-4 group">
+            <Link
+                href="/"
+                className="flex items-center space-x-4 group"
+                aria-label="Nexora - Acasă"
+            >
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                 <Image
@@ -62,6 +79,8 @@ export function Header() {
                     width={48}
                     height={48}
                     className="dark:hidden relative z-10 rounded-xl"
+                    priority
+                    loading="eager"
                 />
                 <Image
                     src="/logo-white.png"
@@ -69,6 +88,8 @@ export function Header() {
                     width={48}
                     height={48}
                     className="hidden dark:block relative z-10 rounded-xl"
+                    priority
+                    loading="eager"
                 />
               </div>
               <div className="flex flex-col">
@@ -82,12 +103,17 @@ export function Header() {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
+            <nav
+                className="hidden lg:flex items-center space-x-8"
+                role="navigation"
+                aria-label="Navigare principală"
+            >
               {navigation.map((item) => (
                   <Link
                       key={item.name}
                       href={item.href}
                       className="relative text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-300 group py-2"
+                      aria-label={`Navighează la ${item.name}`}
                   >
                     {item.name}
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
@@ -109,7 +135,7 @@ export function Header() {
                     <NotificationBell />
 
                     {/* Messages */}
-                    <Button aria-label="Deschide mesageria" variant="ghost" size="icon" className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105">
+                    <Button variant="ghost" size="icon" className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105">
                       <MessageSquare className="h-5 w-5" />
                     </Button>
                   </>
@@ -117,22 +143,21 @@ export function Header() {
 
               {/* Theme Toggle */}
               <Button
-                  aria-label="Schimba tema in modul intunecat/luminos"
                   variant="ghost"
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105"
+                  aria-label={`Schimbă la tema ${theme === 'dark' ? 'deschisă' : 'întunecată'}`}
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
               </Button>
 
               {/* User Menu or Auth Buttons */}
               {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button aria-label="Deschide meniu utilizator" variant="ghost" className="relative h-11 w-11 rounded-xl">
+                      <Button variant="ghost" className="relative h-11 w-11 rounded-xl">
                         <Avatar className="h-9 w-9">
                           <AvatarImage src={user.avatar} alt={user.firstName} />
                           <AvatarFallback>
@@ -175,7 +200,7 @@ export function Header() {
                   </DropdownMenu>
               ) : (
                   <div className="hidden md:flex items-center space-x-3">
-                    <Button aria-label="Deschide meniul utilizatorului" variant="outline" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
+                    <Button variant="outline" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
                       <Link href="/auth/signin">Conectează-te</Link>
                     </Button>
                     <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
@@ -187,7 +212,7 @@ export function Header() {
               {/* Mobile Menu */}
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger asChild>
-                  <Button aria-label="Deschide meniul utilizatorului" variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl">
+                  <Button aria-label="Mobile menu" variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
@@ -206,10 +231,10 @@ export function Header() {
                     ))}
                     {!user && (
                         <div className="flex flex-col space-y-4 pt-6">
-                          <Button aria-label="Mergi pe pagina de autentificare" variant="outline" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
+                          <Button variant="outline" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
                             <Link href="/auth/signin">Conectează-te</Link>
                           </Button>
-                          <Button aria-label="Mergi pe pagina de inregistrare" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
+                          <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
                             <Link href="/auth/signup">Înregistrează-te</Link>
                           </Button>
                         </div>

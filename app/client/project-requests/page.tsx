@@ -10,15 +10,17 @@ import {Badge} from '@/components/ui/badge';
 import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
 import {Alert, AlertDescription} from '@/components/ui/alert';
 import {
+    AlertCircle,
     Calendar,
     CheckCircle,
     Clock,
     Code,
     DollarSign,
-    Eye,
+    Eye, Globe,
     Loader2,
     MapPin,
     MessageSquare,
+    Shield,
     Star,
     Target,
     User,
@@ -375,9 +377,20 @@ export default function ClientProjectRequestsPage() {
 
                                     {/* Project Actions */}
                                     <div className="flex space-x-3 mt-6 pt-4 border-t">
-                                        <Button variant="outline" size="sm"
-                                        onClick={() => getClientSecret(project.id)}>
-                                            Blocheaza banii intr-un cont escrow pentru a putea continua
+                                        <Button
+                                            onClick={() => getClientSecret(project.id)}
+                                            className="flex-1 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                                            size="lg"
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                                    <Shield className="w-4 h-4" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <div className="font-bold">Securizează Plata</div>
+                                                    <div className="text-xs opacity-90">Blochează banii în cont escrow</div>
+                                                </div>
+                                            </div>
                                         </Button>
                                         <Button variant="outline" size="sm">
                                             <Eye className="w-4 h-4 mr-2" />
@@ -389,26 +402,153 @@ export default function ClientProjectRequestsPage() {
                                         </Button>
                                     </div>
                                     <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-                                        <DialogContent className="max-w-[400px] space-y-4">
-                                            <DialogTitle>
-                                                Plătiți pentru a începe proiectul
-                                            </DialogTitle>
+                                        <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
+                                            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-6 text-white">
+                                                <div className="flex items-center space-x-3 mb-4">
+                                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                                        <Shield className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <DialogTitle className="text-xl font-bold text-white">
+                                                            Securizează Plata
+                                                        </DialogTitle>
+                                                        <p className="text-blue-100 text-sm">
+                                                            Protejează-ți investiția cu escrow
+                                                        </p>
+                                                    </div>
+                                                </div>
 
-                                            <div id="card-element" className="border p-2 rounded-md" />
+                                                <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-blue-100">Proiect:</span>
+                                                        <span className="font-semibold">{project.title}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-sm mt-2">
+                                                        <span className="text-blue-100">Valoare totală:</span>
+                                                        <span className="font-bold text-lg">{project.budget?.toLocaleString()} RON</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                            {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>}
-                                            {success && <div className="text-green-500 text-sm">Plata a fost autorizată!</div>}
+                                            <div className="p-6 space-y-6">
+                                                <div className="text-center">
+                                                    <h3 className="font-semibold text-lg mb-2">Cum funcționează Escrow?</h3>
+                                                    <div className="grid grid-cols-3 gap-4 text-sm">
+                                                        <div className="text-center">
+                                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                                <span className="font-bold text-blue-600">1</span>
+                                                            </div>
+                                                            <p className="text-muted-foreground">Banii sunt blocați securizat</p>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                                <span className="font-bold text-purple-600">2</span>
+                                                            </div>
+                                                            <p className="text-muted-foreground">Prestatorii lucrează la proiect</p>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                                <span className="font-bold text-green-600">3</span>
+                                                            </div>
+                                                            <p className="text-muted-foreground">Banii sunt eliberați la finalizare</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                            <button
-                                                type="button"
-                                                onClick={() => handlePayment(project.id)}
-                                                disabled={loading}
-                                                className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition"
-                                            >
-                                                {loading ? 'Se procesează...' : 'Plătește acum'}
-                                            </button>
-                                        </DialogContent>
-                                    </Dialog>
+                                                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                                                    <div className="flex items-start space-x-3">
+                                                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                                                        <div className="text-sm">
+                                                            <div className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                                                                Protecție 100% Garantată
+                                                            </div>
+                                                            <p className="text-green-700 dark:text-green-300">
+                                                                Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                        Detalii Card de Plată
+                                                    </label>
+                                                    <div
+                                                        id="card-element"
+                                                        className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all"
+                                                    />
+                                                </div>
+
+                                                {errorMessage && (
+                                                    <Alert variant="destructive">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <AlertDescription>{errorMessage}</AlertDescription>
+                                                    </Alert>
+                                                )}
+
+                                                {success && (
+                                                    <Alert className="border-green-200 bg-green-50">
+                                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                                        <AlertDescription className="text-green-800">
+                                                            Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                )}
+
+                                                <div className="flex space-x-3">
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => handlePayment(project.id)}
+                                                        disabled={loading}
+                                                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                                                    >
+                                                        {loading ? (
+                                                            <>
+                                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                Se procesează...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Shield className="w-4 h-4 mr-2" />
+                                                                Securizează {project.budget?.toLocaleString()} RON
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => setCheckoutDialogOpen(false)}
+                                                        className="px-6"
+                                                    >
+                                                        Anulează
+                                                    </Button>
+                                                </div>
+
+                                                <div className="text-xs text-center text-muted-foreground pt-4 border-t">
+                                                    <div className="flex items-center justify-center space-x-4">
+                                                        <div className="flex items-center space-x-1">
+                                                            <Shield className="w-3 h-3" />
+                                                            <span>SSL Securizat</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-1">
+                                                            <CheckCircle className="w-3 h-3" />
+                                                            <span>PCI Compliant</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-1">
+                                                            <Globe className="w-3 h-3" />
+                                                            <span>Stripe Powered</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        <div id="card-element" className="border p-2 rounded-md" />
+
+                                        {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>}
+                                        {success && <div className="text-green-500 text-sm">Plata a fost autorizată!</div>}
+
+                                    </DialogContent>
+                                </Dialog>
                                 </CardContent>
                             </Card>
 
