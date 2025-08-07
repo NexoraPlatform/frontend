@@ -39,7 +39,7 @@ export function Footer() {
               <p className="text-sm text-muted-foreground">
                 Platforma românească pentru servicii IT profesionale. Conectăm clienții cu experții potriviți pentru proiectele lor.
               </p>
-              <div className="flex space-x-2">
+              <div className="flex space-x-2" role="group" aria-label="Urmărește-ne pe rețelele sociale">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -73,8 +73,8 @@ export function Footer() {
 
             {/* Quick Links */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Link-uri Rapide</h3>
-              <nav className="space-y-2" aria-label="Link-uri rapide">
+              <h3 className="text-lg font-semibold" id="quick-links-heading">Link-uri Rapide</h3>
+              <nav className="space-y-2" aria-labelledby="quick-links-heading">
                 <Link href="/servicii" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Servicii
                 </Link>
@@ -92,8 +92,8 @@ export function Footer() {
 
             {/* Services */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Servicii Populare</h3>
-              <nav className="space-y-2" aria-label="Servicii populare">
+              <h3 className="text-lg font-semibold" id="popular-services-heading">Servicii Populare</h3>
+              <nav className="space-y-2" aria-labelledby="popular-services-heading">
                 <Link href="/servicii?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Dezvoltare Web
                 </Link>
@@ -111,15 +111,19 @@ export function Footer() {
 
             {/* Contact & Newsletter */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Contact</h3>
-              <div className="space-y-2">
+              <h3 className="text-lg font-semibold" id="contact-heading">Contact</h3>
+              <div className="space-y-2" aria-labelledby="contact-heading">
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
-                  <span>contact@nexora.ro</span>
+                  <a href="mailto:contact@nexora.ro" className="hover:text-primary transition-colors">
+                    contact@nexora.ro
+                  </a>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4" />
-                  <span>+40 123 456 789</span>
+                  <a href="tel:+40123456789" className="hover:text-primary transition-colors">
+                    +40 123 456 789
+                  </a>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
@@ -127,25 +131,28 @@ export function Footer() {
                 </div>
               </div>
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">Newsletter</h4>
-                <div className="flex space-x-2">
+                <h4 className="text-sm font-medium" id="newsletter-heading">Newsletter</h4>
+                <form className="flex space-x-2" aria-labelledby="newsletter-heading">
                   <Input
                       placeholder="Email-ul tău"
                       className="text-sm"
+                      type="email"
+                      required
                       aria-label="Adresa de email pentru newsletter"
                   />
                   <Button
                       size="sm"
+                      type="submit"
                       aria-label="Abonează-te la newsletter"
                   >
                     Abonează-te
                   </Button>
-                </div>
+                </form>
               </div>
             </div>
           </div>
 
-          <div className="border-t mt-8 pt-8 text-center">
+          <div className="border-t mt-8 pt-8 text-center" role="contentinfo">
             <p className="text-sm text-muted-foreground">
               © 2024 Nexora. Toate drepturile rezervate. |
               <Link

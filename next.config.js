@@ -31,10 +31,6 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
@@ -62,22 +58,6 @@ const nextConfig = {
     if (dev) {
       config.cache = false;
     }
-
-    // Optimize bundle size
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-          },
-        },
-      },
-    };
-
     return config;
   },
 };

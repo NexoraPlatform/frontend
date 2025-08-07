@@ -1,0 +1,94 @@
+import { MetadataRoute } from 'next';
+
+export default function sitemap(): MetadataRoute.Sitemap {
+    const baseUrl = 'https://nexora.ro';
+    const currentDate = new Date();
+
+    return [
+        {
+            url: baseUrl,
+            lastModified: currentDate,
+            changeFrequency: 'daily',
+            priority: 1,
+        },
+        {
+            url: `${baseUrl}/servicii`,
+            lastModified: currentDate,
+            changeFrequency: 'daily',
+            priority: 0.9,
+        },
+        {
+            url: `${baseUrl}/projects`,
+            lastModified: currentDate,
+            changeFrequency: 'daily',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/despre`,
+            lastModified: currentDate,
+            changeFrequency: 'monthly',
+            priority: 0.7,
+        },
+        {
+            url: `${baseUrl}/contact`,
+            lastModified: currentDate,
+            changeFrequency: 'monthly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/ajutor`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.5,
+        },
+        {
+            url: `${baseUrl}/auth/signin`,
+            lastModified: currentDate,
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
+        {
+            url: `${baseUrl}/auth/signup`,
+            lastModified: currentDate,
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
+        {
+            url: `${baseUrl}/tests`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.7,
+        },
+        {
+            url: `${baseUrl}/provider/services/select`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        // Add dynamic routes for categories
+        {
+            url: `${baseUrl}/servicii/dezvoltare-web`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/servicii/aplicatii-mobile`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/servicii/design-ui-ux`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/servicii/marketing-digital`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+    ];
+}

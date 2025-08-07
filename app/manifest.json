@@ -1,0 +1,122 @@
+{
+  "name": "Nexora - Marketplace de Servicii IT",
+  "short_name": "Nexora",
+  "description": "Platforma românească pentru servicii IT profesionale. Peste 500 experți verificați.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ro",
+  "categories": ["business", "productivity", "utilities"],
+  "dir": "ltr",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Nexora Desktop"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Nexora Mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Servicii IT",
+      "short_name": "Servicii",
+      "description": "Găsește experți IT",
+      "url": "/servicii",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Proiecte",
+      "short_name": "Proiecte",
+      "description": "Explorează proiecte",
+      "url": "/projects",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Contul meu",
+      "url": "/dashboard",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Teste Competență",
+      "short_name": "Teste",
+      "description": "Susține teste",
+      "url": "/tests",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "mailto",
+      "url": "/contact?email=%s"
+    }
+  ]
+}

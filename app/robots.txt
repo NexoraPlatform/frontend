@@ -1,0 +1,38 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://nexora.ro/sitemap.xml
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /provider/profile
+Disallow: /client/
+Disallow: /*.json$
+
+# Allow important pages
+Allow: /servicii
+Allow: /projects
+Allow: /despre
+Allow: /contact
+Allow: /ajutor
+Allow: /tests
+
+# Special rules for bots
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+User-agent: facebookexternalhit
+Allow: /
+
+# Crawl delay
