@@ -84,7 +84,6 @@ export default function DashboardClient() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
-
   const router = useRouter();
 
   useEffect(() => {
@@ -109,7 +108,6 @@ export default function DashboardClient() {
       } else {
         response = await apiClient.getClientProjectRequests();
       }
-
       let filteredProjects = response.projects || [];
 
       // Apply search filter
@@ -202,7 +200,6 @@ export default function DashboardClient() {
 
       window.location.href = response.url;
 
-      console.log(response);
     } catch (error) {
       console.error('Error fetching Stripe onboarding URL:', error);
       return null;
@@ -386,11 +383,11 @@ export default function DashboardClient() {
                   <Badge className={user.role === 'PROVIDER' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
                     {user.role === 'PROVIDER' ? 'Prestator' : 'Client'}
                   </Badge>
-                  <Button variant="outline" size="sm" className="ms-2 bg-stripe"
+                  <Button variant="outline" size="sm" className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
                           onClick={getStripeOnboardingUrl}
                   >
-                    <SiStripe className="w-4 h-4 mr-2" />
-                    Verifica stripe
+                    <SiStripe className="w-4 h-4 mr-2 text-current" />
+                    {user.stripe_account_id ? 'Modifica Detalii Cont Stripe' : 'Conecteaza Cont Stripe'}
                   </Button>
 
                 </div>

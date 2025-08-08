@@ -852,6 +852,66 @@ class ApiClient {
     return this.request<any>(`/stripe/capture/payment/${project_id}`);
   }
 
+  // Chat endpoints
+  async getChatGroups() {
+    return this.request<any>('/chat/groups');
+  }
+
+  async createChatGroup(groupData: {
+    name: string;
+    type: 'PROJECT' | 'PROVIDER_ONLY' | 'DIRECT';
+    projectId?: string;
+    participantIds: string[];
+  }) {
+    return this.request<any>('/chat/groups', {
+      method: 'POST',
+      body: JSON.stringify(groupData),
+    });
+  }
+
+  async getChatMessages(groupId: string, page = 1, limit = 50) {
+    return this.request<any>(`/chat/groups/${groupId}/messages?page=${page}&limit=${limit}`);
+  }
+
+  async sendChatMessage(groupId: string, content: string, attachments?: any[]) {
+    return this.request<any>(`/chat/groups/${groupId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content, attachments }),
+    });
+  }
+
+  async editChatMessage(messageId: string, content: string) {
+    return this.request<any>(`/chat/messages/${messageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async deleteChatMessage(messageId: string) {
+    return this.request<any>(`/chat/messages/${messageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async markChatMessagesAsRead(groupId: string, messageId?: string) {
+    return this.request<any>(`/chat/groups/${groupId}/read`, {
+      method: 'POST',
+      body: JSON.stringify({ messageId }),
+    });
+  }
+
+  async joinChatGroup(groupId: string) {
+    return this.request<any>(`/chat/groups/${groupId}/join`, {
+      method: 'POST',
+    });
+  }
+
+  async leaveChatGroup(groupId: string) {
+    return this.request<any>(`/chat/groups/${groupId}/leave`, {
+      method: 'POST',
+    });
+  }
+
 }
 
 

@@ -421,12 +421,22 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         )}
 
                         {isProvider && project.status === 'ACCEPTED' && (
-                            <Alert className="mt-4 border-green-200 bg-green-50">
-                                <CheckCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                    Ai acceptat acest proiect! Clientul a fost notificat.
-                                </AlertDescription>
-                            </Alert>
+                            project.paymentStatus === 'PENDING' ? (
+                                <Alert className="mt-4 border-green-200 bg-green-50">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        Ai acceptat acest proiect! Clientul a fost notificat.
+                                    </AlertDescription>
+                                </Alert>
+                            ) : (
+                                <Alert className="mt-4 border-green-200 bg-green-50">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        Banii au fost asigurati, poti incepe proiectul!
+                                    </AlertDescription>
+                                </Alert>
+                            )
+
                         )}
 
                         {isProvider && project.status === 'REJECTED' && (

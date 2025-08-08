@@ -53,7 +53,6 @@ function CheckoutForm({ projectId, clientSecret, onPaymentSuccess, onPaymentErro
             onPaymentSuccess();
         }
     };
-    console.log(clientSecret)
     if (!clientSecret) {
         return <p>Se încarcă sesiunea de plată...</p>;
     }
@@ -87,7 +86,6 @@ function CheckoutForm({ projectId, clientSecret, onPaymentSuccess, onPaymentErro
 export default function StripeCheckoutWrapper({ params }: { params: { projectId: string, clientSecret: string } }) {
     const { projectId, clientSecret } = params;
     const [message, setMessage] = useState<string | null>(null);
-    console.log(clientSecret);
     const onPaymentSuccess = () => {
         setMessage('Plata a fost efectuată cu succes! Redirecționare...');
         // ex: redirecționezi clientul

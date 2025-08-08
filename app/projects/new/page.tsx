@@ -390,7 +390,6 @@ export default function NewProjectPage() {
             const payload = buildProviderMatchPayload();
 
             const apiData = await apiClient.getSuggestedProviders(payload);
-            console.log(apiData);
             const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
                 return users.map(user => {
                     // user.services este string[] (nume servicii)
@@ -421,7 +420,6 @@ export default function NewProjectPage() {
                 });
             };
 
-            console.log(mapToSuggestedProviders(apiData.providers))
             const providers = mapToSuggestedProviders(apiData.providers);
 
 
@@ -509,8 +507,6 @@ export default function NewProjectPage() {
             const exists = prev.find(p => p.id === providerId);
             if (exists) {
                 // Removing provider - remove their budget
-                console.log('Dada1');
-                console.log(formData);
                 setProviderBudgets(prevBudgets => {
                     const { [providerId]: removed, ...rest } = prevBudgets;
                     return rest;
@@ -543,7 +539,6 @@ export default function NewProjectPage() {
         const equalBudget = Math.floor(Number(formData.budget) / selectedProviders.length);
         const newBudgets: {[key: string]: number} = {};
         selectedProviders.forEach(provider => {
-            console.log(formData);
             newBudgets[provider.id] = equalBudget;
         });
         setProviderBudgets(newBudgets);

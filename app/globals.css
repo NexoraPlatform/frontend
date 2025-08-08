@@ -640,3 +640,7 @@ section {
     transform: none;
   }
 }
+
+input:valid {
+  border-color: inherit !important;
+}

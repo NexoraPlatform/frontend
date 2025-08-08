@@ -137,7 +137,6 @@ export function Footer() {
                       placeholder="Email-ul tău"
                       className="text-sm"
                       type="email"
-                      required
                       aria-label="Adresa de email pentru newsletter"
                   />
                   <Button
