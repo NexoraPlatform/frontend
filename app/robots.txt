@@ -16,7 +16,7 @@ Disallow: /client/
 Disallow: /*.json$
 
 # Allow important pages
-Allow: /servicii
+Allow: /services
 Allow: /projects
 Allow: /despre
 Allow: /contact

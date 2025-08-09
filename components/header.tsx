@@ -25,7 +25,7 @@ export function Header() {
 
   const navigation = [
     { name: 'Acasă', href: '/' },
-    { name: 'Servicii', href: '/servicii' },
+    { name: 'Servicii', href: '/services' },
     { name: 'Proiecte', href: '/projects' },
     { name: 'Despre', href: '/despre' },
     { name: 'Ajutor', href: '/ajutor' },

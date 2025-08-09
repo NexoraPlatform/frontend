@@ -492,7 +492,7 @@ export default function DashboardClient() {
                             </Link>
                           </Button>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/servicii">
+                            <Link href="/services">
                               <Search className="w-6 h-6" />
                               <span>Caută Servicii</span>
                             </Link>

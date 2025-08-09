@@ -86,7 +86,7 @@
       "name": "Servicii IT",
       "short_name": "Servicii",
       "description": "Găsește experți IT",
-      "url": "/servicii",
+      "url": "/services",
       "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
     },
     {

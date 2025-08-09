@@ -81,7 +81,7 @@ export function Footer() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold" id="quick-links-heading">Link-uri Rapide</h3>
               <nav className="space-y-2" aria-labelledby="quick-links-heading">
-                <Link href="/servicii" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/services" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Servicii
                 </Link>
                 <Link href="/despre" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -100,16 +100,16 @@ export function Footer() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold" id="popular-services-heading">Servicii Populare</h3>
               <nav className="space-y-2" aria-labelledby="popular-services-heading">
-                <Link href="/servicii?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/services?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Dezvoltare Web
                 </Link>
-                <Link href="/servicii?category=mobile-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/services?category=mobile-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Aplicații Mobile
                 </Link>
-                <Link href="/servicii?category=design" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/services?category=design" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Design UI/UX
                 </Link>
-                <Link href="/servicii?category=marketing" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/services?category=marketing" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Marketing Digital
                 </Link>
               </nav>

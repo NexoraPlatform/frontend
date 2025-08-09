@@ -6,14 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="936f30aa-4d19-43b6-901a-7cb3f6dac2a1" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/provider/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/provider/[id]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/chat/chat-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/chat/chat-button.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/chat/chat-widget.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/chat/chat-widget.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/dashboard-client.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/dashboard-client.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/robots.txt" beforeDir="false" afterPath="$PROJECT_DIR$/app/robots.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/sitemap.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/sitemap.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/footer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/footer.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/contexts/chat-context.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/contexts/chat-context.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/chat.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/chat.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/header.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -121,7 +119,7 @@
       <workItem from="1754122971815" duration="43799000" />
       <workItem from="1754552731689" duration="41950000" />
       <workItem from="1754667220115" duration="597000" />
-      <workItem from="1754668061371" duration="13139000" />
+      <workItem from="1754668061371" duration="13446000" />
     </task>
     <servers />
   </component>

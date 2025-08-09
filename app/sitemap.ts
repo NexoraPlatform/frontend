@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 1,
         },
         {
-            url: `${baseUrl}/servicii`,
+            url: `${baseUrl}/services`,
             lastModified: currentDate,
             changeFrequency: 'daily',
             priority: 0.9,
@@ -67,25 +67,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
         },
         // Add dynamic routes for categories
         {
-            url: `${baseUrl}/servicii/dezvoltare-web`,
+            url: `${baseUrl}/services/dezvoltare-web`,
             lastModified: currentDate,
             changeFrequency: 'weekly',
             priority: 0.8,
         },
         {
-            url: `${baseUrl}/servicii/aplicatii-mobile`,
+            url: `${baseUrl}/services/aplicatii-mobile`,
             lastModified: currentDate,
             changeFrequency: 'weekly',
             priority: 0.8,
         },
         {
-            url: `${baseUrl}/servicii/design-ui-ux`,
+            url: `${baseUrl}/services/design-ui-ux`,
             lastModified: currentDate,
             changeFrequency: 'weekly',
             priority: 0.8,
         },
         {
-            url: `${baseUrl}/servicii/marketing-digital`,
+            url: `${baseUrl}/services/marketing-digital`,
             lastModified: currentDate,
             changeFrequency: 'weekly',
             priority: 0.8,
