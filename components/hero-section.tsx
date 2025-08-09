@@ -162,11 +162,11 @@ export function HeroSection() {
                       <Button
                           type="submit"
                           size="lg"
-                          className="mr-3 px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                          className="mr-3 px-4 md:px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center md:justify-start"
                           aria-label="Începe căutarea de servicii IT"
                       >
-                        <Rocket className="mr-3 w-6 h-6" />
-                        Caută Acum
+                        <Rocket className="w-6 h-6 md:mr-3" />
+                        <span className="hidden md:inline">Caută Acum</span>
                       </Button>
                     </div>
                   </div>

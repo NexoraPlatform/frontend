@@ -4,7 +4,6 @@ import Pusher from 'pusher-js';
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
 
-    // parse attachments (fără content accidental pe attachment)
     const attachments = Array.isArray(raw.attachments)
         ? raw.attachments.map((a: any) => ({
             id: a.id,
@@ -49,7 +48,6 @@ function normalizeMessage(raw: any): any {
 
         attachments,
 
-        // unifică timestamp
         timestamp: raw.timestamp ?? raw.created_at ?? new Date().toISOString(),
         created_at: raw.created_at,
 

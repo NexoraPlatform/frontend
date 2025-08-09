@@ -292,7 +292,7 @@ export default function Home() {
                   <Button
                       size="lg"
                       variant="outline"
-                      className="px-16 py-8 text-2xl font-bold border-3 border-white text-black hover:bg-white/10 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                      className="px-16 py-8 text-2xl font-bold border-3 border-white  hover:bg-white/10 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200 text-black dark:text-white"
                       aria-label="Înregistrează-te ca expert IT pe Nexora"
                   >
                     <Users className="mr-3 w-7 h-7" />
