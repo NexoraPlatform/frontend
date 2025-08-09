@@ -26,17 +26,17 @@ export function Footer() {
                   <Image
                       src="/logo.png"
                       alt="Nexora Logo"
-                      width={32}
-                      height={32}
-                      className="dark:hidden"
+                      width={140}
+                      height={175}
+                      className="dark:hidden h-10 w-auto"
                       loading="lazy"
                   />
                   <Image
                       src="/logo-white.png"
                       alt="Nexora Logo"
-                      width={32}
-                      height={32}
-                      className="hidden dark:block"
+                      width={140}
+                      height={175}
+                      className="hidden dark:block h-10 w-auto"
                       loading="lazy"
                   />
                 </div>
@@ -84,10 +84,10 @@ export function Footer() {
                 <Link href="/services" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Servicii
                 </Link>
-                <Link href="/despre" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/about" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Despre Noi
                 </Link>
-                <Link href="/ajutor" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/help" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Ajutor
                 </Link>
                 <Link href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">

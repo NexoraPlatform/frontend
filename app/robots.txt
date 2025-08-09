@@ -18,9 +18,9 @@ Disallow: /*.json$
 # Allow important pages
 Allow: /services
 Allow: /projects
-Allow: /despre
+Allow: /about
 Allow: /contact
-Allow: /ajutor
+Allow: /help
 Allow: /tests
 
 # Special rules for bots

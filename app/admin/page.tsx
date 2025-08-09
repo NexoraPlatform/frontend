@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,9 +27,39 @@ import {
 import { useAdminStats } from '@/hooks/use-api';
 import CallIcon from "@mui/icons-material/Call";
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import apiClient from "@/lib/api";
+
+interface AdminStats {
+  totalUsers: number;
+  activeServices: number;
+  totalOrders: number;
+  totalRevenue: number;
+  pendingUsers: number;
+  pendingServices: number;
+  pendingCalls: number;
+  totalScheduleCalls: number;
+}
 
 export default function AdminDashboard() {
-  const { data: statsData, loading: statsLoading } = useAdminStats();
+  const [statsData, setStatsData] = useState<AdminStats | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+        try {
+            const response = await apiClient.getAdminStats();
+            if (!response.ok) {
+            throw new Error('Failed to fetch stats');
+            }
+            const data = await response.json();
+            setStatsData(data);
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    }
+
+    fetchStats();
+  }, []);
+
 
   const stats = [
     {

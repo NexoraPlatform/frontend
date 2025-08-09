@@ -1,10 +1,10 @@
 "use client";
 
-import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
-import { chatService } from '@/lib/chat';
-import { apiClient } from '@/lib/api';
-import { useAuth } from '@/contexts/auth-context';
-import { toast } from 'sonner';
+import React, {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {chatService} from '@/lib/chat';
+import {apiClient} from '@/lib/api';
+import {useAuth} from '@/contexts/auth-context';
+import {toast} from 'sonner';
 
 export interface ChatGroup {
     id: string;
@@ -124,20 +124,28 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
     const closePanel = () => setIsPanelOpen(false);
 
-    useEffect(() => {
-        if (user) initializeChat();
-        return () => {
-            chatService.disconnect();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    const startedRef = React.useRef(false);
 
     useEffect(() => {
-        if (user) {
+        if (!user) return;
+        if (!startedRef.current) {
+            startedRef.current = true;
             initializeChat();
         }
-        return () => chatService.disconnect();
-    }, [user]);
+        return () => {
+            if (process.env.NODE_ENV === 'production') {
+                chatService.disconnect();
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'production') return;
+        const onUnload = () => chatService.disconnect();
+        window.addEventListener('beforeunload', onUnload);
+        return () => window.removeEventListener('beforeunload', onUnload);
+    }, []);
 
     const upsertMessage = (msg: ChatMessage) => {
         setMessages(prev => {
@@ -162,6 +170,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return ids.length;
     }, [groupOnline]);
 
+    const listenersReadyRef = React.useRef(false);
+
     const initializeChat = async () => {
         if (!user) return;
         try {
@@ -170,7 +180,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             if (token) {
                 await chatService.connect(user.id, token);
                 setIsConnected(true);
-                setupEventListeners();
+
+                if (!listenersReadyRef.current) {
+                    setupEventListeners();
+                    listenersReadyRef.current = true;
+                }
+
                 await refreshGroups();
             }
         } catch (e) {
@@ -188,7 +203,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                 ...g,
                 members: g.members.map(m => ({
                     ...m,
-                    isOnline: onlineUsers.includes(m.id),
+                    isOnline: onlineUsers.includes(String(m.id)),
                 })),
             }))
         );
@@ -306,9 +321,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         try {
             const token = localStorage.getItem('auth_token');
             if (token) {
-                const ok = await chatService.connect(user.id, token);
-                if (ok) chatService.joinGroupPresence('online-users');
-                return ok;
+                return await chatService.connect(user.id, token); // ⬅️ elimină joinGroupPresence('online-users')
             }
             return false;
         } catch (e) {

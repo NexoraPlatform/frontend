@@ -27,8 +27,8 @@ export function Header() {
     { name: 'Acasă', href: '/' },
     { name: 'Servicii', href: '/services' },
     { name: 'Proiecte', href: '/projects' },
-    { name: 'Despre', href: '/despre' },
-    { name: 'Ajutor', href: '/ajutor' },
+    { name: 'Despre', href: '/about' },
+    { name: 'Ajutor', href: '/help' },
     { name: 'Contact', href: '/contact' },
   ];
 
@@ -77,18 +77,18 @@ export function Header() {
                 <Image
                     src="/logo.png"
                     alt="Nexora Logo"
-                    width={48}
-                    height={48}
-                    className="dark:hidden relative z-10 rounded-xl"
+                    width={140}
+                    height={175}
+                    className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
                     priority
                     loading="eager"
                 />
                 <Image
                     src="/logo-white.png"
                     alt="Nexora Logo"
-                    width={48}
-                    height={48}
-                    className="hidden dark:block relative z-10 rounded-xl"
+                    width={140}
+                    height={175}
+                    className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
                     priority
                     loading="eager"
                 />

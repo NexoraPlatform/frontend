@@ -24,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 0.8,
         },
         {
-            url: `${baseUrl}/despre`,
+            url: `${baseUrl}/about`,
             lastModified: currentDate,
             changeFrequency: 'monthly',
             priority: 0.7,
@@ -36,7 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 0.6,
         },
         {
-            url: `${baseUrl}/ajutor`,
+            url: `${baseUrl}/help`,
             lastModified: currentDate,
             changeFrequency: 'weekly',
             priority: 0.5,

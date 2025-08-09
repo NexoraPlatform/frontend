@@ -16,7 +16,6 @@ function normalizeMessage(raw: any): any {
         }))
         : [];
 
-    // derive senderName dacă lipsesc
     const senderName =
         raw.senderName ??
         raw.sender_name ??
@@ -24,7 +23,6 @@ function normalizeMessage(raw: any): any {
             .filter(Boolean)
             .join(' ');
 
-    // --- FIX pentru read_by care vine ca string JSON ---
     let readByRaw = raw.readBy ?? raw.read_by ?? [];
     if (typeof readByRaw === 'string') {
         try {
@@ -53,16 +51,16 @@ function normalizeMessage(raw: any): any {
 
         // unifică timestamp
         timestamp: raw.timestamp ?? raw.created_at ?? new Date().toISOString(),
-        created_at: raw.created_at, // păstrat pentru UI existent
+        created_at: raw.created_at,
 
         isRead: Boolean(raw.isRead ?? raw.is_read ?? false),
-        readBy, // <— ACUM este mereu array de string‑uri (ex. ["1","5"])
+        readBy,
 
         editedAt: raw.editedAt ?? raw.edited_at ?? undefined,
         replyTo: raw.replyTo ?? raw.reply_to_id ?? undefined,
 
         translations: raw.translations ?? undefined,
-        sender, // UI-ul tău folosește message.sender.avatar în bubble
+        sender,
     };
 }
 
@@ -78,10 +76,14 @@ export class ChatService {
         return ChatService.instance;
     }
 
-
-
     connect(userId: string, token: string) {
-        if (this.echo) return true;
+        if (this.echo) {
+            const pusher = (this.echo as any)?.connector?.pusher;
+            const state = pusher?.connection?.state;
+            if (state === 'connecting' || state === 'connected') {
+                return true;
+            }
+        }
 
         (window as any).Pusher = Pusher;
 
@@ -96,10 +98,9 @@ export class ChatService {
                 },
             },
             forceTLS: true,
-            disableStats: true,
+            enableStats: false,
         });
 
-        // Private user channel (mesaje, typing, etc.)
         this.echo.private(`chat.user.${userId}`)
             .listen('.MessageSent', (e: any) => this.emit('message', normalizeMessage(e.message)))
             .listen('.MessageUpdated',(e:any) => this.emit('messageUpdated', normalizeMessage(e.message)))
@@ -107,17 +108,20 @@ export class ChatService {
             .listen('UserLeft', (e: any) => this.emit('userLeft', e))
             .listen('GroupCreated', (e: any) => this.emit('groupCreated', e.group));
 
-        // Presence global pentru “online-users”
         this.echo.join('online-users')
             .here((users: any[]) => this.emit('onlineUsersHere', users))
             .joining((user: any) => this.emit('userOnline', user))
             .leaving((user: any) => this.emit('userOffline', user));
 
-        this.emit('connected');
+        const p = (this.echo as any)?.connector?.pusher;
+        if (p?.connection) {
+            p.connection.bind('connected', () => this.emit('connected'));
+            p.connection.bind('disconnected', () => this.emit('disconnected'));
+            p.connection.bind('unavailable', () => this.emit('disconnected'));
+        }
         return true;
     }
 
-    // Presence per‑grup (apelezi când intri într‑un grup)
     joinGroupPresence(groupId: string | number) {
         if (!this.echo) return;
         const key = String(groupId);
@@ -148,9 +152,13 @@ export class ChatService {
 
     disconnect() {
         if (this.echo) {
-            Object.keys(this.groupPresenceSubs).forEach(id => this.echo!.leave(`chat.group.${id}`));
-            this.groupPresenceSubs = {};
-            this.echo.disconnect();
+            const p = (this.echo as any)?.connector?.pusher;
+            const state = p?.connection?.state;
+            if (state !== 'disconnected') {
+                Object.keys(this.groupPresenceSubs).forEach(id => this.echo!.leave(`chat.group.${id}`));
+                this.groupPresenceSubs = {};
+                this.echo.disconnect();
+            }
             this.echo = null;
             this.emit('disconnected');
         }

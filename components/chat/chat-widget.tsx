@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useRef, useMemo} from 'react';
+import {useState, useEffect, useRef, useMemo, useCallback} from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,8 @@ import { ro } from 'date-fns/locale';
 import apiClient from "@/lib/api";
 import {chatService} from "@/lib/chat";
 import Image from 'next/image';
+import dynamic from "next/dynamic";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ChatMessage {
     id: string;
@@ -67,9 +69,34 @@ interface ChatMessage {
     }[];
     timestamp: string;
     isRead: boolean;
-    readBy: string[];
+    read_by?: string[] | string | null;
     editedAt?: string;
     replyTo?: string;
+}
+
+const EmojiPicker = dynamic(() => import("@/components/emoji-picker"), {
+    ssr: false,
+});
+
+function getReaders(msg: any, currentUserId?: string | number) {
+    let raw = msg?.read_by ?? msg?.readBy ?? [];
+    if (typeof raw === 'string') {
+        try {
+            raw = JSON.parse(raw);
+        } catch {
+            raw = [];
+        }
+    }
+    const senderId = String(msg?.sender_id ?? msg?.sender?.id ?? '');
+    const me = currentUserId != null ? String(currentUserId) : '';
+
+    return Array.isArray(raw)
+        ? raw
+            .map((r) => String(r))
+            .filter(Boolean)
+            .filter((id) => id !== senderId)
+            .filter((id) => id !== me)
+        : [];
 }
 
 export function ChatWidget() {
@@ -112,6 +139,7 @@ export function ChatWidget() {
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const messageInputRef = useRef<HTMLTextAreaElement>(null);
     const pageRef = useRef(1);
+    const [emojiOpen, setEmojiOpen] = useState(false);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -166,12 +194,9 @@ export function ChatWidget() {
         const map: Record<string, number> = {};
 
         activeGroupMessages.forEach((msg: any, idx: number) => {
-            msg = normalizeReaders(msg);
-            const readers: string[] = Array.isArray(msg) ? msg : [];
+            const readers = getReaders(msg, user?.id);
             readers.forEach((rid) => {
-                const key = String(rid);
-                // if (String(user?.id) === key) return;
-                map[key] = idx;
+                map[String(rid)] = idx; // memorăm cel mai recent index văzut
             });
         });
 
@@ -338,20 +363,27 @@ export function ChatWidget() {
         }
     };
 
-    const getMessageStatus = (message: ChatMessage) => {
-        if (message.sender_id !== user?.id) return null;
-
-        if (message.readBy.length === 0) {
-            return <Clock className="w-3 h-3 text-gray-400" />;
-        } else if (message.readBy.length === 1) {
-            return <Check className="w-3 h-3 text-blue-500" />;
-        } else {
-            return <CheckCheck className="w-3 h-3 text-blue-500" />;
-        }
-    };
-
     if (!user) return null;
 
+    const insertAtCursor = (text: string) => {
+        const el = messageInputRef.current;
+        if (!el) { setMessageInput(v => v + text); return; }
+        const start = el.selectionStart ?? el.value.length;
+        const end = el.selectionEnd ?? el.value.length;
+        const next = el.value.slice(0, start) + text + el.value.slice(end);
+        setMessageInput(next);
+        requestAnimationFrame(() => {
+            el.focus();
+            const caret = start + text.length;
+            el.setSelectionRange(caret, caret);
+        });
+    };
+
+    const handleEmojiSelect = (emoji: any) => {
+        const toInsert = emoji?.native || "";
+        if (toInsert) insertAtCursor(toInsert);
+        setEmojiOpen(false);
+    };
 
     return (
         <>
@@ -768,9 +800,26 @@ export function ChatWidget() {
                                                 >
                                                     <Paperclip className="w-4 h-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="w-8 h-8">
-                                                    <Smile className="w-4 h-4" />
-                                                </Button>
+                                                <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="w-8 h-8">
+                                                            <Smile className="w-4 h-4" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent align="end" side="top" className="p-0 border-0 rounded-2xl shadow-xl overflow-hidden !w-full">
+                                                        <EmojiPicker
+                                                            locale="ro"
+                                                            navPosition="top"
+                                                            previewPosition="bottom"
+                                                            skinTonePosition="preview"
+                                                            searchPosition="sticky"
+                                                            perLine={7}
+                                                            emojiSize={24}
+                                                            onEmojiSelect={handleEmojiSelect}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+
                                                 <Button
                                                     onClick={handleSendMessage}
                                                     disabled={!messageInput.trim() || !isConnected}
@@ -812,9 +861,51 @@ function MessageBubble({
     const userLang = user?.language ?? 'ro';
     const translated = message.translations?.[userLang];
 
+    const getOwnMessageStatusIcon = (m: ChatMessage) => {
+        if (String(m.sender_id) !== String(user?.id)) return null;
+        const readersCount = getReaders(m, user?.id).length;
+        let readers: string[] = [];
+        if (typeof m.read_by === "string") {
+            try {
+                readers = JSON.parse(m.read_by);
+            } catch {
+                readers = [];
+            }
+        } else if (Array.isArray(m.read_by)) {
+            readers = m.read_by;
+        }
+
+        const onlyMeRead = readers.length === 1 && readers[0] === String(user?.id);
+        if (readersCount === 0) {
+            if ((!m.isRead && (!m.read_by || (typeof m.read_by === 'string' && (m.read_by.length === 0)))) || onlyMeRead) {
+                return (
+                    <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <CheckCheck className="w-4 h-4 text-gray-500" />
+                            </TooltipTrigger>
+                            <TooltipContent className="text-xs">
+                                Mesaj trimis, dar nu a fost încă citit
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                );
+            }
+            return null;
+        }
+
+        return null;
+    };
+
     return (
         <>
         <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
+            {isOwn && (
+                <div className="flex items-end space-x-1 me-2">
+                    {message.editedAt && <span>editat</span>}
+                    {getOwnMessageStatusIcon(message)}
+                </div>
+            )}
         <div className={`flex items-end space-x-2 max-w-[80%] ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
             {showAvatar && !isOwn && (
                 <Avatar className="w-8 h-8">
@@ -873,18 +964,12 @@ function MessageBubble({
                 <div className={`flex items-center justify-between mt-1 text-xs ${
                     isOwn ? 'text-blue-100' : 'text-muted-foreground'
                 }`}>
-            <span>
-              {formatDistanceToNow(new Date(message.created_at), {
-                  addSuffix: true,
-                  locale: ro
-              })}
-            </span>
-                    {isOwn && (
-                        <div className="flex items-center space-x-1">
-                            {message.editedAt && <span>editat</span>}
-                            {/* {getMessageStatus(message)} */}
-                        </div>
-                    )}
+  <span>
+    {formatDistanceToNow(new Date(message.created_at), {
+        addSuffix: true,
+        locale: ro
+    })}
+  </span>
                 </div>
 
                 {/* Message Actions */}
@@ -904,33 +989,32 @@ function MessageBubble({
         </div>
 
     </div>
-        {seenBy.length > 0 && (
-            <div
-                className={`!mt-2 flex gap-1 ${isOwn ? 'justify-end pr-2' : 'justify-start'} items-center`}
-                // pl-10 ca să nu se suprapună cu avatarul din stânga; ajustează după gust
-            >
-                <TooltipProvider delayDuration={150}>
-                    {seenBy.map((m: any) => {
-                        const fullName = `${m.user.firstName} ${m.user.lastName}`;
-                        return (
-                            <Tooltip key={m.user.id}>
-                                <TooltipTrigger asChild>
-                                    <Avatar className="w-5 h-5 ring-2 ring-background">
-                                        <AvatarImage src={m.user.avatar} />
-                                        <AvatarFallback className="text-[8px]">
-                                            {m.user.firstName?.[0]}{m.user.lastName?.[0]}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </TooltipTrigger>
-                                <TooltipContent className="px-2 py-1 text-xs">
-                                    Văzut de {fullName}
-                                </TooltipContent>
-                            </Tooltip>
-                        );
-                    })}
-                </TooltipProvider>
-            </div>
-        )}
+            {isOwn && seenBy.length > 0 && (
+                <div
+                    className={`!mt-2 flex gap-1 ${isOwn ? 'justify-end pr-2' : 'justify-start'} items-center`}
+                >
+                    <TooltipProvider delayDuration={150}>
+                        {seenBy.map((m: any) => {
+                            const fullName = `${m.user.firstName} ${m.user.lastName}`;
+                            return (
+                                <Tooltip key={m.user.id}>
+                                    <TooltipTrigger asChild>
+                                        <Avatar className="w-5 h-5 ring-2 ring-background">
+                                            <AvatarImage src={m.user.avatar} />
+                                            <AvatarFallback className="text-[8px]">
+                                                {m.user.firstName?.[0]}{m.user.lastName?.[0]}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="px-2 py-1 text-xs">
+                                        Văzut de {fullName}
+                                    </TooltipContent>
+                                </Tooltip>
+                            );
+                        })}
+                    </TooltipProvider>
+                </div>
+            )}
             </>
     );
 }

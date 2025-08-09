@@ -644,3 +644,7 @@ section {
 input:valid {
   border-color: inherit !important;
 }
+
+em-emoji-picker {
+  width: 100%;
+}

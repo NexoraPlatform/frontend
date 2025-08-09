@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useRef} from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -52,7 +52,6 @@ import {
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages, useGetProviderProfileByUrl} from "@/hooks/use-api";
-import {wait} from "next/dist/lib/wait";
 
 interface ProviderProfilePageProps {
     params: {
@@ -118,189 +117,228 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
     const [activeTab, setActiveTab] = useState('overview');
     const [isFavorite, setIsFavorite] = useState(false);
     const router = useRouter();
-    const [languages, setLanguages] = useState<Languages[]>([]);
+    // const { data: profileData, loading: profileLoading, error: profileError } = useGetProviderProfileByUrl(id);
+    const { data: languages, loading: languagesLoading } = useGetLanguages();
+
     useEffect(() => {
-        let cancelled = false;
+        if (!languagesLoading && languages?.length) {
+            loadProviderData();
+        }
+    }, [languagesLoading, languages, params.id]);
 
-        (async () => {
-            setLoading(true);
-            try {
-                // ia limbile + profilul în paralel
-                const [lang, providerData] = await Promise.all([
-                    apiClient.getLanguages(),
-                    apiClient.getProviderProfileByUrl(id),
-                ]);
 
-                // folosește direct `lang` aici, nu state-ul
-                const userLanguages = (providerData.languages || []).map((l: any) => {
-                    const match = lang.find((x: Languages) =>
-                        x.name.toLowerCase() === l.language?.toLowerCase()
-                    );
-                    return {
-                        name: l.language || "",
-                        level: l.proficiency || "",
-                        flag: match?.flag || "🇷🇴",
-                    };
-                });
+    const loadProviderData = async () => {
+        try {
+            // Load provider profile
+            const providerData = await apiClient.getProviderProfileByUrl(id);
 
-                const providerInfo = {
-                    id: params.id,
-                    firstName: providerData.firstName,
-                    lastName: providerData.lastName,
-                    email: providerData.email,
-                    phone: providerData.phone,
-                    avatar: providerData.avatar,
-                    bio: providerData.profile.bio,
-                    company: providerData.company,
-                    website: providerData.website,
-                    location: providerData.profile.location,
-                    rating: 4.9,
-                    reviewCount: 127,
-                    completedProjects: providerData.portfolios?.length ?? 0, // atenție: portfolios vs portfolio
-                    responseTime: providerData.profile.answer_hour,
-                    isVerified: providerData.callVerified && providerData.testVerified,
-                    memberSince: providerData.created_at,
-                    firstJob: providerData.work_history.length > 0
-                        ? providerData.oldest_work_experience
-                        : new Date(),
-                    lastActive: "2025-07-25T10:30:00Z",
-                    availability: {
-                        status: providerData.profile.availability,
-                        hoursPerWeek: providerData.profile.working_hours_per_week,
-                        timezone: providerData.timezone,
-                        workingHours: {
-                            monday: providerData.profile.working_monday_enabled === 1 &&
-                            providerData.profile.working_monday_from &&
-                            providerData.profile.working_monday_to
-                                ? { start: providerData.profile.working_monday_from, end: providerData.profile.working_monday_to, enabled: true }
-                                : null,
-                            tuesday: providerData.profile.working_tuesday_enabled === 1 &&
-                            providerData.profile.working_tuesday_from &&
-                            providerData.profile.working_tuesday_to
-                                ? { start: providerData.profile.working_tuesday_from, end: providerData.profile.working_tuesday_to, enabled: true }
-                                : null,
-                            wednesday: providerData.profile.working_wednesday_enabled === 1 &&
-                            providerData.profile.working_wednesday_from &&
-                            providerData.profile.working_wednesday_to
-                                ? { start: providerData.profile.working_wednesday_from, end: providerData.profile.working_wednesday_to, enabled: true }
-                                : null,
-                            thursday: providerData.profile.working_thursday_enabled === 1 &&
-                            providerData.profile.working_thursday_from &&
-                            providerData.profile.working_thursday_to
-                                ? { start: providerData.profile.working_thursday_from, end: providerData.profile.working_thursday_to, enabled: true }
-                                : null,
-                            friday: providerData.profile.working_friday_enabled === 1 &&
-                            providerData.profile.working_friday_from &&
-                            providerData.profile.working_friday_to
-                                ? { start: providerData.profile.working_friday_from, end: providerData.profile.working_friday_to, enabled: true }
-                                : null,
-                            saturday: providerData.profile.working_saturday_enabled === 1 &&
-                            providerData.profile.working_saturday_from &&
-                            providerData.profile.working_saturday_to
-                                ? { start: providerData.profile.working_saturday_from, end: providerData.profile.working_saturday_to, enabled: true }
-                                : null,
-                            sunday: providerData.profile.working_sunday_enabled === 1 &&
-                            providerData.profile.working_sunday_from &&
-                            providerData.profile.working_sunday_to
-                                ? { start: providerData.profile.working_sunday_from, end: providerData.profile.working_sunday_to, enabled: true }
-                                : null,
-                        },
-                        nextAvailable: providerData.next_available_job,
-                    },
-                    languages: userLanguages,
-                    certifications: (providerData.certifications || []).map((c: any) => ({
-                        name: c.name || "",
-                        issuer: c.issuer_name || "",
-                        date: c.issued_at || "",
-                        credentialId: c.credential_id || "",
-                        verified: c.verified || "",
-                    })),
-                    education: (providerData.education || []).map((e: any) => ({
-                        degree: e.degree || "",
-                        institution: e.institution || "",
-                        attended_from: e.attended_from || "",
-                        attended_to: e.attended_to || "",
-                        study_area: e.study_area || "",
-                    })),
-                    workHistory: (providerData.work_history || []).map((w: any) => ({
-                        position: w.position || "",
-                        company: w.company || "",
-                        city: w.city || "",
-                        country: w.country || "",
-                        start_date: w.start_date || "",
-                        end_date: w.end_date || "",
-                        description: w.description || "",
-                        current_working: w.current_working || "",
-                    })),
-                    portfolio: (providerData.portfolio || []).map((item: any) => ({
-                        title: item.project_title || "",
-                        description: item.description || "",
-                        image: item.image || "",
-                        role: item.role || "",
-                        technologies: item.technologies_used || [],
-                        url: item.url || "",
-                    })),
+            const userLanguages = (providerData.languages || []).map((lang: any) => {
+                const match = languages.find((l: Languages) => l.name.toLowerCase() === lang.language?.toLowerCase());
+
+                return {
+                    name: lang.language || '',
+                    level: lang.proficiency || '',
+                    flag: match?.flag || '🇷🇴',
                 };
+            });
 
-                const providerServices = await apiClient.getProviderServices(providerData.id);
-                const services: ServiceDisplay[] = providerServices.map((item: ProviderService) => ({
-                    id: item.service.id.toString(),
-                    title: item.service.name,
-                    category: item.service.category?.name || "Nespecificat",
-                    level: item.level.toLowerCase(),
-                    rating: parseFloat(item.service.rating) || 0,
-                    reviewCount: item.service.reviewCount || 0,
-                    orderCount: item.service.orderCount || 0,
-                    deliveryTime: 14,
-                }));
+            const providerInfo = {
+                id: params.id,
+                firstName: providerData.firstName,
+                lastName: providerData.lastName,
+                email: providerData.email,
+                phone: providerData.phone,
+                avatar: providerData.avatar,
+                bio: providerData.profile.bio,
+                company: providerData.company,
+                website: providerData.website,
+                location: providerData.profile.location,
+                rating: 4.9,
+                reviewCount: 127,
+                completedProjects: providerData.portfolios.length,
+                responseTime: providerData.profile.answer_hour,
+                isVerified: providerData.callVerified && providerData.testVerified,
+                memberSince: providerData.created_at,
+                firstJob: providerData.work_history.length > 0 ? providerData.oldest_work_experience : new Date(),
+                lastActive: '2025-07-25T10:30:00Z',
 
-                const reviews = [
-                    {
-                        id: "1",
-                        rating: 5,
-                        comment:
-                            "Excelent! Alexandru a livrat exact ce am cerut, în timp record. Comunicarea a fost perfectă pe tot parcursul proiectului.",
-                        reviewer: {
-                            name: "Maria Popescu",
-                            avatar:
-                                "https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=100",
-                        },
-                        project: "Website E-commerce",
-                        date: "2024-01-10",
-                        verified: true,
+                // Availability
+                availability: {
+                    status: providerData.profile.availability, // available, busy, unavailable
+                    hoursPerWeek: providerData.profile.working_hours_per_week,
+                    timezone: providerData.timezone,
+                    workingHours: {
+                        monday: providerData.profile.working_monday_enabled === 1 &&
+                        providerData.profile.working_monday_from &&
+                        providerData.profile.working_monday_to
+                            ? {
+                                start: providerData.profile.working_monday_from,
+                                end: providerData.profile.working_monday_to,
+                                enabled: true
+                            }
+                            : null,
+                        tuesday: providerData.profile.working_tuesday_enabled === 1 &&
+                        providerData.profile.working_tuesday_from &&
+                        providerData.profile.working_tuesday_to
+                            ? {
+                                start: providerData.profile.working_tuesday_from,
+                                end: providerData.profile.working_tuesday_to,
+                                enabled: true
+                            }
+                            : null,
+                        wednesday: providerData.profile.working_wednesday_enabled === 1 &&
+                        providerData.profile.working_wednesday_from &&
+                        providerData.profile.working_wednesday_to
+                            ? {
+                                start: providerData.profile.working_wednesday_from,
+                                end: providerData.profile.working_wednesday_to,
+                                enabled: true
+                            }
+                            : null,
+                        thursday: providerData.profile.working_thursday_enabled === 1 &&
+                        providerData.profile.working_thursday_from &&
+                        providerData.profile.working_thursday_to
+                            ? {
+                                start: providerData.profile.working_thursday_from,
+                                end: providerData.profile.working_thursday_to,
+                                enabled: true
+                            }
+                            : null,
+                        friday: providerData.profile.working_friday_enabled === 1 &&
+                        providerData.profile.working_friday_from &&
+                        providerData.profile.working_friday_to
+                            ? {
+                                start: providerData.profile.working_friday_from,
+                                end: providerData.profile.working_friday_to,
+                                enabled: true
+                            }
+                            : null,
+                        saturday:providerData.profile.working_saturday_enabled === 1 &&
+                        providerData.profile.working_saturday_from &&
+                        providerData.profile.working_saturday_to
+                            ? {
+                                start: providerData.profile.working_saturday_from,
+                                end: providerData.profile.working_saturday_to,
+                                enabled: true
+                            }
+                            : null,
+                        sunday: providerData.profile.working_sunday_enabled === 1 &&
+                        providerData.profile.working_sunday_from &&
+                        providerData.profile.working_sunday_to
+                            ? {
+                                start: providerData.profile.working_sunday_from,
+                                end: providerData.profile.working_sunday_to,
+                                enabled: true
+                            }
+                            : null
                     },
-                    {
-                        id: "2",
-                        rating: 5,
-                        comment:
-                            "Profesionist de top! A înțeles perfect cerințele și a implementat soluții creative. Recomand cu încredere!",
-                        reviewer: {
-                            name: "Andrei Radu",
-                            avatar:
-                                "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100",
-                        },
-                        project: "Aplicație Mobile",
-                        date: "2024-01-05",
-                        verified: true,
-                    },
-                ];
+                    nextAvailable: providerData.next_available_job
+                },
+                // Languages
+                languages: userLanguages,
 
-                if (!cancelled) {
-                    setProvider(providerInfo);
-                    setServices(services);
-                    setReviews(reviews);
+                // Skills & Certifications
+                // skills: [
+                //     { name: 'React', level: 'Expert', years: 5 },
+                //     { name: 'Node.js', level: 'Expert', years: 6 },
+                //     { name: 'TypeScript', level: 'Avansat', years: 4 },
+                //     { name: 'MongoDB', level: 'Avansat', years: 4 },
+                //     { name: 'AWS', level: 'Intermediar', years: 3 },
+                //     { name: 'Docker', level: 'Intermediar', years: 2 }
+                // ],
+
+                certifications: (providerData.certifications || []).map((cert: any) => ({
+                    name: cert.name || '',
+                    issuer: cert.issuer_name || '',
+                    date: cert.issued_at || '',
+                    credentialId: cert.credential_id || '',
+                    verified: cert.verified || ''
+                })),
+
+                // Education
+                education: (providerData.education || []).map((edu: any) => ({
+                    degree: edu.degree || '',
+                    institution: edu.institution || '',
+                    attended_from: edu.attended_from || '',
+                    attended_to: edu.attended_to || '',
+                    study_area: edu.study_area || '',
+                })),
+
+                // Work History
+                workHistory: (providerData.work_history || []).map((work: any) => ({
+                    position: work.position || '',
+                    company: work.company || '',
+                    city: work.city || '',
+                    country: work.country || '',
+                    start_date: work.start_date || '',
+                    end_date: work.end_date || '',
+                    description: work.description || '',
+                    current_working: work.current_working || ''
+                })),
+
+                // Portfolio highlights
+                portfolio: (providerData.portfolio || []).map((item: any) => ({
+                    title: item.project_title || '',
+                    description: item.description || '',
+                    image: item.image || '',
+                    role: item.role || '',
+                    technologies: item.technologies_used || [],
+                    url: item.url || '',
+                }))
+            };
+
+            const providerServices = await apiClient.getProviderServices(providerData.id);
+
+            // Provider services data
+            const services: ServiceDisplay[] = providerServices.map((item: ProviderService) => ({
+                id: item.service.id.toString(),
+                title: item.service.name,
+                category: item.service.category?.name || 'Nespecificat',
+                level: item.level.toLowerCase(),
+                rating: parseFloat(item.service.rating) || 0,
+                reviewCount: item.service.reviewCount || 0,
+                orderCount: item.service.orderCount || 0,
+                deliveryTime: 14
+            }));
+
+            // Mock reviews data
+            const reviews = [
+                {
+                    id: '1',
+                    rating: 5,
+                    comment: 'Excelent! Alexandru a livrat exact ce am cerut, în timp record. Comunicarea a fost perfectă pe tot parcursul proiectului.',
+                    reviewer: {
+                        name: 'Maria Popescu',
+                        avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=100'
+                    },
+                    project: 'Website E-commerce',
+                    date: '2024-01-10',
+                    verified: true
+                },
+                {
+                    id: '2',
+                    rating: 5,
+                    comment: 'Profesionist de top! A înțeles perfect cerințele și a implementat soluții creative. Recomand cu încredere!',
+                    reviewer: {
+                        name: 'Andrei Radu',
+                        avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100'
+                    },
+                    project: 'Aplicație Mobile',
+                    date: '2024-01-05',
+                    verified: true
                 }
-            } catch (e) {
-                if (!cancelled) setError("Nu s-au putut încărca datele prestatorului");
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
+            ];
 
-        return () => {
-            cancelled = true;
-        };
-    }, [params.id]);
+            setProvider(providerInfo);
+            setServices(services);
+            setReviews(reviews);
+        } catch (error: any) {
+            console.log(error)
+            setError('Nu s-au putut încărca datele prestatorului');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getAvailabilityStatus = (status: string) => {
         switch (status) {
@@ -422,7 +460,7 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
                                 <div className="flex flex-col items-center lg:items-start">
                                     <div className="relative mb-4">
                                         <Avatar className="w-32 h-32 border-4 border-white shadow-lg">
-                                            <AvatarImage src={provider?.avatar} />
+                                            <AvatarImage src={provider.avatar} />
                                             <AvatarFallback className="text-2xl">
                                                 {provider.firstName[0]}{provider.lastName[0]}
                                             </AvatarFallback>
@@ -551,10 +589,10 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
 
                                 {/* Action Buttons */}
                                 <div className="flex flex-col space-y-3 lg:w-64">
-                                    {/*<Button size="lg" onClick={handleContactProvider} className="w-full">*/}
-                                    {/*    <MessageSquare className="w-4 h-4 mr-2" />*/}
-                                    {/*    Contactează*/}
-                                    {/*</Button>*/}
+                                    <Button size="lg" onClick={handleContactProvider} className="w-full">
+                                        <MessageSquare className="w-4 h-4 mr-2" />
+                                        Contactează
+                                    </Button>
                                     <Button variant="outline" size="lg" onClick={handleFavoriteToggle} className="w-full">
                                         <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
                                         {isFavorite ? 'Elimină din favorite' : 'Adaugă la favorite'}

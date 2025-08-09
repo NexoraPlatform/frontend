@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,6 @@ import {
   Search,
   Filter,
   Star,
-  MapPin,
   Clock,
   Users,
   Heart,
@@ -27,14 +26,93 @@ import {
   Shield,
   Megaphone,
   Camera,
-  Loader2,
-  DollarSign,
-  Zap,
-  CheckCircle,
-  User
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useServices, useCategories } from '@/hooks/use-api';
+import apiClient from "@/lib/api";
+
+interface ServiceCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string;
+  image: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  parent_id: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+interface ServiceProviderPivot {
+  service_id: number;
+  user_id: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface ServiceProvider {
+  id: number;
+  email: string;
+  email_verified_at: string | null;
+  firstName: string;
+  lastName: string;
+  avatar: string;
+  phone: string | null;
+  company: string | null;
+  website: string | null;
+  role: string;
+  rating: string;
+  reviewCount: number;
+  callVerified: boolean;
+  status: string;
+  last_login_at: string | null;
+  last_active_at: string | null;
+  timezone: string | null;
+  language: string;
+  created_at: string;
+  updated_at: string;
+  testVerified: boolean;
+  profile_url: string | null;
+  stripe_account_id: string | null;
+  is_online: boolean;
+  last_seen: string | null;
+  oldest_work_experience: string | null;
+  next_available_job: string | null;
+  pivot: ServiceProviderPivot;
+}
+
+interface Service {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  tags: string[];
+  isActive: boolean;
+  category_id: number;
+  status: string;
+  isFeatured: boolean;
+  orderCount: number;
+  rating: string;
+  reviewCount: number;
+  viewCount: number;
+  favoriteCount: number;
+  price: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  category: ServiceCategory;
+  providers: ServiceProvider[];
+}
+
+interface ServicesResponse {
+  services: Service[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,18 +121,36 @@ export default function ServicesPage() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('relevance');
   const [pricingTypeFilter, setPricingTypeFilter] = useState('all');
+  const [servicesData, setServicesData] = useState<ServicesResponse | null>(null);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
 
-  const { data: categoriesData, loading: categoriesLoading } = useCategories();
-  const { data: servicesData, loading: servicesLoading, error: servicesError } = useServices({
-    search: searchTerm || undefined,
-    categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
-    minPrice: priceRange[0],
-    maxPrice: priceRange[1],
-    skills: selectedSkills.length > 0 ? selectedSkills : undefined,
-    sortBy,
-    page: 1,
-    limit: 12
-  });
+  useEffect(() => {
+    const fetchServices = async () => {
+      const response = await apiClient.getServices({
+        search: searchTerm || undefined,
+        categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+        skills: selectedSkills.length > 0 ? selectedSkills : undefined,
+        sortBy,
+        page: 1,
+        limit: 12
+      });
+
+      setServicesData(response);
+    };
+
+    fetchServices();
+  }, [priceRange, searchTerm, selectedCategory, selectedSkills, sortBy]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const response = await apiClient.getCategories();
+      setCategoriesData(response);
+    };
+
+    fetchCategories();
+  }, []);
 
   const categories = categoriesData || [];
   const services = servicesData?.services || [];
@@ -141,21 +237,6 @@ export default function ServicesPage() {
     if (!providers || providers.length === 0) return 0;
     return Math.max(...providers.map(p => p.rating || 0));
   };
-
-  if (servicesError) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-20">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Eroare la încărcarea serviciilor</h1>
-            <p className="text-muted-foreground">{servicesError}</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,7 +381,7 @@ export default function ServicesPage() {
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">
               <p className="text-muted-foreground">
-                {servicesLoading ? 'Se încarcă...' : `${services.length} servicii găsite`}
+                {`${services?.length} servicii găsite`}
               </p>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48">
@@ -316,11 +397,6 @@ export default function ServicesPage() {
               </Select>
             </div>
 
-            {servicesLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin" />
-              </div>
-            ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {services.map((service: any) => (
                   <Card key={service.id} className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/20">
@@ -451,10 +527,10 @@ export default function ServicesPage() {
                   </Card>
                 ))}
               </div>
-            )}
+
 
             {/* Load More */}
-            {!servicesLoading && services.length > 0 && (
+            {services.length > 0 && (
               <div className="text-center mt-12">
                 <Button variant="outline" size="lg" className="px-8">
                   Încarcă Mai Multe Servicii
@@ -463,7 +539,7 @@ export default function ServicesPage() {
             )}
 
             {/* No Results */}
-            {!servicesLoading && services.length === 0 && (
+            {services.length === 0 && (
               <div className="text-center py-20">
                 <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-2">Nu am găsit servicii</h3>

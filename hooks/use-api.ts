@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import { apiClient } from '../lib/api';
 
+function stableStringify(obj: any) {
+  return JSON.stringify(obj, Object.keys(obj).sort());
+}
+
 export function useApi<T>(
-  apiCall: () => Promise<T>,
-  dependencies: any[] = []
+    apiCall: () => Promise<T>,
+    dependencies: any[] = []
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,9 +26,15 @@ export function useApi<T>(
     }
   }, [apiCall]);
 
+  // eliminăm deps duplicate cu stable stringify
+  const lastDeps = useRef<string>("");
+  const depsString = stableStringify(dependencies);
+
   useEffect(() => {
+    if (depsString === lastDeps.current) return; // nu a schimbat efectiv deps
+    lastDeps.current = depsString;
     fetchData();
-  }, [fetchData, ...dependencies]);
+  }, [depsString, fetchData]);
 
   return { data, loading, error, refetch: fetchData };
 }
