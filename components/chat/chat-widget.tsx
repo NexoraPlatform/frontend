@@ -13,6 +13,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
     ArrowLeft,
     MessageCircle,
     Send,
@@ -85,7 +91,10 @@ export function ChatWidget() {
         refreshGroups,
         getGroupOnlineCount,
         isUserOnline,
-        upsertMessage
+        upsertMessage,
+        isPanelOpen,
+        openPanel,
+        closePanel,
     } = useChat();
 
     const [isOpen, setIsOpen] = useState(false);
@@ -119,6 +128,71 @@ export function ChatWidget() {
             markAsRead(activeGroup.id);
         }
     }, [activeGroup]);
+
+    const onlineMembers = useMemo(() => {
+        if (!activeGroup) return [];
+        return activeGroup.members.filter((m: any) => {
+            const uid = String(m.user?.id ?? m.id); // fallback defensiv
+            return isUserOnline(uid);
+        });
+    }, [activeGroup, isUserOnline]);
+
+    const activeGroupMessages = useMemo(() => {
+        if (!activeGroup) return [];
+        return messages[activeGroup.id] || [];
+    }, [activeGroup, messages]);
+
+    const normalizeReaders = (msg: any): string[] => {
+        let rb = msg?.read_by ?? msg?.readBy ?? [];
+
+        // dacă vine ca string JSON, îl parsam
+        if (typeof rb === 'string') {
+            try {
+                rb = JSON.parse(rb);
+            } catch {
+                rb = [];
+            }
+        }
+
+        if (Array.isArray(rb)) {
+            return rb.map((r) => String(r)).filter(Boolean);
+        }
+        return [];
+    };
+
+
+    const lastSeenIndexByUser = useMemo(() => {
+        if (!activeGroup) return {};
+        const map: Record<string, number> = {};
+
+        activeGroupMessages.forEach((msg: any, idx: number) => {
+            msg = normalizeReaders(msg);
+            const readers: string[] = Array.isArray(msg) ? msg : [];
+            readers.forEach((rid) => {
+                const key = String(rid);
+                // if (String(user?.id) === key) return;
+                map[key] = idx;
+            });
+        });
+
+        return map;
+    }, [activeGroup, activeGroupMessages, user?.id]);
+
+    const seenByMembersForMessage = (msgIndex: number) => {
+        if (!activeGroup) return [];
+        return activeGroup.members
+            .filter((m: any) => {
+                const uid = String(m.user?.id);
+                if (!uid || uid === String(user?.id)) return false;
+                return lastSeenIndexByUser[uid] === msgIndex;
+            })
+            // opțional: sortează ca să ai un ordin stabil
+            .sort((a: any, b: any) =>
+                `${a.user.firstName} ${a.user.lastName}`.localeCompare(
+                    `${b.user.firstName} ${b.user.lastName}`
+                )
+            );
+    };
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -252,7 +326,6 @@ export function ChatWidget() {
         )
     );
 
-    const activeGroupMessages = activeGroup ? messages[activeGroup.id] || [] : [];
     const activeGroupTyping = typingUsers.filter(t => t.groupId === activeGroup?.id);
     const totalUnread = getTotalUnreadCount();
 
@@ -279,12 +352,13 @@ export function ChatWidget() {
 
     if (!user) return null;
 
+
     return (
         <>
             {/* Chat Toggle Button */}
             <div className="fixed bottom-6 right-6 z-50">
                 <Button
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => (isPanelOpen ? closePanel() : openPanel())}
                     className="w-14 h-14 rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 relative"
                     aria-label="Deschide chat-ul"
                 >
@@ -298,7 +372,7 @@ export function ChatWidget() {
             </div>
 
             {/* Chat Widget */}
-            {isOpen && (
+            {isPanelOpen && (
                 <Card className="fixed bottom-24 right-6 w-96 h-auto shadow-2xl border-2 z-40 bg-background">
                     {/* Header */}
                     <CardHeader className="pb-3 border-b">
@@ -334,7 +408,7 @@ export function ChatWidget() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setIsOpen(false)}
+                                    onClick={() => closePanel()}
                                     className="w-8 h-8"
                                 >
                                     <X className="w-4 h-4" />
@@ -346,28 +420,104 @@ export function ChatWidget() {
                             <CardDescription className="flex items-center space-x-2">
                                 <div>
                                     <div className="flex gap-2">
+                                        <TooltipProvider delayDuration={150}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
                                         <span>{activeGroup.members.length} participanți</span>
+
+                                            </TooltipTrigger>
+                                            <TooltipContent className="p-2">
+                                            {activeGroup.members.map((m: any) => (
+                                                <div key={m.user.id} className="flex items-center gap-2 text-sm">
+                                                    <Avatar className="w-5 h-5">
+                                                        <AvatarImage src={m.user.avatar} />
+                                                        <AvatarFallback className="text-[8px]">
+                                                            {m.user.firstName?.[0]}{m.user.lastName?.[0]}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span>
+                                                                {m.user.firstName} {m.user.lastName}
+                                                        {/* marchează-l pe userul curent */}
+                                                        {String(m.user.id) === String(user?.id) && " (tu)"}
+                                                              </span>
+                                                </div>
+                                            ))}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        </TooltipProvider>
                                         <div>
                                             <span className="flex items-center space-x-1">
                                                 <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                                <span>{getGroupOnlineCount(activeGroup.id)} online</span>
+                                                <TooltipProvider delayDuration={150}>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <span className="cursor-default">
+                                                        {onlineMembers.length} online
+                                                      </span>
+                                                    </TooltipTrigger>
+
+                                                    <TooltipContent className="p-2">
+                                                      {onlineMembers.length === 0 ? (
+                                                          <div className="text-sm text-muted-foreground">Nimeni online acum</div>
+                                                      ) : (
+                                                          <div className="space-y-1">
+                                                              {onlineMembers.map((m: any) => (
+                                                                  <div key={m.user.id} className="flex items-center gap-2 text-sm">
+                                                                      <Avatar className="w-5 h-5">
+                                                                          <AvatarImage src={m.user.avatar} />
+                                                                          <AvatarFallback className="text-[8px]">
+                                                                              {m.user.firstName?.[0]}{m.user.lastName?.[0]}
+                                                                          </AvatarFallback>
+                                                                      </Avatar>
+                                                                      <span>
+                                                                {m.user.firstName} {m.user.lastName}
+                                                                          {/* marchează-l pe userul curent */}
+                                                                          {String(m.user.id) === String(user?.id) && " (tu)"}
+                                                              </span>
+                                                                  </div>
+                                                              ))}
+                                                          </div>
+                                                      )}
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
                                             </span>
                                         </div>
                                     </div>
                                     <div className="flex">
-                                        {activeGroup.members.slice(0, 6).map(participant => (
-                                            <Avatar key={participant.id} className="w-6 h-6 border-2 border-background">
-                                                <AvatarImage src={participant.user.avatar} />
-                                                <AvatarFallback className="text-xs">
-                                                    {participant.user.firstName[0]}{participant.user.lastName[0]}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        ))}
-                                        {activeGroup.members.length > 6 && (
-                                            <div className="w-6 h-6 bg-muted border-2 border-background rounded-full flex items-center justify-center text-xs">
-                                                +{activeGroup.members.length - 3}
+                                        <TooltipProvider delayDuration={150}>
+                                            <div className="flex">
+                                                {activeGroup.members.slice(0, 6).map((participant: any) => {
+                                                    const fullName = `${participant.user.firstName} ${participant.user.lastName}`;
+                                                    return (
+                                                        <Tooltip key={participant.id}>
+                                                            <TooltipTrigger asChild>
+                                                                <Avatar className="w-6 h-6 border-2 border-background">
+                                                                    <AvatarImage src={participant.user.avatar} />
+                                                                    <AvatarFallback className="text-[10px]">
+                                                                        {participant.user.firstName[0]}
+                                                                        {participant.user.lastName[0]}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <span className="font-medium">{fullName}</span>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    );
+                                                })}
+
+                                                {activeGroup.members.length > 6 && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div className="w-6 h-6 bg-muted border-2 border-background rounded-full flex items-center justify-center text-xs">
+                                                                +{activeGroup.members.length - 6}
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                    </Tooltip>
+                                                )}
                                             </div>
-                                        )}
+                                        </TooltipProvider>
                                     </div>
                                 </div>
 
@@ -397,53 +547,81 @@ export function ChatWidget() {
 
                                     <ScrollArea className="flex-1" >
                                         <div className="p-2 space-y-1">
-                                            {filteredGroups.map(group => (
-                                                <div
-                                                    key={group.id}
-                                                    onClick={() => setActiveGroup(group)}
-                                                    className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                                                >
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="relative">
-                                                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                                                                {getGroupIcon(group.type)}
+                                            {filteredGroups.map(group => {
+                                                const isUnread = (group.unreadCount ?? 0) > 0;
+
+                                                return (
+                                                    <div
+                                                        key={group.id}
+                                                        onClick={() => setActiveGroup(group)}
+                                                        className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                                                    >
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className="relative">
+                                                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                                    {getGroupIcon(group.type)}
+                                                                </div>
                                                             </div>
-                                                            {group.unreadCount > 0 && (
-                                                                <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
-                                                                    {group.unreadCount}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center justify-between">
-                                                                <h4 className="font-medium truncate">{group.name}</h4>
-                                                                {group.lastMessage && (
-                                                                    <span className="text-xs text-muted-foreground">
-                                    {formatDistanceToNow(new Date(group.lastMessage.timestamp), {
-                                        addSuffix: true,
-                                        locale: ro
-                                    })}
-                                  </span>
+
+                                                            {/* <- tot textul din acest container devine bold când e unread */}
+                                                            <div className={`flex-1 min-w-0 ${isUnread ? 'font-semibold' : ''}`}>
+                                                                <div className="flex items-center justify-between">
+                                                                    <h4 className="truncate" title={group.name}>
+                                                                        {group.name}
+                                                                        {group.unreadCount > 0 && (
+                                                                            <Badge className="ms-2 bg-red-500 text-white">
+                                                                                {group.unreadCount}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </h4>
+
+                                                                    {group.last_message && (
+                                                                        <span
+                                                                            className={`text-xs ${
+                                                                                isUnread ? 'text-foreground' : 'text-muted-foreground'
+                                                                            }`}
+                                                                            title={new Date(group.last_message.timestamp).toLocaleString('ro-RO')}
+                                                                        >
+                {formatDistanceToNow(new Date(group.last_message.timestamp), {
+                    addSuffix: true,
+                    locale: ro,
+                })}
+              </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {group.last_message && (
+                                                                    <p
+                                                                        className={`text-sm truncate ${
+                                                                            isUnread ? 'text-foreground' : 'text-muted-foreground'
+                                                                        }`}
+                                                                        title={group.last_message.content ?? '---'}
+                                                                    >
+                                                                        {group.last_message.content ?? '---'}
+                                                                    </p>
                                                                 )}
-                                                            </div>
-                                                            {group.lastMessage && (
-                                                                <p className="text-sm text-muted-foreground truncate">
-                                                                    {group.lastMessage.content}
-                                                                </p>
-                                                            )}
-                                                            <div className="flex items-center space-x-1 mt-1">
-                                                                <Badge variant="outline" className="text-xs">
-                                                                    {group.type === 'PROJECT' ? 'Proiect' :
-                                                                        group.type === 'PROVIDER_ONLY' ? 'Prestatori' : 'Direct'}
-                                                                </Badge>
-                                                                <span className="text-xs text-muted-foreground">
-                                  {group.members.length} membri
-                                </span>
+
+                                                                <div className="flex items-center space-x-1 mt-1">
+                                                                    <Badge variant="outline" className="text-xs">
+                                                                        {group.type === 'PROJECT'
+                                                                            ? 'Proiect'
+                                                                            : group.type === 'PROVIDER_ONLY'
+                                                                                ? 'Prestatori'
+                                                                                : 'Direct'}
+                                                                    </Badge>
+                                                                    <span
+                                                                        className={`text-xs ${
+                                                                            isUnread ? 'text-foreground' : 'text-muted-foreground'
+                                                                        }`}
+                                                                    >
+              {group.members.length} membri
+            </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
 
                                             {filteredGroups.length === 0 && (
                                                 <div className="text-center py-8">
@@ -495,6 +673,7 @@ export function ChatWidget() {
                                                     message={message}
                                                     isOwn={Number(message.sender_id) === Number(user?.id)}
                                                     showAvatar={message.sender_id !== user?.id}
+                                                    seenBy={seenByMembersForMessage(index)}
                                                 />
                                             ))}
 
@@ -617,11 +796,14 @@ export function ChatWidget() {
 function MessageBubble({
                            message,
                            isOwn,
-                           showAvatar
+                           showAvatar,
+                           seenBy = [],
                        }: {
     message: any;
     isOwn: boolean;
     showAvatar: boolean;
+    seenBy?: any[];
+
 }) {
 
     const [showActions, setShowActions] = useState(false);
@@ -631,93 +813,125 @@ function MessageBubble({
     const translated = message.translations?.[userLang];
 
     return (
+        <>
         <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-            <div className={`flex items-end space-x-2 max-w-[80%] ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                {showAvatar && !isOwn && (
-                    <Avatar className="w-8 h-8">
-                        <AvatarImage src={message.sender.avatar} />
-                        <AvatarFallback className="text-xs">
-                            {message.sender.firstName} {message.sender.lastName}
-                        </AvatarFallback>
-                    </Avatar>
+        <div className={`flex items-end space-x-2 max-w-[80%] ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
+            {showAvatar && !isOwn && (
+                <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.sender.avatar} />
+                    <AvatarFallback className="text-xs">
+                        {message.sender.firstName[0]} {message.sender.lastName[0]}
+                    </AvatarFallback>
+                </Avatar>
+            )}
+
+            <div
+                className={`relative px-4 py-2 rounded-2xl ${
+                    isOwn
+                        ? 'bg-blue-600 text-white rounded-br-md'
+                        : 'bg-muted rounded-bl-md'
+                }`}
+                onMouseEnter={() => setShowActions(true)}
+                onMouseLeave={() => setShowActions(false)}
+            >
+                {!isOwn && (
+                    <div className="text-xs font-medium mb-1 opacity-70">
+                        {message.senderName}
+                    </div>
                 )}
 
-                <div
-                    className={`relative px-4 py-2 rounded-2xl ${
-                        isOwn
-                            ? 'bg-blue-600 text-white rounded-br-md'
-                            : 'bg-muted rounded-bl-md'
-                    }`}
-                    onMouseEnter={() => setShowActions(true)}
-                    onMouseLeave={() => setShowActions(false)}
-                >
-                    {!isOwn && (
-                        <div className="text-xs font-medium mb-1 opacity-70">
-                            {message.senderName}
+                <div className="text-sm">
+                    {message.attachments?.length > 0 && (
+                        <div className="mt-2 space-y-2">
+                            {message.attachments.map((att:any, index: number) => (
+                                <div key={att.id} className="flex items-center gap-2 text-xs">
+                                    {att.status === 'scanning' && <span className="italic">Se scanează…</span>}
+                                    {att.status === 'blocked_malware' && <span className="text-red-600">❌ Fișier blocat (malware)</span>}
+                                    {att.status === 'blocked_pii' && <span className="text-red-600">❌ Fișier blocat (date contact)</span>}
+                                    {att.status === 'scan_timeout' && <span className="text-amber-600">⚠️ Scan timeout</span>}
+                                    {att.status === 'ok' && (
+                                        att.type?.startsWith('image/')
+                                            ? <a href={att.url} target="_blank" className="underline hover:opacity-80">
+                                                <Image src={att.url} alt={att.name} width={160} height={120}
+                                                       className="max-w-[160px] max-h-[120px] rounded border object-contain" />
+                                            </a>
+                                            : <a href={att.url} target="_blank" className={`underline hover:opacity-80 ${isOwn && 'text-white'}`}>📄 {att.name}</a>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
+                    <div>{translated ?? message.content}</div>
+                    {message.isCensored && (
+                        <div className="flex items-center space-x-1 mt-1 text-xs opacity-70">
+                            <EyeOff className="w-3 h-3" />
+                            <span>Mesaj cenzurat</span>
+                        </div>
+                    )}
+                </div>
 
-                    <div className="text-sm">
-                        {message.attachments?.length > 0 && (
-                            <div className="mt-2 space-y-2">
-                                {message.attachments.map((att:any, index: number) => (
-                                    <div key={att.id} className="flex items-center gap-2 text-xs">
-                                        {att.status === 'scanning' && <span className="italic">Se scanează…</span>}
-                                        {att.status === 'blocked_malware' && <span className="text-red-600">❌ Fișier blocat (malware)</span>}
-                                        {att.status === 'blocked_pii' && <span className="text-red-600">❌ Fișier blocat (date contact)</span>}
-                                        {att.status === 'scan_timeout' && <span className="text-amber-600">⚠️ Scan timeout</span>}
-                                        {att.status === 'ok' && (
-                                            att.type?.startsWith('image/')
-                                                ? <a href={att.url} target="_blank" className="underline hover:opacity-80">
-                                                    <Image src={att.url} alt={att.name} width={160} height={120}
-                                                           className="max-w-[160px] max-h-[120px] rounded border object-contain" />
-                                                </a>
-                                                : <a href={att.url} target="_blank" className={`underline hover:opacity-80 ${isOwn && 'text-white'}`}>📄 {att.name}</a>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        <div>{translated ?? message.content}</div>
-                        {message.isCensored && (
-                            <div className="flex items-center space-x-1 mt-1 text-xs opacity-70">
-                                <EyeOff className="w-3 h-3" />
-                                <span>Mesaj cenzurat</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className={`flex items-center justify-between mt-1 text-xs ${
-                        isOwn ? 'text-blue-100' : 'text-muted-foreground'
-                    }`}>
+                <div className={`flex items-center justify-between mt-1 text-xs ${
+                    isOwn ? 'text-blue-100' : 'text-muted-foreground'
+                }`}>
             <span>
               {formatDistanceToNow(new Date(message.created_at), {
                   addSuffix: true,
                   locale: ro
               })}
             </span>
-                        {isOwn && (
-                            <div className="flex items-center space-x-1">
-                                {message.editedAt && <span>editat</span>}
-                                {/* {getMessageStatus(message)} */}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Message Actions */}
-                    {showActions && (
-                        <div className={`absolute top-0 ${isOwn ? 'left-0' : 'right-0'} transform ${isOwn ? '-translate-x-full' : 'translate-x-full'} flex space-x-1 bg-background border rounded-lg shadow-lg p-1`}>
-                            <Button variant="ghost" size="icon" className="w-6 h-6">
-                                <Edit className={`w-3 h-3 ${isOwn && 'text-blue-600'}`} />
-                            </Button>
-                            <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && 'text-blue-600'}`}>
-                                <Trash2 className="w-3 h-3" />
-                            </Button>
+                    {isOwn && (
+                        <div className="flex items-center space-x-1">
+                            {message.editedAt && <span>editat</span>}
+                            {/* {getMessageStatus(message)} */}
                         </div>
                     )}
                 </div>
+
+                {/* Message Actions */}
+                {showActions && (
+                    <div className={`absolute top-0 ${isOwn ? 'left-0' : 'right-0'} transform ${isOwn ? '-translate-x-full' : 'translate-x-full'} flex space-x-1 bg-background border rounded-lg shadow-lg p-1`}>
+                        <Button variant="ghost" size="icon" className="w-6 h-6">
+                            <Edit className={`w-3 h-3 ${isOwn && 'text-blue-600'}`} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && 'text-blue-600'}`}>
+                            <Trash2 className="w-3 h-3" />
+                        </Button>
+                    </div>
+                )}
+
             </div>
+
         </div>
+
+    </div>
+        {seenBy.length > 0 && (
+            <div
+                className={`!mt-2 flex gap-1 ${isOwn ? 'justify-end pr-2' : 'justify-start'} items-center`}
+                // pl-10 ca să nu se suprapună cu avatarul din stânga; ajustează după gust
+            >
+                <TooltipProvider delayDuration={150}>
+                    {seenBy.map((m: any) => {
+                        const fullName = `${m.user.firstName} ${m.user.lastName}`;
+                        return (
+                            <Tooltip key={m.user.id}>
+                                <TooltipTrigger asChild>
+                                    <Avatar className="w-5 h-5 ring-2 ring-background">
+                                        <AvatarImage src={m.user.avatar} />
+                                        <AvatarFallback className="text-[8px]">
+                                            {m.user.firstName?.[0]}{m.user.lastName?.[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </TooltipTrigger>
+                                <TooltipContent className="px-2 py-1 text-xs">
+                                    Văzut de {fullName}
+                                </TooltipContent>
+                            </Tooltip>
+                        );
+                    })}
+                </TooltipProvider>
+            </div>
+        )}
+            </>
     );
 }
 

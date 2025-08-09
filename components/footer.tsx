@@ -1,16 +1,22 @@
+"use client";
+
 import Link from 'next/link';
 import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import {useAuth} from "@/contexts/auth-context";
+import {ChatWidget} from "@/components/chat/chat-widget";
 
 export function Footer() {
+  const { user } = useAuth();
   return (
       <footer
           className="bg-muted/30 border-t"
           role="contentinfo"
           aria-label="Footer cu informații de contact și link-uri"
       >
+        {user && (<ChatWidget />)}
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Company Info */}

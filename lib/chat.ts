@@ -3,16 +3,20 @@ import Pusher from 'pusher-js';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
-    const attachments = (raw.attachments || []).map((a: any) => ({
-        id: a.id,
-        name: a.name,
-        url: a.url,
-        type: a.type,
-        size: a.size,
-        status: a.status || 'ok',
-    }));
 
-    // derive senderName/avatar dacă lipsesc
+    // parse attachments (fără content accidental pe attachment)
+    const attachments = Array.isArray(raw.attachments)
+        ? raw.attachments.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            url: a.url,
+            type: a.type,
+            size: a.size,
+            status: a.status || 'ok',
+        }))
+        : [];
+
+    // derive senderName dacă lipsesc
     const senderName =
         raw.senderName ??
         raw.sender_name ??
@@ -20,9 +24,23 @@ function normalizeMessage(raw: any): any {
             .filter(Boolean)
             .join(' ');
 
+    // --- FIX pentru read_by care vine ca string JSON ---
+    let readByRaw = raw.readBy ?? raw.read_by ?? [];
+    if (typeof readByRaw === 'string') {
+        try {
+            readByRaw = JSON.parse(readByRaw);
+        } catch {
+            readByRaw = [];
+        }
+    }
+    const readBy: string[] = Array.isArray(readByRaw)
+        ? readByRaw.map((r) => String(r)).filter(Boolean)
+        : [];
+
     return {
         id: String(raw.id),
         groupId: String(raw.groupId ?? raw.group_id),
+
         sender_id: String(raw.senderId ?? raw.sender_id),
         senderName,
         senderAvatar: sender.avatar ?? sender.avatar_url ?? undefined,
@@ -35,15 +53,16 @@ function normalizeMessage(raw: any): any {
 
         // unifică timestamp
         timestamp: raw.timestamp ?? raw.created_at ?? new Date().toISOString(),
+        created_at: raw.created_at, // păstrat pentru UI existent
 
         isRead: Boolean(raw.isRead ?? raw.is_read ?? false),
-        readBy: raw.readBy ?? raw.read_by ?? [],
+        readBy, // <— ACUM este mereu array de string‑uri (ex. ["1","5"])
+
         editedAt: raw.editedAt ?? raw.edited_at ?? undefined,
         replyTo: raw.replyTo ?? raw.reply_to_id ?? undefined,
 
-        // păstrează și câmpurile originale dacă ai nevoie
-        created_at: raw.created_at, // pentru locurile unde folosești încă created_at în UI
-        sender: sender,             // UI-ul tău folosește message.sender.avatar în bubble
+        translations: raw.translations ?? undefined,
+        sender, // UI-ul tău folosește message.sender.avatar în bubble
     };
 }
 

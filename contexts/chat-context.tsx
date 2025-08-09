@@ -22,16 +22,17 @@ export interface ChatGroup {
         isOnline: boolean;
         lastSeen?: string;
     }[];
-    lastMessage?: {
+    last_message?: {
         id: string;
         content: string;
+        translations?: Record<string, string>;
         sender_id: string;
         timestamp: string;
         isRead: boolean;
     };
     unreadCount: number;
-    createdAt: string;
-    updatedAt: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface ChatMessage {
@@ -43,6 +44,7 @@ export interface ChatMessage {
     content: string;
     originalContent?: string;
     isCensored: boolean;
+    translations?: Record<string, string>;
     attachments?: {
         id: string;
         name: string;
@@ -64,6 +66,9 @@ export interface TypingUser {
 }
 
 interface ChatContextType {
+    isPanelOpen: boolean;
+    openPanel: (group?: ChatGroup) => void;
+    closePanel: () => void;
     isUserOnline: (userId: string | number) => boolean;
     getGroupOnlineCount: (groupId: string | number) => number;
     upsertMessage: (msg: ChatMessage) => void;
@@ -111,7 +116,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [loadingMessages, setLoadingMessages] = useState<{ [groupId: string]: boolean }>({});
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
     const [groupOnline, setGroupOnline] = useState<Record<string, string[]>>({});
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
 
+    const openPanel = (group?: ChatGroup) => {
+        if (group) setActiveGroup(group);
+        setIsPanelOpen(true);
+    };
+    const closePanel = () => setIsPanelOpen(false);
 
     useEffect(() => {
         if (user) initializeChat();
@@ -225,17 +236,21 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             // }));
 
             setGroups(prev => prev.map(group =>
-                group.id === message.groupId
+                String(group.id) === String(message.groupId)
                     ? {
                         ...group,
-                        lastMessage: {
-                            id: message.id,
-                            content: message.content,
-                            sender_id: message.sender_id,
-                            timestamp: message.timestamp,
+                        last_message: {
+                            id: String(message.id),
+                            content: String(message.content ?? ''),
+                            translations: message.translations ?? {}, // 🔹
+                            sender_id: String(message.sender_id),
+                            timestamp: message.timestamp ?? new Date().toISOString(),
                             isRead: false,
                         },
-                        unreadCount: message.sender_id !== user?.id ? group.unreadCount + 1 : group.unreadCount,
+                        unreadCount: message.sender_id !== user?.id
+                            ? (group.unreadCount || 0) + 1
+                            : group.unreadCount,
+                        updated_at: message.timestamp ?? group.updated_at,
                     }
                     : group
             ));
@@ -356,10 +371,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const sendMessage = async (groupId: string, content: string, attachments?: any[]) => {
         try {
             const message = await chatService.sendMessageViaApi(groupId, content, attachments);
+
+            // adaugă în cache-ul de mesaje
             setMessages(prev => ({
                 ...prev,
                 [groupId]: [...(prev[groupId] || []), message],
             }));
+
+            // 🔹 OPTIMISTIC: setează last_message pe grupul respectiv
+            setGroups(prev => prev.map(g =>
+                String(g.id) === String(groupId)
+                    ? {
+                        ...g,
+                        last_message: {
+                            id: String(message.id),
+                            content: String(message.content ?? ''),
+                            sender_id: String(message.sender_id),
+                            timestamp: message.timestamp ?? new Date().toISOString(),
+                            isRead: true,
+                            translations: message.translations ?? {},
+                        },
+                        // mută-l mai sus în listă, folosind updated_at
+                        updated_at: message.timestamp ?? g.updated_at,
+                    }
+                    : g
+            ));
         } catch (e) {
             console.error('Failed to send message:', e);
             toast.error('Nu s-a putut trimite mesajul');
@@ -425,7 +461,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         // online helpers
         isUserOnline,
         getGroupOnlineCount,
-
+        isPanelOpen,
+        openPanel,
+        closePanel,
         groups,
         activeGroup,
         setActiveGroup,
