@@ -107,7 +107,6 @@
     "zod": "^3.25.56"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^15.4.6",
     "@testing-library/react": "^14.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/luxon": "^3.6.2",
@@ -118,5 +117,18 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "browserslist": {
+    "production": [
+      "defaults and supports es6-module",
+      "not ie <= 11",
+      "not op_mini all",
+      "not safari < 13"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
