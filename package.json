@@ -116,6 +116,13 @@
     "sharp": "^0.34.3",
     "vitest": "^1.0.0"
   },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Edge versions",
+    "last 2 Firefox versions",
+    "last 2 Safari major versions",
+    "last 2 iOS major versions"
+  ],
   "engines": {
     "node": ">=18.0.0"
   }
