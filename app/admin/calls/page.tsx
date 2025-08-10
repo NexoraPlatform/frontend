@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import {useAdminCalls} from "@/hooks/use-api";
 import {Badge} from "@/components/ui/badge";
 import {
@@ -22,8 +22,6 @@ import {Input} from "@/components/ui/input";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {DateRange, RangeKeyDict, Range, DefinedRange} from 'react-date-range';
 import {addDays, isWithinInterval, parseISO} from 'date-fns';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { customStaticRanges } from '@/utils/dateShortcuts';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
@@ -49,6 +47,11 @@ export default function CallsPage() {
         },
     ]);
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
+
+    useEffect(() => {
+        import('react-date-range/dist/styles.css');
+        import('react-date-range/dist/theme/default.css');
+    }, []);
 
     const handleCallAction = async (callId: string, action: string, noteText: string | null) => {
         try {
