@@ -34,6 +34,7 @@ import {formatDistanceToNow} from 'date-fns';
 import {ro} from 'date-fns/locale';
 import {loadStripe} from "@stripe/stripe-js";
 import {DialogTitle} from "@mui/material";
+import {MuiIcon} from "@/components/MuiIcons";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -261,18 +262,25 @@ export default function ClientProjectRequestsPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <Badge className="bg-blue-100 text-blue-800">
-                                            {project.service?.category?.name}
-                                        </Badge>
+                                        {Array.from(
+                                            new Map(
+                                                project.existing_services.map((s:any) => [s.category.id, s.category])
+                                            ).values()
+                                        ).map((category: any) => (
+                                            <Badge key={category.id} className="bg-blue-100 text-blue-800 inline-flex whitespace-nowrap me-1">
+                                                {category.name}
+                                            </Badge>
+                                        ))}
+
                                     </div>
                                 </CardHeader>
 
                                 <CardContent>
                                     {/* Technologies */}
-                                    {(project.existing_services && project.existing_services.length > 0)
-                                        || (project.custom_services && project.custom_services.length > 0) && (
+                                    {(project?.existing_services?.length > 0
+                                        || project?.custom_services?.length > 0) && (
                                             <div className="mb-4">
-                                                <div className="text-sm font-medium mb-2">Tehnologii:</div>
+                                                <div className="text-sm font-medium mb-2">Tehnologii Proiect:</div>
                                                 <div className="flex flex-wrap gap-1">
                                                     {project.existing_services.map((tech: any, index: number) => (
                                                         <Badge key={index} variant="outline" className="text-xs">
@@ -311,6 +319,14 @@ export default function ClientProjectRequestsPage() {
                                                                         <MapPin className="w-3 h-3" />
                                                                         <span>{provider.location || 'România'}</span>
                                                                     </div>
+                                                                </div>
+                                                                <div className="flex items-center space-x-3 text-sm text-muted-foreground">
+                                                                    {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
+                                                                        <Badge key={index} variant="outline" className="text-xs">
+                                                                            <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
+                                                                            {service.name}
+                                                                        </Badge>
+                                                                    ))}
                                                                 </div>
                                                             </div>
                                                         </div>

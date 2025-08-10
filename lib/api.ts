@@ -621,6 +621,10 @@ class ApiClient {
     return this.request<any>(`/projects?${searchParams.toString()}`);
   }
 
+  async getProjectBySlug(slug: string) {
+    return this.request<any>(`/projects/slug/${slug}`);
+  }
+
   async getProviderProjectRequests() {
     return this.request<any>('/projects/requests', {
       method: 'GET',

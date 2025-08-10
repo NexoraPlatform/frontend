@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,6 @@ import {
   Loader2,
   ArrowLeft,
   Folder,
-  FolderOpen
 } from 'lucide-react';
 import { useAdminCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';

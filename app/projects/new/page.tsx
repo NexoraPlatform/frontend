@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useMemo} from 'react';
+import {useState, useEffect, useMemo, useCallback} from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -138,6 +138,7 @@ type RecommendedProvider = {
     role: string;
     level: string;
     service: string;
+    count: number;
     estimated_cost: number;
 }
 
@@ -354,27 +355,14 @@ export default function NewProjectPage() {
 
     }, [user, loading, router]);
 
-    useEffect(() => {
-        if (formData.serviceId && formData.technologies.length > 0) {
-            loadSuggestedProviders();
-        } else {
-            setSuggestedProviders([]);
-        }
-    }, [formData.serviceId, formData.technologies]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setIndex(i => (i + 1) % aiLoadingMessages.length);
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    const buildProviderMatchPayload = (): { service: string; level: string }[] => {
+    const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
         if (formData.recommendedProviders.length > 0) {
             return formData.recommendedProviders.map(p => ({
                 service: p.service,
-                level: p.level || '', // fallback
+                level: p.level || '',
+                role: p.role || '',
+                count: p.count || 1,
+                estimated_cost: p.estimated_cost || 0,
             }));
         }
 
@@ -382,9 +370,9 @@ export default function NewProjectPage() {
             service: t.name,
             level: '',
         }));
-    };
+    }, [formData.recommendedProviders, formData.technologies]);
 
-    const loadSuggestedProviders = async () => {
+    const loadSuggestedProviders = useCallback(async () => {
         setLoadingProviders(true);
         try {
             const payload = buildProviderMatchPayload();
@@ -392,7 +380,6 @@ export default function NewProjectPage() {
             const apiData = await apiClient.getSuggestedProviders(payload);
             const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
                 return users.map(user => {
-                    // user.services este string[] (nume servicii)
                     const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
 
                     return {
@@ -422,10 +409,8 @@ export default function NewProjectPage() {
 
             const providers = mapToSuggestedProviders(apiData.providers);
 
-
             // Simulăm un delay pentru loading
             await new Promise(resolve => setTimeout(resolve, 1000));
-
 
             setSuggestedProviders(providers);
             setFoundSuggestedProvider(apiData.found);
@@ -434,7 +419,15 @@ export default function NewProjectPage() {
         } finally {
             setLoadingProviders(false);
         }
-    };
+    }, [buildProviderMatchPayload]);
+
+    useEffect(() => {
+        if (formData.serviceId && formData.technologies.length > 0) {
+            loadSuggestedProviders();
+        } else {
+            setSuggestedProviders([]);
+        }
+    }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
 
     const formatDeadline = (value: string): string => {
         const map: Record<string, string> = {

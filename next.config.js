@@ -10,7 +10,12 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
+  future: {
+    // dezactivează polyfill-uri legacy dacă nu le folosești
+    webpack5: true,
+  },
   experimental: {
+    modern: true,
     serverComponentsExternalPackages: ['bcryptjs'],
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],

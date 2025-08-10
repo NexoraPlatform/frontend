@@ -22,6 +22,7 @@ export function Header() {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   const navigation = [
     { name: 'Acasă', href: '/' },
@@ -31,6 +32,10 @@ export function Header() {
     { name: 'Ajutor', href: '/help' },
     { name: 'Contact', href: '/contact' },
   ];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,6 +49,10 @@ export function Header() {
     logout();
     router.push('/');
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
       <header
@@ -156,7 +165,7 @@ export function Header() {
               {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-11 w-11 rounded-xl">
+                      <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label="Deschide meniul principal al utilizatorului">
                         <Avatar className="h-9 w-9">
                           <AvatarImage src={user.avatar} alt={user.firstName} />
                           <AvatarFallback>
@@ -199,7 +208,7 @@ export function Header() {
                   </DropdownMenu>
               ) : (
                   <div className="hidden md:flex items-center space-x-3">
-                    <Button variant="outline" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
+                    <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
                       <Link href="/auth/signin">Conectează-te</Link>
                     </Button>
                     <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
@@ -211,7 +220,7 @@ export function Header() {
               {/* Mobile Menu */}
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl">
+                  <Button aria-label="Meniul principal pe mobil" variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
@@ -230,10 +239,10 @@ export function Header() {
                     ))}
                     {!user && (
                         <div className="flex flex-col space-y-4 pt-6">
-                          <Button variant="outline" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
+                          <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
                             <Link href="/auth/signin">Conectează-te</Link>
                           </Button>
-                          <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
+                          <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
                             <Link href="/auth/signup">Înregistrează-te</Link>
                           </Button>
                         </div>

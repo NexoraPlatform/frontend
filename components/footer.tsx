@@ -79,7 +79,7 @@ export function Footer() {
 
             {/* Quick Links */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold" id="quick-links-heading">Link-uri Rapide</h3>
+              <h2 className="text-lg font-semibold" id="quick-links-heading">Link-uri Rapide</h2>
               <nav className="space-y-2" aria-labelledby="quick-links-heading">
                 <Link href="/services" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Servicii
@@ -98,7 +98,7 @@ export function Footer() {
 
             {/* Services */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold" id="popular-services-heading">Servicii Populare</h3>
+              <h2 className="text-lg font-semibold" id="popular-services-heading">Servicii Populare</h2>
               <nav className="space-y-2" aria-labelledby="popular-services-heading">
                 <Link href="/services?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Dezvoltare Web
@@ -117,7 +117,7 @@ export function Footer() {
 
             {/* Contact & Newsletter */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold" id="contact-heading">Contact</h3>
+              <h2 className="text-lg font-semibold" id="contact-heading">Contact</h2>
               <div className="space-y-2" aria-labelledby="contact-heading">
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
@@ -137,7 +137,7 @@ export function Footer() {
                 </div>
               </div>
               <div className="space-y-2">
-                <h4 className="text-sm font-medium" id="newsletter-heading">Newsletter</h4>
+                <h3 className="text-sm font-medium" id="newsletter-heading">Newsletter</h3>
                 <form className="flex space-x-2" aria-labelledby="newsletter-heading">
                   <Input
                       placeholder="Email-ul tău"
