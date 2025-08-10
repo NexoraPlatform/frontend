@@ -15,6 +15,7 @@ import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
 import { NotificationBell } from '@/components/notification-bell';
 import { ChatButton } from '@/components/chat/chat-button';
+import './header.css';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
