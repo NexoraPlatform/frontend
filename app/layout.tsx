@@ -1,4 +1,5 @@
-import './globals.css';
+import fs from 'fs';
+import path from 'path';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -8,6 +9,10 @@ import ActivityTracker from '@/components/ActivityTracker';
 import {NotificationProvider} from "@/contexts/notification-context";
 import {ChatProvider} from "@/contexts/chat-context";
 
+const globalStyles = fs.readFileSync(
+    path.join(process.cwd(), 'app', 'globals.css'),
+    'utf8'
+);
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -66,6 +71,7 @@ export default function RootLayout({
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link rel="dns-prefetch" href="//images.pexels.com" />
+            <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
         </head>
         <body className={`${inter.className} antialiased`}>
         <AuthProvider>
