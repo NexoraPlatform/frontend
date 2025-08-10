@@ -1,0 +1,13 @@
+@layer utilities {
+  .border-3 {
+    border-width: 3px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
