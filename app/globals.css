@@ -624,3 +624,30 @@ input:valid {
 em-emoji-picker {
   width: 100%;
 }
+
+@layer utilities {
+  .border-3 {
+    border-width: 3px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  .glass-effect {
+    backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .glass-effect {
+    background-color: rgba(17, 25, 40, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
