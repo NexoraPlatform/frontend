@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import {useAuth} from "@/contexts/auth-context";
-import {ChatWidget} from "@/components/chat/chat-widget";
+import ChatLauncher from "@/components/chat/chat-launcher";
 
 export function Footer() {
   const { user } = useAuth();
@@ -16,7 +16,7 @@ export function Footer() {
           role="contentinfo"
           aria-label="Footer cu informații de contact și link-uri"
       >
-        {user && (<ChatWidget />)}
+        {user && (<ChatLauncher />)}
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Company Info */}
