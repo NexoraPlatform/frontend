@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -8,17 +6,18 @@ import { AuthProvider } from '@/contexts/auth-context';
 import ActivityTracker from '@/components/ActivityTracker';
 import {NotificationProvider} from "@/contexts/notification-context";
 import {ChatProvider} from "@/contexts/chat-context";
-
-const globalStyles = fs.readFileSync(
-    path.join(process.cwd(), 'app', 'globals.css'),
-    'utf8'
-);
+import './globals.css';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-    title: 'Nexora - Marketplace de Servicii IT | Platforma #1 din România',
-    description: 'Platforma românească pentru servicii IT profesionale. Găsește experți verificați în dezvoltare web, design UI/UX, marketing digital, aplicații mobile și multe altele. Peste 500 de experți, 2000+ proiecte finalizate.',
+    metadataBase: new URL('https://nexora.ro'),
+    title: {
+        default: 'Nexora – Marketplace de Servicii IT',
+        template: '%s | Nexora',
+    },
+    description: 'Conectează-te cu cei mai buni experți IT din România.',
     keywords: 'servicii IT, dezvoltare web, design, marketing digital, freelanceri România, aplicații mobile, SEO, WordPress, React, prestatori IT',
     authors: [{ name: 'Nexora Team' }],
     creator: 'Nexora',
@@ -71,9 +70,36 @@ export default function RootLayout({
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link rel="dns-prefetch" href="//images.pexels.com" />
-            <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+            <meta name="color-scheme" content="light dark" />
         </head>
         <body className={`${inter.className} antialiased`}>
+        <Script id="org-jsonld" type="application/ld+json" strategy="afterInteractive"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context':'https://schema.org',
+                        '@type':'Organization',
+                        name:'Nexora',
+                        url:'https://nexora.ro',
+                        logo:'https://nexora.ro/icons/icon-512x512.png',
+                        sameAs:['https://www.facebook.com/…','https://www.linkedin.com/company/…']
+                    })
+                }}
+        />
+        <Script id="website-jsonld" type="application/ld+json" strategy="afterInteractive"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context':'https://schema.org',
+                        '@type':'WebSite',
+                        name:'Nexora',
+                        url:'https://nexora.ro',
+                        potentialAction:{
+                            '@type':'SearchAction',
+                            target:'https://nexora.ro/search?q={query}',
+                            'query-input':'required name=query'
+                        }
+                    })
+                }}
+        />
         <AuthProvider>
             <NotificationProvider>
                 <ChatProvider>

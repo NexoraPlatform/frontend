@@ -18,7 +18,7 @@ interface ProjectDetailPageProps {
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     const { id } = params;
     const project = await apiClient.getProjectBySlug(id);
-console.log(project)
+
     if (!project) {
         return (
             <div className="min-h-screen bg-background">

@@ -8,11 +8,10 @@ import {
     ArrowLeft, BarChart3,
     BookOpen,
     CalendarIcon,
-    CheckCircle, Clock, Edit, Eye,
+    CheckCircle, Clock, Eye,
     Filter,
     Loader2, MoreHorizontal,
-    Plus,
-    Search, Target, Trash2,
+    Search, Target,
     XCircle
 } from "lucide-react";
 import Link from "next/link";
@@ -31,6 +30,8 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import PlaylistAddCheckCircleIcon from '@mui/icons-material/PlaylistAddCheckCircle';
 import {VisibilityOff} from "@mui/icons-material";
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
 
 export default function CallsPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -47,11 +48,6 @@ export default function CallsPage() {
         },
     ]);
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
-
-    useEffect(() => {
-        import('react-date-range/dist/styles.css');
-        import('react-date-range/dist/theme/default.css');
-    }, []);
 
     const handleCallAction = async (callId: string, action: string, noteText: string | null) => {
         try {
