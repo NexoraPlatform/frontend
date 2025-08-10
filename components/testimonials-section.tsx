@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import Image from "next/image";
-import '../styles/utilities.css';
 
 export function TestimonialsSection() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);

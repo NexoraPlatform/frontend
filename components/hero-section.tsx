@@ -23,7 +23,6 @@ import {
   Shield,
   Zap,
 } from 'lucide-react';
-import '../styles/utilities.css';
 
 export function HeroSection() {
   const [searchTerm, setSearchTerm] = useState('');
