@@ -162,11 +162,11 @@ export default function Home() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-3" role="group" aria-label="Statistici proiecte">
                             <div className="font-bold text-blue-600">{category.projects}</div>
-                            <div className="text-xs text-muted-foreground">Finalizate</div>
+                            <div className="text-xs">Finalizate</div>
                           </div>
                           <div className="bg-green-50 dark:bg-green-950/50 rounded-lg p-3" role="group" aria-label="Statistici creștere">
                             <div className="font-bold text-green-600">{category.trend}</div>
-                            <div className="text-xs text-muted-foreground">Creștere</div>
+                            <div className="text-xs">Creștere</div>
                           </div>
                         </div>
 
