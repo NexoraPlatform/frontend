@@ -106,6 +106,7 @@
     "@types/react-date-range": "^1.4.10",
     "jsdom": "^24.0.0",
     "sharp": "^0.34.3",
+    "sharp-cli": "^5.2.0",
     "vitest": "^1.0.0"
   },
   "engines": {
