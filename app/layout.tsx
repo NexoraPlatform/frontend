@@ -47,8 +47,6 @@ export default function RootLayout({
             <meta name="theme-color" content="#3b82f6" />
             <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
             <meta name="format-detection" content="telephone=no" />
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             <link rel="dns-prefetch" href="//images.pexels.com" />
             <meta name="color-scheme" content="light dark" />
         </head>
