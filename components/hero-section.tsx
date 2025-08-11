@@ -132,26 +132,21 @@ export function HeroSection() {
             ))}
           </div>
 
-          <div
-              className="absolute w-96 h-96 rounded-full blur-3xl pointer-events-none"
-              aria-hidden="true"
-              style={{
-                background:
-                    "radial-gradient(closest-side, color-mix(in oklab, var(--spotlight-color, rgb(96 165 250)) 20%, transparent) 0%, transparent 70%)",
-                transform:
-                    "translate3d(calc(var(--cursor-x, -9999px) - 12rem), calc(var(--cursor-y, -9999px) - 12rem), 0)",
-                transition: "transform 60ms linear",
-                willChange: "transform",
-                opacity: "var(--cursor-alpha, 1)",
-              }}
-          />
+
         </div>
 
         <div className="container mx-auto px-4 py-8 relative z-10">
           <div className="max-w-6xl mx-auto text-center">
             {/* Animated Badge */}
             <div className="transform transition-all duration-1000 translate-y-0 opacity-100">
-              <Badge variant="secondary" className="mb-8 px-8 py-3 text-base font-semibold bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm">
+              <Badge
+                  variant="secondary"
+                  className="mb-8 px-8 py-3 text-base font-semibold
+             bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100
+             dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50
+             border-2 border-blue-200/50 dark:border-blue-800/50
+             shadow-lg backdrop-blur-sm"
+              >
                 <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
                 🚀 Platforma #1 pentru servicii IT în România
                 <div className="ml-3 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
@@ -162,7 +157,10 @@ export function HeroSection() {
 
             {/* Main Heading with Staggered Animation */}
             <div className="transform transition-all duration-1000 delay-200 translate-y-0 opacity-100">
-              <h1 id="hero-heading" className="text-6xl lg:text-8xl font-black mb-8 leading-tight text-balance">
+              <h1
+                  id="hero-heading"
+                  className="text-6xl lg:text-8xl font-black leading-[1.05] mb-8 text-balance"
+              >
               <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">
                 Transformă-ți
               </span>
@@ -276,8 +274,8 @@ export function HeroSection() {
                         tabIndex={0}
                         aria-label={`${stat.number} ${stat.label}, ${stat.change}`}
                     >
-                      <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg" aria-hidden="true">
-                        <stat.icon className="w-10 h-10 text-blue-600" />
+                      <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center …">
+                        <stat.icon className="w-10 h-10" />
                       </div>
                       <div className="text-3xl lg:text-4xl font-black text-blue-600 mb-2" aria-label={`Numărul: ${stat.number}`}>
                         {stat.number}

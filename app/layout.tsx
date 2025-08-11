@@ -11,10 +11,12 @@ import Script from 'next/script';
 import {generateSEO, generateStructuredData} from "@/lib/seo";
 
 const inter = Inter({
-    subsets: ['latin'],
-    display: 'swap',
+    subsets: ['latin-ext'],
+    display: 'swap',           // evită FOIT
+    adjustFontFallback: true,  // metrice fallback corecte -> fără shift
+    fallback: ['system-ui','Segoe UI','Roboto','Arial'],
     variable: '--font-inter',
-})
+});
 
 export const metadata: Metadata = generateSEO({
     title: 'Marketplace de Servicii IT',
@@ -37,7 +39,7 @@ export default function RootLayout({
         type: 'WebSite',
     })
     return (
-        <html lang="ro" suppressHydrationWarning>
+        <html lang="ro" suppressHydrationWarning className={inter.variable}>
         <head>
             <link rel="manifest" href="/manifest.json" />
             <link rel="icon" href="/logo.webp" />
@@ -50,7 +52,7 @@ export default function RootLayout({
             <link rel="dns-prefetch" href="//images.pexels.com" />
             <meta name="color-scheme" content="light dark" />
         </head>
-        <body className={`${inter.className} antialiased`}>
+        <body className={`font-sans antialiased`}>
         <Script id="org-jsonld" type="application/ld+json" strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
                     __html: JSON.stringify(organizationStructuredData),
