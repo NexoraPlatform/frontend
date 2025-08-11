@@ -132,7 +132,7 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[520px]" role="list" aria-label="Lista categorii de servicii">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[420px]" role="list" aria-label="Lista categorii de servicii">
                 {categories.map((category, index) => (
                     <Card
                         key={index}
@@ -212,7 +212,7 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[520px]" role="list" aria-label="Lista beneficii Nexora">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[420px]" role="list" aria-label="Lista beneficii Nexora">
                 {features.map((feature, index) => (
                     <div
                         key={index}

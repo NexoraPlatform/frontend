@@ -23,22 +23,51 @@ export function Footer() {
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <div className="relative w-8 h-8">
-                  <Image
-                      src="/logo.webp"
-                      alt="Nexora Logo"
-                      width={140}
-                      height={175}
-                      className="dark:hidden h-10 w-auto"
-                      loading="lazy"
-                  />
-                  <Image
-                      src="/logo-white.webp"
-                      alt="Nexora Logo"
-                      width={140}
-                      height={175}
-                      className="hidden dark:block h-10 w-auto"
-                      loading="lazy"
-                  />
+                  <picture>
+                    <source
+                        type="image/avif"
+                        srcSet="/logo-60.avif 1x, /logo-120.avif 2x"
+                        className="dark:hidden h-10 w-auto"
+                    />
+                    <source
+                        type="image/webp"
+                        srcSet="/logo-60.webp 1x, /logo-120.webp 2x"
+                        className="dark:hidden h-10 w-auto"
+                    />
+                    <Image
+                        src="/logo-60.webp"
+                        alt="Nexora Logo"
+                        width={140}
+                        height={175}
+                        className="dark:hidden h-10 w-auto"
+                        loading="eager"
+                        decoding="async"
+                        style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
+                    />
+                  </picture>
+
+                  <picture>
+                    <source
+                        type="image/avif"
+                        srcSet="/logo-60.avif 1x, /logo-120.avif 2x"
+                        className="hidden dark:block h-10 w-auto"
+                    />
+                    <source
+                        type="image/webp"
+                        srcSet="/logo-white-60.webp 1x, /logo-120.webp 2x"
+                        className="hidden dark:block h-10 w-auto"
+                    />
+                    <Image
+                        src="/logo-white-60.webp"
+                        alt="Nexora Logo"
+                        width={140}
+                        height={175}
+                        className="hidden dark:block h-10 w-auto"
+                        loading="lazy"
+                        decoding="async"
+                        style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
+                    />
+                  </picture>
                 </div>
                 <span className="text-xl font-bold text-primary">Nexora</span>
               </div>
