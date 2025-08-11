@@ -1,5 +1,3 @@
-"use client";
-
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -19,6 +17,14 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
+import {Metadata} from "next";
+import {generateSEO} from "@/lib/seo";
+
+export const metadata: Metadata = generateSEO({
+  title: 'Despre noi',
+  description: 'Vrei sa aflii mai multe despre Nexora? Aici găsești informații despre misiunea, viziunea și valorile noastre, echipa din spatele platformei și povestea noastră de succes.',
+  url: '/about',
+});
 
 export default function AboutPage() {
   const values = [

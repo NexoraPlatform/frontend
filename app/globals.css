@@ -579,12 +579,12 @@ button:disabled {
 }
 
 /* Form improvements */
-input:invalid {
-  border-color: hsl(var(--destructive));
-}
+/*input:invalid {*/
+/*  border-color: hsl(var(--destructive));*/
+/*}*/
 
 input:valid {
-  border-color: hsl(var(--success));
+  border-color: green;
 }
 
 /* Landmark roles */

@@ -8,6 +8,7 @@ import {NotificationProvider} from "@/contexts/notification-context";
 import {ChatProvider} from "@/contexts/chat-context";
 import './globals.css';
 import Script from 'next/script';
+import {generateSEO, generateStructuredData} from "@/lib/seo";
 
 const inter = Inter({
     subsets: ['latin'],
@@ -15,53 +16,26 @@ const inter = Inter({
     variable: '--font-inter',
 })
 
-export const metadata: Metadata = {
-    metadataBase: new URL('https://nexora.ro'),
-    title: {
-        default: 'Nexora – Marketplace de Servicii IT',
-        template: '%s | Nexora',
-    },
+export const metadata: Metadata = generateSEO({
+    title: 'Marketplace de Servicii IT',
     description: 'Conectează-te cu cei mai buni experți IT din România.',
-    keywords: 'servicii IT, dezvoltare web, design, marketing digital, freelanceri România, aplicații mobile, SEO, WordPress, React, prestatori IT',
-    authors: [{ name: 'Nexora Team' }],
-    creator: 'Nexora',
-    publisher: 'Nexora',
-    robots: 'index, follow',
-    openGraph: {
-        type: 'website',
-        locale: 'ro_RO',
-        url: 'https://nexora.ro',
-        siteName: 'Nexora',
-        title: 'Nexora - Marketplace de Servicii IT | Platforma #1 din România',
-        description: 'Conectează-te cu cei mai buni experți IT din România. Dezvoltare web, design, marketing digital și multe altele.',
-        images: [
-            {
-                url: '/og-image.jpg',
-                width: 1200,
-                height: 630,
-                alt: 'Nexora - Marketplace de Servicii IT',
-            },
-        ],
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Nexora - Marketplace de Servicii IT',
-        description: 'Conectează-te cu cei mai buni experți IT din România',
-        images: ['/og-image.jpg'],
-    },
-    verification: {
-        google: 'your-google-verification-code',
-    },
-    alternates: {
-        canonical: 'https://nexora.ro',
-    },
-};
+    keywords: ['nexora', 'web development', 'modern applications', 'next generation', 'platform', 'servicii IT', 'dezvoltare web', 'design', 'marketing digital', 'freelanceri România', 'aplicații mobile', 'SEO', 'WordPress', 'React', 'prestatori IT'],
+    url: '/',
+})
 
 export default function RootLayout({
                                        children,
                                    }: {
     children: React.ReactNode;
 }) {
+
+    const organizationStructuredData = generateStructuredData({
+        type: 'Organization',
+    })
+
+    const websiteStructuredData = generateStructuredData({
+        type: 'WebSite',
+    })
     return (
         <html lang="ro" suppressHydrationWarning>
         <head>
@@ -79,29 +53,12 @@ export default function RootLayout({
         <body className={`${inter.className} antialiased`}>
         <Script id="org-jsonld" type="application/ld+json" strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context':'https://schema.org',
-                        '@type':'Organization',
-                        name:'Nexora',
-                        url:'https://nexora.ro',
-                        logo:'https://nexora.ro/icons/icon-512x512.png',
-                        sameAs:['https://www.facebook.com/…','https://www.linkedin.com/company/…']
-                    })
+                    __html: JSON.stringify(organizationStructuredData),
                 }}
         />
         <Script id="website-jsonld" type="application/ld+json" strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context':'https://schema.org',
-                        '@type':'WebSite',
-                        name:'Nexora',
-                        url:'https://nexora.ro',
-                        potentialAction:{
-                            '@type':'SearchAction',
-                            target:'https://nexora.ro/search?q={query}',
-                            'query-input':'required name=query'
-                        }
-                    })
+                    __html: JSON.stringify(websiteStructuredData),
                 }}
         />
         <AuthProvider>

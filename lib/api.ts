@@ -916,6 +916,14 @@ class ApiClient {
     });
   }
 
+  async getProviderUserNameByProfileUrl(profileUrl: string) {
+    return this.request<any>(`/users/providers/${profileUrl}/name`);
+  }
+
+  async getProjectNameByProjectUrl(projectUrl: string) {
+    return this.request<any>(`/project/${projectUrl}/name`);
+  }
+
 }
 
 

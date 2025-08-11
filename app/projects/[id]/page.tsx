@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import apiClient from "@/lib/api";
 import {Header} from "@/components/header";
 import {Alert, AlertDescription} from "@/components/ui/alert";
@@ -8,11 +10,31 @@ import {formatDistanceToNow} from "date-fns";
 import {ro} from "date-fns/locale";
 import {Badge} from "@/components/ui/badge";
 import ProviderCard from "@/app/projects/provider-card";
+import {Metadata} from "next";
+import {generateSEO} from "@/lib/seo";
 
-interface ProjectDetailPageProps {
+type ProjectDetailPageProps = {
     params: {
         id: string;
     }
+}
+
+export async function generateMetadata({ params }: ProjectDetailPageProps): Promise<Metadata> {
+    const { id } = params;
+    let projectTitle: string | undefined
+
+    try {
+        projectTitle = await apiClient.getProjectNameByProjectUrl(id)
+    } catch {
+    }
+
+    return generateSEO({
+        title: projectTitle ? `${projectTitle} | Proiect Detaliat` : 'Proiect Detaliat',
+        description: projectTitle
+            ? `Vezi detalii despre ${projectTitle}, inclusiv servicii oferite și evaluări.`
+            : 'Vezi detalii despre proiectul selectat, inclusiv informații despre prestatori și tehnologii utilizate.',
+        url: `/projects/${id}`,
+    })
 }
 
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
