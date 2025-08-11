@@ -42,7 +42,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
     const containerRef = useRef<HTMLDivElement>(null);
     const perPage = 10;
     const fetchIcons = useCallback(async (searchTerm: string, pageNum: number) => {
-        const url = new URL('http://127.0.0.1:8000/api/general/mui-icons');
+        const url = new URL('https://nexorabe.dacars.ro/api/general/mui-icons');
         url.searchParams.set('search', searchTerm);
         url.searchParams.set('page', pageNum.toString());
         url.searchParams.set('per_page', perPage.toString());
