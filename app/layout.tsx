@@ -42,8 +42,8 @@ export default function RootLayout({
         <html lang="ro" suppressHydrationWarning className={inter.variable}>
         <head>
             <link rel="manifest" href="/manifest.json" />
-            <link rel="icon" href="/logo.webp" />
-            <link rel="apple-touch-icon" href="/logo.webp" />
+            <link rel="icon" href="/logo.svg" />
+            <link rel="apple-touch-icon" href="/logo.svg" />
             <meta name="theme-color" content="#3b82f6" />
             <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
             <meta name="format-detection" content="telephone=no" />

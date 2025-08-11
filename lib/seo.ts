@@ -118,7 +118,7 @@ export function generateStructuredData(data: {
             '@type': 'Organization',
             name: 'Nexora',
             url: baseUrl,
-            logo: `${baseUrl}/logo.webp`,
+            logo: `${baseUrl}/logo.svg`,
             description: 'Modern web solutions for the next generation',
             foundingDate: '2024',
             sameAs: [

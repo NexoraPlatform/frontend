@@ -24,20 +24,30 @@ export function Footer() {
               <div className="flex items-center space-x-2">
                 <div className="relative w-8 h-8">
                   <Image
-                      src="/logo.webp"
+                      src="/logo.svg"
                       alt="Nexora Logo"
                       width={140}
                       height={175}
+                      sizes="(max-width: 768px) 48px, 60px"
                       className="dark:hidden h-10 w-auto"
+                      quality={60}
+                      priority={false}
                       loading="lazy"
+                      fetchPriority="low"
+                      placeholder="empty"
                   />
                   <Image
-                      src="/logo-white.webp"
+                      src="/logo-white.svg"
                       alt="Nexora Logo"
+                      sizes="(max-width: 768px) 48px, 60px"
                       width={140}
                       height={175}
                       className="hidden dark:block h-10 w-auto"
+                      quality={60}
+                      priority={false}
                       loading="lazy"
+                      fetchPriority="low"
+                      placeholder="empty"
                   />
                 </div>
                 <span className="text-xl font-bold text-primary">Nexora</span>
