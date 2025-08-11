@@ -100,14 +100,14 @@ export default function Home() {
   ];
 
   return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background font-sans">
         <Header />
         <main role="main" aria-label="Conținut principal">
           <HeroSectionClient />
 
           {/* Enhanced Categories Section */}
           <section
-              className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden"
+              className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden font-sans"
               aria-labelledby="categories-heading"
           >
             {/* Background Pattern */}
@@ -127,7 +127,7 @@ export default function Home() {
                 >
                   Categorii Populare de Servicii
                 </h2>
-                <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed text-pretty">
+                <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed text-pretty min-h-[3.2em]">
                   Descoperă o gamă largă de servicii IT profesionale, toate verificate și evaluate de comunitatea noastră
                 </p>
               </div>
@@ -136,7 +136,7 @@ export default function Home() {
                 {categories.map((category, index) => (
                     <Card
                         key={index}
-                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-transform duration-500 hover:scale-105 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-no-shift"
+                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-transform duration-500 hover:scale-105 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
                         role="listitem"
                         tabIndex={0}
                         aria-label={`Categorie ${category.title}: ${category.description}`}
@@ -144,11 +144,8 @@ export default function Home() {
                       <div className={`h-3 bg-gradient-to-r ${category.color}`} />
                       <div className="absolute inset-0 bg-gradient-to-br from-transparent to-blue-50/50 dark:to-blue-950/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" aria-hidden="true" />
 
-                      <CardHeader className="text-center pb-4 relative z-10">
-                        <div
-                            className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-2xl relative`}
-                            aria-hidden="true"
-                        >
+                      <CardHeader className="text-center pb-4 relative z-10 min-h-[13rem]">
+                        <div className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-2xl relative`} aria-hidden="true">
                           <category.icon className="w-12 h-12 text-white" />
                           <div className="absolute inset-0 bg-white/20 rounded-3xl animate-pulse" aria-hidden="true"></div>
                         </div>
@@ -160,7 +157,7 @@ export default function Home() {
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent className="text-center space-y-4 relative z-10">
+                      <CardContent className="text-center space-y-4 relative z-10 min-h-[10rem]">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-3" role="group" aria-label="Statistici proiecte">
                             <div className="font-bold text-blue-600">{category.projects}</div>
