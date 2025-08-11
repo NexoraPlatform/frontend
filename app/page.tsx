@@ -164,8 +164,8 @@ export default function Home() {
                             <div className="font-bold text-blue-600">{category.projects}</div>
                             <div className="text-xs">Finalizate</div>
                           </div>
-                          <div className="bg-green-50 dark:bg-green-950/50 rounded-lg p-3" role="group" aria-label="Statistici creștere">
-                            <div className="font-bold text-green-600">{category.trend}</div>
+                          <div className="bg-green-100 dark:bg-green-900 rounded-lg p-3" role="group" aria-label="Statistici creștere">
+                            <div className="font-bold text-green-900 dark:text-green-300">{category.trend}</div>
                             <div className="text-xs">Creștere</div>
                           </div>
                         </div>
