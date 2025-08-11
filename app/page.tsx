@@ -18,12 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import HeroSectionClient from '@/components/hero-section.client';
-import dynamic from "next/dynamic";
-
-const LazyStyles = dynamic(() => import("./(home)/_client/LazyStyles.client"), {
-  ssr: false,
-  loading: () => null,
-});
+import {LazyStylesClient} from "@/app/LazyStylesClient";
 
 
 export default function Home() {
@@ -112,7 +107,7 @@ export default function Home() {
           <HeroSectionClient />
 
           {/* Incarcă CSS-ul non-critic după primul paint */}
-          <LazyStyles />
+          <LazyStylesClient />
 
           {/* Enhanced Categories Section */}
           <section

@@ -1,59 +1,57 @@
-@layer components {
-  .nexora-gradient {
-    background: linear-gradient(135deg, hsl(var(--nexora-blue)) 0%, hsl(var(--nexora-blue-dark)) 100%);
-  }
+.nexora-gradient {
+  background: linear-gradient(135deg, hsl(var(--nexora-blue)) 0%, hsl(var(--nexora-blue-dark)) 100%);
+}
 
-  .nexora-gradient-light {
-    background: linear-gradient(135deg, hsl(var(--nexora-blue-light)) 0%, hsl(var(--nexora-blue)) 100%);
-  }
+.nexora-gradient-light {
+  background: linear-gradient(135deg, hsl(var(--nexora-blue-light)) 0%, hsl(var(--nexora-blue)) 100%);
+}
 
-  .floating-card {
-    transform: translateY(0px);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+.floating-card {
+  transform: translateY(0px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  .floating-card:hover {
-    transform: translateY(-12px);
-    box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.25);
-  }
+.floating-card:hover {
+  transform: translateY(-12px);
+  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.25);
+}
 
-  .nexora-shadow {
-    box-shadow: 0 20px 60px rgba(59, 130, 246, 0.15);
-  }
+.nexora-shadow {
+  box-shadow: 0 20px 60px rgba(59, 130, 246, 0.15);
+}
 
-  .dark .nexora-shadow {
-    box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
-  }
+.dark .nexora-shadow {
+  box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
+}
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
 
-  .animate-float-delayed {
-    animation: float 6s ease-in-out infinite;
-    animation-delay: 2s;
-  }
+.animate-float-delayed {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 2s;
+}
 
-  .animate-pulse-slow {
-    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
-  .animate-gradient {
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-  }
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
 
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
-  .perspective-1000 {
-    perspective: 1000px;
-  }
+.perspective-1000 {
+  perspective: 1000px;
+}
 
-  .transform-gpu {
-    transform: translateZ(0);
-  }
+.transform-gpu {
+  transform: translateZ(0);
 }
 
 @keyframes float {
@@ -490,17 +488,15 @@ em-emoji-picker {
   width: 100%;
 }
 
-@layer utilities {
-  .border-3 {
-    border-width: 3px;
-  }
+.border-3 {
+  border-width: 3px;
+}
 
-  .text-balance {
-    text-wrap: balance;
-  }
+.text-balance {
+  text-wrap: balance;
+}
 
-  .text-pretty {
-    text-wrap: pretty;
-  }
+.text-pretty {
+  text-wrap: pretty;
 }
 
