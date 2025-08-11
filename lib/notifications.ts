@@ -114,8 +114,8 @@ export class NotificationService {
         }
 
         const defaultOptions: NotificationOptions = {
-            icon: '/logo.svg',
-            badge: '/logo.svg',
+            icon: '/logo.webp',
+            badge: '/logo.webp',
             vibrate: [200, 100, 200],
             data: {
                 timestamp: Date.now()

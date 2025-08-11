@@ -149,8 +149,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         const options: NotificationOptions = {
             body: notification.message,
-            icon: '/logo.svg',
-            badge: '/logo.svg',
+            icon: '/logo.webp',
+            badge: '/logo.webp',
             tag: notification.id,
             data: {
                 notificationId: notification.id,
