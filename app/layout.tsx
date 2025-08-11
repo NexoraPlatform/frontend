@@ -9,7 +9,11 @@ import {ChatProvider} from "@/contexts/chat-context";
 import './globals.css';
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+    subsets: ['latin'],
+    display: 'swap',
+    variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
     metadataBase: new URL('https://nexora.ro'),

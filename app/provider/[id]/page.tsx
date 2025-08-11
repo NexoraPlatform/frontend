@@ -141,7 +141,7 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
                     flag: match?.flag || '🇷🇴',
                 };
             });
-
+            console.log(providerData)
             const providerInfo = {
                 id: params.id,
                 firstName: providerData.firstName,
@@ -160,7 +160,7 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
                 isVerified: providerData.callVerified && providerData.testVerified,
                 memberSince: providerData.created_at,
                 firstJob: providerData.work_history.length > 0 ? providerData.oldest_work_experience : new Date(),
-                lastActive: '2025-07-25T10:30:00Z',
+                lastActive: providerData.last_active_at,
 
                 // Availability
                 availability: {
@@ -446,6 +446,8 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
 
     const cardClass = emptySections >= 2 ? 'lg:grid-cols-1' : 'lg:grid-cols-2';
 
+    const lastActiveProvider = Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60));
+
     return (
         <div className="min-h-screen bg-background">
             <Header />
@@ -578,7 +580,8 @@ export default function ProviderProfilePage({ params }: ProviderProfilePageProps
 
                                         <div className="flex items-center space-x-2 text-sm">
                                             <Clock className="w-4 h-4 text-muted-foreground" />
-                                            <span>Activ acum {Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60))} ore</span>
+
+                                            <span className={`${lastActiveProvider === 0 && 'text-green-600'}`}>Activ acum {lastActiveProvider !== 0 && lastActiveProvider + `ore`}</span>
                                         </div>
                                         <div className="flex items-center space-x-2 text-sm">
                                             <Globe className="w-4 h-4 text-muted-foreground" />

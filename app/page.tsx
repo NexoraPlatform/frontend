@@ -122,7 +122,7 @@ export default function Home() {
                   <Globe className="w-5 h-5 mr-2" />
                   Servicii Premium
                 </Badge>
-                <h2 id="categories-heading" className="text-5xl lg:text-6xl font-black mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-balance">
+                <h2 id="categories-heading" className="pb-1 text-5xl lg:text-6xl font-black mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-balance">
                   Categorii Populare de Servicii
                 </h2>
                 <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed text-pretty">

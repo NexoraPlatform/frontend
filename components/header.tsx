@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import {usePathname, useRouter} from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -15,6 +15,7 @@ import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
 import { NotificationBell } from '@/components/notification-bell';
 import { ChatButton } from '@/components/chat/chat-button';
+import {cn} from "@/lib/utils";
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +24,7 @@ export function Header() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-
+  const pathname = usePathname();
   const navigation = [
     { name: 'Acasă', href: '/' },
     { name: 'Servicii', href: '/services' },
@@ -122,7 +123,12 @@ export function Header() {
                   <Link
                       key={item.name}
                       href={item.href}
-                      className="relative text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-300 group py-2"
+                      className={cn(
+                          'text-sm font-medium transition-colors hover:text-primary relative',
+                          pathname === item.href
+                              ? 'text-primary'
+                              : 'text-muted-foreground'
+                      )}
                       aria-label={`Navighează la ${item.name}`}
                   >
                     {item.name}
@@ -132,10 +138,7 @@ export function Header() {
               ))}
             </nav>
 
-            {/* Search Bar */}
-            <div className="hidden lg:flex items-center space-x-4 flex-1 max-w-md mx-8">
-              <SearchBar className="w-full" />
-            </div>
+
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-3">

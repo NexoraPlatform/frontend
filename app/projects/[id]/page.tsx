@@ -81,7 +81,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                                 <div className="text-center p-3 bg-muted/30 rounded-lg">
                                     <div className="text-sm text-muted-foreground">Status proiect</div>
                                     <div className="text-2xl font-bold text-purple-600">
-                                        {project.completedAt ? 'FINALIZAT' : 'NEFINALIZAT' }
+                                        {project.completedAt ? 'Finalizat' : 'Nefinalizat' }
                                     </div>
                                 </div>
 
