@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Footer } from '@/components/footer'
-import {Header} from "@nestjs/common";
+import {Header} from "@/components/header";
 
 export default function PublicLoading() {
     return (
