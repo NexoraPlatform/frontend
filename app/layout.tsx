@@ -12,8 +12,8 @@ import {generateSEO, generateStructuredData} from "@/lib/seo";
 
 const inter = Inter({
     subsets: ['latin-ext'],
-    display: 'swap',           // evită FOIT
-    adjustFontFallback: true,  // metrice fallback corecte -> fără shift
+    display: 'swap',
+    adjustFontFallback: true,
     fallback: ['system-ui','Segoe UI','Roboto','Arial'],
     variable: '--font-inter',
 });
