@@ -149,7 +149,7 @@ export function HeroSection() {
               >
                 <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
                 🚀 Platforma #1 pentru servicii IT în România
-                <div className="ml-3 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                <div className="ml-3 h-6 min-w-[36px] px-2 inline-flex items-center justify-center bg-blue-600 text-white text-xs rounded-full">
                   LIVE
                 </div>
               </Badge>
@@ -159,7 +159,7 @@ export function HeroSection() {
             <div className="transform transition-all duration-1000 delay-200 translate-y-0 opacity-100">
               <h1
                   id="hero-heading"
-                  className="text-6xl lg:text-8xl font-black leading-[1.05] mb-8 text-balance"
+                  className="text-6xl lg:text-8xl font-black leading-[1.05] mb-8 text-balance min-h-[2.6em]"
               >
               <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">
                 Transformă-ți

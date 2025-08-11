@@ -107,7 +107,7 @@ export default function Home() {
 
           {/* Enhanced Categories Section */}
           <section
-              className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden lazy-section"
+              className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden"
               aria-labelledby="categories-heading"
           >
             {/* Background Pattern */}
@@ -123,7 +123,7 @@ export default function Home() {
                 </Badge>
                 <h2
                     id="categories-heading"
-                    className="text-5xl lg:text-6xl font-black leading-[1.08] mb-8"
+                    className="text-5xl lg:text-6xl font-black leading-[1.08] mb-8 min-h-[2.2em]"
                 >
                   Categorii Populare de Servicii
                 </h2>
@@ -132,11 +132,11 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista categorii de servicii">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[520px]" role="list" aria-label="Lista categorii de servicii">
                 {categories.map((category, index) => (
                     <Card
                         key={index}
-                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
+                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-transform duration-500 hover:scale-105 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-no-shift"
                         role="listitem"
                         tabIndex={0}
                         aria-label={`Categorie ${category.title}: ${category.description}`}
@@ -215,7 +215,7 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista beneficii Nexora">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[520px]" role="list" aria-label="Lista beneficii Nexora">
                 {features.map((feature, index) => (
                     <div
                         key={index}
