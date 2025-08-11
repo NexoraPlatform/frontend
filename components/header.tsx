@@ -85,7 +85,7 @@ export function Header() {
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                 <Image
-                    src="/logo.png"
+                    src="/logo.webp"
                     alt="Nexora Logo"
                     width={140}
                     height={175}
@@ -94,7 +94,7 @@ export function Header() {
                     loading="eager"
                 />
                 <Image
-                    src="/logo-white.png"
+                    src="/logo-white.webp"
                     alt="Nexora Logo"
                     width={140}
                     height={175}

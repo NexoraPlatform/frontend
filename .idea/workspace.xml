@@ -6,9 +6,29 @@
   <component name="ChangeListManager">
     <list default="true" id="936f30aa-4d19-43b6-901a-7cb3f6dac2a1" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/categories/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/categories/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/orders/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/orders/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/services/[id]/edit/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/services/[id]/edit/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/tests/[id]/edit/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/tests/[id]/edit/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/tests/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/tests/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/tests/[id]/statistics/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/tests/[id]/statistics/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/stripe/payment/[projectId]/[clientSecret]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/stripe/payment/[projectId]/[clientSecret]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/projects/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/projects/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/provider/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/provider/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/provider/services/new/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/provider/services/new/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/tests/schedule/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/tests/schedule/[id]/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/footer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/footer.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/hero-section.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/hero-section.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/contexts/notification-context.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/contexts/notification-context.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/notifications.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/notifications.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/seo.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/seo.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/next.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/sw.js" beforeDir="false" afterPath="$PROJECT_DIR$/public/sw.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,6 +89,8 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/public/" />
+      <recent name="$PROJECT_DIR$/public" />
       <recent name="$PROJECT_DIR$/app/dashboard/stripe/payment/[projectId]/[clientSecret]" />
     </key>
   </component>
@@ -116,7 +138,7 @@
       <workItem from="1754122971815" duration="43799000" />
       <workItem from="1754552731689" duration="41950000" />
       <workItem from="1754667220115" duration="597000" />
-      <workItem from="1754668061371" duration="64005000" />
+      <workItem from="1754668061371" duration="69901000" />
     </task>
     <servers />
   </component>

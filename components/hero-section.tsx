@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useRef} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,48 @@ export function HeroSection() {
   const [searchTerm, setSearchTerm] = useState('');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const prefersReduced =
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReduced) {
+      el.style.setProperty("--cursor-alpha", "0");
+      return;
+    }
+
+    let raf = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let framePending = false;
+
+    const onPointerMove = (e: PointerEvent) => {
+      lastX = e.clientX;
+      lastY = e.clientY;
+
+      if (!framePending) {
+        framePending = true;
+        raf = requestAnimationFrame(() => {
+          framePending = false;
+          el.style.setProperty("--cursor-x", `${lastX}px`);
+          el.style.setProperty("--cursor-y", `${lastY}px`);
+        });
+      }
+    };
+
+    el.addEventListener("pointermove", onPointerMove, { passive: true });
+
+    return () => {
+      el.removeEventListener("pointermove", onPointerMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const stats = [
     { number: '500+', label: 'Experți Verificați', icon: Users, change: '+12%' },
@@ -90,13 +132,17 @@ export function HeroSection() {
             ))}
           </div>
 
-          {/* Interactive cursor effect */}
           <div
-              className="absolute w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl transition-all duration-1000 ease-out pointer-events-none"
+              className="absolute w-96 h-96 rounded-full blur-3xl pointer-events-none"
               aria-hidden="true"
               style={{
-                left: mousePosition.x - 192,
-                top: mousePosition.y - 192,
+                background:
+                    "radial-gradient(closest-side, color-mix(in oklab, var(--spotlight-color, rgb(96 165 250)) 20%, transparent) 0%, transparent 70%)",
+                transform:
+                    "translate3d(calc(var(--cursor-x, -9999px) - 12rem), calc(var(--cursor-y, -9999px) - 12rem), 0)",
+                transition: "transform 60ms linear",
+                willChange: "transform",
+                opacity: "var(--cursor-alpha, 1)",
               }}
           />
         </div>

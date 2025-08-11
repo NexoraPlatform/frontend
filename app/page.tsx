@@ -1,11 +1,9 @@
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { HeroSection } from '@/components/hero-section';
 import { TestimonialsSection } from '@/components/testimonials-section';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import dynamic from 'next/dynamic';
 import {
   Code,
   Smartphone,
@@ -13,13 +11,14 @@ import {
   TrendingUp,
   Shield,
   Zap,
+  Users,
+  Globe,
+  Award,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
+import HeroSectionClient from '@/components/hero-section.client';
 
-const Users = dynamic(() => import('lucide-react').then((m) => m.Users), { ssr: false });
-const Globe = dynamic(() => import('lucide-react').then((m) => m.Globe), { ssr: false });
-const Award = dynamic(() => import('lucide-react').then((m) => m.Award), { ssr: false });
-const ChevronRight = dynamic(() => import('lucide-react').then((m) => m.ChevronRight), { ssr: false });
 
 export default function Home() {
   const categories = [
@@ -104,7 +103,7 @@ export default function Home() {
       <div className="min-h-screen bg-background">
         <Header />
         <main role="main" aria-label="Conținut principal">
-          <HeroSection />
+          <HeroSectionClient />
 
           {/* Enhanced Categories Section */}
           <section

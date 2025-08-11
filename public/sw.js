@@ -20,8 +20,8 @@ self.addEventListener('push', (event) => {
     let notificationData = {
         title: 'Nexora',
         body: 'Ai o notificare nouă',
-        icon: '/logo.png',
-        badge: '/logo.png',
+        icon: '/logo.webp',
+        badge: '/logo.webp',
         data: {}
     };
 

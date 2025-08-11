@@ -24,7 +24,7 @@ export function Footer() {
               <div className="flex items-center space-x-2">
                 <div className="relative w-8 h-8">
                   <Image
-                      src="/logo.png"
+                      src="/logo.webp"
                       alt="Nexora Logo"
                       width={140}
                       height={175}
@@ -32,7 +32,7 @@ export function Footer() {
                       loading="lazy"
                   />
                   <Image
-                      src="/logo-white.png"
+                      src="/logo-white.webp"
                       alt="Nexora Logo"
                       width={140}
                       height={175}
