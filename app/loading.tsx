@@ -1,9 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Footer } from '@/components/footer'
+import {Header} from "@nestjs/common";
 
 export default function PublicLoading() {
     return (
         <>
+            <Header />
             <main className="min-h-screen pt-20">
                 <div className="container py-16">
                     {/* Hero Section Skeleton */}

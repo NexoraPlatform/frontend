@@ -4,8 +4,8 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
-import { Navbar } from '@/components/layout/navbar'
-import { Footer } from '@/components/layout/footer'
+import { Header } from '@/components/header'
+import { Footer } from '@/components/footer'
 
 export default function PublicError({
                                         error,
@@ -20,7 +20,7 @@ export default function PublicError({
 
     return (
         <>
-            <Navbar />
+            <Header />
             <main className="min-h-screen flex items-center justify-center pt-20 p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
