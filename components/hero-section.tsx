@@ -138,22 +138,27 @@ export function HeroSection() {
         <div className="container mx-auto px-4 py-8 relative z-10">
           <div className="max-w-6xl mx-auto text-center">
             {/* Animated Badge */}
-            <div className="transform transition-all duration-1000 translate-y-0 opacity-100">
-              <Badge
-                  variant="secondary"
-                  className="mb-8 px-8 py-3 text-base font-semibold
-             bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100
-             dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50
-             border-2 border-blue-200/50 dark:border-blue-800/50
-             shadow-lg backdrop-blur-sm"
-              >
-                <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
-                🚀 Platforma #1 pentru servicii IT în România
-                <div className="ml-3 h-6 min-w-[36px] px-2 inline-flex items-center justify-center bg-blue-600 text-white text-xs rounded-full">
-                  LIVE
-                </div>
-              </Badge>
+            <div className="transform translate-y-0 opacity-100">
+              <div className="h-12 flex justify-center">
+                <Badge
+                    variant="secondary"
+                    className="inline-flex h-12 items-center px-8 text-base font-semibold
+                 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100
+                 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50
+                 border-2 border-blue-200/50 dark:border-blue-800/50
+                 shadow-lg backdrop-blur-sm"
+                >
+                  <Sparkles className="w-5 h-5 mr-3 text-blue-600 shrink-0" />
+                  <span className="whitespace-nowrap">
+        🚀 Platforma #1 pentru servicii IT în România
+      </span>
+                  <span className="ml-3 inline-flex h-6 w-[36px] items-center justify-center bg-blue-600 text-white text-xs rounded-full">
+        LIVE
+      </span>
+                </Badge>
+              </div>
             </div>
+
 
             {/* Main Heading with Staggered Animation */}
             <div className="transform transition-all duration-1000 delay-200 translate-y-0 opacity-100">
