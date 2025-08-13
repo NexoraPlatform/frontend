@@ -1,7 +1,7 @@
 import EditUserClient from './EditUserClient';
 
 type PageProps = {
-    params: Promise<{ id: string }>;
+    params: Promise<{ id: number }>;
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 

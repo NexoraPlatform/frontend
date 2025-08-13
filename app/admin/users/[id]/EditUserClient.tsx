@@ -21,5 +21,5 @@ export default function EditUserClient({ id }: { id: number; }) {
         getUser();
     }, [id]);
 
-
+    return (<></>);
 }
