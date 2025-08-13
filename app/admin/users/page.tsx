@@ -16,22 +16,23 @@ import {
   MoreHorizontal,
   Eye,
   UserCheck,
-  UserX,
   Ban,
   Trash2,
   Star,
   CheckCircle,
   Loader2,
   ArrowLeft,
-  Filter
+  Filter, Pencil
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import {useRouter} from "next/navigation";
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [userFilter, setUserFilter] = useState('all');
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
+  const router = useRouter();
 
   const handleUserAction = async (userId: string, action: string) => {
     try {
@@ -101,9 +102,18 @@ export default function AdminUsersPage() {
           </div>
         </div>
         <Link href="/admin/users/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Adaugă Utilizator
+          <Button
+              variant="default"
+              className="relative overflow-hidden px-5 py-2 rounded-md group"
+          >
+  <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 bg-purple-600 origin-center scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100 transform-gpu will-change-transform"
+  />
+            <span className="relative z-10 flex flex-nowrap items-center">
+    <Plus className="w-4 h-4 mr-2" />
+    Adaugă Utilizator
+  </span>
           </Button>
         </Link>
       </div>
@@ -198,9 +208,9 @@ export default function AdminUsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleUserAction(user.id, 'view')}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Vezi Profil
+                        <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Modifica profil
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleUserAction(user.id, 'verify')}>
                           <UserCheck className="w-4 h-4 mr-2" />

@@ -57,7 +57,7 @@ export default function NewUserPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-full">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">

@@ -4,13 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     ArrowLeft,
     BookOpen,
-    Clock,
     Target,
     Edit,
     Trash2,
@@ -27,12 +26,6 @@ import {
 } from 'lucide-react';
 import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-
-interface TestDetailsPageProps {
-    params: {
-        id: string;
-    };
-}
 
 type QuestionType =
     | 'SINGLE_CHOICE'
@@ -51,13 +44,14 @@ interface Question {
     type: QuestionType;
     question: string;
     points: number;
-    options?: string[];
-    correctAnswers: string[];
+    options?: string[] | string;
+    correct_answers: string[] | string;
     codeTemplate?: string;
     expectedOutput?: string;
     testCases?: TestCase[];
     explanation?: string;
 }
+
 
 export default function TestDetailsClient({ id }: { id: string; }) {
     const router = useRouter();
@@ -154,7 +148,6 @@ export default function TestDetailsClient({ id }: { id: string; }) {
             </div>
         );
     }
-
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Header */}
@@ -216,7 +209,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="text-muted-foreground">Creat la:</div>
-                                    <div>{new Date(test.createdAt).toLocaleDateString('ro-RO')}</div>
+                                    <div>{new Date(test.created_at).toLocaleDateString('ro-RO')}</div>
                                 </div>
                             </div>
                         </div>
@@ -284,20 +277,40 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                     <h4 className="font-medium mb-4">{question.question}</h4>
 
                                     {/* Single/Multiple Choice Options */}
-                                    {(question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options && (
-                                        <div className="space-y-1 mb-4">
-                                            {question.options.map((option, optIndex) => (
-                                                <div key={optIndex} className="flex items-center space-x-2 text-sm">
-                          <span className={question.correctAnswers.includes(option) ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
-                            {String.fromCharCode(65 + optIndex)}. {option}
-                          </span>
-                                                    {question.correctAnswers.includes(option) && (
-                                                        <Badge className="bg-green-100 text-green-800 text-xs">Corect</Badge>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {(question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options && (() => {
+                                        // Normalizează întotdeauna la array
+                                        let opts: string[] = [];
+                                        if (typeof question.options === 'string') {
+                                            try {
+                                                opts = JSON.parse(question.options);
+                                            } catch {
+                                                opts = [];
+                                            }
+                                        } else {
+                                            opts = question.options;
+                                        }
+
+                                        return (
+                                            <div className="space-y-1 mb-4">
+                                                {opts.map((option, optIndex) => (
+                                                    <div key={optIndex} className="flex items-center space-x-2 text-sm">
+                    <span
+                        className={
+                            question?.correct_answers?.includes(option)
+                                ? 'text-green-600 font-medium'
+                                : 'text-muted-foreground'
+                        }
+                    >
+                        {String.fromCharCode(65 + optIndex)}. {option}
+                    </span>
+                                                        {question?.correct_answers?.includes(option) && (
+                                                            <Badge className="bg-green-100 text-green-800 text-xs">Corect</Badge>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Code Writing */}
                                     {question.type === 'CODE_WRITING' && (
@@ -352,7 +365,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                         <div className="mb-4">
                                             <div className="text-sm font-medium mb-1">Răspuns Corect:</div>
                                             <div className="bg-muted p-3 rounded-lg text-sm">
-                                                {question.correctAnswers.join(', ')}
+                                                {JSON.parse(question.correct_answers as string)}
                                             </div>
                                         </div>
                                     )}

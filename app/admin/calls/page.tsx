@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect} from "react";
+import {useState} from "react";
 import {useAdminCalls} from "@/hooks/use-api";
 import {Badge} from "@/components/ui/badge";
 import {
@@ -9,9 +9,9 @@ import {
     BookOpen,
     CalendarIcon,
     CheckCircle, Clock, Eye,
-    Filter,
+    Filter, ListTodo,
     Loader2, MoreHorizontal,
-    Search, Target,
+    Search,
     XCircle
 } from "lucide-react";
 import Link from "next/link";
@@ -35,15 +35,15 @@ import 'react-date-range/dist/theme/default.css';
 
 export default function CallsPage() {
     const [searchTerm, setSearchTerm] = useState('');
-    const [serviceFilter, setServiceFilter] = useState('all');
+    const [serviceFilter] = useState('all');
     const [passedFilter, setPassedFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [noteModalCallId, setNoteModalCallId] = useState<number | null>(null);
     const [noteText, setNoteText] = useState('');
     const [range, setRange] = useState<Range[]>([
         {
-            startDate: new Date(),
-            endDate: addDays(new Date(), 7),
+            startDate: new Date(2025, 0, 1),
+            endDate: new Date(),
             key: 'selection',
         },
     ]);
@@ -242,8 +242,8 @@ export default function CallsPage() {
                                                 <span className="font-medium">{call.service?.name}</span>
                                             </div>
                                             <div className="flex items-center space-x-1">
-                                                <Target className="w-4 h-4 text-green-500" />
-                                                <span><a href="#">Vezi detalii test</a></span>
+                                                <ListTodo className="w-4 h-4 text-green-500" />
+                                                <span><a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>Vezi detalii test</a></span>
                                             </div>
                                             <div className="flex items-center space-x-1">
                                                 <Clock className="w-4 h-4 text-orange-500" />

@@ -1,3 +1,6 @@
+export const dynamic = 'force-static';
+export const revalidate = 3600;
+
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TestimonialsSection } from '@/components/testimonials-section';
@@ -100,7 +103,7 @@ export default function Home() {
   ];
 
   return (
-      <div className="min-h-screen bg-background font-sans">
+      <div className="bg-background font-sans">
         <Header />
         <main role="main" aria-label="Conținut principal">
           <HeroSectionClient />

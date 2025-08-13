@@ -280,6 +280,18 @@ class ApiClient {
     });
   }
 
+  async getUserById(userId: number) {
+    return this.request<any>(`/admin/users/${userId}`)
+  }
+
+  async updateUser(userId: number, userData: any){
+    return this.request<any>(`/admin/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ userData }),
+
+    });
+  }
+
   async deleteUser(userId: string) {
     return this.request<any>(`/admin/users/${userId}`, {
       method: 'DELETE',
@@ -517,7 +529,7 @@ class ApiClient {
   }
 
   async getTestStatistics(testId: string) {
-    return this.request<any>(`/tests/${testId}/statistics`);
+    return this.request<any>(`/admin/tests/${testId}/statistics`);
   }
 
   // API pentru certificări

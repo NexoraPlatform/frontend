@@ -106,7 +106,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                     slug: response.slug || generateSlug(response.name || ''),
                     description: response.description || '',
                     icon: response.icon || '',
-                    parentId: response.parentId || 'none', // Asigură-te că setezi 'none' dacă nu există părinte
+                    parentId: response.parent.id || 'none', // Asigură-te că setezi 'none' dacă nu există părinte
                     sortOrder: response.sortOrder || 0
                 });
                 setSearch(response.icon || '');

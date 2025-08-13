@@ -40,7 +40,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-20">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
@@ -122,7 +122,7 @@ export default function SignInPage() {
                   ) : (
                     <>
                       <Zap className="w-4 h-4 mr-2" />
-                      Conectează-te
+                      <span className="relative z-10">Conectează-te</span>
                     </>
                   )}
                 </Button>

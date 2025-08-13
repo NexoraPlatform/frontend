@@ -19,21 +19,29 @@ import {
   Eye,
   ArrowRight,
   Activity,
-  Calendar,
   Bell,
   BookOpen,
-  Target
+  IdCardLanyard,
+  TrendingDown
 } from 'lucide-react';
-import { useAdminStats } from '@/hooks/use-api';
 import CallIcon from "@mui/icons-material/Call";
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import apiClient from "@/lib/api";
+import {Can} from "@/components/Can";
 
 interface AdminStats {
   totalUsers: number;
+  currentMonthUsers: number;
+  currentMonthVsLastMonthUsers: number;
   activeServices: number;
-  totalOrders: number;
+  currentMonthServices: number;
+  currentMonthVsLastMonthServices: number;
+  totalProjects: number;
+  currentMonthProjects: number;
+  totalPendingProjects: number;
+  currentMonthVsLastMonthProjects: number;
   totalRevenue: number;
+  currentMonthRevenue: number
+  currentMonthVsLastMonthRevenue: number;
   pendingUsers: number;
   pendingServices: number;
   pendingCalls: number;
@@ -47,11 +55,11 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
         try {
             const response = await apiClient.getAdminStats();
+
             if (!response.ok) {
-            throw new Error('Failed to fetch stats');
+              throw new Error('Failed to fetch stats');
             }
-            const data = await response.json();
-            setStatsData(data);
+            setStatsData(response);
         } catch (error) {
             console.error('Error fetching stats:', error);
         }
@@ -65,7 +73,8 @@ export default function AdminDashboard() {
     {
       title: 'Utilizatori Totali',
       value: statsData?.totalUsers || '0',
-      change: '+12% această lună',
+      change: statsData?.currentMonthVsLastMonthUsers,
+      current: statsData?.currentMonthUsers || 0,
       icon: Users,
       color: 'text-blue-600',
       href: '/admin/users'
@@ -73,7 +82,8 @@ export default function AdminDashboard() {
     {
       title: 'Servicii Active',
       value: statsData?.activeServices || '0',
-      change: '+8% această lună',
+      change: statsData?.currentMonthVsLastMonthServices,
+      current: statsData?.currentMonthServices || 0,
       icon: FileText,
       color: 'text-green-600',
       href: '/admin/services'
@@ -81,15 +91,17 @@ export default function AdminDashboard() {
     {
       title: 'Venituri Totale',
       value: `${statsData?.totalRevenue || '0'} RON`,
-      change: '+23% această lună',
+      change: statsData?.currentMonthVsLastMonthRevenue,
+      current: statsData?.currentMonthRevenue || 0,
       icon: DollarSign,
       color: 'text-yellow-600',
       href: '/admin/orders'
     },
     {
-      title: 'Comenzi Procesate',
-      value: statsData?.totalOrders || '0',
-      change: '+15% această lună',
+      title: 'Proiecte Procesate',
+      value: statsData?.totalProjects || 0,
+      change: statsData?.currentMonthVsLastMonthProjects || 0,
+      current: statsData?.currentMonthProjects || 0,
       icon: TrendingUp,
       color: 'text-purple-600',
       href: '/admin/orders'
@@ -134,7 +146,8 @@ export default function AdminDashboard() {
       icon: Users,
       href: '/admin/users',
       stats: `${statsData?.totalUsers || 0} utilizatori`,
-      pending: statsData?.pendingUsers || 0
+      pending: statsData?.pendingUsers || 0,
+      role: 'admin'
     },
     {
       title: 'Gestionare Servicii',
@@ -142,7 +155,8 @@ export default function AdminDashboard() {
       icon: FileText,
       href: '/admin/services',
       stats: `${statsData?.activeServices || 0} servicii active`,
-      pending: statsData?.pendingServices || 0
+      pending: statsData?.pendingServices || 0,
+      role: 'admin'
     },
     {
       title: 'Gestionare Categorii',
@@ -150,7 +164,8 @@ export default function AdminDashboard() {
       icon: FolderPlus,
       href: '/admin/categories',
       stats: 'Categorii și subcategorii',
-      pending: 0
+      pending: 0,
+      role: 'admin'
     },
     {
       title: 'Gestionare Teste',
@@ -158,7 +173,8 @@ export default function AdminDashboard() {
       icon: BookOpen,
       href: '/admin/tests',
       stats: 'Teste pentru toate nivelurile',
-      pending: 0
+      pending: 0,
+      role: 'admin'
     },
     {
       title: 'Gestionare Call-uri',
@@ -166,15 +182,17 @@ export default function AdminDashboard() {
       icon: CallIcon,
       href: '/admin/calls',
       stats: `${statsData?.totalScheduleCalls || 0} call-uri programate`,
-      pending: statsData?.pendingCalls || 0
+      pending: statsData?.pendingCalls || 0,
+      role: 'admin'
     },
     {
-      title: 'Gestionare Comenzi',
-      description: 'Monitorizează comenzile și plățile',
+      title: 'Gestionare Proiecte',
+      description: 'Monitorizează proiectele și plățile',
       icon: TrendingUp,
       href: '/admin/orders',
-      stats: `${statsData?.totalOrders || 0} comenzi`,
-      pending: 0
+      stats: `${statsData?.totalProjects || 0} proiecte procesate`,
+      pending: statsData?.totalPendingProjects || 0,
+      role: 'admin'
     },
     {
       title: 'Gestionare Dispute',
@@ -182,7 +200,17 @@ export default function AdminDashboard() {
       icon: Shield,
       href: '/admin/disputes',
       stats: 'Dispute și reclamații',
-      pending: 0
+      pending: 0,
+      role: 'admin'
+    },
+    {
+      title: 'Gestionare Roluri',
+      description: 'Creaza sau editeaza roluri',
+      icon: IdCardLanyard,
+      href: '/admin/disputes',
+      stats: 'Roluri și permisiuni',
+      pending: 0,
+      role: 'superuser'
     },
     {
       title: 'Analytics & Rapoarte',
@@ -190,7 +218,8 @@ export default function AdminDashboard() {
       icon: BarChart3,
       href: '/admin/analytics',
       stats: 'Statistici detaliate',
-      pending: 0
+      pending: 0,
+      role: 'admin'
     }
   ];
 
@@ -253,10 +282,20 @@ export default function AdminDashboard() {
                     <p className="text-sm font-medium text-muted-foreground mb-1">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {stat.change}
+                    <p className="text-2xl font-bold flex">{stat.value}
+                      <span className={`ms-2 ${stat?.current <= 0 ? 'text-red-500' : 'text-green-500'} text-xs flex items-center`}>
+                        <span className="text-muted-foreground">(</span>
+                        {stat?.current} ${stat?.current <= 0
+                          ? <TrendingDown className="text-red-500 w-5 h-5" />
+                          : <TrendingUp className="text-green-500 w-5 h-5" />}
+                        <span className="text-muted-foreground">)</span>
+                      </span>
                     </p>
+                    {stat?.change && (<p className="text-xs text-muted-foreground mt-1">
+                      <span className={`${stat?.change < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                        {stat?.change}% această lună
+                      </span>
+                    </p>)}
                   </div>
                   <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform`}>
                     <stat.icon className="w-6 h-6" />
@@ -319,32 +358,41 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {adminSections.map((section, index) => (
-                  <Link key={index} href={section.href}>
-                    <Card className="border hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                              <section.icon className="w-5 h-5 text-primary" />
+                    <Can
+                        key={index}
+                        {...(
+                            section.role === 'superuser'
+                                ? { superuser: true }
+                                : { roles: [section.role as string] }
+                        )}
+                    >
+                    <Link href={section.href}>
+                      <Card className="border hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start space-x-3">
+                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                <section.icon className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold mb-1">{section.title}</h3>
+                                <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
+                                <p className="text-xs text-muted-foreground">{section.stats}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-semibold mb-1">{section.title}</h3>
-                              <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
-                              <p className="text-xs text-muted-foreground">{section.stats}</p>
+                            <div className="flex flex-col items-end space-y-1">
+                              {section.pending > 0 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  {section.pending} în așteptare
+                                </Badge>
+                              )}
+                              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             </div>
                           </div>
-                          <div className="flex flex-col items-end space-y-1">
-                            {section.pending > 0 && (
-                              <Badge variant="destructive" className="text-xs">
-                                {section.pending} în așteptare
-                              </Badge>
-                            )}
-                            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </Can>
                 ))}
               </div>
             </CardContent>

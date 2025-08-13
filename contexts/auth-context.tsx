@@ -2,6 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
+import {AccessPermission} from "@/lib/access";
+
+export type AccessRole = {
+  id?: number | string;
+  slug: string;
+  permissions?: AccessPermission[];
+};
 
 interface User {
   id: string;
@@ -16,6 +23,9 @@ interface User {
   testVerified: boolean;
   callVerified: boolean;
   stripe_account_id?: string;
+  roles?: AccessRole[];
+  permissions?: string[];
+  isSuperUser?: boolean;
 }
 
 interface AuthContextType {

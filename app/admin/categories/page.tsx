@@ -189,7 +189,7 @@ export default function AdminCategoriesPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/admin/categories/${child.id}`)}>
                                   <Edit className="w-4 h-4 mr-2" />
                                   Editează
                                 </DropdownMenuItem>
