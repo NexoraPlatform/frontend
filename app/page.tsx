@@ -139,7 +139,7 @@ export default function Home() {
                 {categories.map((category, index) => (
                     <Card
                         key={index}
-                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-transform duration-500 hover:scale-105 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
+                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-transform duration-500 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
                         role="listitem"
                         tabIndex={0}
                         aria-label={`Categorie ${category.title}: ${category.description}`}

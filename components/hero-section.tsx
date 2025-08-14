@@ -182,12 +182,10 @@ export function HeroSection() {
             </div>
 
             {/* Enhanced Description */}
-            <div className="transform translate-y-0 opacity-100" style={{ transition: 'none' }}>
-              <p className="text-2xl lg:text-3xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed font-medium text-pretty">
-                Conectează-te cu <span className="text-blue-600 font-bold">cei mai buni experți IT</span> din România.
-                <br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
-              </p>
-            </div>
+            <p className="mx-auto max-w-4xl text-2xl lg:text-3xl text-muted-foreground leading-relaxed font-medium text-pretty mb-12">
+              Conectează-te cu <span className="text-blue-600 font-bold">cei mai buni experți IT</span> din România.
+              <br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
+            </p>
 
             {/* Enhanced Search Bar */}
             <div className="transform transition-all duration-1000 delay-600 translate-y-0 opacity-100">
