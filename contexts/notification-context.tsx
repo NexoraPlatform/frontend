@@ -1,284 +1,282 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { notificationService } from '@/lib/notifications';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
-import { toast } from 'sonner';
+import Echo from 'laravel-echo';
+import type { Channel } from 'laravel-echo';
+import Pusher from 'pusher-js';
 
-interface InAppNotification {
+type RawLaravelNotification = {
     id: string;
+    type: string;
+    data: any;
+    created_at?: string;
+    read_at?: string | null;
+};
+
+export type AppNotification = {
+    id: string;
+    type: 'PROJECT_ADDED' | 'ORDER_UPDATE' | 'MESSAGE' | 'SYSTEM';
     title: string;
     message: string;
-    type: 'PROJECT_ADDED' | 'ORDER_UPDATE' | 'MESSAGE' | 'SYSTEM';
     isRead: boolean;
-    data?: any;
     createdAt: string;
-    userId: string;
-}
+    data: any;
+};
 
-interface NotificationContextType {
-    // In-app notifications
-    notifications: InAppNotification[];
+type Ctx = {
+    notifications: AppNotification[];
     unreadCount: number;
-    markAsRead: (notificationId: string) => void;
-    markAllAsRead: () => void;
-    deleteNotification: (notificationId: string) => void;
-
-    // Web push notifications
-    isWebPushSupported: boolean;
-    isWebPushEnabled: boolean;
-    webPushPermission: NotificationPermission;
-    enableWebPush: () => Promise<boolean>;
-    disableWebPush: () => Promise<boolean>;
-
-    // Loading states
     loading: boolean;
-    refreshNotifications: () => Promise<void>;
+
+    isWebPushSupported: boolean;
+    webPushPermission: NotificationPermission;
+    isWebPushEnabled: boolean;
+    enableWebPush: () => Promise<void>;
+    disableWebPush: () => Promise<void>;
+
+    markAsRead: (id: string) => Promise<void>;
+    markAllAsRead: () => Promise<void>;
+    deleteNotification: (id: string) => Promise<void>;
+    refresh: () => Promise<void>;
+};
+
+const NotificationContext = createContext<Ctx | null>(null);
+
+function mapType(laraType: string, data: any): AppNotification['type'] {
+    const t = (laraType || '').toLowerCase();
+    if (t.startsWith('chat.')) return 'MESSAGE';
+    if (t === 'project.requested') return 'PROJECT_ADDED';
+    if (t === 'budget.accepted' || t === 'budget.rejected' || t === 'budget.suggested' || t === 'budget.decision') {
+        return 'ORDER_UPDATE';
+    }
+    return 'SYSTEM';
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+function normalize(n: RawLaravelNotification): AppNotification {
+    const type = mapType(n.type, n.data);
+    return {
+        id: String(n.id),
+        type,
+        title: n.data?.title ?? 'Notificare',
+        message: n.data?.message ?? '',
+        isRead: !!n.read_at,
+        createdAt: n.created_at ?? new Date().toISOString(),
+        data: n.data ?? {},
+    };
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replaceAll('-', '+').replaceAll('_', '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+}
+
+let echoSingleton: Echo<any> | null = null;
+function getOrCreateEcho(token: string): Echo<any> {
+    if (echoSingleton) return echoSingleton;
+
+    (window as any).Pusher = Pusher;
+    echoSingleton = new Echo({
+        broadcaster: 'pusher',
+        key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
+        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+        authEndpoint: `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
+        auth: { headers: { Authorization: `Bearer ${token}` } },
+        forceTLS: true,
+        enableStats: false,
+    });
+
+    return echoSingleton;
+}
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
-    const [notifications, setNotifications] = useState<InAppNotification[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [isWebPushSupported, setIsWebPushSupported] = useState(false);
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [loading, setLoading] = useState(true);
+
+    const [isWebPushSupported] = useState<boolean>(() => {
+        return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    });
+    const [webPushPermission, setWebPushPermission] = useState<NotificationPermission>(typeof window === 'undefined' ? 'default' : Notification.permission);
     const [isWebPushEnabled, setIsWebPushEnabled] = useState(false);
-    const [webPushPermission, setWebPushPermission] = useState<NotificationPermission>('default');
 
-    // Initialize notification service
-    useEffect(() => {
-        const initializeNotifications = async () => {
-            if (!user) return;
+    const privateChannelRef = useRef<Channel | null>(null);;
 
-            // Check web push support
-            const supported = notificationService.isSupported();
-            setIsWebPushSupported(supported);
-            setWebPushPermission(notificationService.getPermissionStatus());
-
-            if (supported) {
-                // Try to initialize web push (will only work if user previously granted permission)
-                const initialized = await notificationService.initialize();
-                setIsWebPushEnabled(initialized);
-            }
-
-            // Load in-app notifications
-            await refreshNotifications();
-
-            // Set up real-time notifications (you could use WebSocket here)
-            setupRealTimeNotifications();
-        };
-
-        initializeNotifications();
-    }, [user]);
-
-    const refreshNotifications = useCallback(async () => {
-        if (!user) return;
-
+    const fetchAll = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await apiClient.getNotifications();
-            setNotifications(response.notifications || []);
-        } catch (error) {
-            console.error('Failed to load notifications:', error);
+            // server returns pagination { data: [], ... }
+            const list = await apiClient.getNotifications({ limit: 50 });
+            const arr: RawLaravelNotification[] = Array.isArray((list as any).data) ? (list as any).data : (Array.isArray(list) ? list : []);
+            setNotifications(arr.map(normalize));
+            const cnt = await apiClient.getNotifications({ unreadOnly: true, limit: 1 }).catch(() => null);
+            if (cnt && Array.isArray((cnt as any).data)) {
+                // If you prefer a dedicated unread-count endpoint:
+                // const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, ...)
+                // setUnreadCount(res.unread)
+                const onlyUnread = (cnt as any).data as RawLaravelNotification[];
+                setUnreadCount(onlyUnread.length); // rough; or call /unread-count in your apiClient
+            } else {
+                // Better: call the unread count endpoint that you already have
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/unread-count`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+                    cache: 'no-store',
+                });
+                if (res.ok) {
+                    const j = await res.json();
+                    setUnreadCount(Number(j.unread ?? 0));
+                }
+            }
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, []);
 
-    const setupRealTimeNotifications = useCallback(() => {
+    const refresh = fetchAll;
+
+    // ----- Real-time via Pusher/Laravel Echo (notifications.broadcast) -----
+    useEffect(() => {
         if (!user) return;
 
-        // Simulate real-time notifications with polling
-        // In production, you'd use WebSocket or Server-Sent Events
-        const interval = setInterval(async () => {
-            try {
-                const response = await apiClient.getNotifications({ unreadOnly: true });
-                const newNotifications = response.notifications || [];
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
 
-                // Check for new notifications
-                const existingIds = new Set(notifications.map(n => n.id));
-                const reallyNewNotifications = newNotifications.filter((n: any) => !existingIds.has(n.id));
+        const echo = getOrCreateEcho(token);
 
-                if (reallyNewNotifications.length > 0) {
-                    // Show toast for new notifications
-                    reallyNewNotifications.forEach((notification: any) => {
-                        showInAppToast(notification);
+        // Laravel Notifications broadcast on private channel: App.Models.User.{id}
+        const channelName = `App.Models.User.${user.id}`;
+        const ch = echo.private(channelName);
 
-                        // Show web push notification if enabled
-                        if (isWebPushEnabled && notification.type === 'PROJECT_ADDED') {
-                            showWebPushNotification(notification);
-                        }
-                    });
-
-                    // Refresh all notifications
-                    await refreshNotifications();
-                }
-            } catch (error) {
-                console.error('Failed to check for new notifications:', error);
-            }
-        }, 30000); // Check every 30 seconds
-
-        return () => clearInterval(interval);
-    }, [user, notifications, refreshNotifications, isWebPushEnabled]);
-
-    const showInAppToast = (notification: InAppNotification) => {
-        const getToastIcon = (type: string) => {
-            switch (type) {
-                case 'PROJECT_ADDED': return '🚀';
-                case 'ORDER_UPDATE': return '📦';
-                case 'MESSAGE': return '💬';
-                case 'SYSTEM': return '⚙️';
-                default: return '🔔';
-            }
-        };
-
-        toast(notification.title, {
-            description: notification.message,
-            icon: getToastIcon(notification.type),
-            action: {
-                label: 'Vezi',
-                onClick: () => handleNotificationClick(notification)
-            }
+        // Special handler for notifications:
+        ch.notification((raw: RawLaravelNotification) => {
+            const n = normalize(raw);
+            setNotifications(prev => [n, ...prev].slice(0, 200));
+            setUnreadCount(prev => prev + 1);
         });
-    };
 
-    const showWebPushNotification = async (notification: InAppNotification) => {
-        if (!isWebPushEnabled) return;
+        privateChannelRef.current = ch;
 
-        const options: NotificationOptions = {
-            body: notification.message,
-            icon: '/logo.webp',
-            badge: '/logo.webp',
-            tag: notification.id,
-            data: {
-                notificationId: notification.id,
-                type: notification.type,
-                url: getNotificationUrl(notification)
-            },
-            actions: [
-                {
-                    action: 'view',
-                    title: 'Vezi Proiectul'
-                },
-                {
-                    action: 'dismiss',
-                    title: 'Închide'
-                }
-            ]
+        return () => {
+            try {
+                if (echo && (echo as any).leave) (echo as any).leave(channelName);
+            } catch {}
+            privateChannelRef.current = null;
         };
+    }, [user]);
 
-        await notificationService.showNotification(notification.title, options);
-    };
-
-    const getNotificationUrl = (notification: InAppNotification): string => {
-        switch (notification.type) {
-            case 'PROJECT_ADDED':
-                return `/projects/${notification.data?.projectId}`;
-            case 'ORDER_UPDATE':
-                return `/dashboard?tab=orders`;
-            case 'MESSAGE':
-                return `/dashboard?tab=messages`;
-            default:
-                return '/dashboard';
-        }
-    };
-
-    const handleNotificationClick = (notification: InAppNotification) => {
-        // Mark as read
-        markAsRead(notification.id);
-
-        // Navigate to relevant page
-        const url = getNotificationUrl(notification);
-        window.location.href = url;
-    };
-
-    const markAsRead = async (notificationId: string) => {
-        try {
-            await apiClient.markNotificationAsRead(notificationId);
-            setNotifications(prev =>
-                prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
-            );
-        } catch (error) {
-            console.error('Failed to mark notification as read:', error);
-        }
-    };
-
-    const markAllAsRead = async () => {
-        try {
-            await apiClient.markAllNotificationsAsRead();
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-        } catch (error) {
-            console.error('Failed to mark all notifications as read:', error);
-        }
-    };
-
-    const deleteNotification = async (notificationId: string) => {
-        try {
-            await apiClient.deleteNotification(notificationId);
-            setNotifications(prev => prev.filter(n => n.id !== notificationId));
-        } catch (error) {
-            console.error('Failed to delete notification:', error);
-        }
-    };
-
-    const enableWebPush = async (): Promise<boolean> => {
-        try {
-            const success = await notificationService.initialize();
-            setIsWebPushEnabled(success);
-            setWebPushPermission(notificationService.getPermissionStatus());
-
-            if (success) {
-                toast.success('Notificările web au fost activate!', {
-                    description: 'Vei primi notificări pentru proiecte noi și actualizări importante.'
-                });
-            } else {
-                toast.error('Nu s-au putut activa notificările web', {
-                    description: 'Verifică setările browser-ului pentru notificări.'
-                });
-            }
-
-            return success;
-        } catch (error) {
-            console.error('Failed to enable web push:', error);
-            toast.error('Eroare la activarea notificărilor');
-            return false;
-        }
-    };
-
-    const disableWebPush = async (): Promise<boolean> => {
-        try {
-            const success = await notificationService.unsubscribe();
+    // ----- Web Push subscription status -----
+    const readPushStatus = useCallback(async () => {
+        if (!isWebPushSupported) return;
+        const reg = await navigator.serviceWorker.getRegistration();
+        setWebPushPermission(Notification.permission);
+        if (!reg) {
             setIsWebPushEnabled(false);
-
-            if (success) {
-                toast.success('Notificările web au fost dezactivate');
-            }
-
-            return success;
-        } catch (error) {
-            console.error('Failed to disable web push:', error);
-            return false;
+            return;
         }
-    };
+        const sub = await reg.pushManager.getSubscription();
+        setIsWebPushEnabled(!!sub);
+    }, [isWebPushSupported]);
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    useEffect(() => {
+        if (!isWebPushSupported) return;
+        readPushStatus();
+    }, [isWebPushSupported, readPushStatus]);
 
-    const value = {
+    // ----- Actions -----
+    const markAsRead = useCallback(async (id: string) => {
+        await apiClient.markNotificationAsRead(id);
+        setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+    }, []);
+
+    const markAllAsRead = useCallback(async () => {
+        await apiClient.markAllNotificationsAsRead();
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+    }, []);
+
+    const deleteNotification = useCallback(async (id: string) => {
+        await apiClient.deleteNotification(id);
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        // if it was unread, adjust count
+        setUnreadCount(prev => {
+            const wasUnread = notifications.find(n => n.id === id)?.isRead === false;
+            return wasUnread ? Math.max(0, prev - 1) : prev;
+        });
+    }, [notifications]);
+
+    const enableWebPush = useCallback(async () => {
+        if (!isWebPushSupported) return;
+
+        // 1) Register SW
+        const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+
+        // 2) Request permission
+        const permission = await Notification.requestPermission();
+        setWebPushPermission(permission);
+        if (permission !== 'granted') return;
+
+        // 3) Subscribe
+        const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+        const subscription = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID),
+        });
+
+        // 4) Send to backend
+        await apiClient.subscribeToNotifications(subscription, navigator);
+        setIsWebPushEnabled(true);
+    }, [isWebPushSupported]);
+
+    const disableWebPush = useCallback(async () => {
+        if (!isWebPushSupported) return;
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) return;
+
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) await sub.unsubscribe();
+
+        try { await apiClient.unsubscribeFromNotifications(); } catch {}
+
+        setIsWebPushEnabled(false);
+        setWebPushPermission(Notification.permission);
+    }, [isWebPushSupported]);
+
+    // Initial load (list + unread)
+    useEffect(() => {
+        if (!user) {
+            setNotifications([]);
+            setUnreadCount(0);
+            setLoading(false);
+            return;
+        }
+        fetchAll();
+    }, [user, fetchAll]);
+
+    const value = useMemo<Ctx>(() => ({
         notifications,
         unreadCount,
+        loading,
+        isWebPushSupported,
+        webPushPermission,
+        isWebPushEnabled,
+        enableWebPush,
+        disableWebPush,
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        isWebPushSupported,
-        isWebPushEnabled,
-        webPushPermission,
-        enableWebPush,
-        disableWebPush,
-        loading,
-        refreshNotifications
-    };
+        refresh,
+    }), [
+        notifications, unreadCount, loading,
+        isWebPushSupported, webPushPermission, isWebPushEnabled,
+        enableWebPush, disableWebPush, markAsRead, markAllAsRead, deleteNotification, refresh
+    ]);
 
     return (
         <NotificationContext.Provider value={value}>
@@ -287,10 +285,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     );
 }
 
-export function useNotifications() {
-    const context = useContext(NotificationContext);
-    if (context === undefined) {
-        throw new Error('useNotifications must be used within a NotificationProvider');
-    }
-    return context;
+export function useNotifications(): Ctx {
+    const ctx = useContext(NotificationContext);
+    if (!ctx) throw new Error('useNotifications must be used within <NotificationProvider>');
+    return ctx;
 }
