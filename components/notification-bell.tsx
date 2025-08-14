@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, MouseEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
@@ -8,24 +8,12 @@ import { ro } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-
 import {
-    Bell,
-    BellRing,
-    Check,
-    CheckCheck,
-    Settings,
-    Trash2,
-    Rocket,
-    Package,
-    MessageSquare,
-    Cog,
-    Eye,
-    Clock,
+    Bell, BellRing, Check, CheckCheck, Settings, Eye, Clock,
+    Rocket, Package, MessageSquare, Cog
 } from 'lucide-react';
 
 import { useNotifications } from '@/contexts/notification-context';
@@ -33,91 +21,97 @@ import type { AppNotification } from '@/contexts/notification-context';
 
 export function NotificationBell() {
     const router = useRouter();
-
     const {
         notifications,
         unreadCount,
         markAsRead,
         markAllAsRead,
-        deleteNotification,
         isWebPushSupported,
         isWebPushEnabled,
         webPushPermission,
         enableWebPush,
         disableWebPush,
         loading,
+        loadingMore,
+        hasMore,
         refresh,
+        loadMore,
     } = useNotifications();
 
     const [showSettings, setShowSettings] = useState(false);
+    const [open, setOpen] = useState(false);
 
-    const getNotificationIcon = (type: AppNotification['type']) => {
-        switch (type) {
-            case 'PROJECT_ADDED':
-                return <Rocket className="w-4 h-4 text-blue-500" />;
-            case 'ORDER_UPDATE':
-                return <Package className="w-4 h-4 text-green-500" />;
-            case 'MESSAGE':
-                return <MessageSquare className="w-4 h-4 text-purple-500" />;
-            case 'SYSTEM':
-            default:
-                return <Cog className="w-4 h-4 text-orange-500" />;
+    const viewportRef = useRef<HTMLDivElement | null>(null);
+
+    // onScroll simplu pe containerul nostru
+    const handleScroll = () => {
+        const el = viewportRef.current;
+        if (!el || loading || loadingMore || !hasMore) return;
+        const threshold = 96; // px până la capăt
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
+            void loadMore();
         }
     };
+
+    useEffect(() => {
+        if (!open) return;
+        const el = viewportRef.current;
+        if (!el) return;
+        // trigger loadMore dacă lista e scurtă și avem more
+        if (hasMore && el.scrollHeight <= el.clientHeight) {
+            void loadMore();
+        }
+    }, [open, hasMore, loadMore]);
 
     const getNotificationColor = (type: AppNotification['type'], isRead: boolean) => {
         if (isRead) return 'bg-gray-50 dark:bg-gray-900/50';
         switch (type) {
-            case 'PROJECT_ADDED':
-                return 'bg-blue-50 dark:bg-blue-950/50 border-l-4 border-l-blue-500';
-            case 'ORDER_UPDATE':
-                return 'bg-green-50 dark:bg-green-950/50 border-l-4 border-l-green-500';
-            case 'MESSAGE':
-                return 'bg-purple-50 dark:bg-purple-950/50 border-l-4 border-l-purple-500';
+            case 'PROJECT_ADDED': return 'bg-blue-50 dark:bg-blue-950/50 border-l-4 border-l-blue-500';
+            case 'ORDER_UPDATE': return 'bg-green-50 dark:bg-green-950/50 border-l-4 border-l-green-500';
+            case 'MESSAGE': return 'bg-purple-50 dark:bg-purple-950/50 border-l-4 border-l-purple-500';
             case 'SYSTEM':
-            default:
-                return 'bg-orange-50 dark:bg-orange-950/50 border-l-4 border-l-orange-500';
+            default: return 'bg-orange-50 dark:bg-orange-950/50 border-l-4 border-l-orange-500';
+        }
+    };
+
+    const getNotificationIcon = (type: AppNotification['type']) => {
+        switch (type) {
+            case 'PROJECT_ADDED': return <Rocket className="w-4 h-4 text-blue-500" />;
+            case 'ORDER_UPDATE': return <Package className="w-4 h-4 text-green-500" />;
+            case 'MESSAGE': return <MessageSquare className="w-4 h-4 text-purple-500" />;
+            case 'SYSTEM':
+            default: return <Cog className="w-4 h-4 text-orange-500" />;
         }
     };
 
     const navigateFor = (n: AppNotification) => {
-        // prefer explicit deep-link if backend sent it (for web push parity)
         const link = n.data?.link as string | undefined;
         if (link) return link;
-
         switch (n.type) {
-            case 'PROJECT_ADDED':
-                return n.data?.projectId ? `/projects/${n.data.projectId}` : '/projects';
-            case 'ORDER_UPDATE':
-                return '/dashboard?tab=orders';
-            case 'MESSAGE':
-                // If your chat uses groupId, you can deep-link: `/chat/${n.data?.groupId}`
-                return '/dashboard?tab=messages';
-            default:
-                return '/dashboard';
+            case 'PROJECT_ADDED': return n.data?.projectId ? `/projects/${n.data.projectId}` : '/projects';
+            case 'ORDER_UPDATE': return '/dashboard?tab=orders';
+            case 'MESSAGE': return '/dashboard?tab=messages';
+            default: return '/dashboard';
         }
     };
 
     const onClickNotification = async (n: AppNotification) => {
-        if (!n.isRead) {
-            await markAsRead(n.id);
-        }
+        if (!n.isRead) await markAsRead(n.id);
         router.push(navigateFor(n));
-    };
-
-    const onDelete = async (e: MouseEvent, id: string, wasUnread: boolean) => {
-        e.stopPropagation();
-        await deleteNotification(id);
-        // unreadCount is managed in context; no extra code needed here
     };
 
     const handleWebPushToggle = async (enabled: boolean) => {
         if (enabled) await enableWebPush();
         else await disableWebPush();
     };
-console.log(notifications)
+
     return (
-        <Popover onOpenChange={(open) => open && refresh()}>
+        <Popover
+            onOpenChange={(isOpen) => {
+                setOpen(isOpen);
+                if (isOpen && notifications.length === 0) void refresh();
+            }}
+        >
             <PopoverTrigger asChild>
                 <Button
                     aria-label="Deschide notificarile"
@@ -145,12 +139,7 @@ console.log(notifications)
                                 </CardDescription>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setShowSettings((s) => !s)}
-                                    className="w-8 h-8"
-                                >
+                                <Button variant="ghost" size="icon" onClick={() => setShowSettings(s => !s)} className="w-8 h-8">
                                     <Settings className="w-4 h-4" />
                                 </Button>
                                 {unreadCount > 0 && (
@@ -165,31 +154,22 @@ console.log(notifications)
                     {showSettings && (
                         <>
                             <CardContent className="py-3">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <div className="font-medium">Notificări Web Push</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {!isWebPushSupported
-                                                    ? 'Nu sunt suportate de browser'
-                                                    : webPushPermission === 'denied'
-                                                        ? 'Permisiunea a fost refuzată'
-                                                        : 'Primește notificări chiar și când site-ul este închis'}
-                                            </div>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="font-medium">Notificări Web Push</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {!isWebPushSupported
+                                                ? 'Nu sunt suportate de browser'
+                                                : webPushPermission === 'denied'
+                                                    ? 'Permisiunea a fost refuzată'
+                                                    : 'Primește notificări chiar și când site-ul este închis'}
                                         </div>
-                                        <Switch
-                                            checked={isWebPushEnabled}
-                                            onCheckedChange={handleWebPushToggle}
-                                            disabled={!isWebPushSupported || webPushPermission === 'denied'}
-                                        />
                                     </div>
-
-                                    {webPushPermission === 'denied' && (
-                                        <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/20 p-2 rounded">
-                                            Pentru a activa notificările, accesează setările browser-ului și permite notificările
-                                            pentru acest site.
-                                        </div>
-                                    )}
+                                    <Switch
+                                        checked={isWebPushEnabled}
+                                        onCheckedChange={handleWebPushToggle}
+                                        disabled={!isWebPushSupported || webPushPermission === 'denied'}
+                                    />
                                 </div>
                             </CardContent>
                             <Separator />
@@ -197,7 +177,14 @@ console.log(notifications)
                     )}
 
                     <CardContent className="p-0">
-                        <ScrollArea className="h-96">
+                        {/* container propriu scrollabil */}
+                        <div
+                            ref={viewportRef}
+                            className="h-72 overflow-auto"
+                            onScroll={handleScroll}
+                            role="list"
+                            aria-label="Lista notificări"
+                        >
                             {loading ? (
                                 <div className="flex items-center justify-center py-8">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
@@ -209,81 +196,71 @@ console.log(notifications)
                                 </div>
                             ) : (
                                 <div className="space-y-1">
-                                    {notifications.map((n: AppNotification) => (
+                                    {notifications.map((n) => (
                                         <div
                                             key={n.id}
-                                            className={`p-4 cursor-pointer transition-colors hover:bg-muted/50 ${getNotificationColor(
-                                                n.type,
-                                                n.isRead
-                                            )}`}
+                                            className={`p-4 cursor-pointer transition-colors hover:bg-muted/50 ${getNotificationColor(n.type, n.isRead)}`}
                                             onClick={() => onClickNotification(n)}
+                                            role="listitem"
                                         >
                                             <div className="flex items-start space-x-3">
-                                                <div className="flex-shrink-0 mt-1">{getNotificationIcon(n.type)}</div>
+                                                <div className="flex-shrink-0 mt-1">
+                                                    {n.type === 'PROJECT_ADDED' ? <Rocket className="w-4 h-4 text-blue-500" /> :
+                                                        n.type === 'ORDER_UPDATE' ? <Package className="w-4 h-4 text-green-500" /> :
+                                                            n.type === 'MESSAGE' ? <MessageSquare className="w-4 h-4 text-purple-500" /> :
+                                                                <Cog className="w-4 h-4 text-orange-500" />}
+                                                </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between">
                                                         <div className="flex-1">
-                                                            <p
-                                                                className={`text-sm font-medium ${
-                                                                    !n.isRead ? 'text-foreground' : 'text-muted-foreground'
-                                                                }`}
-                                                            >
+                                                            <p className={`text-sm font-medium ${!n.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
                                                                 {n.title}
                                                             </p>
                                                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{n.message}</p>
                                                             <div className="flex items-center space-x-2 mt-2">
                                                                 <Clock className="w-3 h-3 text-muted-foreground" />
                                                                 <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(n.createdAt), {
-                                      addSuffix: true,
-                                      locale: ro,
-                                  })}
+                                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: ro })}
                                 </span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center space-x-1 ml-2">
-                                                            {!n.isRead && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={async (e) => {
-                                                                        e.stopPropagation();
-                                                                        await markAsRead(n.id);
-                                                                    }}
-                                                                    className="w-6 h-6"
-                                                                >
-                                                                    <Check className="w-3 h-3" />
-                                                                </Button>
-                                                            )}
-                                                            {/*<Button*/}
-                                                            {/*    variant={n.isRead ? 'ghost' : 'ghost'}*/}
-                                                            {/*    size="icon"*/}
-                                                            {/*    onClick={(e) => onDelete(e, n.id, !n.isRead)}*/}
-                                                            {/*    className="w-6 h-6 text-red-500 hover:text-red-700"*/}
-                                                            {/*>*/}
-                                                            {/*    <Trash2 className="w-3 h-3" />*/}
-                                                            {/*</Button>*/}
-                                                        </div>
+                                                        {!n.isRead && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={async (e) => { e.stopPropagation(); await markAsRead(n.id); }}
+                                                                className="w-6 h-6"
+                                                            >
+                                                                <Check className="w-3 h-3" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
+
+                                    {loadingMore && (
+                                        <div className="flex items-center justify-center py-3">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                                        </div>
+                                    )}
+
+                                    {!hasMore && (
+                                        <div className="py-3 text-center text-xs text-muted-foreground">
+                                            Ai ajuns la capăt
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </ScrollArea>
+                        </div>
                     </CardContent>
 
                     {notifications.length > 0 && (
                         <>
                             <Separator />
                             <CardContent className="py-3">
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    size="sm"
-                                    onClick={() => router.push('/notifications')}
-                                >
+                                <Button variant="outline" className="w-full" size="sm" onClick={() => router.push('/notifications')}>
                                     <Eye className="w-4 h-4 mr-2" />
                                     Vezi Toate Notificările
                                 </Button>

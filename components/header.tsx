@@ -96,13 +96,13 @@ export function Header() {
                       className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
                   />
                   <Image
-                      src="/logo-60.webp"
+                      src="/logo-60.avif"
                       alt="Nexora Logo"
                       width={60}
                       height={75}
                       className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
-                      loading="lazy"
                       decoding="async"
+                      loading="lazy"
                   />
                 </picture>
 
@@ -118,7 +118,7 @@ export function Header() {
                       className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
                   />
                   <Image
-                      src="/logo-white-60.webp"
+                      src="/logo-white-60.avif"
                       alt="Nexora Logo"
                       width={60}
                       height={75}

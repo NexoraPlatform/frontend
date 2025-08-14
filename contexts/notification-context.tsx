@@ -1,11 +1,13 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { apiClient } from '@/lib/api';
+import React, {
+    createContext, useCallback, useContext, useEffect, useMemo, useRef, useState
+} from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import Echo from 'laravel-echo';
 import type { Channel } from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { apiClient } from '@/lib/api';
 
 type RawLaravelNotification = {
     id: string;
@@ -25,30 +27,46 @@ export type AppNotification = {
     data: any;
 };
 
+type CursorResponse<T> = {
+    data: T[];
+    nextCursor: string | null;
+    prevCursor: string | null;
+    hasMore: boolean;
+    unreadCount?: number;
+};
+
 type Ctx = {
     notifications: AppNotification[];
     unreadCount: number;
     loading: boolean;
-
+    loadingMore: boolean;
+    hasMore: boolean;
+    refresh: () => Promise<void>;
+    loadMore: () => Promise<void>;
     isWebPushSupported: boolean;
     webPushPermission: NotificationPermission;
     isWebPushEnabled: boolean;
     enableWebPush: () => Promise<void>;
     disableWebPush: () => Promise<void>;
-
     markAsRead: (id: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     deleteNotification: (id: string) => Promise<void>;
-    refresh: () => Promise<void>;
 };
 
 const NotificationContext = createContext<Ctx | null>(null);
 
-function mapType(laraType: string, data: any): AppNotification['type'] {
-    const t = (laraType || '').toLowerCase();
-    if (t.startsWith('chat.')) return 'MESSAGE';
-    if (t === 'project.requested') return 'PROJECT_ADDED';
-    if (t === 'budget.accepted' || t === 'budget.rejected' || t === 'budget.suggested' || t === 'budget.decision') {
+function mapType(laraType: string | undefined, data?: any): AppNotification['type'] {
+    const declared = (data?.type ?? '').toLowerCase();
+    if (declared) {
+        if (declared.startsWith('chat.')) return 'MESSAGE';
+        if (declared === 'project.requested') return 'PROJECT_ADDED';
+        if (declared.startsWith('budget.')) return 'ORDER_UPDATE';
+    }
+    const cls = (laraType ?? '').split('\\').pop()?.toLowerCase() || '';
+    if (!cls) return 'SYSTEM';
+    if (cls.includes('chat') && (cls.includes('message') || cls.includes('addedtogroup'))) return 'MESSAGE';
+    if (cls.includes('projectproviderrequested') || (cls.includes('project') && cls.includes('requested'))) return 'PROJECT_ADDED';
+    if (cls.includes('budget') || cls.includes('accepted') || cls.includes('rejected') || cls.includes('suggested') || cls.includes('decision')) {
         return 'ORDER_UPDATE';
     }
     return 'SYSTEM';
@@ -56,11 +74,13 @@ function mapType(laraType: string, data: any): AppNotification['type'] {
 
 function normalize(n: RawLaravelNotification): AppNotification {
     const type = mapType(n.type, n.data);
+    const title = (n.data?.title ?? '').toString().trim();
+    const message = (n.data?.message ?? '').toString().trim();
     return {
         id: String(n.id),
         type,
-        title: n.data?.title ?? 'Notificare',
-        message: n.data?.message ?? '',
+        title: title || 'Notificare',
+        message: message || '',
         isRead: !!n.read_at,
         createdAt: n.created_at ?? new Date().toISOString(),
         data: n.data ?? {},
@@ -79,7 +99,6 @@ function urlBase64ToUint8Array(base64String: string) {
 let echoSingleton: Echo<any> | null = null;
 function getOrCreateEcho(token: string): Echo<any> {
     if (echoSingleton) return echoSingleton;
-
     (window as any).Pusher = Pusher;
     echoSingleton = new Echo({
         broadcaster: 'pusher',
@@ -90,105 +109,123 @@ function getOrCreateEcho(token: string): Echo<any> {
         forceTLS: true,
         enableStats: false,
     });
-
     return echoSingleton;
 }
+
+const INITIAL_LIMIT = 10;
+const LOAD_MORE_LIMIT = 10;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
-
-    const [isWebPushSupported] = useState<boolean>(() => {
-        return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-    });
-    const [webPushPermission, setWebPushPermission] = useState<NotificationPermission>(typeof window === 'undefined' ? 'default' : Notification.permission);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [isWebPushSupported] = useState<boolean>(() =>
+        typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+    );
+    const [webPushPermission, setWebPushPermission] = useState<NotificationPermission>(
+        typeof window === 'undefined' ? 'default' : Notification.permission
+    );
     const [isWebPushEnabled, setIsWebPushEnabled] = useState(false);
+    const privateChannelRef = useRef<Channel | null>(null);
 
-    const privateChannelRef = useRef<Channel | null>(null);;
+    const refresh = useCallback(async () => {
+        if (!user) return;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        if (!token) return;
 
-    const fetchAll = useCallback(async () => {
         setLoading(true);
         try {
-            // server returns pagination { data: [], ... }
-            const list = await apiClient.getNotifications({ limit: 50 });
-            const arr: RawLaravelNotification[] = Array.isArray((list as any).data) ? (list as any).data : (Array.isArray(list) ? list : []);
-            setNotifications(arr.map(normalize));
-            const cnt = await apiClient.getNotifications({ unreadOnly: true, limit: 1 }).catch(() => null);
-            if (cnt && Array.isArray((cnt as any).data)) {
-                // If you prefer a dedicated unread-count endpoint:
-                // const res = await fetch(`${API_BASE_URL}/notifications/unread-count`, ...)
-                // setUnreadCount(res.unread)
-                const onlyUnread = (cnt as any).data as RawLaravelNotification[];
-                setUnreadCount(onlyUnread.length); // rough; or call /unread-count in your apiClient
-            } else {
-                // Better: call the unread count endpoint that you already have
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/unread-count`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-                    cache: 'no-store',
-                });
-                if (res.ok) {
-                    const j = await res.json();
-                    setUnreadCount(Number(j.unread ?? 0));
-                }
-            }
+            const res: CursorResponse<RawLaravelNotification> = await apiClient.getNotifications({
+                limit: INITIAL_LIMIT,
+            } as any);
+            const items = Array.isArray(res.data) ? res.data : [];
+            setNotifications(items.map(normalize));
+            if (typeof res.unreadCount === 'number') setUnreadCount(Number(res.unreadCount));
+            setHasMore(!!res.hasMore);
+            setNextCursor(res.nextCursor ?? null);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user]);
 
-    const refresh = fetchAll;
+    const loadMore = useCallback(async () => {
+        if (!nextCursor || !hasMore || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const res: CursorResponse<RawLaravelNotification> = await apiClient.getNotifications({
+                limit: LOAD_MORE_LIMIT,
+                cursor: nextCursor,
+            } as any);
+            const items = Array.isArray(res.data) ? res.data : [];
+            const normalized = items.map(normalize);
+            setNotifications(prev => {
+                const seen = new Set(prev.map(p => p.id));
+                const merged = [...prev];
+                for (const n of normalized) if (!seen.has(n.id)) merged.push(n);
+                return merged;
+            });
+            if (typeof res.unreadCount === 'number') setUnreadCount(Number(res.unreadCount));
+            setHasMore(!!res.hasMore);
+            setNextCursor(res.nextCursor ?? null);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [nextCursor, hasMore, loadingMore]);
 
-    // ----- Real-time via Pusher/Laravel Echo (notifications.broadcast) -----
+    useEffect(() => {
+        if (!user) {
+            setNotifications([]);
+            setUnreadCount(0);
+            setHasMore(false);
+            setNextCursor(null);
+            setLoading(false);
+            return;
+        }
+        void refresh();
+    }, [user, refresh]);
+
     useEffect(() => {
         if (!user) return;
-
-        const token = localStorage.getItem('auth_token');
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
         if (!token) return;
 
         const echo = getOrCreateEcho(token);
-
-        // Laravel Notifications broadcast on private channel: App.Models.User.{id}
         const channelName = `App.Models.User.${user.id}`;
         const ch = echo.private(channelName);
-
-        // Special handler for notifications:
-        ch.notification((raw: RawLaravelNotification) => {
-            const n = normalize(raw);
-            setNotifications(prev => [n, ...prev].slice(0, 200));
-            setUnreadCount(prev => prev + 1);
-        });
-
         privateChannelRef.current = ch;
 
+        ch.notification((raw: RawLaravelNotification) => {
+            const n = normalize(raw);
+            setNotifications(prev => {
+                if (prev.find(x => x.id === n.id)) return prev;
+                return [n, ...prev].slice(0, 200);
+            });
+            if (!n.isRead) setUnreadCount(prev => prev + 1);
+        });
+
         return () => {
-            try {
-                if (echo && (echo as any).leave) (echo as any).leave(channelName);
-            } catch {}
+            try { (echo as any).leave?.(channelName); } catch {}
             privateChannelRef.current = null;
         };
     }, [user]);
 
-    // ----- Web Push subscription status -----
     const readPushStatus = useCallback(async () => {
         if (!isWebPushSupported) return;
         const reg = await navigator.serviceWorker.getRegistration();
         setWebPushPermission(Notification.permission);
-        if (!reg) {
-            setIsWebPushEnabled(false);
-            return;
-        }
-        const sub = await reg.pushManager.getSubscription();
+        const sub = await reg?.pushManager.getSubscription();
         setIsWebPushEnabled(!!sub);
     }, [isWebPushSupported]);
 
     useEffect(() => {
         if (!isWebPushSupported) return;
-        readPushStatus();
+        void readPushStatus();
     }, [isWebPushSupported, readPushStatus]);
 
-    // ----- Actions -----
     const markAsRead = useCallback(async (id: string) => {
         await apiClient.markNotificationAsRead(id);
         setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
@@ -202,34 +239,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }, []);
 
     const deleteNotification = useCallback(async (id: string) => {
+        const wasUnread = notifications.find(n => n.id === id)?.isRead === false;
         await apiClient.deleteNotification(id);
         setNotifications(prev => prev.filter(n => n.id !== id));
-        // if it was unread, adjust count
-        setUnreadCount(prev => {
-            const wasUnread = notifications.find(n => n.id === id)?.isRead === false;
-            return wasUnread ? Math.max(0, prev - 1) : prev;
-        });
+        if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
     }, [notifications]);
 
     const enableWebPush = useCallback(async () => {
         if (!isWebPushSupported) return;
-
-        // 1) Register SW
         const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-
-        // 2) Request permission
-        const permission = await Notification.requestPermission();
-        setWebPushPermission(permission);
-        if (permission !== 'granted') return;
-
-        // 3) Subscribe
+        const perm = await Notification.requestPermission();
+        setWebPushPermission(perm);
+        if (perm !== 'granted') return;
         const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
         const subscription = await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID),
         });
-
-        // 4) Send to backend
         await apiClient.subscribeToNotifications(subscription, navigator);
         setIsWebPushEnabled(true);
     }, [isWebPushSupported]);
@@ -237,32 +263,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const disableWebPush = useCallback(async () => {
         if (!isWebPushSupported) return;
         const reg = await navigator.serviceWorker.getRegistration();
-        if (!reg) return;
-
-        const sub = await reg.pushManager.getSubscription();
-        if (sub) await sub.unsubscribe();
-
+        const sub = await reg?.pushManager.getSubscription();
+        await sub?.unsubscribe();
         try { await apiClient.unsubscribeFromNotifications(); } catch {}
-
         setIsWebPushEnabled(false);
         setWebPushPermission(Notification.permission);
     }, [isWebPushSupported]);
-
-    // Initial load (list + unread)
-    useEffect(() => {
-        if (!user) {
-            setNotifications([]);
-            setUnreadCount(0);
-            setLoading(false);
-            return;
-        }
-        fetchAll();
-    }, [user, fetchAll]);
 
     const value = useMemo<Ctx>(() => ({
         notifications,
         unreadCount,
         loading,
+        loadingMore,
+        hasMore,
+        refresh,
+        loadMore,
         isWebPushSupported,
         webPushPermission,
         isWebPushEnabled,
@@ -271,18 +286,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        refresh,
     }), [
-        notifications, unreadCount, loading,
+        notifications, unreadCount, loading, loadingMore, hasMore,
+        refresh, loadMore,
         isWebPushSupported, webPushPermission, isWebPushEnabled,
-        enableWebPush, disableWebPush, markAsRead, markAllAsRead, deleteNotification, refresh
+        enableWebPush, disableWebPush,
+        markAsRead, markAllAsRead, deleteNotification
     ]);
 
-    return (
-        <NotificationContext.Provider value={value}>
-            {children}
-        </NotificationContext.Provider>
-    );
+    return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
 
 export function useNotifications(): Ctx {

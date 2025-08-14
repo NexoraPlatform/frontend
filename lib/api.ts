@@ -778,15 +778,15 @@ class ApiClient {
     type?: string;
     page?: number;
     limit?: number;
+    cursor?: string; // <-- NOU, pt. cursor-based pagination
   }) {
-    const searchParams = new URLSearchParams();
+    const sp = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
+        sp.append(key, String(value));
       }
     });
-
-    return this.request<any>(`/notifications?${searchParams.toString()}`);
+    return this.request<any>(`/notifications?${sp.toString()}`);
   }
 
   async markNotificationAsRead(notificationId: string) {
