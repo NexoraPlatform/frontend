@@ -207,7 +207,7 @@ export default function AdminDashboard() {
       title: 'Gestionare Roluri',
       description: 'Creaza sau editeaza roluri',
       icon: IdCardLanyard,
-      href: '/admin/disputes',
+      href: '/admin/roles',
       stats: 'Roluri și permisiuni',
       pending: 0,
       role: 'superuser'
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
                     <p className="text-2xl font-bold flex">{stat.value}
                       <span className={`ms-2 ${stat?.current <= 0 ? 'text-red-500' : 'text-green-500'} text-xs flex items-center`}>
                         <span className="text-muted-foreground">(</span>
-                        {stat?.current} ${stat?.current <= 0
+                        {stat?.current} &nbsp;{stat?.current <= 0
                           ? <TrendingDown className="text-red-500 w-5 h-5" />
                           : <TrendingUp className="text-green-500 w-5 h-5" />}
                         <span className="text-muted-foreground">)</span>

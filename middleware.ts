@@ -103,8 +103,8 @@ function buildUserFromPayload(payload: any): AccessUser {
 
     roles,
     permissions: Array.isArray(extraPerms) ? extraPerms : [],
-    isSuperUser:
-        payload.isSuperUser ??
+    is_superuser:
+        payload.is_superuser ??
         payload.superuser ??
         payload.user?.isSuperUser ??
         false,
@@ -132,8 +132,8 @@ function buildUserFromProfile(profile: any): AccessUser | null {
 
     roles,
     permissions: extraPerms,
-    isSuperUser:
-        data?.isSuperUser ??
+    is_superuser:
+        data?.is_superuser ??
         // treat role slug 'superuser' as superuser
         (Array.isArray(roles) && roles.some(r => r.slug?.toLowerCase() === 'superuser')) ??
         false,
@@ -217,7 +217,7 @@ export default async function middleware(req: NextRequest) {
       !!user &&
       (!needsPerms || true) && // roles carry permissions; we can always fetch if missing later
       (!needsRole || (user.roles && user.roles.length > 0)) &&
-      (!needsSuper || user.isSuperUser !== undefined);
+      (!needsSuper || user.is_superuser !== undefined);
 
   if (!hasEnoughClaims) {
     user = await fetchUserFromApi(token);

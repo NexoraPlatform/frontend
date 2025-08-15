@@ -25,7 +25,7 @@ interface User {
   stripe_account_id?: string;
   roles?: AccessRole[];
   permissions?: string[];
-  isSuperUser?: boolean;
+  is_superuser?: boolean;
 }
 
 interface AuthContextType {

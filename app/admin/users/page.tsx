@@ -22,11 +22,12 @@ import {
   CheckCircle,
   Loader2,
   ArrowLeft,
-  Filter, Pencil
+  Filter, Pencil, UserRound
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {useRouter} from "next/navigation";
+import {Can} from "@/components/Can";
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,13 +35,20 @@ export default function AdminUsersPage() {
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
 
-  const handleUserAction = async (userId: string, action: string) => {
+  const handleUserAction = async (userId: string, action: string, isSuperuser?: number) => {
     try {
       if (action === 'delete') {
         if (confirm('Ești sigur că vrei să ștergi acest utilizator?')) {
           await apiClient.deleteUser(userId);
           refetchUsers();
         }
+      } else if(action === 'superuser') {
+        if (isSuperuser === 1) {
+          await apiClient.setSuperadmin(userId);
+        } else {
+          await apiClient.removeSuperadmin(userId);
+        }
+        refetchUsers();
       } else {
         await apiClient.updateUserStatus(userId, action);
         refetchUsers();
@@ -208,21 +216,28 @@ export default function AdminUsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
+                        <Can superuser>
+                          <DropdownMenuItem className={`${user.is_superuser ? 'bg-red-500' : 'bg-green-500'} text-white cursor-pointer`} onClick={() => handleUserAction(user.id, "superuser", user.is_superuser)}>
+                            <UserRound className="w-4 h-4 mr-2" />
+                            Fa SuperUser
+                          </DropdownMenuItem>
+                        </Can>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>
                           <Pencil className="w-4 h-4 mr-2" />
                           Modifica profil
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleUserAction(user.id, 'verify')}>
+
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'verify')}>
                           <UserCheck className="w-4 h-4 mr-2" />
                           Verifică
                         </DropdownMenuItem>
                         {user.status === 'ACTIVE' ? (
-                          <DropdownMenuItem onClick={() => handleUserAction(user.id, 'suspend')}>
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'suspend')}>
                             <Ban className="w-4 h-4 mr-2" />
                             Suspendă
                           </DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem onClick={() => handleUserAction(user.id, 'activate')}>
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'activate')}>
                             <UserCheck className="w-4 h-4 mr-2" />
                             Activează
                           </DropdownMenuItem>

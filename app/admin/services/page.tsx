@@ -36,11 +36,11 @@ export default function AdminServicesPage() {
       if (action === 'delete') {
         if (confirm('Ești sigur că vrei să ștergi acest serviciu?')) {
           await apiClient.deleteService(serviceId);
-          refetchServices();
+          await refetchServices();
         }
       } else {
         await apiClient.updateServiceStatus(serviceId, action);
-        refetchServices();
+        await refetchServices();
       }
     } catch (error: any) {
       alert('Eroare: ' + error.message);

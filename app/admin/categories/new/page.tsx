@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState, useRef, useCallback} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -98,23 +98,7 @@ export default function NewCategoryPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const newSlug = generateSlug(formData.name, formData.parentId);
-    setFormData((prev) => ({ ...prev, slug: newSlug }));
-  }, [formData.name, formData.parentId]);
-
-  const handleNameChange = (name: string) => {
-    setFormData(prev => ({
-      ...prev,
-      name,
-      // Auto-generate slug if not manually set
-      slug: prev.slug === generateSlug(prev.name, prev.parentId) || prev.slug === ''
-        ? generateSlug(name, prev.parentId)
-        : prev.slug
-    }));
-  };
-
-  const generateSlug = (name: string, parentId: string) => {
+  const generateSlug = useCallback((name: string, parentId: string) => {
     const parentName = categoriesData?.categories?.find(
         (category: any) => category.id === Number(parentId)
     )?.name;
@@ -131,6 +115,22 @@ export default function NewCategoryPage() {
     const parentSlug = parentName ? slugify(parentName) : null;
 
     return parentSlug ? `${parentSlug}/${nameSlug}` : `${nameSlug}`;
+  }, [categoriesData?.categories]);
+
+  useEffect(() => {
+    const newSlug = generateSlug(formData.name, formData.parentId);
+    setFormData((prev) => ({ ...prev, slug: newSlug }));
+  }, [formData.name, formData.parentId, generateSlug]);
+
+  const handleNameChange = (name: string) => {
+    setFormData(prev => ({
+      ...prev,
+      name,
+      // Auto-generate slug if not manually set
+      slug: prev.slug === generateSlug(prev.name, prev.parentId) || prev.slug === ''
+        ? generateSlug(name, prev.parentId)
+        : prev.slug
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

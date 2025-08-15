@@ -22,8 +22,8 @@ export function useCan() {
         [user?.roles, user?.permissions]
     );
     const isSuper = useMemo(
-        () => !!user?.isSuperUser || roleSlugs.includes('superuser'),
-        [user?.isSuperUser, roleSlugs]
+        () => !!user?.is_superuser || roleSlugs.includes('superuser'),
+        [user?.is_superuser, roleSlugs]
     );
 
     function hasRole(...roles: string[]) {

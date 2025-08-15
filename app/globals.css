@@ -579,9 +579,9 @@ button:disabled {
 /*  border-color: hsl(var(--destructive));*/
 /*}*/
 
-input:valid {
-  border-color: green;
-}
+/*input:valid {*/
+/*  border-color: green;*/
+/*}*/
 
 /* Landmark roles */
 main {
@@ -613,9 +613,9 @@ section {
   }
 }
 
-input:valid {
-  border-color: inherit !important;
-}
+/*input:valid {*/
+/*  border-color: inherit !important;*/
+/*}*/
 
 em-emoji-picker {
   width: 100%;

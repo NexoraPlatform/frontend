@@ -1,5 +1,11 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexorabe.dacars.ro/api';
 
+export type RoleLite = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -12,6 +18,8 @@ class ApiClient {
       this.token = localStorage.getItem('auth_token');
     }
   }
+
+
 
   setToken(token: string) {
     this.token = token;
@@ -271,6 +279,40 @@ class ApiClient {
     });
 
     return this.request<any>(`/admin/users?${searchParams.toString()}`);
+  }
+
+  async setSuperadmin(userId: number | string) {
+    return this.request<any>(`/admin/access/users/${userId}/make-super`, {
+      method: 'POST',
+    })
+  }
+
+  async removeSuperadmin(userId: number | string) {
+    return this.request<any>(`/admin/access/users/${userId}/remove-super`, {
+      method: 'POST',
+    })
+  }
+
+  async createRole(data: any) {
+    return this.request<any>(`admin/access/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getPermisions() {
+    return this.request<any>(`/admin/access/permissions`);
+  }
+
+  async getRole(roleId: number) {
+    return this.request<any>(`/admin/access/${roleId}`);
+  }
+
+  async updateRole(roleId: number, data: any){
+    return this.request<any>(`/admin/access/${roleId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   async createUser(userData: any) {
@@ -934,6 +976,56 @@ class ApiClient {
 
   async getProjectNameByProjectUrl(projectUrl: string) {
     return this.request<any>(`/project/${projectUrl}/name`);
+  }
+
+  async getRoles(params: {
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const sp = new URLSearchParams();
+    if (params.search) sp.set('search', params.search);
+    if (params.page) sp.set('page', String(params.page));
+    if (params.pageSize) sp.set('page_size', String(params.pageSize)); // DRF-style
+    const qs = sp.toString();
+    return this.request<any>(`/admin/access/${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+    });
+  }
+
+  async getRolesLite() {
+    const data = await this.request<any>('/admin/access?page_size=1000', { method: 'GET' });
+    const results = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+    return results.map((r: any) => ({ id: r.id, name: r.name, slug: r.slug })) as RoleLite[];
+  }
+
+  async getRolePermissionSlugs(slug: string) {
+    return this.request<any>(`/admin/access/slug/${slug}/permissions`)
+  }
+
+  async updateRolePermissionsBySlug(roleId: number, permissionSlugs: string[]) {
+    return this.request<{ ok: boolean }>(`/admin/access/${roleId}/sync-permission`, {
+      method: 'PUT',
+      body: JSON.stringify({ permission_slugs: permissionSlugs }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      },
+    });
+  }
+
+  async updateRolePermissions(roleId: number, data: any) {
+    return this.request<any>(`/admin/access/${roleId}/permissions`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRole(roleId: number) {
+    return this.request<any>(`/roles/${roleId}`, {
+      method: 'DELETE',
+    });
   }
 
 }

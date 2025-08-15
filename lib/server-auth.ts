@@ -31,7 +31,7 @@ export async function requirePermission(...perms: string[]) {
         user.roles?.flatMap((r: any) => r.permissions?.map((p: any) => String(p.slug).toLowerCase()) ?? []) ?? [];
     const extra = (user.permissions ?? []).map((p: string) => p.toLowerCase());
     const set = new Set([...rolePerms, ...extra]);
-    const isSuper = !!user.isSuperUser || (user.roles ?? []).some((r: any) => String(r.slug).toLowerCase() === 'superuser');
+    const isSuper = !!user.is_superuser || (user.roles ?? []).some((r: any) => String(r.slug).toLowerCase() === 'superuser');
 
     if (!isSuper && !perms.every(p => set.has(p.toLowerCase()))) {
         const err: any = new Error('Forbidden');

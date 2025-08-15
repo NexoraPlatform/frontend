@@ -28,7 +28,7 @@ export type AccessUser = {
     // RBAC fields
     roles?: AccessRole[];        // <-- array of roles with slugs
     permissions?: string[];      // optional extra permissions (strings)
-    isSuperUser?: boolean;       // optional boolean flag
+    is_superuser?: boolean;       // optional boolean flag
 };
 
 export type Requirement = {
@@ -73,7 +73,7 @@ export function hasPermission(user: AccessUser | null, permissions: string[]): b
 
 export function isSuperUser(user: AccessUser | null): boolean {
     if (!user) return false;
-    if (user.isSuperUser) return true;
+    if (user.is_superuser) return true;
     // consider having the "superuser" role slug as superuser too
     const roles = getRoleSlugs(user);
     return roles.includes('superuser');
