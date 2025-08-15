@@ -211,7 +211,6 @@ export default function AdminRolesPage() {
         if (!confirm('Ești sigur că vrei să ștergi acest rol?')) return;
         try {
             await apiClient.deleteRole(roleId);
-            // dacă e posibil ca pagina curentă să rămână goală, mergem pe pagina precedentă
             if (roles.length === 1 && page > 1) {
                 setPage((p) => p - 1);
             } else {

@@ -63,7 +63,6 @@ export default function PermissionMatrixAutosavePage() {
 
     const isFiltering = filter.trim().length > 0;
 
-    // anti-stale payload pentru debounce
     const matrixRef = useRef(matrix);
     useEffect(() => {
         matrixRef.current = matrix;
@@ -86,12 +85,10 @@ export default function PermissionMatrixAutosavePage() {
                 setGroups(groupsRes);
                 setRoles(rolesRes);
 
-                // inițializează accordion deschis pe toate grupurile
                 const initialOpen: Record<number, boolean> = {};
-                groupsRes.forEach((g) => (initialOpen[g.id] = true));
+                groupsRes.forEach((g: any) => (initialOpen[g.id] = true));
                 setOpenGroups(initialOpen);
 
-                // umple matrix cu permisiunile curente per rol (slug)
                 const entries = await Promise.all(
                     rolesRes.map(async (r) => {
                         const raw = await apiClient.getRolePermissionSlugs(r.slug); // { permission_slug: [] }
@@ -110,7 +107,6 @@ export default function PermissionMatrixAutosavePage() {
         };
     }, []);
 
-    // Re-sync openGroups cu grupurile vizibile (în special după filtrare / re-fetch)
     useEffect(() => {
         setOpenGroups((prev) => {
             const next: Record<number, boolean> = { ...prev };
@@ -180,24 +176,10 @@ export default function PermissionMatrixAutosavePage() {
             if (checked) {
                 filteredGroups.forEach((g) => g.permissions.forEach((p) => set.add(p.slug)));
             }
-            next[roleSlug] = set; // gol dacă unchecked
+            next[roleSlug] = set;
             return next;
         });
         queueSaveRole(roleSlug);
-    };
-
-    const togglePermissionRow = (permSlug: string, checked: boolean) => {
-        setMatrix((prev) => {
-            const next: MatrixSlugState = { ...prev };
-            roles.forEach((r) => {
-                const set = new Set(next[r.slug] ?? []);
-                if (checked) set.add(permSlug);
-                else set.delete(permSlug);
-                next[r.slug] = set;
-            });
-            return next;
-        });
-        roles.forEach((r) => queueSaveRole(r.slug));
     };
 
     const getRowState = (permSlug: string) => {
@@ -251,7 +233,6 @@ export default function PermissionMatrixAutosavePage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            {/* Toolbar */}
             <div className="mb-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                     <Input
@@ -282,7 +263,6 @@ export default function PermissionMatrixAutosavePage() {
                 </div>
             </div>
 
-            {/* Tabel cu header + prima coloană sticky */}
             <div className="overflow-auto border rounded-md h-[500px]">
                 <table className="min-w-[900px] w-full border-separate border-spacing-0">
                     <thead className="bg-muted">
@@ -351,11 +331,8 @@ export default function PermissionMatrixAutosavePage() {
 
                                 {open &&
                                     group.permissions.map((perm) => {
-                                        const row = getRowState(perm.slug);
-                                        const rowCheckboxState = row.all ? true : row.none ? false : 'indeterminate';
                                         return (
                                             <tr key={perm.id} className="hover:bg-slate-50">
-                                                {/* prima coloană sticky */}
                                                 <td className="p-3 border-r align-top sticky left-0 bg-white z-10">
                                                     <div className="flex items-start gap-3">
                                                         <div>
