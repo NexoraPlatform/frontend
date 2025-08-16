@@ -183,7 +183,7 @@ export default function SelectTestsPageClient() {
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [testInProgress, timeRemaining]);
+    }, [handleSubmitTest, testInProgress, timeRemaining]);
 
     const loadAvailableTests = async (testDataArray: TestData[]) => {
         try {

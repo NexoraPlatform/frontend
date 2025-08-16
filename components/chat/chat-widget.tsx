@@ -1030,14 +1030,7 @@ function CreateGroupDialog({ onGroupCreated }: { onGroupCreated: () => void }) {
     const [availableUsers, setAvailableUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-
-    useEffect(() => {
-        if (open) {
-            loadAvailableUsers();
-        }
-    }, [open]);
-
-    const loadAvailableUsers = async () => {
+    const loadAvailableUsers = useCallback(async () => {
         try {
             // Load users based on role
             let response;
@@ -1050,7 +1043,13 @@ function CreateGroupDialog({ onGroupCreated }: { onGroupCreated: () => void }) {
         } catch (error) {
             console.error('Failed to load users:', error);
         }
-    };
+    }, [user?.role]);
+
+    useEffect(() => {
+        if (open) {
+            loadAvailableUsers();
+        }
+    }, [open]);
 
     const handleCreateGroup = async () => {
         if (!groupName.trim() || selectedUsers.length === 0) return;

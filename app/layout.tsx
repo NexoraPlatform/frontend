@@ -318,9 +318,11 @@ export default function RootLayout({
             <meta name="color-scheme" content="light dark" />
             <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
 
-            <noscript>
-                <link rel="stylesheet" href="non-critical.css"/>
-            </noscript>
+            <noscript
+                dangerouslySetInnerHTML={{
+                    __html: '<link rel="stylesheet" href="/non-critical.css" />', // note the leading slash
+                }}
+            />
 
             {/* Performance hint */}
             <meta httpEquiv="x-dns-prefetch-control" content="on"/>

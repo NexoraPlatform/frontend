@@ -75,10 +75,10 @@ const nextConfig = {
     }
 
     // SVG optimization
-    config.module.rules.push({
-      test: /\.svg$/,
-      use: ['@svgr/webpack'],
-    });
+    config.module.rules.push(
+        { test: /\.svg$/i, issuer: /\.[jt]sx?$/, resourceQuery: { not: [/url/] }, use: ['@svgr/webpack'] },
+        { test: /\.svg$/i, resourceQuery: /url/, type: 'asset/resource' }
+    );
 
     return config;
   },
