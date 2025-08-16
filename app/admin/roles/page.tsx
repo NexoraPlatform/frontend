@@ -1,14 +1,18 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {ArrowLeft, Edit, FileCog, IdCardLanyard, MoreHorizontal, Plus, Search, Trash2,} from 'lucide-react';
-import {Badge} from '@/components/ui/badge';
-import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
-import {Input} from '@/components/ui/input';
+import { ArrowLeft, IdCardLanyard, Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import apiClient from '@/lib/api';
+import { useCallback, useEffect, useMemo, useRef, useState as useStateReact } from 'react';
+
+// -------------------- RolesTab (AdminRolesPage) --------------------
 
 type Permissions = {
     id: number;
@@ -18,7 +22,7 @@ type Permissions = {
     is_active: number;
 };
 
-type PermissionGroup = {
+type PermissionGroupForRole = {
     group: string;
     permissions: Permissions[];
 };
@@ -29,7 +33,7 @@ type Role = {
     slug: string;
     description: string | null;
     is_active: number;
-    permissions: PermissionGroup[];
+    permissions: PermissionGroupForRole[];
     created_at: string;
     updated_at: string;
 };
@@ -42,7 +46,7 @@ type Paginated<T> = {
 };
 
 function useDebouncedValue<T>(value: T, delay = 300) {
-    const [debounced, setDebounced] = useState(value);
+    const [debounced, setDebounced] = useStateReact(value);
     const timeoutRef = useRef<number | null>(null);
     useEffect(() => {
         if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
@@ -50,7 +54,7 @@ function useDebouncedValue<T>(value: T, delay = 300) {
         return () => {
             if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
         };
-    }, [value, delay]);
+    }, [value, delay, setDebounced]);
     return debounced;
 }
 
@@ -158,22 +162,22 @@ function PaginationBar({
     );
 }
 
-export default function AdminRolesPage() {
-    const [searchTerm, setSearchTerm] = useState('');
+function RolesTab({ active }: { active: boolean }) {
+    const [searchTerm, setSearchTerm] = useStateReact('');
     const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [page, setPage] = useStateReact(1);
+    const [pageSize, setPageSize] = useStateReact(10);
 
-    const [roles, setRoles] = useState<Role[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [roles, setRoles] = useStateReact<Role[]>([]);
+    const [total, setTotal] = useStateReact(0);
+    const [loading, setLoading] = useStateReact(false);
+    const [error, setError] = useStateReact<string | null>(null);
+    const [hasLoaded, setHasLoaded] = useStateReact(false);
 
-    // reset la pagina 1 când se schimbă căutarea
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch]);
+    }, [debouncedSearch, setPage]);
 
     const abortRef = useRef<AbortController | null>(null);
 
@@ -191,6 +195,7 @@ export default function AdminRolesPage() {
             });
             setRoles(res.results);
             setTotal(res.count);
+            setHasLoaded(true);
             return res;
         } catch (e: any) {
             if (e?.name !== 'AbortError') {
@@ -200,12 +205,13 @@ export default function AdminRolesPage() {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, page, pageSize]);
+    }, [debouncedSearch, page, pageSize, setError, setHasLoaded, setLoading, setRoles, setTotal]);
 
     useEffect(() => {
+        if (!active) return;
         loadRoles();
         return () => abortRef.current?.abort();
-    }, [loadRoles]);
+    }, [active, loadRoles]);
 
     const handleRoleDelete = async (roleId: number) => {
         if (!confirm('Ești sigur că vrei să ștergi acest rol?')) return;
@@ -234,9 +240,9 @@ export default function AdminRolesPage() {
     );
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                     <Link href="/admin">
                         <Button variant="outline" size="icon">
@@ -246,7 +252,7 @@ export default function AdminRolesPage() {
                     <div>
                         <h1 className="text-3xl font-bold">Gestionare Roluri</h1>
                         <p className="text-muted-foreground">
-                            Administrează rolurile si permisiuniile platformei
+                            Administrează rolurile și permisiunile platformei
                         </p>
                     </div>
                 </div>
@@ -259,7 +265,7 @@ export default function AdminRolesPage() {
             </div>
 
             {/* Filters */}
-            <Card className="mb-6">
+            <Card className="mb-2">
                 <CardContent className="p-6">
                     <div className="flex flex-col gap-4 md:flex-row">
                         <div className="flex-1">
@@ -287,13 +293,13 @@ export default function AdminRolesPage() {
                     <CardDescription>{foundText}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {loading ? (
+                    {!hasLoaded && active ? (
                         <div className="space-y-3">
                             {Array.from({ length: 6 }).map((_, i) => (
                                 <div key={i} className="h-[72px] animate-pulse rounded-lg bg-muted/60" />
                             ))}
                         </div>
-                    ) : roles.length === 0 ? (
+                    ) : !loading && roles.length === 0 ? (
                         <div className="py-12 text-center">
                             <IdCardLanyard className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                             <h3 className="mb-2 text-lg font-medium">Nu s-au găsit roluri</h3>
@@ -338,34 +344,24 @@ export default function AdminRolesPage() {
                                             ))}
                                         </div>
 
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontal className="h-4 w-4" />
+                                        <div className="flex items-center gap-1">
+                                            <Link href={`/admin/roles/${role.id}`}>
+                                                <Button variant="outline" size="sm">
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Editează
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/admin/roles/${role.id}`}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Editează
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/admin/roles/${role.id}/permissions`}>
-                                                        <FileCog className="mr-2 h-4 w-4" />
-                                                        Modifică permisiuni
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleRoleDelete(role.id)}
-                                                    className="text-red-600"
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Șterge
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                            </Link>
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRoleDelete(role.id)}
+                                                className="text-red-600 hover:text-red-700"
+                                                title="Șterge"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -387,6 +383,50 @@ export default function AdminRolesPage() {
                     {error && <div className="mt-4 text-sm text-red-600">{error}</div>}
                 </CardContent>
             </Card>
+        </div>
+    );
+}
+
+// -------------------- PermissionMatrixTab (lazy-loaded) --------------------
+
+const PermissionMatrixTab = dynamic(
+    () => import('./PermissionMatrixTab').then((m) => m.default),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="p-6 text-sm text-muted-foreground">
+                Încarc interfața de permisiuni...
+            </div>
+        ),
+    }
+);
+
+// -------------------- Page with Tabs --------------------
+
+export default function RolesWithTabsPage() {
+    const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+                <div className="mb-6 flex items-center justify-between">
+
+
+                    <TabsList>
+                        <TabsTrigger value="roles">Roluri</TabsTrigger>
+                        <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="roles">
+                    <RolesTab active={tab === 'roles'} />
+                </TabsContent>
+
+                <TabsContent value="permissions">
+                    {/* dynamic import + fetch doar când intri pe tab */}
+                    {tab === 'permissions' ? <PermissionMatrixTab /> : null}
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
