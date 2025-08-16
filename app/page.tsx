@@ -1,9 +1,10 @@
+// Force static generation for better performance
 export const dynamic = 'force-static';
-export const revalidate = 3600;
+export const revalidate = 3600; // Revalidate every hour
 
+import { Suspense, lazy } from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { TestimonialsSection } from '@/components/testimonials-section';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,33 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
+
+// Lazy load heavy components that are below the fold
+const TestimonialsSection = lazy(() =>
+    import('@/components/testimonials-section').then(m => ({ default: m.TestimonialsSection }))
+);
+
+// Import optimized hero section
 import HeroSectionClient from '@/components/hero-section.client';
 
+// Loading component for testimonials
+const TestimonialsLoading = () => (
+    <section className="py-12 bg-gradient-to-b from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950/50 dark:via-blue-950/10 dark:to-purple-950/10">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-20">
+          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-8 animate-pulse" />
+          <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto max-w-2xl mb-8 animate-pulse" />
+          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mx-auto max-w-4xl animate-pulse" />
+        </div>
+        <div className="max-w-5xl mx-auto">
+          <div className="h-96 bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl animate-pulse" />
+        </div>
+      </div>
+    </section>
+);
 
 export default function Home() {
+  // Optimized categories data with precomputed values
   const categories = [
     {
       icon: Code,
@@ -105,68 +129,78 @@ export default function Home() {
   return (
       <div className="bg-background font-sans">
         <Header />
-        <main role="main" aria-label="Conținut principal">
+
+        <main role="main" aria-label="Conținut principal" id="main-content">
+          {/* Hero Section - Critical above-the-fold content */}
           <HeroSectionClient />
 
-          {/* Enhanced Categories Section */}
+          {/* Categories Section - Above the fold on desktop */}
           <section
               className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden font-sans"
               aria-labelledby="categories-heading"
           >
-            {/* Background Pattern */}
             <div className="absolute inset-0 opacity-5" aria-hidden="true">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%22100%22%20height=%22100%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cdefs%3E%3Cpattern%20id=%22grid%22%20width=%2240%22%20height=%2240%22%20patternUnits=%22userSpaceOnUse%22%3E%3Cpath%20d=%22M%2040%200L0%200%200%2040%22%20fill=%22none%22%20stroke=%22%23000%22%20stroke-width=%221%22/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width=%22100%25%22%20height=%22100%25%22%20fill=%22url(%23grid)%22/%3E%3C/svg%3E')] opacity-20" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%2240%22%20height=%2240%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath%20d=%22M%2040%200L0%200%200%2040%22%20fill=%22none%22%20stroke=%22%23000%22%20stroke-width=%221%22/%3E%3C/svg%3E')] opacity-20" />
             </div>
 
             <div className="container mx-auto px-4 relative">
               <div className="text-center mb-20">
-                <Badge variant="secondary" className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 border border-blue-200 dark:border-blue-800">
+                <Badge
+                    variant="secondary"
+                    className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 border border-blue-200 dark:border-blue-800"
+                >
                   <Globe className="w-5 h-5 mr-2" />
                   Servicii Premium
                 </Badge>
+
                 <h2
                     id="categories-heading"
-                    className="text-5xl lg:text-6xl font-black leading-[1.08] mb-8 min-h-[2.2em]"
+                    className="text-5xl lg:text-6xl font-black leading-tight mb-8"
                 >
                   Categorii Populare de Servicii
                 </h2>
-                <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed text-pretty min-h-[3.2em]">
+
+                <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed font-medium mb-12">
                   Descoperă o gamă largă de servicii IT profesionale, toate verificate și evaluate de comunitatea noastră
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[420px]" role="list" aria-label="Lista categorii de servicii">
-                {categories.map((category, index) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista categorii de servicii">
+                {categories.map((category) => (
                     <Card
-                        key={index}
-                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-transform duration-500 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
+                        key={category.title}
+                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm will-change-transform"
                         role="listitem"
                         tabIndex={0}
                         aria-label={`Categorie ${category.title}: ${category.description}`}
                     >
                       <div className={`h-3 bg-gradient-to-r ${category.color}`} />
-                      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-blue-50/50 dark:to-blue-950/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" aria-hidden="true" />
 
-                      <CardHeader className="text-center pb-4 relative z-10 min-h-[13rem]">
-                        <div className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-2xl relative`} aria-hidden="true">
+                      <CardHeader className="text-center pb-4 relative z-10">
+                        <div
+                            className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-2xl relative`}
+                            aria-hidden="true"
+                        >
                           <category.icon className="w-12 h-12 text-white" />
-                          <div className="absolute inset-0 bg-white/20 rounded-3xl animate-pulse" aria-hidden="true"></div>
+                          <div className="absolute inset-0 bg-white/20 rounded-3xl" />
                         </div>
+
                         <CardTitle className="text-2xl mb-4 group-hover:text-blue-600 transition-colors font-bold">
                           {category.title}
                         </CardTitle>
+
                         <CardDescription className="text-base leading-relaxed">
                           {category.description}
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent className="text-center space-y-4 relative z-10 min-h-[10rem]">
+                      <CardContent className="text-center space-y-4 relative z-10">
                         <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-3" role="group" aria-label="Statistici proiecte">
+                          <div className="bg-blue-50 dark:bg-blue-950/50 rounded-lg p-3">
                             <div className="font-bold text-blue-600">{category.projects}</div>
                             <div className="text-xs">Finalizate</div>
                           </div>
-                          <div className="bg-green-100 dark:bg-green-900 rounded-lg p-3" role="group" aria-label="Statistici creștere">
+                          <div className="bg-green-100 dark:bg-green-900 rounded-lg p-3">
                             <div className="font-bold text-green-900 dark:text-green-300">{category.trend}</div>
                             <div className="text-xs">Creștere</div>
                           </div>
@@ -181,11 +215,14 @@ export default function Home() {
 
                         <Button
                             variant="ghost"
-                            className="w-full mt-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-950 font-semibold"
+                            className="w-full mt-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-950 font-semibold transition-colors"
                             aria-label={`Explorează servicii din categoria ${category.title}`}
+                            asChild
                         >
-                          Explorează
-                          <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          <Link href={`/services?category=${category.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                            Explorează
+                            <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </Link>
                         </Button>
                       </CardContent>
                     </Card>
@@ -194,7 +231,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Enhanced Features Section */}
+          {/* Features Section */}
           <section
               className="py-12 relative overflow-hidden lazy-section"
               aria-labelledby="features-heading"
@@ -203,22 +240,30 @@ export default function Home() {
 
             <div className="container mx-auto px-4 relative">
               <div className="text-center mb-20">
-                <Badge variant="secondary" className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/50 dark:to-blue-900/50 border border-green-200 dark:border-green-800">
+                <Badge
+                    variant="secondary"
+                    className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/50 dark:to-blue-900/50 border border-green-200 dark:border-green-800"
+                >
                   <Shield className="w-5 h-5 mr-2" />
                   De ce Nexora?
                 </Badge>
-                <h2 id="features-heading" className="text-5xl lg:text-6xl font-black mb-8 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent text-balance">
+
+                <h2
+                    id="features-heading"
+                    className="text-5xl lg:text-6xl font-black mb-8 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent"
+                >
                   Experiență de încredere pentru proiectele tale
                 </h2>
-                <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed text-pretty">
+
+                <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
                   Oferim o platformă sigură, rapidă și transparentă pentru toate colaborările tale IT
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[420px]" role="list" aria-label="Lista beneficii Nexora">
-                {features.map((feature, index) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista beneficii Nexora">
+                {features.map((feature) => (
                     <div
-                        key={index}
+                        key={feature.title}
                         className="text-center group relative"
                         role="listitem"
                         tabIndex={0}
@@ -226,12 +271,12 @@ export default function Home() {
                     >
                       <div className="relative mb-8">
                         <div
-                            className={`w-28 h-28 mx-auto bg-gradient-to-br ${feature.gradient} rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl relative overflow-hidden`}
+                            className={`w-28 h-28 mx-auto bg-gradient-to-br ${feature.gradient} rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-2xl relative overflow-hidden`}
                             aria-hidden="true"
                         >
                           <feature.icon className="w-14 h-14 text-white relative z-10" />
-                          <div className="absolute inset-0 bg-white/20 animate-pulse" aria-hidden="true"></div>
-                          <div className="absolute -inset-1 bg-gradient-to-r from-white/20 to-transparent rounded-3xl blur" aria-hidden="true"></div>
+                          <div className="absolute inset-0 bg-white/20" />
+                          <div className="absolute -inset-1 bg-gradient-to-r from-white/20 to-transparent rounded-3xl blur" />
                         </div>
                         <div
                             className="absolute -top-2 -right-2 bg-white dark:bg-gray-900 rounded-full px-3 py-1 text-xs font-bold text-blue-600 shadow-lg border-2 border-blue-200 dark:border-blue-800"
@@ -240,20 +285,26 @@ export default function Home() {
                           {feature.stats}
                         </div>
                       </div>
+
                       <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-600 transition-colors">
                         {feature.title}
                       </h3>
+
                       <p className="text-base text-muted-foreground mb-6 leading-relaxed">
                         {feature.description}
                       </p>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <Button
                             variant="ghost"
                             className="text-blue-600 font-semibold"
                             aria-label={`Află mai multe despre ${feature.title}`}
+                            asChild
                         >
-                          Află mai mult
-                          <ChevronRight className="ml-2 w-4 h-4" />
+                          <Link href="/about">
+                            Află mai mult
+                            <ChevronRight className="ml-2 w-4 h-4" />
+                          </Link>
                         </Button>
                       </div>
                     </div>
@@ -262,23 +313,32 @@ export default function Home() {
             </div>
           </section>
 
-          <TestimonialsSection />
+          {/* Testimonials Section - Lazy loaded */}
+          <Suspense fallback={<TestimonialsLoading />}>
+            <TestimonialsSection />
+          </Suspense>
 
-          {/* Enhanced CTA Section */}
+          {/* CTA Section */}
           <section
-              className="py-12 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden"
+              className="py-12 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden lazy-section"
               aria-labelledby="cta-heading"
           >
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%22100%22%20height=%22100%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cdefs%3E%3Cpattern%20id=%22hexagons%22%20width=%2256%22%20height=%2256%22%20patternUnits=%22userSpaceOnUse%22%3E%3Cpath%20d=%22M28%200l14%208v16l-14%208-14-8V8z%22%20fill=%22none%22%20stroke=%22%23ffffff%22%20stroke-width=%221%22%20opacity=%220.1%22/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width=%22100%25%22%20height=%22100%25%22%20fill=%22url(%23hexagons)%22/%3E%3C/svg%3E')] opacity-20" aria-hidden="true" />
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%2256%22%20height=%2256%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath%20d=%22M28%200l14%208v16l-14%208-14-8V8z%22%20fill=%22none%22%20stroke=%22%23ffffff%22%20stroke-width=%221%22%20opacity=%220.1%22/%3E%3C/svg%3E')] opacity-20" aria-hidden="true" />
 
             <div className="container mx-auto px-4 text-center relative">
               <div className="max-w-4xl mx-auto">
-                <h2 id="cta-heading" className="text-5xl lg:text-6xl font-black mb-8 text-balance">
+                <h2
+                    id="cta-heading"
+                    className="text-5xl lg:text-6xl font-black mb-8"
+                >
                   Gata să îți transformi ideea în realitate?
                 </h2>
-                <p className="text-2xl opacity-90 mb-16 leading-relaxed text-pretty">
-                  Alătură-te miilor de antreprenori care și-au găsit experții potriviți pe Nexora. Începe astăzi și vezi-ți proiectul prind viață.
+
+                <p className="text-2xl opacity-90 mb-16 leading-relaxed">
+                  Alătură-te miilor de antreprenori care și-au găsit experții potriviți pe Nexora.
+                  Începe astăzi și vezi-ți proiectul prind viață.
                 </p>
+
                 <div className="flex flex-col sm:flex-row gap-8 justify-center">
                   <Button
                       size="lg"
@@ -291,14 +351,17 @@ export default function Home() {
                       Începe Acum
                     </Link>
                   </Button>
+
                   <Button
                       size="lg"
                       variant="outline"
-                      className="px-16 py-8 text-2xl font-bold border-3 border-white  hover:bg-white/10 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200 text-black dark:text-white"
-                      aria-label="Înregistrează-te ca expert IT pe Nexora"
+                      className="px-16 py-8 text-2xl font-bold border-3 border-white hover:bg-white/10 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200 text-white hover:text-white"
+                      asChild
                   >
-                    <Users className="mr-3 w-7 h-7" />
-                    Devino Expert
+                    <Link href="/auth/signup?type=provider">
+                      <Users className="mr-3 w-7 h-7" />
+                      Devino Expert
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -310,4 +373,3 @@ export default function Home() {
       </div>
   );
 }
-
