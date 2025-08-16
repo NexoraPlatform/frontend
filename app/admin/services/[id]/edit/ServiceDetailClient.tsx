@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,11 +36,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
     const router = useRouter();
     const { data: categoriesData } = useCategories();
 
-    useEffect(() => {
-        loadService();
-    }, [id]);
-
-    const loadService = async () => {
+    const loadService = useCallback(async () => {
         try {
             const service = await apiClient.getService(id);
             setFormData({
@@ -59,7 +55,11 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        loadService();
+    }, [id, loadService]);
 
     const handleNameChange = (title: string) => {
         setFormData(prev => ({

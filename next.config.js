@@ -3,6 +3,15 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
+  // Modern bundling
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
 
   // Image optimization
   images: {
@@ -27,19 +36,6 @@ const nextConfig = {
       'class-variance-authority',
       'date-fns'
     ],
-
-    // Modern bundling
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-
-    // Static generation optimization
-    staticWorkerRequestDeduping: true,
 
     // Bundle optimization
     optimizeServerReact: true,

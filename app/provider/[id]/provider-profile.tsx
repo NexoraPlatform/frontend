@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Image from 'next/image';
 import {
     Star,
     MapPin,
@@ -316,7 +317,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
         } finally {
             setLoading(false);
         }
-    }, [id, id, languages]);
+    }, [id, languages]);
 
     useEffect(() => {
         if (!languagesLoading && languages?.length) {
@@ -788,7 +789,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                             {provider.portfolio.map((project: any, index: number) => (
                                 <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
                                     <div className="aspect-video bg-muted relative overflow-hidden">
-                                        <img
+                                        <Image
                                             src={project.image}
                                             alt={project.title}
                                             className="w-full h-full object-cover hover:scale-105 transition-transform"

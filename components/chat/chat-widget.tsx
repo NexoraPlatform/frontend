@@ -155,7 +155,7 @@ export function ChatWidget() {
             loadMessages(activeGroup.id, 1, 10); // încarcă ultimele 20 la început
             markAsRead(activeGroup.id);
         }
-    }, [activeGroup]);
+    }, [activeGroup, loadMessages, markAsRead]);
 
     const onlineMembers = useMemo(() => {
         if (!activeGroup) return [];

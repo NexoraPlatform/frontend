@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -86,11 +86,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
     const [newStatus, setNewStatus] = useState('');
     const [adminNotes, setAdminNotes] = useState('');
 
-    useEffect(() => {
-        loadOrder();
-    }, [id]);
-
-    const loadOrder = async () => {
+    const loadOrder = useCallback(async () => {
         try {
             // Simulare încărcare comandă - înlocuiește cu API call real
             const mockOrder: OrderType = {
@@ -137,7 +133,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        loadOrder();
+    }, [id, loadOrder]);
 
     const updateOrderStatus = async () => {
         setUpdating(true);

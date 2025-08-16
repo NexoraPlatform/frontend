@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -92,13 +92,7 @@ export default function DashboardClient() {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (user && activeTab === 'projects') {
-      loadProjects();
-    }
-  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage]);
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
     setProjectsError('');
     try {
@@ -172,7 +166,13 @@ export default function DashboardClient() {
     } finally {
       setLoadingProjects(false);
     }
-  };
+  }, [currentPage, searchTerm, sortBy, sortOrder, statusFilter, user?.role]);
+
+  useEffect(() => {
+    if (user && activeTab === 'projects') {
+      loadProjects();
+    }
+  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage, loadProjects]);
 
   const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
     try {

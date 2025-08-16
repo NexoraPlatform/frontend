@@ -4,7 +4,7 @@ import parseJson from "parse-json";
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -139,6 +139,35 @@ export default function SelectTestsPageClient() {
         }
     }, [user, loading, router, searchParams]);
 
+    const handleSubmitTest = useCallback(async () => {
+        setLoadingResults(true);
+        try {
+            setTestInProgress(false);
+
+            const totalTimeSpent = testStartTime
+                ? Math.floor((Date.now() - testStartTime.getTime()) / (1000 * 60))
+                : currentTest.test.timeLimit;
+
+            // Format answers correctly for the API
+            const formattedData = {
+                testId: currentTest.test.id,
+                answers: answers,
+                timeSpent: totalTimeSpent,
+                testData: testData,
+            };
+
+            const result = await apiClient.takeTest(currentTest.test.id, formattedData);
+
+            setTestResult(result);
+            setTestCompleted(true);
+        } catch (error: any) {
+            setError('Nu s-a putut trimite testul: ' + error.message);
+            setTestInProgress(false);
+        } finally {
+            setLoadingResults(false);
+        }
+    }, [answers, currentTest.test.id, currentTest.test.timeLimit, testData, testStartTime]);
+
     // Timer pentru test
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -237,35 +266,6 @@ export default function SelectTestsPageClient() {
         if (currentQuestionIndex > 0) {
             setCurrentQuestionIndex(prev => prev - 1);
             setQuestionStartTime(new Date());
-        }
-    };
-
-    const handleSubmitTest = async () => {
-        setLoadingResults(true);
-        try {
-            setTestInProgress(false);
-
-            const totalTimeSpent = testStartTime
-                ? Math.floor((Date.now() - testStartTime.getTime()) / (1000 * 60))
-                : currentTest.test.timeLimit;
-
-            // Format answers correctly for the API
-            const formattedData = {
-                testId: currentTest.test.id,
-                answers: answers,
-                timeSpent: totalTimeSpent,
-                testData: testData,
-            };
-
-            const result = await apiClient.takeTest(currentTest.test.id, formattedData);
-
-            setTestResult(result);
-            setTestCompleted(true);
-        } catch (error: any) {
-            setError('Nu s-a putut trimite testul: ' + error.message);
-            setTestInProgress(false);
-        } finally {
-            setLoadingResults(false);
         }
     };
 

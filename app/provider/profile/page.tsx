@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Image from 'next/image';
 import {
     User,
     Save,
@@ -206,64 +207,7 @@ export default function ProviderProfileEditPage() {
         title: '', description: '', image: '', role: '', technologies: [] as string[], url: ''
     });
 
-    useEffect(() => {
-        if (!loading && !user && !profileLoading) {
-            router.push('/auth/signin');
-        }
-        if (user && providerProfile && user.role !== 'PROVIDER') {
-            router.push('/dashboard');
-        }
-        if (user && providerProfile) {
-            loadProfileData();
-        }
-    }, [user, loading, router, profileLoading, providerProfile]);
-
-    function readFile(file: File): Promise<string | ArrayBuffer | null> {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.addEventListener('load', () => resolve(reader.result));
-            reader.readAsDataURL(file);
-        });
-    }
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const imageDataUrl = await readFile(file);
-            setImageSrc(imageDataUrl as string);
-            setShowCrop(true);
-        }
-    };
-
-    const onCropComplete = useCallback((_: any, croppedPixels: any) => {
-        setCroppedAreaPixels(croppedPixels);
-    }, []);
-
-    const handleUpload = async () => {
-        if (!imageSrc || !croppedAreaPixels) return;
-
-        const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-
-        // Convertim base64 în Blob
-        const blob = await fetch(croppedImage as string).then(r => r.blob());
-
-        // Convertim Blob în File (pentru a trimite cu uploadAvatar)
-        const file = new File([blob], 'avatar_' + user?.firstName + '-' + user?.lastName + '.jpg', { type: 'image/jpeg' });
-
-        try {
-            const response = await apiClient.uploadAvatar(file); // apel metoda ta
-
-            // Exemplu: răspunsul conține URL-ul imaginii salvate în Laravel
-            const imageUrl = response.url || null;
-
-            setProfileData((prev: any) => ({ ...prev, avatar: imageUrl }));
-            setShowCrop(false);
-        } catch (error) {
-            console.error('Eroare la încărcarea avatarului:', error);
-        }
-    };
-
-    const loadProfileData = async () => {
+    const loadProfileData = useCallback(async () => {
         try {
             // Load existing profile data
             // This would be replaced with actual API call
@@ -391,7 +335,66 @@ export default function ProviderProfileEditPage() {
         } catch (error: any) {
             setError('Nu s-au putut încărca datele profilului');
         }
+    }, [providerProfile?.avatar, providerProfile.certifications, providerProfile?.company, providerProfile.education, providerProfile.email, providerProfile.firstName, providerProfile.languages, providerProfile.lastName, providerProfile.phone, providerProfile.portfolio, providerProfile.profile?.answer_hour, providerProfile.profile?.availability, providerProfile.profile?.bio, providerProfile.profile?.location, providerProfile.profile?.website, providerProfile.profile?.working_friday_enabled, providerProfile.profile?.working_friday_from, providerProfile.profile?.working_friday_to, providerProfile.profile?.working_hours_per_week, providerProfile.profile?.working_monday_enabled, providerProfile.profile?.working_monday_from, providerProfile.profile?.working_monday_to, providerProfile.profile?.working_saturday_enabled, providerProfile.profile?.working_saturday_from, providerProfile.profile?.working_saturday_to, providerProfile.profile?.working_sunday_enabled, providerProfile.profile?.working_sunday_from, providerProfile.profile?.working_sunday_to, providerProfile.profile?.working_thursday_enabled, providerProfile.profile?.working_thursday_from, providerProfile.profile?.working_thursday_to, providerProfile.profile?.working_tuesday_enabled, providerProfile.profile?.working_tuesday_from, providerProfile.profile?.working_tuesday_to, providerProfile.profile?.working_wednesday_enabled, providerProfile.profile?.working_wednesday_from, providerProfile.profile?.working_wednesday_to, providerProfile?.timezone, providerProfile.work_history]);
+
+    useEffect(() => {
+        if (!loading && !user && !profileLoading) {
+            router.push('/auth/signin');
+        }
+        if (user && providerProfile && user.role !== 'PROVIDER') {
+            router.push('/dashboard');
+        }
+        if (user && providerProfile) {
+            loadProfileData();
+        }
+    }, [user, loading, router, profileLoading, providerProfile, loadProfileData]);
+
+    function readFile(file: File): Promise<string | ArrayBuffer | null> {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => resolve(reader.result));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const imageDataUrl = await readFile(file);
+            setImageSrc(imageDataUrl as string);
+            setShowCrop(true);
+        }
     };
+
+    const onCropComplete = useCallback((_: any, croppedPixels: any) => {
+        setCroppedAreaPixels(croppedPixels);
+    }, []);
+
+    const handleUpload = async () => {
+        if (!imageSrc || !croppedAreaPixels) return;
+
+        const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+
+        // Convertim base64 în Blob
+        const blob = await fetch(croppedImage as string).then(r => r.blob());
+
+        // Convertim Blob în File (pentru a trimite cu uploadAvatar)
+        const file = new File([blob], 'avatar_' + user?.firstName + '-' + user?.lastName + '.jpg', { type: 'image/jpeg' });
+
+        try {
+            const response = await apiClient.uploadAvatar(file); // apel metoda ta
+
+            // Exemplu: răspunsul conține URL-ul imaginii salvate în Laravel
+            const imageUrl = response.url || null;
+
+            setProfileData((prev: any) => ({ ...prev, avatar: imageUrl }));
+            setShowCrop(false);
+        } catch (error) {
+            console.error('Eroare la încărcarea avatarului:', error);
+        }
+    };
+
+
 
     const handleSave = async () => {
         if (!validate()) return;
@@ -1299,7 +1302,7 @@ export default function ProviderProfileEditPage() {
                                         <div key={index} className="border rounded-lg overflow-hidden">
                                             <div className="aspect-video bg-muted">
                                                 {project.image && (
-                                                    <img
+                                                    <Image
                                                         src={project.image}
                                                         alt={project.title}
                                                         className="w-full h-full object-cover"
