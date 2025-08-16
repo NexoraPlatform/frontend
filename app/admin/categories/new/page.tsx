@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState, useRef, useCallback} from 'react';
+import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { ArrowLeft, FolderPlus, AlertCircle, Loader2 } from 'lucide-react';
 import { useAdminCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {MuiIcon} from '@/components/MuiIcons';
+import {IconSearchDropdown} from "@/components/IconSearchDropdown";
 
 export default function NewCategoryPage() {
   const [formData, setFormData] = useState({
@@ -28,57 +29,18 @@ export default function NewCategoryPage() {
   const [error, setError] = useState('');
   const router = useRouter();
   const { data: categoriesData } = useAdminCategories();
-  const [icons, setIcons] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const perPage = 10;
-  const fetchIcons = useCallback(async (searchTerm: string, pageNum: number) => {
-    const url = new URL('https://nexorabe.dacars.ro/api/general/mui-icons');
-    url.searchParams.set('search', searchTerm);
-    url.searchParams.set('page', pageNum.toString());
-    url.searchParams.set('per_page', perPage.toString());
 
-    const res = await fetch(url.toString());
-    const data = await res.json();
-    return data;
-  }, []);
-
+  const collections = useMemo(() => ['material-symbols','mdi','lucide'], []);
   // Cand se schimba cautarea, reseteaza lista si pagina
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
 
-    fetchIcons(search, 1).then(data => {
-      setIcons(data.data);
-      setHasMore(data.has_more);
-    });
-  }, [search, fetchIcons]);
-
-  // Cand pagina se schimba (mai mare decat 1), incarca mai multe iconuri
-  useEffect(() => {
-    if (page === 1) return; // deja incarcat la cautare
-
-    fetchIcons(search, page).then(data => {
-      setIcons(prev => [...prev, ...data.data]);
-      setHasMore(data.has_more);
-    });
-  }, [page, search, fetchIcons]);
-
-  // Detecteaza scroll la capatul containerului pentru lazy load
-  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 10) { // 10px prag
-      if (hasMore) {
-        setPage(prev => prev + 1);
-      }
-    }
-  };
 
   const handleSelect = (iconName: string) => {
-    setFormData({...formData, icon: iconName})
+    setFormData(prev => ({ ...prev, icon: iconName }));
     setSearch(iconName);
     setHasMore(false);
     setPage(1);
@@ -173,7 +135,7 @@ export default function NewCategoryPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl">
+      <div>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -232,60 +194,13 @@ export default function NewCategoryPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div ref={containerRef}>
                   <Label htmlFor="icon">Iconiță</Label>
-                  <Input
-                      type="text"
-                      placeholder="Caută icon..."
-                      value={search}
-                      onChange={e => {
-                        setSearch(e.target.value);
-                        setShowDropdown(true);
-                      }}
-                      onFocus={() => setShowDropdown(true)}
-                  />
-                  {showDropdown && icons.length > 0 && (
-                  <div
-                      onScroll={onScroll}
-                      style={{
-                        border: '1px solid #ccc',
-                        maxHeight: 200,
-                        overflowY: 'auto',
-                        borderRadius: 8,
-                        backgroundColor: 'white',
-                      }}
-                  >
-                    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                      {icons.map(iconName => (
-                          <li
-                              key={iconName}
-                              onClick={() => {
-                                handleSelect(iconName);
-                                setShowDropdown(false);
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '6px 12px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #eee',
-                              }}
-                              onMouseDown={e => e.preventDefault()}
-                          >
-                            <MuiIcon icon={iconName} size={20} />
-                            <span>{iconName}</span>
-                          </li>
-                      ))}
-                      {!hasMore && icons.length === 0 && (
-                          <li style={{ padding: 12, textAlign: 'center', color: '#888' }}>
-                            Niciun icon găsit
-                          </li>
-                      )}
-                    </ul>
+
+                  <IconSearchDropdown collections={collections} onChange={handleSelect} />
+                  <div className="flex items-center gap-2">
+                    <span>Preview:</span>
+                    {formData.icon ? <MuiIcon icon={formData.icon} size={24} /> : <span className="text-muted-foreground">—</span>}
                   </div>
-                      )}
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Numele iconiței (opțional)
-                  </p>
+                  {/* trimite `icon` (ex: "mdi:home") în Laravel ca string */}
                 </div>
                 <div>
                   <Label htmlFor="sortOrder">Ordine Sortare</Label>

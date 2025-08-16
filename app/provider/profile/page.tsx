@@ -282,21 +282,21 @@ export default function ProviderProfileEditPage() {
                 }>,
 
                 // Certifications
-                certifications: (providerProfile.certifications || []).map((cert: any) => ({
-                    name: cert.name || '',
-                    issuer: cert.issuer_name || '',
-                    date: cert.issued_at || '',
-                    credentialId: cert.credential_id || '',
-                    verified: cert.verified || ''
+                certifications: (providerProfile?.certifications ?? []).map((cert: any) => ({
+                    name: cert?.name ?? '',
+                    issuer: cert?.issuer_name ?? '',
+                    date: cert?.issued_at ?? '',
+                    credentialId: cert?.credential_id ?? '',
+                    verified: cert?.verified ?? false,
                 })),
 
                 // Education
-                education: (providerProfile.education || []).map((edu: any) => ({
-                    degree: edu.degree || '',
-                    institution: edu.institution || '',
-                    attended_from: edu.attended_from || '',
-                    attended_to: edu.attended_to || '',
-                    study_area: edu.study_area || '',
+                education: (providerProfile?.education || []).map((edu: any) => ({
+                    degree: edu?.degree || '',
+                    institution: edu?.institution || '',
+                    attended_from: edu?.attended_from || '',
+                    attended_to: edu?.attended_to || '',
+                    study_area: edu?.study_area || '',
                 })),
                 // Work History
                 workHistory: (providerProfile.work_history || []).map((work: any) => ({
@@ -335,7 +335,7 @@ export default function ProviderProfileEditPage() {
         } catch (error: any) {
             setError('Nu s-au putut încărca datele profilului');
         }
-    }, [providerProfile?.avatar, providerProfile.certifications, providerProfile?.company, providerProfile.education, providerProfile.email, providerProfile.firstName, providerProfile.languages, providerProfile.lastName, providerProfile.phone, providerProfile.portfolio, providerProfile.profile?.answer_hour, providerProfile.profile?.availability, providerProfile.profile?.bio, providerProfile.profile?.location, providerProfile.profile?.website, providerProfile.profile?.working_friday_enabled, providerProfile.profile?.working_friday_from, providerProfile.profile?.working_friday_to, providerProfile.profile?.working_hours_per_week, providerProfile.profile?.working_monday_enabled, providerProfile.profile?.working_monday_from, providerProfile.profile?.working_monday_to, providerProfile.profile?.working_saturday_enabled, providerProfile.profile?.working_saturday_from, providerProfile.profile?.working_saturday_to, providerProfile.profile?.working_sunday_enabled, providerProfile.profile?.working_sunday_from, providerProfile.profile?.working_sunday_to, providerProfile.profile?.working_thursday_enabled, providerProfile.profile?.working_thursday_from, providerProfile.profile?.working_thursday_to, providerProfile.profile?.working_tuesday_enabled, providerProfile.profile?.working_tuesday_from, providerProfile.profile?.working_tuesday_to, providerProfile.profile?.working_wednesday_enabled, providerProfile.profile?.working_wednesday_from, providerProfile.profile?.working_wednesday_to, providerProfile?.timezone, providerProfile.work_history]);
+    }, [providerProfile]);
 
     useEffect(() => {
         if (!loading && !user && !profileLoading) {
@@ -1098,7 +1098,7 @@ export default function ProviderProfileEditPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        {profileData.certifications.map((cert, index) => (
+                                        {profileData?.certifications.map((cert, index) => (
                                             <div key={index} className="flex items-center justify-between p-3 border rounded">
                                                 <div>
                                                     <div className="font-medium">{cert.name}</div>
@@ -1231,7 +1231,7 @@ export default function ProviderProfileEditPage() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    {profileData.education.map((edu, index) => (
+                                    {profileData?.education?.map((edu, index) => (
                                         <div key={index} className="border rounded-lg p-4">
                                             <div className="flex items-start justify-between">
                                                 <div>

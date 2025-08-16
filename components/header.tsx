@@ -16,8 +16,8 @@ import Image from 'next/image';
 import { NotificationBell } from '@/components/notification-bell';
 import { ChatButton } from '@/components/chat/chat-button';
 import {cn} from "@/lib/utils";
-import logo from '@/public/logo-60.avif';
-import logoWhite from '@/public/logo-white-60.avif';
+import logo from '@/public/logo-60.webp';
+import logoWhite from '@/public/logo-white-60.webp';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);

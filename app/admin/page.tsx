@@ -272,7 +272,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
           <Link key={index} href={stat.href}>
             <Card className="border-2 hover:shadow-lg transition-all duration-300 hover:border-primary/20 cursor-pointer group">
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
         <div className="lg:col-span-2">
           <Card>
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
                   <Link key={index} href={action.href}>
                     <Card className="border-2 hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
@@ -356,7 +356,7 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {adminSections.map((section, index) => (
                     <Can
                         key={index}
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                             </div>
                             <div className="flex flex-col items-end space-y-1">
                               {section.pending > 0 && (
-                                <Badge variant="destructive" className="text-xs">
+                                <Badge variant="destructive" className="text-xs w-max">
                                   {section.pending} în așteptare
                                 </Badge>
                               )}

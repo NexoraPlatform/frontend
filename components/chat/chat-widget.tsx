@@ -1049,7 +1049,7 @@ function CreateGroupDialog({ onGroupCreated }: { onGroupCreated: () => void }) {
         if (open) {
             loadAvailableUsers();
         }
-    }, [open]);
+    }, [loadAvailableUsers, open]);
 
     const handleCreateGroup = async () => {
         if (!groupName.trim() || selectedUsers.length === 0) return;
