@@ -1,70 +1,147 @@
 /** @type {import('next').NextConfig} */
-
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  productionBrowserSourceMaps: false,
-  reactStrictMode: true,
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+
+  // Image optimization
   images: {
-    unoptimized: true,
     domains: ['images.pexels.com', 'localhost'],
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 31536000, // 1 year
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  experimental: {
-    optimizeCss: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-  },
-  env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'your-secret-key-here',
-  },
-  // Performance optimizations
-  poweredByHeader: false,
-  compress: true,
-  generateEtags: true,
 
-  // Security headers
+  // Experimental features for performance
+  experimental: {
+    // CSS optimization
+    optimizeCss: true,
+
+    // Package imports optimization
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-slot',
+      'class-variance-authority',
+      'date-fns'
+    ],
+
+    // Modern bundling
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+
+    // Static generation optimization
+    staticWorkerRequestDeduping: true,
+
+    // Bundle optimization
+    optimizeServerReact: true,
+  },
+
+  // Compiler optimizations
+  compiler: {
+    // Remove console logs in production
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn']
+    } : false,
+
+    // React optimizations
+    reactRemoveProperties: process.env.NODE_ENV === 'production' ? {
+      properties: ['^data-testid$']
+    } : false,
+  },
+
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    // Production optimizations
+    if (!dev && !isServer) {
+      // Bundle analyzer (optional)
+      if (process.env.ANALYZE === 'true') {
+        const withBundleAnalyzer = require('@next/bundle-analyzer')({
+          enabled: true,
+        });
+        return withBundleAnalyzer(config);
+      }
+
+      // Tree shaking optimization
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: false,
+      };
+    }
+
+    // SVG optimization
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
+
+    return config;
+  },
+
+  // Headers for performance
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
           {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin',
           },
+        ],
+      },
+      {
+        source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
+        headers: [
           {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
     ];
   },
 
-  // Fix for process exit error
-  onDemandEntries: {
-    maxInactiveAge: 25 * 1000,
-    pagesBufferLength: 2,
-  },
-
-  // Disable webpack cache to prevent issues
-  webpack: (config, { dev }) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    };
-    if (dev) {
-      config.cache = false;
-    }
-    return config;
+  // Rewrites for better SEO
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap.xml',
+        destination: '/api/sitemap',
+      },
+    ];
   },
 };
 
-module.exports = nextConfig;
+// Bundle analyzer wrapper
+const withBundleAnalyzer = process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({ enabled: true })
+    : (config) => config;
+
+module.exports = withBundleAnalyzer(nextConfig);

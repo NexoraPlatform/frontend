@@ -16,6 +16,8 @@ import Image from 'next/image';
 import { NotificationBell } from '@/components/notification-bell';
 import { ChatButton } from '@/components/chat/chat-button';
 import {cn} from "@/lib/utils";
+import logo from '@/public/logo-60.avif';
+import logoWhite from '@/public/logo-white-60.avif';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,23 +87,26 @@ export function Header() {
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                 <Image
-                    src="/logo-60.avif"
+                    src={logo}
                     alt="Nexora Logo"
                     width={60}
                     height={75}
-                    className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
-                    decoding="async"
-                    priority
+                    priority={true}
+                    placeholder="blur"
+                    blurDataURL="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='75' viewBox='0 0 60 75'%3E%3Crect width='60' height='75' fill='%23f3f3f3'/%3E%3C/svg%3E"
+                    sizes="(max-width: 768px) 50px, 60px"
                 />
 
                 <Image
-                    src="/logo-white-60.avif"
+                    src={logoWhite}
                     alt="Nexora Logo"
                     width={60}
                     height={75}
+                    priority={true}
                     className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
-                    priority
-                    decoding="async"
+                    placeholder="blur"
+                    blurDataURL="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='75' viewBox='0 0 60 75'%3E%3Crect width='60' height='75' fill='%23f3f3f3'/%3E%3C/svg%3E"
+                    sizes="(max-width: 768px) 50px, 60px"
                 />
 
               </div>

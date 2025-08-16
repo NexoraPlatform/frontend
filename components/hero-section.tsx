@@ -162,10 +162,7 @@ export function HeroSection() {
 
             {/* Main Heading with Staggered Animation */}
             <div className="transform transition-all duration-1000 delay-200 translate-y-0 opacity-100">
-              <h1
-                  id="hero-heading"
-                  className="text-6xl lg:text-8xl font-black leading-[1.05] mb-8 text-balance min-h-[2.6em]"
-              >
+              <h1 className="text-6xl lg:text-8xl font-black animate-fadeIn">
               <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">
                 Transformă-ți
               </span>
