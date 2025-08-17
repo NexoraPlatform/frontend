@@ -26,7 +26,6 @@
     "@nestjs/platform-socket.io": "^11.1.6",
     "@nestjs/websockets": "^11.1.6",
     "@next/bundle-analyzer": "^15.4.6",
-    "@next/swc-wasm-nodejs": "13.5.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -136,26 +135,6 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
-    ]
-  },
-  "babel": {
-    "presets": [
-      [
-        "next/babel",
-        {
-          "preset-env": {
-            "targets": {
-              "chrome": "109",
-              "firefox": "109",
-              "safari": "16.4",
-              "edge": "109"
-            },
-            "modules": false,
-            "useBuiltIns": "usage",
-            "corejs": 3
-          }
-        }
-      ]
     ]
   }
 }

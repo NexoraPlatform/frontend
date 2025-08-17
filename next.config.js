@@ -83,7 +83,6 @@ const nextConfig = {
     // Modern JavaScript target configuration
     if (!dev) {
       // Target modern browsers - ES2022+ features
-      config.target = isServer ? 'node18' : ['web', 'es2022'];
 
       // Enable modern optimizations
       config.optimization = {
