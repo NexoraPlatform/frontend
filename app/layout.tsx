@@ -10,7 +10,7 @@ import './globals.css';
 import Script from 'next/script';
 import { generateSEO, generateStructuredData } from "@/lib/seo";
 
-// Optimized font loading for Next.js 15
+// Optimized font loading for modern browsers
 const inter = Inter({
     subsets: ['latin'],
     display: 'swap',
@@ -18,8 +18,6 @@ const inter = Inter({
     variable: '--font-inter',
     adjustFontFallback: true,
     fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'],
-    axes: ['opsz'],
-    style: ['normal'],
 });
 
 // Separate viewport export for Next.js 15
@@ -36,113 +34,150 @@ export const viewport: Viewport = {
     colorScheme: 'light dark',
 };
 
-// Inline critical CSS optimized for Next.js 15 and performance
+// Minimal critical CSS using modern features
 const criticalCSS = `
-/* Immediate render styles - prevents FOUC and CLS */
-*,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
-::before,::after{--tw-content:''}
-html{line-height:1.6;-webkit-text-size-adjust:100%;tab-size:4;font-feature-settings:normal;font-variation-settings:normal}
-body{
-  font-family:${inter.style.fontFamily},system-ui,-apple-system,sans-serif;
-  background-color:#ffffff;
-  color:#0f172a;
-  margin:0;
-  padding:0;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  text-rendering:optimizeSpeed;
-  overflow-x:hidden;
+/* Modern CSS with native cascade layers and container queries */
+@layer reset, base, utilities;
+
+@layer reset {
+  /* Modern CSS reset */
+  *,::before,::after{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
 }
 
-/* Dark mode immediate styles */
-@media (prefers-color-scheme: dark) {
+@layer base {
+  /* CSS Custom Properties with fallbacks */
+  :root {
+    --font-inter: ${inter.style.fontFamily}, system-ui, -apple-system, sans-serif;
+    --color-background: light-dark(#ffffff, #0f172a);
+    --color-foreground: light-dark(#0f172a, #f8fafc);
+    --gradient-hero: light-dark(
+      linear-gradient(135deg, #eff6ff 0%, #e0e7ff 50%, #f3e8ff 100%),
+      linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(67, 56, 202, 0.2) 50%, rgba(126, 34, 206, 0.2) 100%)
+    );
+  }
+
+  html {
+    line-height: 1.6;
+    text-size-adjust: 100%;
+    tab-size: 4;
+    font-feature-settings: normal;
+    font-variation-settings: normal;
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: #0f172a;
-    color: #f8fafc;
+    font-family: var(--font-inter);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 }
 
-/* Critical layout styles to prevent CLS */
-.hero-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 50%, #f3e8ff 100%);
-  contain: layout style paint;
-}
+@layer utilities {
+  /* Container queries for responsive design */
+  @container (width > 768px) {
+    .container-lg {
+      padding-inline: 2rem;
+    }
+  }
 
-@media (prefers-color-scheme: dark) {
+  /* Modern hero styles with native CSS nesting */
   .hero-container {
-    background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(67, 56, 202, 0.2) 50%, rgba(126, 34, 206, 0.2) 100%);
+    min-block-size: 100vh;
+    min-block-size: 100dvh; /* Dynamic viewport height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-hero);
+    container-type: inline-size;
+    
+    & .hero-title {
+      font-size: clamp(3rem, 8vw, 6rem);
+      line-height: 1;
+      font-weight: 900;
+      text-align: center;
+      margin-block-end: 2rem;
+    }
+    
+    & .hero-description {
+      font-size: clamp(1.25rem, 4vw, 1.875rem);
+      line-height: 1.625;
+      text-align: center;
+      max-inline-size: 56rem;
+      margin-inline: auto;
+      margin-block-end: 3rem;
+      font-weight: 500;
+      color: light-dark(#64748b, #94a3b8);
+    }
+  }
+
+  /* Modern loading states */
+  @keyframes skeleton {
+    from { background-position: -200px 0; }
+    to { background-position: calc(200px + 100%) 0; }
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, rgba(241, 245, 249, 0.5) 50%, #f1f5f9 75%);
+    background-size: 200px 100%;
+    animation: skeleton 1.2s ease-in-out infinite;
+    
+    @media (prefers-reduced-motion) {
+      animation: none;
+      background: #f1f5f9;
+    }
+  }
+
+  /* Logical properties for better i18n */
+  .container {
+    inline-size: 100%;
+    max-inline-size: 1280px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  /* Modern utility classes */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .text-center { text-align: center; }
+  .mx-auto { margin-inline: auto; }
+  
+  /* Modern focus styles */
+  .focus-ring {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    
+    &:focus-visible {
+      outline-color: #3b82f6;
+      outline-offset: 4px;
+    }
   }
 }
 
-/* Hero text with size containment to prevent layout shift */
-.hero-title {
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 1;
-  font-weight: 900;
-  text-align: center;
-  margin-bottom: 2rem;
-  contain: layout style;
-}
-
-.hero-description {
-  font-size: clamp(1.25rem, 4vw, 1.875rem);
-  line-height: 1.625;
-  text-align: center;
-  max-width: 56rem;
-  margin: 0 auto 3rem;
-  font-weight: 500;
-  color: #64748b;
-  contain: layout style;
-}
-
-/* Header with layout containment */
-.header-container {
-  height: 5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e2e8f0;
-  contain: layout style;
-}
-
-/* Loading states optimized */
-.skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, rgba(241, 245, 249, 0.5) 50%, #f1f5f9 75%);
-  background-size: 200px 100%;
-  animation: skeleton 1.2s ease-in-out infinite;
-}
-
-@keyframes skeleton {
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
-}
-
-/* Critical utility classes */
-.container{width:100%;max-width:1280px;margin-left:auto;margin-right:auto;padding-left:1rem;padding-right:1rem}
-.flex{display:flex}
-.items-center{align-items:center}
-.justify-between{justify-content:space-between}
-.text-center{text-align:center}
-.mx-auto{margin-left:auto;margin-right:auto}
-
-/* Reduced motion support */
+/* Prefers-reduced-motion support */
 @media (prefers-reduced-motion: reduce) {
-  *,*::before,*::after {
+  * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  .skeleton { animation: none; background: #f1f5f9; }
 }
 
-/* Critical font loading optimization */
+/* Modern font loading with font-display: swap */
 @font-face {
   font-family: 'Inter Fallback';
-  src: local('Arial'), local('Helvetica'), local('system-ui');
+  src: local('system-ui'), local('Arial'), local('Helvetica');
+  font-display: swap;
   ascent-override: 90.20%;
   descent-override: 22.48%;
   line-gap-override: 0.00%;
@@ -177,12 +212,12 @@ export default function RootLayout({
     return (
         <html lang="ro" suppressHydrationWarning className={inter.variable}>
         <head>
-            {/* Critical resource hints for Next.js 15 */}
+            {/* Critical resource hints */}
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
             <link rel="dns-prefetch" href="//images.pexels.com" />
             <link rel="dns-prefetch" href="//api.nexora.ro" />
 
-            {/* Optimized favicon with Next.js 15 format */}
+            {/* Modern favicon with format selection */}
             <link rel="icon" href="/logo.webp" sizes="32x32" type="image/webp" />
             <link rel="icon" href="/favicon.ico" sizes="32x32" type="image/x-icon" />
             <link rel="apple-touch-icon" href="/logo.webp" sizes="180x180" />
@@ -191,43 +226,43 @@ export default function RootLayout({
             {/* PWA manifest */}
             <link rel="manifest" href="/manifest.json" />
 
-            {/* Format detection */}
+            {/* Format detection and mobile optimizations */}
             <meta name="format-detection" content="telephone=no" />
             <meta name="mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-            {/* Inline critical CSS to eliminate render-blocking */}
+            {/* Inline critical CSS with modern features */}
             <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
 
-            {/* Preload critical assets for Next.js 15 */}
+            {/* Preload critical assets */}
             <link
                 rel="preload"
-                href="/logo.webp"
+                href="/logo-60.webp"
                 as="image"
                 type="image/webp"
                 fetchPriority="high"
             />
 
-            {/* Non-critical CSS loaded asynchronously */}
-            <noscript
-                dangerouslySetInnerHTML={{
-                    __html: '<link rel="stylesheet" href="/non-critical.css" />', // note the leading slash
-                }}
-            />
-
             {/* Performance optimization meta tags */}
             <meta httpEquiv="x-dns-prefetch-control" content="on" />
             <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+            {/* Modern browser hints */}
+            <meta name="color-scheme" content="light dark" />
+            <meta name="supported-color-schemes" content="light dark" />
         </head>
 
         <body className="font-sans antialiased">
         {/* Skip to main content for accessibility */}
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded">
+        <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded focus-ring"
+        >
             Skip to main content
         </a>
 
-        {/* Structured data - loaded with optimal strategy for Next.js 15 */}
+        {/* Modern structured data loading */}
         <Script
             id="org-jsonld"
             type="application/ld+json"
@@ -245,23 +280,7 @@ export default function RootLayout({
             }}
         />
 
-        <Script id="load-non-critical-css" strategy="lazyOnload">
-            {`
-            (function() {
-              if (document.querySelector('link[href="/non-critical.css"]')) return;
-              const link = document.createElement('link');
-              link.rel = 'stylesheet';
-              link.href = '/non-critical.css';
-              link.media = 'print';
-              link.onload = function() { 
-                this.media = 'all'; 
-              };
-              document.head.appendChild(link);
-            })();
-          `}
-        </Script>
-
-        {/* Context Providers with optimized nesting for React 18+ */}
+        {/* Context Providers with optimized nesting */}
         <AuthProvider>
             <NotificationProvider>
                 <ChatProvider>
@@ -280,7 +299,7 @@ export default function RootLayout({
                             {children}
                         </main>
 
-                        {/* Toast notifications - loaded last */}
+                        {/* Toast notifications */}
                         <Toaster
                             position="top-right"
                             expand={false}
@@ -292,58 +311,50 @@ export default function RootLayout({
             </NotificationProvider>
         </AuthProvider>
 
-        {/* Load non-critical CSS after page load with Next.js 15 optimization */}
-        <Script id="load-non-critical-css" strategy="lazyOnload">
-            {`
-            (function() {
-              if (document.querySelector('link[href="/non-critical.css"]')) return;
-              const link = document.createElement('link');
-              link.rel = 'stylesheet';
-              link.href = '/non-critical.css';
-              link.media = 'print';
-              link.onload = function() { 
-                this.media = 'all'; 
-              };
-              document.head.appendChild(link);
-            })();
-          `}
-        </Script>
-
-        {/* Performance monitoring optimized for Next.js 15 */}
+        {/* Modern performance monitoring */}
         {process.env.NODE_ENV === 'production' && (
             <Script strategy="lazyOnload" id="perf-monitor">
                 {`
-              if ('performance' in window && 'PerformanceObserver' in window) {
-                try {
-                  // Monitor LCP
-                  new PerformanceObserver((list) => {
-                    for (const entry of list.getEntries()) {
-                      console.log('LCP:', Math.round(entry.startTime), 'ms');
-                    }
-                  }).observe({entryTypes: ['largest-contentful-paint']});
+                        // Modern performance monitoring with native APIs
+                        if ('PerformanceObserver' in window) {
+                            try {
+                                // Monitor Core Web Vitals
+                                const observer = new PerformanceObserver((list) => {
+                                    for (const entry of list.getEntries()) {
+                                        const { name, startTime, value } = entry;
+                                        
+                                        // Use modern console methods
+                                        switch (name) {
+                                            case 'LCP':
+                                                console.info('🎯 LCP:', Math.round(startTime), 'ms');
+                                                break;
+                                            case 'FID':
+                                                console.info('⚡ FID:', Math.round(value), 'ms');
+                                                break;
+                                            case 'CLS':
+                                                if (!entry.hadRecentInput) {
+                                                    console.info('📐 CLS:', Math.round(value * 1000) / 1000);
+                                                }
+                                                break;
+                                        }
+                                    }
+                                });
 
-                  // Monitor CLS
-                  let clsValue = 0;
-                  new PerformanceObserver((list) => {
-                    for (const entry of list.getEntries()) {
-                      if (!entry.hadRecentInput) {
-                        clsValue += entry.value;
-                        console.log('CLS:', Math.round(clsValue * 1000) / 1000);
-                      }
-                    }
-                  }).observe({entryTypes: ['layout-shift']});
+                                // Observe all relevant entry types
+                                observer.observe({
+                                    entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift']
+                                });
 
-                  // Monitor FID/INP
-                  new PerformanceObserver((list) => {
-                    for (const entry of list.getEntries()) {
-                      console.log('FID:', Math.round(entry.processingStart - entry.startTime), 'ms');
-                    }
-                  }).observe({entryTypes: ['first-input']});
-                } catch (e) {
-                  console.warn('Performance monitoring failed:', e);
-                }
-              }
-            `}
+                                // Modern navigation API monitoring
+                                if ('navigation' in performance) {
+                                    console.info('🚀 Navigation Type:', performance.navigation.type);
+                                }
+                                
+                            } catch (error) {
+                                console.warn('Performance monitoring failed:', error);
+                            }
+                        }
+                    `}
             </Script>
         )}
         </body>

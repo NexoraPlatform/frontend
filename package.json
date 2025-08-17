@@ -8,7 +8,9 @@
     "start": "next start",
     "export": "next export",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "analyze": "ANALYZE=true next build",
+    "build:modern": "NODE_ENV=production next build"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
@@ -119,15 +121,41 @@
   },
   "browserslist": {
     "production": [
-      "defaults and supports es6-module",
-      "not ie <= 11",
-      "not op_mini all",
-      "not safari < 13"
+      "chrome >= 109",
+      "firefox >= 109",
+      "safari >= 16.4",
+      "edge >= 109",
+      "and_chr >= 109",
+      "and_ff >= 109",
+      "ios_saf >= 16.4",
+      "samsung >= 20",
+      "not dead",
+      "not op_mini all"
     ],
     "development": [
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "babel": {
+    "presets": [
+      [
+        "next/babel",
+        {
+          "preset-env": {
+            "targets": {
+              "chrome": "109",
+              "firefox": "109",
+              "safari": "16.4",
+              "edge": "109"
+            },
+            "modules": false,
+            "useBuiltIns": "usage",
+            "corejs": 3
+          }
+        }
+      ]
     ]
   }
 }

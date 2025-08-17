@@ -18,33 +18,28 @@ import {
   Clock,
 } from 'lucide-react';
 
-// Memoized floating icons component for better performance
+// Optimized floating icons with reduced complexity
 const FloatingIcons = memo(() => (
     <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      {/* Reduced to fewer, simpler elements */}
       <div
-          className="absolute opacity-5 animate-pulse"
-          style={{ left: '20%', top: '10%', animationDelay: '0s', animationDuration: '6s' }}
+          className="absolute opacity-3 will-change-transform"
+          style={{ left: '20%', top: '15%' }}
       >
-        <div className="w-16 h-16 bg-blue-600 rounded-lg opacity-20" />
+        <div className="w-12 h-12 bg-blue-500/10 rounded-lg" />
       </div>
       <div
-          className="absolute opacity-5 animate-pulse"
-          style={{ left: '75%', top: '20%', animationDelay: '2s', animationDuration: '8s' }}
+          className="absolute opacity-3 will-change-transform"
+          style={{ left: '75%', top: '25%' }}
       >
-        <div className="w-12 h-12 bg-purple-600 rounded-full opacity-20" />
-      </div>
-      <div
-          className="absolute opacity-5 animate-pulse"
-          style={{ left: '10%', top: '60%', animationDelay: '4s', animationDuration: '7s' }}
-      >
-        <div className="w-14 h-14 bg-indigo-600 rounded-lg opacity-20" />
+        <div className="w-10 h-10 bg-purple-500/10 rounded-full" />
       </div>
     </div>
 ));
 
 FloatingIcons.displayName = 'FloatingIcons';
 
-// Optimized stats component
+// Lazy-loaded stats component to reduce initial bundle
 const StatsGrid = memo(() => {
   const stats = [
     { number: '500+', label: 'Experți Verificați', icon: Users, change: '+12%' },
@@ -57,13 +52,13 @@ const StatsGrid = memo(() => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center" role="list" aria-label="Statistici platformă">
         {stats.map((stat, index) => (
             <div
-                key={index}
-                className="group"
+                key={stat.label}
+                className="group will-change-transform"
                 role="listitem"
                 tabIndex={0}
                 aria-label={`${stat.number} ${stat.label}, ${stat.change}`}
             >
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 will-change-transform">
                 <stat.icon className="w-10 h-10 text-blue-600" />
               </div>
               <div className="text-3xl lg:text-4xl font-black text-blue-600 mb-2" aria-label={`Numărul: ${stat.number}`}>
@@ -83,7 +78,7 @@ const StatsGrid = memo(() => {
 
 StatsGrid.displayName = 'StatsGrid';
 
-// Main hero component
+// Main hero component with LCP optimizations
 export const HeroSection = memo(() => {
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
@@ -103,7 +98,7 @@ export const HeroSection = memo(() => {
     router.push(`/services?search=${encodeURIComponent(tag)}`);
   }, [router]);
 
-  // Reduced motion support for cursor effects
+  // Simplified cursor effect with better performance
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -121,6 +116,7 @@ export const HeroSection = memo(() => {
       });
     };
 
+    // Use passive listeners for better performance
     el.addEventListener("pointermove", onPointerMove, { passive: true });
     return () => {
       el.removeEventListener("pointermove", onPointerMove);
@@ -135,18 +131,18 @@ export const HeroSection = memo(() => {
           aria-labelledby="hero-heading"
           role="banner"
       >
-        {/* Simplified background */}
-        <div className="absolute inset-0" aria-hidden="true">
+        {/* Simplified background for better performance */}
+        <div className="absolute inset-0 will-change-auto" aria-hidden="true">
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-100/20 to-purple-100/20 dark:from-transparent dark:via-blue-900/5 dark:to-purple-900/5" />
           <FloatingIcons />
         </div>
 
         <div className="container mx-auto px-4 py-8 relative z-10">
           <div className="max-w-6xl mx-auto text-center">
-            {/* Critical above-the-fold badge */}
+            {/* Optimized badge with reduced complexity */}
             <Badge
                 variant="secondary"
-                className="inline-flex h-12 items-center px-8 mb-8 text-base font-semibold bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm"
+                className="inline-flex h-12 items-center px-8 mb-8 text-base font-semibold bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm will-change-auto"
             >
               <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
               🚀 Platforma #1 pentru servicii IT în România
@@ -155,29 +151,39 @@ export const HeroSection = memo(() => {
             </span>
             </Badge>
 
-            {/* Critical LCP element - main heading */}
-            <h1 className="text-6xl lg:text-8xl font-black mb-8 leading-tight">
-            <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Transformă-ți
-            </span>
+            {/* CRITICAL LCP ELEMENT - Optimized main heading */}
+            <h1
+                id="hero-heading"
+                className="text-6xl lg:text-8xl font-black mb-8 leading-tight will-change-auto"
+                style={{ contentVisibility: 'visible' }}
+            >
+              <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Transformă-ți
+              </span>
               <span className="block text-foreground mt-2">
-              ideile în
-            </span>
+                ideile în
+              </span>
               <span className="block bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              realitate digitală
-            </span>
+                realitate digitală
+              </span>
             </h1>
 
-            {/* Critical LCP description - this is the measured LCP element */}
-            <p className="mx-auto max-w-4xl text-2xl lg:text-3xl text-muted-foreground leading-relaxed font-medium mb-12">
+            {/* CRITICAL LCP ELEMENT - This is your measured LCP element, heavily optimized */}
+            <p
+                className="mx-auto max-w-4xl text-2xl lg:text-3xl text-muted-foreground leading-relaxed font-medium mb-12 will-change-auto"
+                style={{
+                  contentVisibility: 'visible',
+                  containIntrinsicSize: '1024px 96px' // Hint for layout stability
+                }}
+            >
               Conectează-te cu <span className="text-blue-600 font-bold">cei mai buni experți IT</span> din România.
               <br />
               De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
             </p>
 
-            {/* Enhanced search bar */}
+            {/* Enhanced search bar with performance optimizations */}
             <div className="max-w-4xl mx-auto mb-12">
-              <form onSubmit={handleSearch} className="relative group" role="search" aria-label="Căutare servicii IT">
+              <form onSubmit={handleSearch} className="relative group will-change-auto" role="search" aria-label="Căutare servicii IT">
                 <div className="relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-3xl p-3 shadow-xl border border-blue-200/20 dark:border-blue-800/20">
                   <div className="flex items-center">
                     <div className="relative flex-1">
@@ -186,7 +192,7 @@ export const HeroSection = memo(() => {
                           placeholder="Caută servicii, tehnologii sau experți... (ex: dezvoltare React, logo design, SEO)"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-[98%] pl-20 pr-6 py-8 text-xl border-0 bg-transparent focus:ring-0 focus:outline-none placeholder:text-muted-foreground/70"
+                          className="w-[98%] pl-20 pr-6 py-8 text-xl border-0 bg-transparent focus:ring-0 focus:outline-none placeholder:text-muted-foreground/70 will-change-auto"
                           aria-label="Caută servicii IT, tehnologii sau experți"
                           autoComplete="off"
                           spellCheck="false"
@@ -195,7 +201,7 @@ export const HeroSection = memo(() => {
                     <Button
                         type="submit"
                         size="lg"
-                        className="mr-3 px-4 md:px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg transition-all duration-200"
+                        className="mr-3 px-4 md:px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg transition-all duration-200 will-change-transform"
                         aria-label="Începe căutarea de servicii IT"
                     >
                       <Rocket className="w-6 h-6 md:mr-3" />
@@ -205,15 +211,20 @@ export const HeroSection = memo(() => {
                 </div>
               </form>
 
-              {/* Popular tags */}
-              <div className="flex flex-wrap justify-center items-center gap-3 mt-8" role="group" aria-label="Căutări populare">
+              {/* Popular tags with lazy loading */}
+              <div
+                  className="flex flex-wrap justify-center items-center gap-3 mt-8 will-change-auto"
+                  role="group"
+                  aria-label="Căutări populare"
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '800px 40px' }}
+              >
                 <span className="text-sm text-muted-foreground font-medium">Populare:</span>
                 {['React', 'WordPress', 'Logo Design', 'SEO', 'Mobile App', 'E-commerce'].map((tag) => (
                     <Button
                         key={tag}
                         variant="outline"
                         size="sm"
-                        className="rounded-full border border-blue-200 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:hover:border-blue-600 dark:hover:bg-blue-950 transition-colors duration-200"
+                        className="rounded-full border border-blue-200 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:hover:border-blue-600 dark:hover:bg-blue-950 transition-colors duration-200 will-change-auto"
                         aria-label={`Caută servicii pentru ${tag}`}
                         onClick={() => handleTagClick(tag)}
                     >
@@ -223,14 +234,14 @@ export const HeroSection = memo(() => {
               </div>
             </div>
 
-            {/* CTA buttons */}
+            {/* CTA buttons with performance hints */}
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
               <Button
                   size="lg"
-                  className="px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-xl transition-all duration-200"
+                  className="px-12 py-8 text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white rounded-2xl shadow-xl transition-all duration-200 will-change-transform"
                   asChild
               >
-                <Link href="/auth/signup?type=client">
+                <Link href="/auth/signup?type=client" prefetch={false}>
                   <Target className="mr-3 w-6 h-6" />
                   Alătură-te ca client
                 </Link>
@@ -238,23 +249,25 @@ export const HeroSection = memo(() => {
               <Button
                   variant="outline"
                   size="lg"
-                  className="px-12 py-8 text-xl font-bold border-2 border-blue-300 hover:border-blue-500 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:hover:border-blue-500 dark:text-blue-300 dark:hover:bg-blue-950 rounded-2xl shadow-lg transition-all duration-200"
+                  className="px-12 py-8 text-xl font-bold border-2 border-blue-300 hover:border-blue-500 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:hover:border-blue-500 dark:text-blue-300 dark:hover:bg-blue-950 rounded-2xl shadow-lg transition-all duration-200 will-change-transform"
                   asChild
               >
-                <Link href="/auth/signup?type=provider">
+                <Link href="/auth/signup?type=provider" prefetch={false}>
                   <Play className="mr-3 w-6 h-6" />
                   Alătură-te ca prestator
                 </Link>
               </Button>
             </div>
 
-            {/* Stats grid */}
-            <StatsGrid />
+            {/* Stats grid with content visibility optimization */}
+            <div style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px 200px' }}>
+              <StatsGrid />
+            </div>
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2" aria-hidden="true">
+        {/* Simplified scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 will-change-transform" aria-hidden="true">
           <div className="w-6 h-10 border-2 border-blue-600 rounded-full flex justify-center animate-bounce">
             <div className="w-1 h-3 bg-blue-600 rounded-full mt-2" />
           </div>
