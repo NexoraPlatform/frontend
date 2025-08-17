@@ -12,9 +12,43 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useAuth } from '@/contexts/auth-context';
 import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
-import { NotificationBell } from '@/components/notification-bell';
-import { ChatButton } from '@/components/chat/chat-button';
 import {cn} from "@/lib/utils";
+import dynamic from 'next/dynamic';
+
+// Lazy load notification and chat components
+const NotificationBell = dynamic(
+  () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
+  {
+    ssr: false,
+    loading: () => (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl"
+        aria-label="Notificări"
+      >
+        <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+      </Button>
+    )
+  }
+);
+
+const ChatButton = dynamic(
+  () => import('@/components/chat/chat-button').then((mod) => mod.ChatButton),
+  {
+    ssr: false,
+    loading: () => (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl"
+        aria-label="Mesaje"
+      >
+        <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+      </Button>
+    )
+  }
+);
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);

@@ -78,55 +78,6 @@ const nextConfig = {
   // Production source maps for debugging (optional)
   productionBrowserSourceMaps: false,
 
-  // Webpack optimizations for modern JavaScript
-  webpack: (config, { dev, isServer }) => {
-    // Modern JavaScript target configuration
-    if (!dev) {
-      // Target modern browsers - ES2022+ features
-
-      // Enable modern optimizations
-      config.optimization = {
-        ...config.optimization,
-        usedExports: true,
-        sideEffects: false,
-        // Use modern minification
-        minimize: true,
-        concatenateModules: true,
-      };
-
-      // Modern browser compatibility
-      config.resolve = {
-        ...config.resolve,
-        conditionNames: ['import', 'require', 'node', 'default'],
-      };
-    }
-
-    // Bundle analyzer (optional)
-    if (!dev && !isServer && process.env.ANALYZE === 'true') {
-      const withBundleAnalyzer = require('@next/bundle-analyzer')({
-        enabled: true,
-      });
-      return withBundleAnalyzer(config);
-    }
-
-    // SVG optimization
-    config.module.rules.push(
-        {
-          test: /\.svg$/i,
-          issuer: /\.[jt]sx?$/,
-          resourceQuery: { not: [/url/] },
-          use: ['@svgr/webpack']
-        },
-        {
-          test: /\.svg$/i,
-          resourceQuery: /url/,
-          type: 'asset/resource'
-        }
-    );
-
-    return config;
-  },
-
   // Modern headers with security optimizations
   async headers() {
     return [
@@ -173,16 +124,6 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        // Preload critical resources
-        source: '/',
-        headers: [
-          {
-            key: 'Link',
-            value: '</logo-60.webp>; rel=preload; as=image; type=image/webp',
           },
         ],
       },

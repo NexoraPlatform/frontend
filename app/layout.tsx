@@ -243,6 +243,27 @@ export default function RootLayout({
                 type="image/webp"
                 fetchPriority="high"
             />
+            <link
+                rel="preload"
+                href="/logo-white-60.webp"
+                as="image"
+                type="image/webp"
+                fetchPriority="high"
+            />
+            <link
+                rel="preload"
+                href="/logo-120.webp"
+                as="image"
+                type="image/webp"
+                fetchPriority="high"
+            />
+            <link
+                rel="preload"
+                href="/logo-120.avif"
+                as="image"
+                type="image/avif"
+                fetchPriority="high"
+            />
 
             {/* Performance optimization meta tags */}
             <meta httpEquiv="x-dns-prefetch-control" content="on" />
@@ -251,6 +272,25 @@ export default function RootLayout({
             {/* Modern browser hints */}
             <meta name="color-scheme" content="light dark" />
             <meta name="supported-color-schemes" content="light dark" />
+
+            {/* Defer loading of non-critical CSS */}
+            <Script id="load-dynamically-non-critical-css" strategy="lazyOnload">
+                {`
+                    // Dynamically load non-critical CSS after page is interactive
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = '/non-critical.css';
+                        link.media = 'print'; // Initially load as print media
+                        document.head.appendChild(link);
+                        
+                        // Switch to screen media after load for better performance
+                        link.onload = function() {
+                            link.media = 'all';
+                        };
+                    });
+                `}
+            </Script>
         </head>
 
         <body className="font-sans antialiased">

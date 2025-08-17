@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import {useAuth} from "@/contexts/auth-context";
-import ChatLauncher from "@/components/chat/chat-launcher";
+import dynamic from 'next/dynamic';
+
+// Lazy load the chat launcher only for authenticated users
+const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
+  ssr: false,
+  loading: () => null
+});
 
 export function Footer() {
   const { user } = useAuth();
