@@ -22,9 +22,6 @@ import {
   Shield,
   Bell,
   Users,
-  FileText,
-  Palette,
-  Database,
   AlertCircle,
   CheckCircle,
   Loader2, Clock
@@ -34,14 +31,12 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [settings, setSettings] = useState({
-    // General Settings
     siteName: 'Nexora',
     siteDescription: 'Platforma românească pentru servicii IT profesionale',
     siteUrl: 'https://nexora.ro',
     adminEmail: 'admin@nexora.ro',
     supportEmail: 'suport@nexora.ro',
 
-    // Platform Settings
     platformCommission: '5',
     minServicePrice: '50',
     maxServicePrice: '50000',
@@ -50,32 +45,27 @@ export default function AdminSettingsPage() {
     requireEmailVerification: true,
     autoApproveServices: false,
 
-    // Payment Settings
     stripeEnabled: true,
     paypalEnabled: true,
     bankTransferEnabled: false,
     escrowEnabled: true,
 
-    // Email Settings
     emailProvider: 'sendgrid',
     smtpHost: '',
     smtpPort: '587',
     smtpUser: '',
     smtpPassword: '',
 
-    // Security Settings
     twoFactorRequired: false,
     passwordMinLength: '8',
     sessionTimeout: '24',
     maxLoginAttempts: '5',
 
-    // Notification Settings
     emailNotifications: true,
     smsNotifications: false,
     pushNotifications: true,
     marketingEmails: false,
 
-    // Content Settings
     maintenanceMode: false,
     registrationOpen: true,
     featuredServicesCount: '8',
@@ -85,7 +75,6 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Simulare salvare setări
       await new Promise(resolve => setTimeout(resolve, 1000));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -102,7 +91,6 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <Link href="/admin">
@@ -169,7 +157,6 @@ export default function AdminSettingsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* General Settings */}
         <TabsContent value="general">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -245,7 +232,6 @@ export default function AdminSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Platform Settings */}
         <TabsContent value="platform">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -370,7 +356,6 @@ export default function AdminSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Payment Settings */}
         <TabsContent value="payments">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -490,7 +475,6 @@ export default function AdminSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Email Settings */}
         <TabsContent value="email">
           <Card>
             <CardHeader>
@@ -560,7 +544,6 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Security Settings */}
         <TabsContent value="security">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -643,7 +626,6 @@ export default function AdminSettingsPage() {
           </div>
         </TabsContent>
 
-        {/* Notification Settings */}
         <TabsContent value="notifications">
           <Card>
             <CardHeader>

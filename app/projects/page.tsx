@@ -4,14 +4,13 @@ import { useState } from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Search,
-    Filter,
     Plus,
     Calendar,
     DollarSign,
@@ -21,9 +20,7 @@ import {
     MapPin,
     Eye,
     MessageSquare,
-    Briefcase,
     Target,
-    TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -33,7 +30,6 @@ export default function ProjectsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [budgetFilter, setBudgetFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('all');
 
     // Mock projects data
     const projects = [

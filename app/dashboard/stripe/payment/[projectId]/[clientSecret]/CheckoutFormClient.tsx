@@ -33,7 +33,7 @@ function CheckoutForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!stripe || !elements || !clientSecret) return;
+        if (!stripe || !elements || !clientSecret || !projectId) return;
 
         setLoading(true);
         const cardElement = elements.getElement(CardElement);

@@ -15,7 +15,6 @@ import Image from 'next/image';
 import {cn} from "@/lib/utils";
 import dynamic from 'next/dynamic';
 
-// Lazy load notification and chat components
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
   {
@@ -98,7 +97,6 @@ export function Header() {
           role="banner"
           aria-label="Navigare principală"
       >
-        {/* Skip to main content link for accessibility */}
         <a
             href="#main-content"
             className="skip-link focus-visible:focus-visible"
@@ -109,7 +107,6 @@ export function Header() {
 
         <div className="container mx-auto px-4">
           <div className="flex h-20 items-center justify-between">
-            {/* Logo */}
             <Link
                 href="/"
                 className="flex items-center space-x-4 group"
@@ -172,7 +169,6 @@ export function Header() {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
             <nav
                 className="hidden lg:flex items-center space-x-8"
                 role="navigation"

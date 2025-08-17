@@ -1,4 +1,3 @@
-// app/access-denied/page.tsx
 'use client';
 
 import { Button } from '@/components/ui/button';

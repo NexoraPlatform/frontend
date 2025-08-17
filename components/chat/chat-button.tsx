@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { CheckCheck, MessageCircle, Search, Users, Clock, X } from "lucide-react";
+import { CheckCheck, MessageCircle, Search, Users, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useChat } from "@/contexts/chat-context";

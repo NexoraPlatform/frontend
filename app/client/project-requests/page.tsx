@@ -153,14 +153,6 @@ export default function ClientProjectRequestsPage() {
         }
     }
 
-    const handleProjectFinish = async (projectId: string) => {
-        const response = await apiClient.finishProject(projectId);
-
-        const stripe = await stripePromise;
-
-
-    }
-
     const handleBudgetResponse = async (
         projectId: string,
         providerId: string,

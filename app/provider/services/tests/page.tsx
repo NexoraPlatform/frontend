@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import SelectTestsPageClient from "@/app/provider/services/tests/SelectTestsPageClient";
 
-
 export default function Page() {
   return (
       <Suspense fallback={

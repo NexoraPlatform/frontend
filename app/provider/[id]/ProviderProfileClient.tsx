@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import ProviderProfile from "@/app/provider/[id]/provider-profile";
-import {Metadata} from "next";
+import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 import apiClient from "@/lib/api";
 

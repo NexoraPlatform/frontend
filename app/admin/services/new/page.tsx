@@ -234,7 +234,7 @@ export default function NewServicePage() {
               <div>
                 <Label htmlFor="category_id">Categorie *</Label>
                 <Select
-                    value={typeof formData.category_id === 'string' ? formData.category_id : String(formData.category_id)}
+                    value={String(formData.category_id)}
                     onValueChange={(value) => {
                       setFormData({ ...formData, category_id: value });
                       handleCategoryChange(value);
@@ -274,7 +274,12 @@ export default function NewServicePage() {
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
                     placeholder="ex: React, Node.js"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addSkill();
+                      }
+                    }}
                   />
                   <Button type="button" onClick={addSkill} variant="outline">
                     <Plus className="w-4 h-4" />
@@ -303,7 +308,12 @@ export default function NewServicePage() {
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
                     placeholder="ex: website, modern, responsive"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag();
+                      }
+                    }}
                   />
                   <Button type="button" onClick={addTag} variant="outline">
                     <Plus className="w-4 h-4" />

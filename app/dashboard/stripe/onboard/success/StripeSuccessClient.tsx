@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
 
 export default function StripeSuccessClient() {
     const [loading, setLoading] = useState(true);
     const [isVerified, setIsVerified] = useState(false);
-    const searchParams = useSearchParams(); // este async
     const router = useRouter();
 
     useEffect(() => {

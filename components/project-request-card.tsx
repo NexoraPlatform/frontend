@@ -4,8 +4,6 @@ import {useEffect, useRef, useState} from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -15,18 +13,18 @@ import {
     User,
     CheckCircle,
     XCircle,
-    Edit,
-    Send,
     AlertCircle,
-    Target,
-    Code,
     MapPin,
-    Star, Users, Eye, MessageSquare, BookOpen, Plus, Shield, Loader2, Globe
+    Star,
+    Eye,
+    MessageSquare,
+    Shield,
+    Loader2,
+    Globe
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import {useAuth} from "@/contexts/auth-context";
-import Link from 'next/link';
 import apiClient from "@/lib/api";
 import {MuiIcon} from "@/components/MuiIcons";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
@@ -48,8 +46,6 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardProps) {
     const { user, loading } = useAuth();
-    const [projects, setProjects] = useState<any[]>([]);
-    const [loadingProjects, setLoadingProjects] = useState(true);
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
@@ -68,7 +64,6 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
             router.push('/dashboard');
         }
         if (user) {
-            loadProjects();
         }
     }, [user, loading, router]);
 
@@ -130,17 +125,6 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
     };
 
-    const loadProjects = async () => {
-        try {
-            const response = await apiClient.getClientProjectRequests();
-            setProjects(response.projects || []);
-        } catch (error) {
-            console.error('Failed to load projects:', error);
-        } finally {
-            setLoadingProjects(false);
-        }
-    };
-
     const getClientSecret = async (project_id: string) => {
         // router.push(response.url);
         try {
@@ -173,7 +157,6 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         setResponding(`${projectId}-${providerId}`);
         try {
             await apiClient.respondToBudgetProposal(projectId, providerId, { response });
-            await loadProjects();
             toast.success(response === 'ACCEPTED' ? 'Buget aprobat!' : 'Buget respins');
         } catch (error: any) {
             toast.error('Eroare: ' + error.message);
@@ -213,7 +196,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         return map[value] || value;
     };
 
-    if (loading || loadingProjects) {
+    if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />

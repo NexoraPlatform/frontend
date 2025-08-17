@@ -1,18 +1,6 @@
-import {Metadata} from "next";
+import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 import HelpPageComponent from "@/app/help/help-page";
-import {
-  BookOpen, CheckCircle,
-  CreditCard,
-  Download,
-  FileText,
-  HelpCircle,
-  Mail,
-  MessageCircle,
-  Phone,
-  Shield,
-  Video
-} from "lucide-react";
 import { Footer } from "@/components/footer";
 import { Header } from '@/components/header';
 

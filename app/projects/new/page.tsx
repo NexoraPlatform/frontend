@@ -33,16 +33,14 @@ import {
     Zap,
     Target,
     Users,
-    Award,
     MessageSquare,
-    Heart,
     Eye,
     ArrowRight,
     ArrowLeft,
-    Calendar,
-    Briefcase, EuroIcon,
+    EuroIcon,
     Filter,
-    ChevronDown, BadgeAlert
+    ChevronDown,
+    BadgeAlert
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
@@ -70,15 +68,6 @@ function setDayjsLocale(locale: string) {
         dayjs.locale('ro');
     }
 }
-
-type Technology = {
-    id: string;
-    name: string;
-    price: number;
-    slug?: string;
-    category: string;
-    parentCategory: string;
-};
 
 type ServiceItem = {
     id: string;
@@ -120,7 +109,6 @@ interface SuggestedProvider {
     level: string;
 }
 
-type Visibility = 'PUBLIC' | 'PRIVATE' | 'TEAM_ONLY';
 
 const aiLoadingMessages = [
     "Se analizează informațiile...",
@@ -158,21 +146,6 @@ type FormData = {
     notes: string;
 };
 
-interface PaginationMeta {
-    total: number;
-    per_page: number;
-    current_page: number;
-    last_page: number;
-    from: number;
-    to: number;
-}
-
-interface ProviderSuggestionsResponse {
-    found: boolean;
-    fallback: boolean;
-    providers: SuggestedProvider[];
-    pagination: PaginationMeta;
-}
 
 type SelectedProvider = {
     id: string;
@@ -219,7 +192,7 @@ export default function NewProjectPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [newTechnology, setNewTechnology] = useState('');
-    const [index, setIndex] = useState(0);
+    const [index] = useState(0);
     const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [providerSearchTerm, setProviderSearchTerm] = useState('');
@@ -249,22 +222,14 @@ export default function NewProjectPage() {
         return new Set(names);
     }, [formData.technologies, generatedAiOutput.technologies]);
 
-    // Filter providers based on search and service filters
     const filteredProviders = suggestedProviders.filter(provider => {
-        // Search filter
         const searchMatch = !providerSearchTerm ||
             provider.firstName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
             provider.lastName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
             provider.location.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
             provider.skills.some(skill => skill.toLowerCase().includes(providerSearchTerm.toLowerCase()));
 
-        // Service filter - check if provider offers any of the selected services
-        const serviceMatch = selectedServiceFilters.length === 0 ||
-            selectedServiceFilters.some(serviceId =>
-                // This would need to be implemented based on your provider-service relationship
-                // For now, we'll assume all providers match all services
-                true
-            );
+        const serviceMatch = selectedServiceFilters.length === 0;
 
         // Apply skill level filter
         const skillLevelMatch = skillLevelFilter.length === 0 ||
@@ -445,23 +410,6 @@ export default function NewProjectPage() {
         return map[value] || value;
     };
 
-    type SkillLevel = 'JUNIOR' | 'MEDIUM' | 'SENIOR' | 'ADVANCED';
-
-    const SkillLevels: Record<SkillLevel, { color: string; progress: number }> = {
-        ADVANCED: { color: 'bg-red-100 text-red-800', progress: 95 },
-        SENIOR: { color: 'bg-purple-100 text-purple-800', progress: 80 },
-        MEDIUM: { color: 'bg-blue-100 text-blue-800', progress: 60 },
-        JUNIOR: { color: 'bg-green-100 text-green-800', progress: 30 },
-    };
-
-    const getSkillLevel = (level: string) => {
-        if (level in SkillLevels) {
-            return SkillLevels[level as SkillLevel];
-        }
-
-        return SkillLevels['JUNIOR'];
-    };
-
     const handleTechnologyToggle = (techName: string, techId: string) => {
         setFormData(prev => {
             const exists = prev.technologies.some(t => t.name === techName && t.id === techId);
@@ -508,7 +456,6 @@ export default function NewProjectPage() {
             } else {
 
                 const newSelected = [...prev, { id: providerId, matchScore: matchScore }];
-                const equalBudget = Math.floor(Number(formData.budget) / newSelected.length);
                 setProviderBudgets(prevBudgets => ({
                     ...prevBudgets,
                     [providerId]: 0
@@ -622,22 +569,6 @@ export default function NewProjectPage() {
         }
     };
 
-    const getVisibilityBadge = (visibility: Visibility) => {
-        const colors = {
-            'PUBLIC': 'bg-green-100 text-green-800',
-            'PRIVATE': 'bg-blue-100 text-blue-800',
-            'TEAM_ONLY': 'bg-orange-100 text-orange-800',
-            'URGENT': 'bg-red-100 text-red-800'
-        };
-        return colors[visibility] || colors['PUBLIC'];
-    };
-
-    const getAvailabilityColor = (availability: string) => {
-        if (availability.includes('Disponibil')) return 'text-green-600';
-        if (availability.includes('Ocupat')) return 'text-orange-600';
-        return 'text-gray-600';
-    };
-
     const getAvailabilityStatus = (status: string) => {
         switch (status) {
             case 'AVAILABLE':
@@ -651,45 +582,6 @@ export default function NewProjectPage() {
         }
     };
 
-
-    const transformGroupedServices = (
-        apiData: Record<string, Record<string, any[]> | any[]>
-    ): Technology[] => {
-        const result: Technology[] = [];
-
-        Object.entries(apiData).forEach(([parentCategory, value]) => {
-            // value poate fi fie array (dacă nu are copil), fie obiect cu copii
-            if (Array.isArray(value)) {
-                // fără copii
-                value.forEach((item) => {
-                    result.push({
-                        id: String(item.id),
-                        name: item.name,
-                        price: item.price,
-                        slug: item.slug,
-                        category: parentCategory,
-                        parentCategory: parentCategory,
-                    });
-                });
-            } else {
-                // are copii
-                Object.entries(value).forEach(([childCategory, services]) => {
-                    (services as any[]).forEach((item) => {
-                        result.push({
-                            id: String(item.id),
-                            name: item.name,
-                            price: item.price,
-                            slug: item.slug,
-                            category: childCategory,
-                            parentCategory: parentCategory,
-                        });
-                    });
-                });
-            }
-        });
-
-        return result;
-    };
 
     const groupServicesByParentAndChild = (
         apiData: Record<string, Record<string, ServiceItem[]> | ServiceItem[]>
@@ -716,18 +608,6 @@ export default function NewProjectPage() {
     };
 
     const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
-
-    const allTechnologies = servicesData
-        ? transformGroupedServices(servicesData)
-        : [];
-
-    const groupedTechnologies = allTechnologies.reduce((acc, tech) => {
-        if (!acc[tech.category]) {
-            acc[tech.category] = [];
-        }
-        acc[tech.category].push(tech);
-        return acc;
-    }, {} as Record<string, Technology[]>);
 
     const generateDescription = async () => {
         const newErrors: { [key: string]: string } = {};
@@ -990,7 +870,6 @@ export default function NewProjectPage() {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
-                                            {/* Tehnologii selectate */}
                                             {formData.technologies.length > 0 && (
                                                 <div>
                                                     <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>Servicii Selectate ({formData.technologies.length})</Label>

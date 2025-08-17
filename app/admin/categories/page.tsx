@@ -29,7 +29,7 @@ export default function AdminCategoriesPage() {
       if (action === 'delete') {
         if (confirm('Ești sigur că vrei să ștergi această categorie?')) {
           await apiClient.deleteCategory(categoryId);
-          refetchCategories();
+          await refetchCategories();
         }
       }
     } catch (error: any) {
@@ -47,7 +47,6 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <Link href="/admin">
@@ -70,7 +69,6 @@ export default function AdminCategoriesPage() {
         </Link>
       </div>
 
-      {/* Categories List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -98,7 +96,6 @@ export default function AdminCategoriesPage() {
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                           <MuiIcon icon={category.icon} size={20} />
-                          {/*<FolderOpen className="w-5 h-5 text-primary" />*/}
                         </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
@@ -149,7 +146,6 @@ export default function AdminCategoriesPage() {
                       </DropdownMenu>
                     </div>
 
-                    {/* Child Categories */}
                     {children.length > 0 && (
                       <div className="border-t">
                         {children.map((child: any) => (

@@ -22,43 +22,20 @@ export default function NewCategoryPage() {
     slug: '',
     description: '',
     icon: '',
-    parentId: 'none', // Schimbat din '' în 'none'
+    parentId: 'none',
     sortOrder: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const { data: categoriesData } = useAdminCategories();
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [showDropdown, setShowDropdown] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const collections = useMemo(() => ['material-symbols','mdi','lucide'], []);
-  // Cand se schimba cautarea, reseteaza lista si pagina
-
 
   const handleSelect = (iconName: string) => {
     setFormData(prev => ({ ...prev, icon: iconName }));
-    setSearch(iconName);
-    setHasMore(false);
-    setPage(1);
   };
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-          containerRef.current &&
-          !containerRef.current.contains(event.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const generateSlug = useCallback((name: string, parentId: string) => {
     const parentName = categoriesData?.categories?.find(
@@ -88,7 +65,6 @@ export default function NewCategoryPage() {
     setFormData(prev => ({
       ...prev,
       name,
-      // Auto-generate slug if not manually set
       slug: prev.slug === generateSlug(prev.name, prev.parentId) || prev.slug === ''
         ? generateSlug(name, prev.parentId)
         : prev.slug
@@ -120,7 +96,6 @@ export default function NewCategoryPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex items-center space-x-4 mb-8">
         <Link href="/admin/categories">
           <Button variant="outline" size="icon">
@@ -200,7 +175,6 @@ export default function NewCategoryPage() {
                     <span>Preview:</span>
                     {formData.icon ? <MuiIcon icon={formData.icon} size={24} /> : <span className="text-muted-foreground">—</span>}
                   </div>
-                  {/* trimite `icon` (ex: "mdi:home") în Laravel ca string */}
                 </div>
                 <div>
                   <Label htmlFor="sortOrder">Ordine Sortare</Label>

@@ -19,7 +19,6 @@ import {
   Loader2,
   ArrowLeft,
   Filter,
-  PlayCircle,
   Clock,
   Target,
   BarChart3,
@@ -32,7 +31,7 @@ import { apiClient } from '@/lib/api';
 
 export default function AdminTestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [serviceFilter, setServiceFilter] = useState('all');
+  const [serviceFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();

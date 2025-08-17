@@ -88,7 +88,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
     const loadOrder = useCallback(async () => {
         try {
-            // Simulare încărcare comandă - înlocuiește cu API call real
             const mockOrder: OrderType = {
                 id: id,
                 orderNumber: `ORD-${Date.now()}`,
@@ -228,7 +227,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            {/* Header */}
             <div className="flex items-center space-x-4 mb-8">
                 <Link href="/admin/orders">
                     <Button variant="outline" size="icon">
@@ -255,9 +253,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Coloana principală */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Informații comandă */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
@@ -316,7 +312,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    {/* Participanți */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
@@ -326,7 +321,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Client */}
                                 <div className="space-y-3">
                                     <h5 className="font-medium text-blue-600">Client</h5>
                                     <div className="flex items-center space-x-3">
@@ -357,7 +351,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                     </div>
                                 </div>
 
-                                {/* Prestator */}
                                 <div className="space-y-3">
                                     <h5 className="font-medium text-green-600">Prestator</h5>
                                     <div className="flex items-center space-x-3">
@@ -392,9 +385,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                     </Card>
                 </div>
 
-                {/* Sidebar */}
                 <div className="space-y-6">
-                    {/* Informații financiare */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
@@ -406,20 +397,20 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Valoare comandă:</span>
                                 <span className="font-bold text-lg text-green-600">
-                  {order.amount.toLocaleString()} RON
-                </span>
+                                  {order.amount.toLocaleString()} RON
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Comision platformă (5%):</span>
                                 <span className="font-medium">
-                  {(order.amount * 0.05).toLocaleString()} RON
-                </span>
+                                  {(order.amount * 0.05).toLocaleString()} RON
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Prestator primește:</span>
                                 <span className="font-medium">
-                  {(order.amount * 0.95).toLocaleString()} RON
-                </span>
+                                  {(order.amount * 0.95).toLocaleString()} RON
+                                </span>
                             </div>
                             <div className="pt-2 border-t">
                                 <div className="flex justify-between items-center">
@@ -430,7 +421,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    {/* Timeline */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
@@ -456,7 +446,6 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    {/* Acțiuni Admin */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">

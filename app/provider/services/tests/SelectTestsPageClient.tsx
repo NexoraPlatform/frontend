@@ -20,7 +20,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import {
     ArrowLeft,
-    CheckCircle,
     AlertCircle,
     Loader2,
     PlayCircle,
@@ -28,9 +27,7 @@ import {
     Target,
     Award,
     BookOpen,
-    Zap,
     Trophy,
-    Star,
     Code,
     Type,
     CheckSquare,
@@ -797,41 +794,4 @@ export default function SelectTestsPageClient() {
             <Footer />
         </div>
     );
-}
-
-// Funcție pentru verificarea corectitudinii răspunsurilor
-function checkAnswerCorrectness(question: Question, answer: any): boolean {
-    if (!answer) return false;
-
-    switch (question.type) {
-        case 'SINGLE_CHOICE':
-            return question.correctAnswers.includes(answer);
-
-        case 'MULTIPLE_CHOICE':
-            if (!Array.isArray(answer)) return false;
-            // Verifică dacă toate răspunsurile selectate sunt corecte și dacă toate răspunsurile corecte au fost selectate
-            const correctSet = new Set(question.correctAnswers);
-            const answerSet = new Set(answer);
-
-            // Verifică dacă toate răspunsurile selectate sunt corecte
-            for (const a of answerSet) {
-                if (!correctSet.has(a)) return false;
-            }
-
-            // Verifică dacă toate răspunsurile corecte au fost selectate
-            return correctSet.size === answerSet.size;
-
-        case 'TEXT_INPUT':
-            return question.correctAnswers.some(correct =>
-                correct.toLowerCase().trim() === (answer as string).toLowerCase().trim()
-            );
-
-        case 'CODE_WRITING':
-            // Pentru întrebări de cod, considerăm că evaluarea se face pe server
-            // Aici doar verificăm dacă utilizatorul a introdus ceva
-            return answer && (answer as string).trim().length > 0;
-
-        default:
-            return false;
-    }
 }

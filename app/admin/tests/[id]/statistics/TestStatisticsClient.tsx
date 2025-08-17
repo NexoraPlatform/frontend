@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,22 +8,19 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     ArrowLeft,
-    BarChart3,
     Clock,
     Target,
     Users,
     CheckCircle,
-    XCircle,
     Loader2,
     AlertCircle,
-    Award,
     BookOpen,
     Code,
     Type,
     CheckSquare,
     Square
 } from 'lucide-react';
-import { useTest, useTestStatistics } from '@/hooks/use-api';
+import { useTestStatistics } from '@/hooks/use-api';
 
 interface QuestionStat {
     id: string;

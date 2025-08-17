@@ -20,7 +20,7 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import {Input} from "@/components/ui/input";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {DateRange, RangeKeyDict, Range, DefinedRange} from 'react-date-range';
-import {addDays, isWithinInterval, parseISO} from 'date-fns';
+import {isWithinInterval, parseISO} from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { customStaticRanges } from '@/utils/dateShortcuts';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
@@ -112,7 +112,6 @@ export default function CallsPage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-4">
                     <Link href="/admin">

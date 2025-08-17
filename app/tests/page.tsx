@@ -15,7 +15,6 @@ import {
   Award,
   CheckCircle,
   PlayCircle,
-  Star,
   Code,
   Smartphone,
   Palette,
@@ -155,15 +154,19 @@ export default function TestsPage() {
     }
   ];
 
+  const colors: Record<string, string> = {
+    Incepator: 'bg-green-100 text-green-800',
+    Intermediar: 'bg-yellow-100 text-yellow-800',
+    Avansat: 'bg-orange-100 text-orange-800',
+    Expert: 'bg-red-100 text-red-800',
+  };
+
   const getDifficultyBadge = (difficulty: string) => {
-    const colors = {
-      'Începător': 'bg-green-100 text-green-800',
-      'Intermediar': 'bg-yellow-100 text-yellow-800',
-      'Avansat': 'bg-orange-100 text-orange-800',
-      'Expert': 'bg-red-100 text-red-800'
-    };
-    // @ts-ignore
-    return <Badge className={colors[difficulty] || colors['Intermediar']}>{difficulty}</Badge>;
+    return (
+        <Badge className={colors[difficulty] || colors['Intermediar']}>
+          {difficulty}
+        </Badge>
+    );
   };
 
   const getStatusIcon = (status: string) => {

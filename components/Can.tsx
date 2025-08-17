@@ -1,4 +1,3 @@
-// components/Can.tsx
 'use client';
 import React from 'react';
 import { useCan } from '@/hooks/useCan';

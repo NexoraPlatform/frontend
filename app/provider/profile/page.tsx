@@ -25,22 +25,14 @@ import {
     AlertCircle,
     CheckCircle,
     Loader2,
-    Building,
-    Globe,
-    MapPin,
-    Phone,
-    Mail,
     Clock,
     Languages,
     Award,
     GraduationCap,
     Briefcase,
-    Code,
     Calendar,
     Target,
     Eye,
-    Edit,
-    Trash2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages, useProviderProfile} from "@/hooks/use-api";
@@ -68,14 +60,14 @@ export default function ProviderProfileEditPage() {
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
     const router = useRouter();
-    const { data: providerProfile, loading: profileLoading, refetch: refetchProfile } = useProviderProfile();
+    const { data: providerProfile, loading: profileLoading } = useProviderProfile();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
     const [showCrop, setShowCrop] = useState(false);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
-    const { data: languages, loading: languagesLoading } = useGetLanguages();
+    const { data: languages } = useGetLanguages();
 
     const [profileData, setProfileData] = useState({
         // Basic Info
@@ -193,7 +185,6 @@ export default function ProviderProfileEditPage() {
     };
 
     const [newLanguage, setNewLanguage] = useState({ name: '', level: 'Basic', flag: '' });
-    const [newSkill, setNewSkill] = useState({ name: '', level: 'Începător', years: 1 });
     const [newCertification, setNewCertification] = useState({
         name: '', issuer: '', date: '', credentialId: '', verified: false
     });
@@ -431,23 +422,6 @@ export default function ProviderProfileEditPage() {
         }));
     };
 
-    const addSkill = () => {
-        if (newSkill.name && newSkill.level) {
-            setProfileData(prev => ({
-                ...prev,
-                skills: [...prev.skills, { ...newSkill }]
-            }));
-            setNewSkill({ name: '', level: 'Începător', years: 1 });
-        }
-    };
-
-    const removeSkill = (index: number) => {
-        setProfileData(prev => ({
-            ...prev,
-            skills: prev.skills.filter((_, i) => i !== index)
-        }));
-    };
-
     const addCertification = () => {
         if (newCertification.name && newCertification.issuer) {
             setProfileData(prev => ({
@@ -522,14 +496,6 @@ export default function ProviderProfileEditPage() {
         end: string;
         enabled: boolean;
     };
-    type WorkingHours = Record<WeekDay, WorkingHour>;
-    type Availability = {
-        status: string;
-        hoursPerWeek: number;
-        timezone: string;
-        workingHours: WorkingHours;
-        responseTime: string;
-    };
 
     type WorkingHourField = keyof WorkingHour;
     const updateWorkingHours = (day: WeekDay, field: WorkingHourField, value: any) => {
@@ -561,8 +527,6 @@ export default function ProviderProfileEditPage() {
     }
 
     const languageLevels = ['Native', 'Fluent', 'Conversational', 'Basic'];
-    const skillLevels = ['Expert', 'Avansat', 'Intermediar', 'Începător'];
-    const workTypes = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
     const availabilityStatuses = [
         { value: 'AVAILABLE', label: 'Disponibil' },
         { value: 'BUSY', label: 'Ocupat' },

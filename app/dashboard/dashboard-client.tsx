@@ -12,32 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import {
   User,
   Briefcase,
   DollarSign,
   Star,
-  TrendingUp,
   Clock,
   CheckCircle,
   AlertCircle,
   Plus,
   Search,
   Filter,
-  ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Eye,
   MessageSquare,
-  Calendar,
   Target,
   Users,
   FileText,
   Settings,
   Bell,
-  Heart,
-  Bookmark,
   BarChart3,
   Zap,
   Award,
@@ -46,26 +40,13 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   Edit,
-  Trash2,
-  ExternalLink,
-  MapPin,
-  Phone,
-  Mail,
-  Building,
-  Code,
-  Palette,
-  Smartphone,
-  TrendingDown,
   X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
 import Link from 'next/link';
 import {SiStripe} from "react-icons/si";
 

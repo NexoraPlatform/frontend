@@ -4,20 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Users,
   Target,
   Award,
   Heart,
   Zap,
   Shield,
-  Globe,
-  TrendingUp,
   CheckCircle,
-  Star
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import {Metadata} from "next";
+import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 
 export const metadata: Metadata = generateSEO({

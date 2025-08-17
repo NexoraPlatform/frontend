@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {Button} from '@/components/ui/button';
@@ -22,7 +22,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
         slug: '',
         description: '',
         icon: '',
-        parentId: 'none', // Schimbat din '' în 'none'
+        parentId: 'none',
         sortOrder: 0
     });
     const [loading, setLoading] = useState(false);
@@ -47,7 +47,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                     slug: response.slug || generateSlug(response.name || ''),
                     description: response.description || '',
                     icon: response.icon || '',
-                    parentId: response.parent.id || 'none', // Asigură-te că setezi 'none' dacă nu există părinte
+                    parentId: response.parent.id || 'none',
                     sortOrder: response.sortOrder || 0
                 });
             } catch (err) {
@@ -62,7 +62,6 @@ export default function CategoryDetailPage({ id }: { id: string }) {
         setFormData(prev => ({
             ...prev,
             name,
-            // Auto-generate slug if not manually set
             slug: prev.slug === generateSlug(prev.name) || prev.slug === ''
                 ? generateSlug(name)
                 : prev.slug
@@ -103,7 +102,6 @@ export default function CategoryDetailPage({ id }: { id: string }) {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            {/* Header */}
             <div className="flex items-center space-x-4 mb-8">
                 <Link href="/admin/categories">
                     <Button variant="outline" size="icon">

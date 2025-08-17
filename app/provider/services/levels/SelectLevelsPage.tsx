@@ -30,13 +30,6 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 
-interface TestData {
-    serviceId: string;
-    serviceName: string;
-    level: string;
-    category: string;
-}
-
 export default function SelectLevelsPageClient() {
     const { user, loading } = useAuth();
     const [services, setServices] = useState<any[]>([]);

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Static stats data for SSR
 const STATS = [
     { number: '500+', label: 'Experți Verificați', icon: Users, change: '+12%' },
     { number: '2,847', label: 'Proiecte Finalizate', icon: CheckCircle, change: '+23%' },
@@ -24,7 +23,6 @@ const STATS = [
 
 const POPULAR_TAGS = ['React', 'WordPress', 'Logo Design', 'SEO', 'Mobile App', 'E-commerce'];
 
-// Server-rendered hero section for instant LCP
 export function HeroSectionStatic() {
     return (
         <section
@@ -32,17 +30,14 @@ export function HeroSectionStatic() {
             aria-labelledby="hero-heading"
             role="banner"
         >
-            {/* Simplified static background */}
             <div className="absolute inset-0" aria-hidden="true">
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-100/20 to-purple-100/20 dark:from-transparent dark:via-blue-900/5 dark:to-purple-900/5" />
-                {/* Static decorative elements */}
                 <div className="absolute left-[20%] top-[15%] w-12 h-12 bg-blue-500/10 rounded-lg opacity-30" />
                 <div className="absolute left-[75%] top-[25%] w-10 h-10 bg-purple-500/10 rounded-full opacity-30" />
             </div>
 
             <div className="container mx-auto px-4 py-8 relative z-10">
                 <div className="max-w-6xl mx-auto text-center">
-                    {/* Static badge for immediate render */}
                     <Badge
                         variant="secondary"
                         className="inline-flex h-12 items-center px-8 mb-8 text-base font-semibold bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/50 dark:via-indigo-900/50 dark:to-purple-900/50 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm"
@@ -54,7 +49,6 @@ export function HeroSectionStatic() {
             </span>
                     </Badge>
 
-                    {/* OPTIMIZED LCP ELEMENT - Server-rendered heading */}
                     <h1
                         id="hero-heading"
                         className="text-6xl lg:text-8xl font-black mb-8 leading-tight"

@@ -16,7 +16,7 @@ import {
   Briefcase,
   HeadphonesIcon
 } from 'lucide-react';
-import {Metadata} from "next";
+import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 
 export const metadata: Metadata = generateSEO({

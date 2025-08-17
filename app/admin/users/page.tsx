@@ -14,7 +14,6 @@ import {
   Search,
   Plus,
   MoreHorizontal,
-  Eye,
   UserCheck,
   Ban,
   Trash2,

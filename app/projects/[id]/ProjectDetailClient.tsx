@@ -10,7 +10,7 @@ import {formatDistanceToNow} from "date-fns";
 import {ro} from "date-fns/locale";
 import {Badge} from "@/components/ui/badge";
 import ProviderCard from "@/app/projects/provider-card";
-import {Metadata} from "next";
+import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 
 type ProjectDetailPageProps = {

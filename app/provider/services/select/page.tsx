@@ -25,10 +25,8 @@ import {
   Globe,
   Camera,
   Headphones,
-  Zap,
   Target,
   FolderOpen,
-  Plus,
   Search
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';

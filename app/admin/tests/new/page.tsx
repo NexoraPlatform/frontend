@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,7 +20,6 @@ import {
   Save,
   Trash2,
   BookOpen,
-  Clock,
   Target,
   Code,
   Type,
@@ -28,7 +27,7 @@ import {
   Square,
   Edit
 } from 'lucide-react';
-import { useAdminCategories, useAdminServices } from '@/hooks/use-api';
+import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 
 interface Question {
@@ -74,7 +73,6 @@ export default function NewTestPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const { data: categoriesData } = useAdminCategories();
   const { data: servicesData } = useAdminServices();
 
   const questionTypes = [

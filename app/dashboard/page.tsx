@@ -1,5 +1,5 @@
 import DashboardClient from './dashboard-client';
-import {Metadata} from "next";
+import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 
 export const metadata: Metadata = generateSEO({

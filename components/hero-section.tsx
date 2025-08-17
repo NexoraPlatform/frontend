@@ -4,17 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HeroSectionStatic } from './hero-section-static';
 
-// Progressive enhancement for interactive features
 export function HeroSectionEnhanced() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Hydrate after critical content is painted
   useEffect(() => {
-    // Wait for LCP to complete before adding interactions
     const timer = setTimeout(() => {
       setIsHydrated(true);
     }, 100);
@@ -22,7 +18,6 @@ export function HeroSectionEnhanced() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Progressive enhancement for search
   useEffect(() => {
     if (!isHydrated || !formRef.current) return;
 
@@ -40,7 +35,6 @@ export function HeroSectionEnhanced() {
     return () => form.removeEventListener('submit', handleSubmit);
   }, [isHydrated, router]);
 
-  // Progressive enhancement for tag clicks
   useEffect(() => {
     if (!isHydrated || !containerRef.current) return;
 
@@ -60,7 +54,6 @@ export function HeroSectionEnhanced() {
     return () => container.removeEventListener('click', handleTagClick);
   }, [isHydrated, router]);
 
-  // Progressive enhancement for cursor effects
   useEffect(() => {
     if (!isHydrated || !containerRef.current) return;
 
@@ -89,7 +82,6 @@ export function HeroSectionEnhanced() {
       <div ref={containerRef}>
         <HeroSectionStatic />
 
-        {/* Progressive enhancement script */}
         {isHydrated && (
             <script
                 dangerouslySetInnerHTML={{

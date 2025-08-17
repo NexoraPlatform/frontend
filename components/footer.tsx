@@ -8,7 +8,6 @@ import Image from 'next/image';
 import {useAuth} from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
 
-// Lazy load the chat launcher only for authenticated users
 const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
   ssr: false,
   loading: () => null
@@ -112,7 +111,6 @@ export function Footer() {
               </div>
             </div>
 
-            {/* Quick Links */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold" id="quick-links-heading">Link-uri Rapide</h2>
               <nav className="space-y-2" aria-labelledby="quick-links-heading">

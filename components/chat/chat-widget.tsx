@@ -1,15 +1,12 @@
 "use client";
 
-import {useState, useEffect, useRef, useMemo, useCallback} from 'react';
+import {useState, useEffect, useRef, useMemo} from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -24,19 +21,12 @@ import {
     Send,
     Paperclip,
     Smile,
-    Users,
-    Plus,
     X,
     Edit,
     Trash2,
     EyeOff,
     AlertTriangle,
-    Clock,
-    Check,
     CheckCheck,
-    Phone,
-    Video,
-    Settings,
     Search,
     Minimize2,
     Maximize2
@@ -45,7 +35,6 @@ import { useChat } from '@/contexts/chat-context';
 import { useAuth } from '@/contexts/auth-context';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
-import apiClient from "@/lib/api";
 import {chatService} from "@/lib/chat";
 import Image from 'next/image';
 import dynamic from "next/dynamic";
@@ -105,18 +94,14 @@ export function ChatWidget() {
         groups,
         activeGroup,
         setActiveGroup,
-        createGroup,
         messages,
         sendMessage,
         markAsRead,
         typingUsers,
-        // sendTyping,
         isConnected,
         loadingMessages,
         getTotalUnreadCount,
         loadMessages,
-        refreshGroups,
-        getGroupOnlineCount,
         isUserOnline,
         upsertMessage,
         isPanelOpen,
@@ -124,7 +109,6 @@ export function ChatWidget() {
         closePanel,
     } = useChat();
 
-    const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [messageInput, setMessageInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -141,7 +125,6 @@ export function ChatWidget() {
     const pageRef = useRef(1);
     const [emojiOpen, setEmojiOpen] = useState(false);
 
-    // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -169,25 +152,6 @@ export function ChatWidget() {
         if (!activeGroup) return [];
         return messages[activeGroup.id] || [];
     }, [activeGroup, messages]);
-
-    const normalizeReaders = (msg: any): string[] => {
-        let rb = msg?.read_by ?? msg?.readBy ?? [];
-
-        // dacă vine ca string JSON, îl parsam
-        if (typeof rb === 'string') {
-            try {
-                rb = JSON.parse(rb);
-            } catch {
-                rb = [];
-            }
-        }
-
-        if (Array.isArray(rb)) {
-            return rb.map((r) => String(r)).filter(Boolean);
-        }
-        return [];
-    };
-
 
     const lastSeenIndexByUser = useMemo(() => {
         if (!activeGroup) return {};
@@ -224,36 +188,14 @@ export function ChatWidget() {
         if (!file || !activeGroup) return;
         setUploading(true);
         try {
-            // OPTIONAL: client-side pre-check size/mime
             if (!['application/pdf', 'text/plain'].includes(file.type) && !file.type.startsWith('image/')) {
                 throw new Error('Tip fișier neacceptat (doar PDF/imagini)');
             }
 
             const msg = await chatService.uploadAttachment(activeGroup.id, file);
             upsertMessage(msg);
-            // add message to state (server already returns a ChatMessage)
-            // if your context has sendMessage side-effects, just update:
-            // But easiest:
-            // setMessages(prev => ({ ...prev, [activeGroup.id]: [...(prev[activeGroup.id]||[]), msg] }))
-            // You already have a listener on MessageSent; if you also broadcast, it will arrive automatically.
         } catch (err:any) {
-            // show a "file not sent" message bubble OR toast
             console.error(err);
-            // Optional bubble:
-            // setMessages(prev => ({
-            //  ...prev,
-            //  [activeGroup.id]: [...(prev[activeGroup.id]||[]), {
-            //      id: crypto.randomUUID(),
-            //      groupId: activeGroup.id,
-            //      sender_id: user!.id,
-            //      senderName: user!.firstName,
-            //      content: `Fișierul nu poate fi trimis: ${err.message}`,
-            //      isCensored: false,
-            //      timestamp: new Date().toISOString(),
-            //      readBy: [],
-            //      attachments: [],
-            //  }]
-            // }))
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -934,7 +876,7 @@ function MessageBubble({
                 <div className="text-sm">
                     {message.attachments?.length > 0 && (
                         <div className="mt-2 space-y-2">
-                            {message.attachments.map((att:any, index: number) => (
+                            {message.attachments.map((att:any) => (
                                 <div key={att.id} className="flex items-center gap-2 text-xs">
                                     {att.status === 'scanning' && <span className="italic">Se scanează…</span>}
                                     {att.status === 'blocked_malware' && <span className="text-red-600">❌ Fișier blocat (malware)</span>}
@@ -1016,178 +958,5 @@ function MessageBubble({
                 </div>
             )}
             </>
-    );
-}
-
-// Create Group Dialog Component
-function CreateGroupDialog({ onGroupCreated }: { onGroupCreated: () => void }) {
-    const { user } = useAuth();
-    const { createGroup, isUserOnline } = useChat();
-    const [open, setOpen] = useState(false);
-    const [groupName, setGroupName] = useState('');
-    const [groupType, setGroupType] = useState<'PROJECT' | 'PROVIDER_ONLY' | 'DIRECT'>('DIRECT');
-    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-    const [availableUsers, setAvailableUsers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    const loadAvailableUsers = useCallback(async () => {
-        try {
-            // Load users based on role
-            let response;
-            if (user?.role === 'CLIENT') {
-                response = await apiClient.getProviders();
-            } else {
-                response = await apiClient.getUsers({ role: 'PROVIDER' });
-            }
-            setAvailableUsers(response.users || response.providers || []);
-        } catch (error) {
-            console.error('Failed to load users:', error);
-        }
-    }, [user?.role]);
-
-    useEffect(() => {
-        if (open) {
-            loadAvailableUsers();
-        }
-    }, [loadAvailableUsers, open]);
-
-    const handleCreateGroup = async () => {
-        if (!groupName.trim() || selectedUsers.length === 0) return;
-
-        setLoading(true);
-        try {
-            await createGroup({
-                name: groupName,
-                type: groupType,
-                participantIds: selectedUsers
-            });
-
-            setOpen(false);
-            setGroupName('');
-            setSelectedUsers([]);
-            onGroupCreated();
-        } catch (error) {
-            console.error('Failed to create group:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const sortedAvailableUsers = useMemo(() => {
-        return [...availableUsers].sort((a, b) => {
-            const aOnline = isUserOnline(a.id);
-            const bOnline = isUserOnline(b.id);
-
-            // online first
-            if (aOnline !== bOnline) return Number(bOnline) - Number(aOnline);
-
-            // then by name (optional)
-            const aName = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim();
-            const bName = `${b.firstName ?? ""} ${b.lastName ?? ""}`.trim();
-            return aName.localeCompare(bName);
-        });
-    }, [availableUsers, isUserOnline]);
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="w-8 h-8">
-                    <Plus className="w-4 h-4" />
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Creează Grup Nou</DialogTitle>
-                    <DialogDescription>
-                        Adaugă participanți pentru a începe o conversație
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium mb-2 block">Nume Grup</label>
-                        <Input
-                            value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
-                            placeholder="ex: Proiect Website"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium mb-2 block">Tip Grup</label>
-                        <Select value={groupType} onValueChange={(value: any) => setGroupType(value)}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="DIRECT">Conversație Directă</SelectItem>
-                                <SelectItem value="PROJECT">Grup Proiect</SelectItem>
-                                {user?.role === 'PROVIDER' && (
-                                    <SelectItem value="PROVIDER_ONLY">Doar Prestatori</SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium mb-2 block">Participanți</label>
-                        <div className="max-h-48 overflow-y-auto space-y-2">
-                            {sortedAvailableUsers.map(availableUser => (
-                                <div key={availableUser.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id={availableUser.id}
-                                        checked={selectedUsers.includes(availableUser.id)}
-                                        onCheckedChange={(checked) => {
-                                            if (checked) {
-                                                setSelectedUsers(prev => [...prev, availableUser.id]);
-                                            } else {
-                                                setSelectedUsers(prev => prev.filter(id => id !== availableUser.id));
-                                            }
-                                        }}
-                                    />
-                                    <Avatar className="w-8 h-8">
-                                        <AvatarImage src={availableUser.avatar} />
-                                        <AvatarFallback className="text-xs">
-                                            {availableUser.firstName[0]}{availableUser.lastName[0]}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <div className="flex items-center gap-2 text-sm font-medium">
-                                            {availableUser.firstName} {availableUser.lastName} <div className={`w-2 h-2 ${isUserOnline(availableUser.id) ? 'bg-green-500' : 'bg-red-500' } rounded-full`} />
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {availableUser.role === 'PROVIDER' ? 'Prestator' : 'Client'}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="flex space-x-2">
-                        <Button
-                            onClick={handleCreateGroup}
-                            disabled={loading || !groupName.trim() || selectedUsers.length === 0}
-                            className="flex-1"
-                        >
-                            {loading ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                    Se creează...
-                                </>
-                            ) : (
-                                <>
-                                    <Users className="w-4 h-4 mr-2" />
-                                    Creează Grup
-                                </>
-                            )}
-                        </Button>
-                        <Button variant="outline" onClick={() => setOpen(false)}>
-                            Anulează
-                        </Button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
     );
 }
