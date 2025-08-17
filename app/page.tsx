@@ -25,14 +25,13 @@ export const revalidate = 3600;
 
 // Lazy load non-critical components
 const TestimonialsSection = dynamic(() =>
-        import('@/components/testimonials-section').then(m => ({ default: m.TestimonialsSection })),
-    { ssr: false }
+    import('@/components/testimonials-section').then(m => ({ default: m.TestimonialsSection }))
 );
 
-const HeroSectionEnhanced = dynamic(() =>
-        import('@/components/hero-section').then(m => ({ default: m.HeroSectionEnhanced })),
+// Client-side enhanced hero - moved to client component
+const HeroSectionClient = dynamic(() =>
+        import('@/components/hero-section.client'),
     {
-      ssr: false,
       loading: () => null // No loading state needed, static content is already there
     }
 );
@@ -146,7 +145,7 @@ export default function Home() {
           <HeroSectionStatic />
 
           {/* Progressive enhancement after LCP */}
-          <HeroSectionEnhanced />
+          <HeroSectionClient />
 
           {/* Above-the-fold categories - SSR for better performance */}
           <section

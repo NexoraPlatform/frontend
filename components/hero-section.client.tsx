@@ -73,15 +73,15 @@ const HeroSkeleton = () => (
     </section>
 );
 
-// Optimized dynamic import with better loading strategy
-const HeroSection = dynamic(
-    () => import('./hero-section').then(m => m.HeroSection),
+// Client-side only dynamic import with proper ssr: false
+const HeroSectionEnhanced = dynamic(
+    () => import('./hero-section').then(m => ({ default: m.HeroSectionEnhanced })),
     {
-        ssr: false, // Client-side only for better performance
+        ssr: false, // Now allowed because this is a Client Component
         loading: () => <HeroSkeleton />
     }
 );
 
 export default function HeroSectionClient() {
-    return <HeroSection />;
+    return <HeroSectionEnhanced />;
 }
