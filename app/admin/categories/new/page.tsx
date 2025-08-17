@@ -195,7 +195,7 @@ export default function NewCategoryPage() {
                 <div ref={containerRef}>
                   <Label htmlFor="icon">Iconiță</Label>
 
-                  <IconSearchDropdown collections={collections} onChange={handleSelect} />
+                  <IconSearchDropdown collections={collections} onChangeAction={handleSelect} />
                   <div className="flex items-center gap-2">
                     <span>Preview:</span>
                     {formData.icon ? <MuiIcon icon={formData.icon} size={24} /> : <span className="text-muted-foreground">—</span>}

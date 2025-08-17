@@ -9,6 +9,7 @@ import { ChatProvider } from "@/contexts/chat-context";
 import './globals.css';
 import Script from 'next/script';
 import { generateSEO, generateStructuredData } from "@/lib/seo";
+import React from "react";
 
 // Optimized font loading for modern browsers
 const inter = Inter({
@@ -17,7 +18,7 @@ const inter = Inter({
     preload: true,
     variable: '--font-inter',
     adjustFontFallback: true,
-    fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'],
+    fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segue UI', 'Roboto', 'Arial', 'sans-serif'],
 });
 
 // Separate viewport export for Next.js 15
@@ -219,9 +220,9 @@ export default function RootLayout({
 
             {/* Modern favicon with format selection */}
             <link rel="icon" href="/logo.webp" sizes="32x32" type="image/webp" />
-            <link rel="icon" href="/favicon.ico" sizes="32x32" type="image/x-icon" />
+            {/*<link rel="icon" href="/favicon.ico" sizes="32x32" type="image/x-icon" />*/}
             <link rel="apple-touch-icon" href="/logo.webp" sizes="180x180" />
-            <link rel="mask-icon" href="/logo.svg" color="#3b82f6" />
+            <link rel="mask-icon" href="/logo.webp" color="#3b82f6" />
 
             {/* PWA manifest */}
             <link rel="manifest" href="/manifest.json" />
@@ -294,7 +295,6 @@ export default function RootLayout({
         </head>
 
         <body className="font-sans antialiased">
-        {/* Skip to main content for accessibility */}
         <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded focus-ring"
@@ -302,7 +302,6 @@ export default function RootLayout({
             Skip to main content
         </a>
 
-        {/* Modern structured data loading */}
         <Script
             id="org-jsonld"
             type="application/ld+json"
@@ -331,7 +330,6 @@ export default function RootLayout({
                         disableTransitionOnChange
                         storageKey="nexora-theme"
                     >
-                        {/* Activity tracker loaded after critical path */}
                         <ActivityTracker />
 
                         {/* Main content */}

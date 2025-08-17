@@ -20,13 +20,13 @@ function useDebounced<T>(v: T, delay = 300) {
 
 export function IconSearchDropdown({
                                        value,
-                                       onChange,
+                                       onChangeAction,
                                        collections = DEFAULT_COLLECTIONS as unknown as string[], // păstrează stabil
                                        placeholder = 'Caută icon...',
                                        limit = 50,
                                    }: {
     value?: string;
-    onChange: (id: string) => void;
+    onChangeAction: (id: string) => void;
     collections?: string[]; // dacă părintele pasează inline, vezi nota de mai jos
     placeholder?: string;
     limit?: number;
@@ -95,7 +95,7 @@ export function IconSearchDropdown({
                         if (!open) return;
                         if (e.key === 'ArrowDown') { e.preventDefault(); setHi((x) => Math.min(x + 1, results.length - 1)); }
                         if (e.key === 'ArrowUp')   { e.preventDefault(); setHi((x) => Math.max(x - 1, 0)); }
-                        if (e.key === 'Enter')     { e.preventDefault(); const pick = results[hi]; if (pick) { onChange(pick.id); setOpen(false); } }
+                        if (e.key === 'Enter')     { e.preventDefault(); const pick = results[hi]; if (pick) { onChangeAction(pick.id); setOpen(false); } }
                         if (e.key === 'Escape')    { setOpen(false); }
                     }}
                 />
@@ -115,7 +115,7 @@ export function IconSearchDropdown({
                             <button
                                 key={r.id}
                                 type="button"
-                                onClick={() => { onChange(r.id); setOpen(false); }}
+                                onClick={() => { onChangeAction(r.id); setOpen(false); }}
                                 className={`w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-muted ${idx === hi ? 'bg-muted' : ''}`}
                             >
                                 <MuiIcon icon={r.id} size={20} />
