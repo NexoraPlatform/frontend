@@ -4,6 +4,8 @@
    ============================================== */
 
 @tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Essential CSS Variables */
 :root {
@@ -26,8 +28,20 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221 83% 53%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
     --radius: 0.75rem;
     --nexora-blue: 221 83% 53%;
+    --nexora-blue-dark: 221 83% 43%;
+    --nexora-blue-light: 221 83% 63%;
+    --nexora-navy: 221 39% 11%;
+    --nexora-gray: 215 25% 27%;
+    --nexora-light-gray: 215 16% 47%;
+    --trust-green: 142 76% 36%;
+    --trust-gold: 45 93% 47%;
 }
 
 .dark {
@@ -50,6 +64,11 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 221 83% 53%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
 }
 
 /* Base Styles - Critical for LCP */
@@ -104,6 +123,7 @@ body {
 
 .flex { display: flex; }
 .inline-flex { display: inline-flex; }
+.grid { display: grid; }
 .hidden { display: none; }
 .block { display: block; }
 .inline { display: inline; }
@@ -117,11 +137,18 @@ body {
 .flex-col { flex-direction: column; }
 .flex-1 { flex: 1 1 0%; }
 
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
 .space-x-2 > * + * { margin-left: 0.5rem; }
 .space-x-3 > * + * { margin-left: 0.75rem; }
 .space-x-4 > * + * { margin-left: 1rem; }
 .space-x-6 > * + * { margin-left: 1.5rem; }
 .space-x-8 > * + * { margin-left: 2rem; }
+
+.gap-3 { gap: 0.75rem; }
+.gap-6 { gap: 1.5rem; }
+.gap-8 { gap: 2rem; }
 
 .min-h-screen { min-height: 100vh; }
 .max-w-4xl { max-width: 56rem; }
@@ -158,9 +185,14 @@ body {
 .text-muted-foreground { color: hsl(var(--muted-foreground)); }
 .text-foreground { color: hsl(var(--foreground)); }
 .text-white { color: #ffffff; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-700 { color: #1d4ed8; }
+.text-green-600 { color: #16a34a; }
+.text-purple-600 { color: #9333ea; }
 
 .bg-white { background-color: #ffffff; }
 .bg-background { background-color: hsl(var(--background)); }
+.bg-blue-50 { background-color: #eff6ff; }
 .bg-transparent { background-color: transparent; }
 
 /* Essential Gradients */
@@ -182,6 +214,14 @@ body {
 }
 .to-indigo-600 { --tw-gradient-to: #4f46e5; }
 .to-purple-600 { --tw-gradient-to: #9333ea; }
+
+.from-blue-50 { --tw-gradient-from: #eff6ff; }
+.via-indigo-50 { --tw-gradient-to: #eef2ff; }
+.to-purple-50 { --tw-gradient-to: #faf5ff; }
+
+.from-blue-100 { --tw-gradient-from: #dbeafe; }
+.via-indigo-100 { --tw-gradient-to: #e0e7ff; }
+.to-purple-100 { --tw-gradient-to: #f3e8ff; }
 
 /* Text gradients - Critical for hero */
 .bg-clip-text {
@@ -275,6 +315,8 @@ body {
     .md\:flex { display: flex; }
     .md\:hidden { display: none; }
     .md\:text-6xl { font-size: 3.75rem; line-height: 1; }
+    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .md\:mr-3 { margin-right: 0.75rem; }
     .md\:px-12 { padding-left: 3rem; padding-right: 3rem; }
     .md\:inline { display: inline; }
@@ -286,6 +328,7 @@ body {
     .lg\:text-8xl { font-size: 6rem; line-height: 1; }
     .lg\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
     .lg\:text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+    .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* Width and Height utilities */
@@ -382,3 +425,9 @@ body {
 /* Performance hints */
 .will-change-transform { will-change: transform; }
 .will-change-opacity { will-change: opacity; }
+
+/* Content visibility for below-the-fold optimization */
+.lazy-section {
+    content-visibility: auto;
+    contain-intrinsic-size: 400px;
+}

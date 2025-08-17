@@ -3,16 +3,10 @@
    File: non-critical.css
    ============================================== */
 
-@tailwind components;
-@tailwind utilities;
-
 /* Extended Color Palette - Only keep used colors */
 .text-blue-600 { color: #2563eb; }
 .text-green-900 { color: #14532d; }
 .text-green-300 { color: #86efac; }
-.text-blue-700 { color: #1d4ed8; }
-.text-green-600 { color: #16a34a; }
-.text-purple-600 { color: #9333ea; }
 
 .bg-blue-50 { background-color: #eff6ff; }
 .bg-green-50 { background-color: #f0fdf4; }
@@ -23,12 +17,7 @@
 
 /* Grid System - Below fold */
 .grid { display: grid; }
-.gap-3 { gap: 0.75rem; }
-.gap-6 { gap: 1.5rem; }
 .gap-8 { gap: 2rem; }
-
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 @media (min-width: 768px) {
     .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -178,102 +167,4 @@
     .nexora-gradient {
         background: hsl(var(--nexora-blue));
     }
-}
-
-/* Additional styles moved from globals.css */
-.inline-flex { display: inline-flex; }
-.flex-col { flex: 1 1 0%; }
-
-.space-x-2 > * + * { margin-left: 0.5rem; }
-.space-x-3 > * + * { margin-left: 0.75rem; }
-.space-x-4 > * + * { margin-left: 1rem; }
-.space-x-6 > * + * { margin-left: 1.5rem; }
-.space-x-8 > * + * { margin-left: 2rem; }
-
-.max-w-4xl { max-width: 56rem; }
-.max-w-6xl { max-width: 72rem; }
-
-.text-blue-600 { color: #2563eb; }
-.text-blue-700 { color: #1d4ed8; }
-.text-green-600 { color: #16a34a; }
-.text-purple-600 { color: #9333ea; }
-
-.bg-blue-50 { background-color: #eff6ff; }
-.bg-transparent { background-color: transparent; }
-
-/* Additional gradients */
-.from-blue-50 { --tw-gradient-from: #eff6ff; }
-.via-indigo-50 { --tw-gradient-to: #eef2ff; }
-.to-purple-50 { --tw-gradient-to: #faf5ff; }
-
-.from-blue-100 { --tw-gradient-from: #dbeafe; }
-.via-indigo-100 { --tw-gradient-to: #e0e7ff; }
-.to-purple-100 { --tw-gradient-to: #f3e8ff; }
-
-/* Additional responsive classes */
-@media (min-width: 768px) {
-    .md\:text-6xl { font-size: 3.75rem; line-height: 1; }
-    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .md\:mr-3 { margin-right: 0.75rem; }
-    .md\:px-12 { padding-left: 3rem; padding-right: 3rem; }
-    .md\:inline { display: inline; }
-}
-
-@media (min-width: 1024px) {
-    .lg\:flex { display: flex; }
-    .lg\:hidden { display: none; }
-    .lg\:text-8xl { font-size: 6rem; line-height: 1; }
-    .lg\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
-    .lg\:text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
-    .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-/* Additional width/height utilities */
-.w-5 { width: 1.25rem; }
-.w-6 { width: 1.5rem; }
-.w-7 { width: 1.75rem; }
-.h-5 { height: 1.25rem; }
-.h-6 { height: 1.5rem; }
-.h-7 { height: 1.75rem; }
-.h-10 { height: 2.5rem; }
-.h-12 { height: 3rem; }
-.h-20 { height: 5rem; }
-
-/* Additional layout utilities */
-.overflow-hidden { overflow: hidden; }
-.text-center { text-align: center; }
-
-/* Additional transition utilities */
-.transition-all { transition: all 0.2s ease; }
-.transition-colors { transition: color, background-color, border-color 0.15s ease; }
-.transition-transform { transition: transform 0.2s ease; }
-
-.hover\:scale-105:hover { transform: scale(1.05); }
-.hover\:text-primary:hover { color: hsl(var(--primary)); }
-
-/* Additional backdrop blur utilities */
-.backdrop-blur-sm { backdrop-filter: blur(4px); }
-.backdrop-blur-xl { backdrop-filter: blur(24px); }
-
-/* Additional pointer events utilities */
-.pointer-events-none { pointer-events: none; }
-
-/* Additional transform utilities */
-.transform { transform: translateX(var(--tw-translate-x, 0)) translateY(var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0)) skewX(var(--tw-skew-x, 0)) skewY(var(--tw-skew-y, 0)) scaleX(var(--tw-scale-x, 1)) scaleY(var(--tw-scale-y, 1)); }
-.-translate-x-1\/2 { --tw-translate-x: -50%; }
-.-translate-y-1\/2 { --tw-translate-y: -50%; }
-
-/* Additional opacity utilities */
-.opacity-5 { opacity: 0.05; }
-.opacity-20 { opacity: 0.2; }
-
-/* Additional performance hints */
-.will-change-transform { will-change: transform; }
-.will-change-opacity { will-change: opacity; }
-
-/* Additional content visibility for below-the-fold optimization */
-.lazy-section {
-    content-visibility: auto;
-    contain-intrinsic-size: 400px;
 }
