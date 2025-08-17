@@ -1,10 +1,8 @@
-// Force static generation for better performance
 export const dynamic = 'force-static';
-export const revalidate = 3600; // Revalidate every hour
-
-import { Suspense, lazy } from 'react';
+import { Suspense } from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { HeroSectionStatic } from '@/components/hero-section-static';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,120 +19,137 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 
-// Lazy load heavy components that are below the fold
-const TestimonialsSection = lazy(() =>
-    import('@/components/testimonials-section').then(m => ({ default: m.TestimonialsSection }))
+// Force static generation for best performance
+export const revalidate = 3600;
+
+// Lazy load non-critical components
+const TestimonialsSection = dynamic(() =>
+        import('@/components/testimonials-section').then(m => ({ default: m.TestimonialsSection })),
+    { ssr: false }
 );
 
-// Import optimized hero section
-import HeroSectionClient from '@/components/hero-section.client';
+const HeroSectionEnhanced = dynamic(() =>
+        import('@/components/hero-section').then(m => ({ default: m.HeroSectionEnhanced })),
+    {
+      ssr: false,
+      loading: () => null // No loading state needed, static content is already there
+    }
+);
 
-// Loading component for testimonials
+// Precomputed categories data for SSR
+const CATEGORIES = [
+  {
+    icon: Code,
+    title: 'Dezvoltare Web',
+    description: 'Site-uri web moderne, aplicații complexe și soluții e-commerce performante',
+    count: '150+ servicii',
+    color: 'from-blue-500 via-blue-600 to-cyan-500',
+    bgColor: 'bg-gradient-to-br from-blue-50 via-blue-100 to-cyan-50 dark:from-blue-950/50 dark:via-blue-900/30 dark:to-cyan-950/50',
+    projects: '2,847 proiecte',
+    avgPrice: 'de la 1,500 RON',
+    trend: '+23%',
+    slug: 'dezvoltare-web'
+  },
+  {
+    icon: Smartphone,
+    title: 'Aplicații Mobile',
+    description: 'Apps native și cross-platform pentru iOS și Android cu UX excepțional',
+    count: '80+ servicii',
+    color: 'from-emerald-500 via-green-600 to-teal-500',
+    bgColor: 'bg-gradient-to-br from-emerald-50 via-green-100 to-teal-50 dark:from-emerald-950/50 dark:via-green-900/30 dark:to-teal-950/50',
+    projects: '1,234 proiecte',
+    avgPrice: 'de la 3,000 RON',
+    trend: '+18%',
+    slug: 'aplicatii-mobile'
+  },
+  {
+    icon: Palette,
+    title: 'Design UI/UX',
+    description: 'Design modern, experiențe utilizator intuitive și branding memorabil',
+    count: '120+ servicii',
+    color: 'from-purple-500 via-violet-600 to-pink-500',
+    bgColor: 'bg-gradient-to-br from-purple-50 via-violet-100 to-pink-50 dark:from-purple-950/50 dark:via-violet-900/30 dark:to-pink-950/50',
+    projects: '3,456 proiecte',
+    avgPrice: 'de la 800 RON',
+    trend: '+31%',
+    slug: 'design-ui-ux'
+  },
+  {
+    icon: TrendingUp,
+    title: 'Marketing Digital',
+    description: 'SEO, social media, campanii publicitare și content marketing strategic',
+    count: '90+ servicii',
+    color: 'from-orange-500 via-red-500 to-pink-500',
+    bgColor: 'bg-gradient-to-br from-orange-50 via-red-100 to-pink-50 dark:from-orange-950/50 dark:via-red-900/30 dark:to-pink-950/50',
+    projects: '1,987 proiecte',
+    avgPrice: 'de la 500 RON',
+    trend: '+27%',
+    slug: 'marketing-digital'
+  },
+] as const;
+
+const FEATURES = [
+  {
+    icon: Shield,
+    title: 'Siguranță Garantată',
+    description: 'Plăți securizate prin escrow, protecția datelor și verificarea riguroasă a experților',
+    gradient: 'from-emerald-500 via-green-600 to-teal-600',
+    stats: '99.9% securitate',
+  },
+  {
+    icon: Users,
+    title: 'Experți Verificați',
+    description: 'Toți furnizorii sunt verificați prin teste, portofoliu și referințe de la clienți reali',
+    gradient: 'from-blue-500 via-indigo-600 to-purple-600',
+    stats: '500+ experți',
+  },
+  {
+    icon: Zap,
+    title: 'Livrare Rapidă',
+    description: 'Proiecte finalizate în termenii stabiliți cu milestone-uri clare și comunicare constantă',
+    gradient: 'from-yellow-500 via-orange-600 to-red-600',
+    stats: '2.3x mai rapid',
+  },
+  {
+    icon: Award,
+    title: 'Calitate Premium',
+    description: 'Servicii de înaltă calitate cu garanție extinsă și suport post-livrare inclus',
+    gradient: 'from-purple-500 via-pink-600 to-rose-600',
+    stats: '98.5% satisfacție',
+  },
+] as const;
+
+// Simple testimonials loading fallback
 const TestimonialsLoading = () => (
     <section className="py-12 bg-gradient-to-b from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950/50 dark:via-blue-950/10 dark:to-purple-950/10">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
-          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-8 animate-pulse" />
-          <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto max-w-2xl mb-8 animate-pulse" />
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mx-auto max-w-4xl animate-pulse" />
+          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-8 skeleton" />
+          <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto max-w-2xl mb-8 skeleton" />
+          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mx-auto max-w-4xl skeleton" />
         </div>
         <div className="max-w-5xl mx-auto">
-          <div className="h-96 bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl animate-pulse" />
+          <div className="h-96 bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl skeleton" />
         </div>
       </div>
     </section>
 );
 
 export default function Home() {
-  // Optimized categories data with precomputed values
-  const categories = [
-    {
-      icon: Code,
-      title: 'Dezvoltare Web',
-      description: 'Site-uri web moderne, aplicații complexe și soluții e-commerce performante',
-      count: '150+ servicii',
-      color: 'from-blue-500 via-blue-600 to-cyan-500',
-      bgColor: 'bg-gradient-to-br from-blue-50 via-blue-100 to-cyan-50 dark:from-blue-950/50 dark:via-blue-900/30 dark:to-cyan-950/50',
-      projects: '2,847 proiecte',
-      avgPrice: 'de la 1,500 RON',
-      trend: '+23%',
-    },
-    {
-      icon: Smartphone,
-      title: 'Aplicații Mobile',
-      description: 'Apps native și cross-platform pentru iOS și Android cu UX excepțional',
-      count: '80+ servicii',
-      color: 'from-emerald-500 via-green-600 to-teal-500',
-      bgColor: 'bg-gradient-to-br from-emerald-50 via-green-100 to-teal-50 dark:from-emerald-950/50 dark:via-green-900/30 dark:to-teal-950/50',
-      projects: '1,234 proiecte',
-      avgPrice: 'de la 3,000 RON',
-      trend: '+18%',
-    },
-    {
-      icon: Palette,
-      title: 'Design UI/UX',
-      description: 'Design modern, experiențe utilizator intuitive și branding memorabil',
-      count: '120+ servicii',
-      color: 'from-purple-500 via-violet-600 to-pink-500',
-      bgColor: 'bg-gradient-to-br from-purple-50 via-violet-100 to-pink-50 dark:from-purple-950/50 dark:via-violet-900/30 dark:to-pink-950/50',
-      projects: '3,456 proiecte',
-      avgPrice: 'de la 800 RON',
-      trend: '+31%',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Marketing Digital',
-      description: 'SEO, social media, campanii publicitare și content marketing strategic',
-      count: '90+ servicii',
-      color: 'from-orange-500 via-red-500 to-pink-500',
-      bgColor: 'bg-gradient-to-br from-orange-50 via-red-100 to-pink-50 dark:from-orange-950/50 dark:via-red-900/30 dark:to-pink-950/50',
-      projects: '1,987 proiecte',
-      avgPrice: 'de la 500 RON',
-      trend: '+27%',
-    },
-  ];
-
-  const features = [
-    {
-      icon: Shield,
-      title: 'Siguranță Garantată',
-      description: 'Plăți securizate prin escrow, protecția datelor și verificarea riguroasă a experților',
-      gradient: 'from-emerald-500 via-green-600 to-teal-600',
-      stats: '99.9% securitate',
-    },
-    {
-      icon: Users,
-      title: 'Experți Verificați',
-      description: 'Toți furnizorii sunt verificați prin teste, portofoliu și referințe de la clienți reali',
-      gradient: 'from-blue-500 via-indigo-600 to-purple-600',
-      stats: '500+ experți',
-    },
-    {
-      icon: Zap,
-      title: 'Livrare Rapidă',
-      description: 'Proiecte finalizate în termenii stabiliți cu milestone-uri clare și comunicare constantă',
-      gradient: 'from-yellow-500 via-orange-600 to-red-600',
-      stats: '2.3x mai rapid',
-    },
-    {
-      icon: Award,
-      title: 'Calitate Premium',
-      description: 'Servicii de înaltă calitate cu garanție extinsă și suport post-livrare inclus',
-      gradient: 'from-purple-500 via-pink-600 to-rose-600',
-      stats: '98.5% satisfacție',
-    },
-  ];
-
   return (
       <div className="bg-background font-sans">
         <Header />
 
         <main role="main" aria-label="Conținut principal" id="main-content">
-          {/* Hero Section - Critical above-the-fold content */}
-          <HeroSectionClient />
+          {/* CRITICAL: Server-rendered hero for instant LCP */}
+          <HeroSectionStatic />
 
-          {/* Categories Section - Above the fold on desktop */}
+          {/* Progressive enhancement after LCP */}
+          <HeroSectionEnhanced />
+
+          {/* Above-the-fold categories - SSR for better performance */}
           <section
               className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden font-sans"
               aria-labelledby="categories-heading"
@@ -166,10 +181,10 @@ export default function Home() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista categorii de servicii">
-                {categories.map((category) => (
+                {CATEGORIES.map((category) => (
                     <Card
                         key={category.title}
-                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm will-change-transform"
+                        className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
                         role="listitem"
                         tabIndex={0}
                         aria-label={`Categorie ${category.title}: ${category.description}`}
@@ -219,7 +234,7 @@ export default function Home() {
                             aria-label={`Explorează servicii din categoria ${category.title}`}
                             asChild
                         >
-                          <Link href={`/services?category=${category.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                          <Link href={`/services?category=${category.slug}`}>
                             Explorează
                             <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                           </Link>
@@ -231,9 +246,9 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Features Section */}
+          {/* Features Section - Server rendered for better FCP */}
           <section
-              className="py-12 relative overflow-hidden lazy-section"
+              className="py-12 relative overflow-hidden"
               aria-labelledby="features-heading"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-indigo-600/5" aria-hidden="true" />
@@ -261,7 +276,7 @@ export default function Home() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista beneficii Nexora">
-                {features.map((feature) => (
+                {FEATURES.map((feature) => (
                     <div
                         key={feature.title}
                         className="text-center group relative"
@@ -313,14 +328,14 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Testimonials Section - Lazy loaded */}
+          {/* Testimonials Section - Lazy loaded below the fold */}
           <Suspense fallback={<TestimonialsLoading />}>
             <TestimonialsSection />
           </Suspense>
 
-          {/* CTA Section */}
+          {/* CTA Section - Server rendered for better performance */}
           <section
-              className="py-12 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden lazy-section"
+              className="py-12 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden"
               aria-labelledby="cta-heading"
           >
             <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%2256%22%20height=%2256%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath%20d=%22M28%200l14%208v16l-14%208-14-8V8z%22%20fill=%22none%22%20stroke=%22%23ffffff%22%20stroke-width=%221%22%20opacity=%220.1%22/%3E%3C/svg%3E')] opacity-20" aria-hidden="true" />

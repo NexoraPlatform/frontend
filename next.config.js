@@ -3,14 +3,18 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  // Modern bundling
-  turbopack: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
+
+  // Compiler optimizations with modern JS target
+  compiler: {
+    // Remove console logs in production
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn']
+    } : false,
+
+    // React optimizations
+    reactRemoveProperties: process.env.NODE_ENV === 'production' ? {
+      properties: ['^data-testid$']
+    } : false,
   },
 
   // Image optimization
@@ -38,6 +42,7 @@ const nextConfig = {
     // CSS optimization
     optimizeCss: true,
     reactCompiler: true,
+
     // Package imports optimization
     optimizePackageImports: [
       'lucide-react',
@@ -48,6 +53,9 @@ const nextConfig = {
 
     // Bundle optimization
     optimizeServerReact: true,
+
+    // Enable modern compilation
+    forceSwcTransforms: true,
   },
 
   env: {
@@ -56,7 +64,6 @@ const nextConfig = {
 
   // TypeScript configuration
   typescript: {
-    // Enable type checking during build
     ignoreBuildErrors: false,
   },
 
@@ -68,55 +75,60 @@ const nextConfig = {
   // Static export optimization
   trailingSlash: false,
 
-  // Enable modern features
-  swcMinify: true,
-
   // Production source maps for debugging (optional)
   productionBrowserSourceMaps: false,
 
-  // Compiler optimizations
-  compiler: {
-    // Remove console logs in production
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn']
-    } : false,
-
-    // React optimizations
-    reactRemoveProperties: process.env.NODE_ENV === 'production' ? {
-      properties: ['^data-testid$']
-    } : false,
-  },
-
-  // Webpack optimizations
+  // Webpack optimizations for modern JavaScript
   webpack: (config, { dev, isServer }) => {
-    // Production optimizations
-    if (!dev && !isServer) {
-      // Bundle analyzer (optional)
-      if (process.env.ANALYZE === 'true') {
-        const withBundleAnalyzer = require('@next/bundle-analyzer')({
-          enabled: true,
-        });
-        return withBundleAnalyzer(config);
-      }
+    // Modern JavaScript target configuration
+    if (!dev) {
+      // Target modern browsers - ES2022+ features
+      config.target = isServer ? 'node18' : ['web', 'es2022'];
 
-      // Tree shaking optimization
+      // Enable modern optimizations
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: false,
+        // Use modern minification
+        minimize: true,
+        concatenateModules: true,
       };
+
+      // Modern browser compatibility
+      config.resolve = {
+        ...config.resolve,
+        conditionNames: ['import', 'require', 'node', 'default'],
+      };
+    }
+
+    // Bundle analyzer (optional)
+    if (!dev && !isServer && process.env.ANALYZE === 'true') {
+      const withBundleAnalyzer = require('@next/bundle-analyzer')({
+        enabled: true,
+      });
+      return withBundleAnalyzer(config);
     }
 
     // SVG optimization
     config.module.rules.push(
-        { test: /\.svg$/i, issuer: /\.[jt]sx?$/, resourceQuery: { not: [/url/] }, use: ['@svgr/webpack'] },
-        { test: /\.svg$/i, resourceQuery: /url/, type: 'asset/resource' }
+        {
+          test: /\.svg$/i,
+          issuer: /\.[jt]sx?$/,
+          resourceQuery: { not: [/url/] },
+          use: ['@svgr/webpack']
+        },
+        {
+          test: /\.svg$/i,
+          resourceQuery: /url/,
+          type: 'asset/resource'
+        }
     );
 
     return config;
   },
 
-  // Headers for performance
+  // Modern headers with security optimizations
   async headers() {
     return [
       {
@@ -134,9 +146,19 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          // Enable modern browser features
+          {
+            key: 'Accept-CH',
+            value: 'Viewport-Width, Width, DPR',
+          },
         ],
       },
       {
+        // Long-term caching for static assets
         source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
         headers: [
           {
@@ -146,11 +168,22 @@ const nextConfig = {
         ],
       },
       {
+        // Long-term caching for Next.js static files
         source: '/_next/static/(.*)',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Preload critical resources
+        source: '/',
+        headers: [
+          {
+            key: 'Link',
+            value: '</logo-60.webp>; rel=preload; as=image; type=image/webp',
           },
         ],
       },
