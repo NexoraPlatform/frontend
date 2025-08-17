@@ -17,6 +17,13 @@ const nextConfig = {
     } : false,
   },
 
+  // Modern browser optimizations
+  modularizeImports: {
+    'lodash': {
+      transform: 'lodash/{{member}}',
+    },
+  },
+
   // Image optimization
   images: {
     remotePatterns: [
