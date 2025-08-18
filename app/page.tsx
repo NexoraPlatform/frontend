@@ -144,8 +144,6 @@ export default function Home() {
           {/* CRITICAL: Server-rendered hero for instant LCP */}
           <HeroSectionStatic />
 
-          {/* Progressive enhancement after LCP */}
-          <HeroSectionClient />
 
           {/* Above-the-fold categories - SSR for better performance */}
           <section
