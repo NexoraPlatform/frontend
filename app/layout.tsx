@@ -214,7 +214,6 @@ export default function RootLayout({
         <html lang="ro" suppressHydrationWarning className={inter.variable}>
         <head>
             {/* Critical resource hints */}
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
             <link rel="dns-prefetch" href="//images.pexels.com" />
             <link rel="dns-prefetch" href="//api.nexora.ro" />
 
