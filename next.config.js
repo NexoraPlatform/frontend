@@ -13,14 +13,25 @@ const nextConfig = {
 
     // React optimizations
     reactRemoveProperties: process.env.NODE_ENV === 'production' ? {
-      properties: ['^data-testid$']
+      properties: ['^data-testid']
     } : false,
+    styledComponents: {
+      displayName: process.env.NODE_ENV !== 'production',
+      ssr: true,
+      fileName: false,
+      minify: true,
+      transpileTemplateLiterals: true,
+      pure: true,
+    },
   },
 
   // Modern browser optimizations
   modularizeImports: {
     'lodash': {
       transform: 'lodash/{{member}}',
+    },
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
     },
   },
 
@@ -46,8 +57,10 @@ const nextConfig = {
 
   // Experimental features for performance
   experimental: {
-    // CSS optimization
+    // CRITICAL: CSS optimization
     optimizeCss: true,
+
+    // React compiler
     reactCompiler: true,
 
     // Package imports optimization
@@ -55,7 +68,8 @@ const nextConfig = {
       'lucide-react',
       '@radix-ui/react-slot',
       'class-variance-authority',
-      'date-fns'
+      'date-fns',
+      'framer-motion'
     ],
 
     // Bundle optimization
@@ -63,6 +77,80 @@ const nextConfig = {
 
     // Enable modern compilation
     forceSwcTransforms: true,
+
+
+    // CSS-in-JS optimization
+    swcPlugins: [
+      ['@swc/plugin-styled-components', {
+        displayName: process.env.NODE_ENV === 'development',
+        ssr: true,
+      }]
+    ],
+  },
+
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    // Production optimizations
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+
+        // Module concatenation
+        concatenateModules: true,
+
+        // Tree shaking
+        usedExports: true,
+        sideEffects: false,
+
+        // Split chunks optimization
+        splitChunks: {
+          chunks: 'all',
+          minSize: 20000,
+          maxSize: 244000,
+          cacheGroups: {
+            framework: {
+              chunks: 'all',
+              name: 'framework',
+              test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            lib: {
+              test(module) {
+                return module.size() > 160000 && /node_modules[/\\]/.test(module.identifier());
+              },
+              name: 'lib',
+              priority: 30,
+              minChunks: 1,
+              reuseExistingChunk: true,
+            },
+            commons: {
+              name: 'commons',
+              minChunks: 2,
+              priority: 20,
+            },
+            shared: {
+              name: 'shared',
+              minChunks: 2,
+              priority: 10,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+      };
+    }
+
+    // CSS optimization
+    if (!isServer) {
+      config.optimization.splitChunks.cacheGroups.styles = {
+        name: 'styles',
+        test: /\.(css|scss|sass)$/,
+        chunks: 'all',
+        enforce: true,
+      };
+    }
+
+    return config;
   },
 
   env: {
@@ -82,15 +170,16 @@ const nextConfig = {
   // Static export optimization
   trailingSlash: false,
 
-  // Production source maps for debugging (optional)
+  // Production source maps for debugging (disabled for performance)
   productionBrowserSourceMaps: false,
 
-  // Modern headers with security optimizations
+  // Modern headers with security and performance optimizations
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
+          // Security headers
           {
             key: 'X-Frame-Options',
             value: 'DENY',
@@ -107,20 +196,29 @@ const nextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
-          // Enable modern browser features
+          // Performance headers
           {
             key: 'Accept-CH',
             value: 'Viewport-Width, Width, DPR',
           },
+          // CRITICAL: Preload key resources
+          {
+            key: 'Link',
+            value: '</logo-60.webp>; rel=preload; as=image; type=image/webp, </logo-120.webp>; rel=preload; as=image; type=image/webp',
+          },
         ],
       },
       {
-        // Long-term caching for static assets
-        source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
+        // Long-term caching for images
+        source: '/(.*)\\.(jpg|jpeg|png|gif|ico|svg|webp|avif)',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Vary',
+            value: 'Accept',
           },
         ],
       },
@@ -134,23 +232,58 @@ const nextConfig = {
           },
         ],
       },
+      {
+        // CSS caching optimization
+        source: '/_next/static/css/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Content-Encoding',
+            value: 'gzip',
+          },
+        ],
+      },
     ];
   },
 
-  // Rewrites for better SEO
+  // Rewrites for better SEO and performance
   async rewrites() {
     return [
       {
         source: '/sitemap.xml',
         destination: '/api/sitemap',
       },
+      // Preload critical routes
+      {
+        source: '/preload/:path*',
+        destination: '/:path*',
+      },
+    ];
+  },
+
+  // Output configuration for static optimization
+  output: 'standalone',
+
+  // Generate static pages where possible
+  generateStaticParams: async () => {
+    // Pre-generate critical pages
+    return [
+      { slug: [''] }, // Homepage
+      { slug: ['services'] },
+      { slug: ['about'] },
     ];
   },
 };
 
 // Bundle analyzer wrapper
 const withBundleAnalyzer = process.env.ANALYZE === 'true'
-    ? require('@next/bundle-analyzer')({ enabled: true })
+    ? require('@next/bundle-analyzer')({
+      enabled: true,
+      openAnalyzer: false,
+    })
     : (config) => config;
 
 module.exports = withBundleAnalyzer(nextConfig);
