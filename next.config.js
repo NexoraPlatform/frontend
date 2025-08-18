@@ -15,24 +15,12 @@ const nextConfig = {
     reactRemoveProperties: process.env.NODE_ENV === 'production' ? {
       properties: ['^data-testid$']
     } : false,
-
-    styledComponents: {
-      displayName: process.env.NODE_ENV !== 'production',
-      ssr: true,
-      fileName: false,
-      minify: true,
-      transpileTemplateLiterals: true,
-      pure: true,
-    },
   },
 
   // Modern browser optimizations
   modularizeImports: {
     'lodash': {
       transform: 'lodash/{{member}}',
-    },
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
     },
   },
 
@@ -67,8 +55,7 @@ const nextConfig = {
       'lucide-react',
       '@radix-ui/react-slot',
       'class-variance-authority',
-      'date-fns',
-      'framer-motion'
+      'date-fns'
     ],
 
     // Bundle optimization
@@ -76,13 +63,6 @@ const nextConfig = {
 
     // Enable modern compilation
     forceSwcTransforms: true,
-
-    swcPlugins: [
-      ['@swc/plugin-styled-components', {
-        displayName: process.env.NODE_ENV === 'development',
-        ssr: true,
-      }]
-    ],
   },
 
   env: {
