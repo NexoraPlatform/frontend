@@ -141,9 +141,8 @@ export default function Home() {
         <Header />
 
         <main role="main" aria-label="Conținut principal" id="main-content">
-
-          {/* Progressive enhancement after LCP */}
-          <HeroSectionClient />
+          {/* CRITICAL: Server-rendered hero for instant LCP */}
+          <HeroSectionStatic />
 
           {/* Above-the-fold categories - SSR for better performance */}
           <section
