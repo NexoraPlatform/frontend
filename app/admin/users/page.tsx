@@ -34,7 +34,7 @@ export default function AdminUsersPage() {
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
 
-  const handleUserAction = async (userId: string, action: string, isSuperuser?: number) => {
+  const handleUserAction = async (userId: string, action: string, isSuperuser?: boolean) => {
     try {
       if (action === 'delete') {
         if (confirm('Ești sigur că vrei să ștergi acest utilizator?')) {
@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
           refetchUsers();
         }
       } else if(action === 'superuser') {
-        if (isSuperuser === 1) {
+        if (isSuperuser === false) {
           await apiClient.setSuperadmin(userId);
         } else {
           await apiClient.removeSuperadmin(userId);
@@ -192,6 +192,7 @@ export default function AdminUsersPage() {
                       <div className="flex space-x-2">
                         {getRoleBadge(user.role)}
                         {getStatusBadge(user.status)}
+                        {user.is_superuser && (<Badge variant="destructive" className="">SuperUser</Badge>)}
                       </div>
                     </div>
                   </div>
@@ -202,7 +203,7 @@ export default function AdminUsersPage() {
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span className="font-medium">{user.rating || 0}</span>
                       </div>
-                      <p className="text-muted-foreground">{user.reviewCount || 0} recenzii</p>
+                      <p className="text-muted-foreground text-left">{user.reviewCount || 0} recenzii</p>
                       <p className="text-xs text-muted-foreground">
                         Înregistrat: {new Date(user.created_at).toLocaleDateString('ro-RO')}
                       </p>
@@ -218,7 +219,7 @@ export default function AdminUsersPage() {
                         <Can superuser>
                           <DropdownMenuItem className={`${user.is_superuser ? 'bg-red-500' : 'bg-green-500'} text-white cursor-pointer`} onClick={() => handleUserAction(user.id, "superuser", user.is_superuser)}>
                             <UserRound className="w-4 h-4 mr-2" />
-                            Fa SuperUser
+                            {user.is_superuser ? 'Scoate SuperUser' : 'Seteaza SuperUser'}
                           </DropdownMenuItem>
                         </Can>
                         <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>

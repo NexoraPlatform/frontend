@@ -14,15 +14,10 @@ export default function AdminLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.push('/auth/signin?callbackUrl=' + encodeURIComponent('/admin'));
-        return;
-      }
-      if (user.role !== 'ADMIN') {
-        router.push('/dashboard');
         return;
       }
     }
@@ -39,7 +34,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!user || user.role !== 'ADMIN') {
+  if (!user) {
     return null;
   }
 

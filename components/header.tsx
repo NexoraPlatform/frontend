@@ -14,6 +14,7 @@ import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
 import {cn} from "@/lib/utils";
 import dynamic from 'next/dynamic';
+import { Can } from './Can';
 
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
@@ -249,11 +250,11 @@ export function Header() {
                             <Link href="/provider/profile">Editează Profil</Link>
                           </DropdownMenuItem>
                       )}
-                      {user.role === 'ADMIN' && (
+                      <Can {...({ superuser: true } || { roles: ['admin'] })}>
                           <DropdownMenuItem asChild>
                             <Link href="/admin">Admin Panel</Link>
                           </DropdownMenuItem>
-                      )}
+                      </Can>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />

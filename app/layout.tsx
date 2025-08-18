@@ -360,7 +360,7 @@ export default function RootLayout({
                                 const observer = new PerformanceObserver((list) => {
                                     for (const entry of list.getEntries()) {
                                         const { name, startTime, value } = entry;
-                                        
+                                        console.log(name);
                                         // Use modern console methods
                                         switch (name) {
                                             case 'LCP':

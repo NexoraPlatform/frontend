@@ -104,7 +104,6 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
         return `${hours} hour${hours !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}`;
     }
-    console.log(stats)
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Header */}

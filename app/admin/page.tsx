@@ -71,8 +71,8 @@ export default function AdminDashboard() {
 
   const stats = [
     {
-      title: 'Utilizatori Totali',
-      value: statsData?.totalUsers || '0',
+      title: 'Utilizatori Inregistrati',
+      value: Math.round(statsData?.totalUsers || 0),
       change: statsData?.currentMonthVsLastMonthUsers,
       current: statsData?.currentMonthUsers || 0,
       icon: Users,
@@ -307,9 +307,9 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid xs:grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8">
         {/* Quick Actions */}
-        <div className="lg:col-span-2">
+        <div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
