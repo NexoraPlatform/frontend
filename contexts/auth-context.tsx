@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
-import {AccessPermission} from "@/lib/access";
+import { AccessPermission } from "@/lib/access";
 
 export type AccessRole = {
   id?: number | string;
@@ -44,18 +44,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on app start
-    const token = typeof window !== 'undefined' ?
-      localStorage.getItem('auth_token') ||
-      document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
-      : null;
+    const cookieToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth_token='))
+        ?.split('=')[1];
+
+    const localToken = localStorage.getItem('auth_token');
+
+    const token = localToken || cookieToken;
+
+    // Sync from cookie to localStorage if missing
+    if (cookieToken && !localToken) {
+      localStorage.setItem('auth_token', cookieToken);
+    }
 
     if (token) {
       apiClient.setToken(token);
-      // Set cookie for middleware
-      if (typeof window !== 'undefined') {
-        document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-      }
+
+      // Always refresh the cookie to ensure it's valid
+      document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
       fetchProfile();
     } else {
       setLoading(false);
@@ -68,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(profile);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
-      // Only clear token if the request was unauthorized
       if (error instanceof Error && /401/.test(error.message)) {
         logout();
       }
@@ -81,13 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.login({ email, password });
       setUser(response.user);
-      // Ensure token is stored for future requests
-      apiClient.setToken(response.access_token);
 
-      // Set cookie for middleware
-      if (typeof window !== 'undefined') {
-        document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-      }
+      apiClient.setToken(response.access_token);
+      localStorage.setItem('auth_token', response.access_token);
+      document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
     } catch (error: any) {
       throw new Error(error.message || 'Login failed');
     }
@@ -97,13 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.register(userData);
       setUser(response.user);
-      // Ensure token is stored for future requests
-      apiClient.setToken(response.access_token);
 
-      // Set cookie for middleware
-      if (typeof window !== 'undefined') {
-        document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-      }
+      apiClient.setToken(response.access_token);
+      localStorage.setItem('auth_token', response.access_token);
+      document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed');
     }
@@ -111,11 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     apiClient.removeToken();
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      // Remove cookie
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-    }
+    localStorage.removeItem('auth_token');
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
     setUser(null);
   };
 
@@ -125,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     login,
@@ -135,9 +132,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={value}>
+        {children}
+      </AuthContext.Provider>
   );
 }
 
