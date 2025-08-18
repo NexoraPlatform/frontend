@@ -68,8 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(profile);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
-      // Token might be invalid, remove it
-      logout();
+      // Only clear token if the request was unauthorized
+      if (error instanceof Error && /401/.test(error.message)) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -79,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.login({ email, password });
       setUser(response.user);
+      // Ensure token is stored for future requests
+      apiClient.setToken(response.access_token);
 
       // Set cookie for middleware
       if (typeof window !== 'undefined') {
@@ -93,6 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.register(userData);
       setUser(response.user);
+      // Ensure token is stored for future requests
+      apiClient.setToken(response.access_token);
 
       // Set cookie for middleware
       if (typeof window !== 'undefined') {
