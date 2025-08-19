@@ -70,7 +70,7 @@ export default function EditRoleClient({ id }: { id: number;}) {
     useEffect(() => {
         const loadPermissions = async () => {
             try {
-                const response = await apiClient.getPermisions();
+                const response = await apiClient.getPermissions();
                 setPermissionGroups(response);
             } catch (err) {
                 console.error('Failed to load permissions:', err);

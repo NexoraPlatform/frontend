@@ -300,8 +300,22 @@ class ApiClient {
     })
   }
 
-  async getPermisions() {
+  async getPermissions() {
     return this.request<any>(`/admin/access/permissions`);
+  }
+
+  async allowUserPermission(userId: number, permissionSlug: string) {
+    return this.request<any>(`/admin/access/${userId}/allow-permission`, {
+      method: 'POST',
+      body: JSON.stringify({permission: permissionSlug}),
+    });
+  }
+
+  async denyUserPermission(userId: number, permissionSlug: string) {
+    return this.request<any>(`/admin/access/${userId}/deny-permission`, {
+      method: 'POST',
+      body: JSON.stringify({permission: permissionSlug}),
+    });
   }
 
   async getRole(roleId: number) {

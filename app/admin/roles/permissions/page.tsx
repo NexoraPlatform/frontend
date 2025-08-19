@@ -77,7 +77,7 @@ export default function PermissionMatrixAutosavePage() {
                 setLoading(true);
 
                 const [groupsRes, rolesRes] = await Promise.all([
-                    apiClient.getPermisions(),
+                    apiClient.getPermissions(),
                     apiClient.getRolesLite(),
                 ]);
                 if (!alive) return;

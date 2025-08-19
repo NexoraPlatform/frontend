@@ -22,12 +22,12 @@ export function Footer() {
           aria-label="Footer cu informații de contact și link-uri"
       >
         {user && (<ChatLauncher />)}
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 !py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Company Info */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <div className="relative w-8 h-8">
+                <div className="relative w-8 h-8 flex flex-col-reverse">
                   <picture>
                     <source
                         type="image/avif"
@@ -74,7 +74,7 @@ export function Footer() {
                     />
                   </picture>
                 </div>
-                <span className="text-xl font-bold text-primary">Nexora</span>
+                <span className="text-xl font-bold text-primary pb-3">Nexora</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Platforma românească pentru servicii IT profesionale. Conectăm clienții cu experții potriviți pentru proiectele lor.
