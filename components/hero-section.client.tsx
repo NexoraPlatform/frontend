@@ -1,77 +1,66 @@
 "use client";
 
-import dynamic from 'next/dynamic';
-
-const HeroSkeleton = () => (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20">
-        <div className="container mx-auto px-4 py-8 relative z-10">
-            <div className="max-w-6xl mx-auto text-center">
-                <div className="h-12 flex justify-center mb-8">
-                    <div className="h-12 w-80 bg-blue-100 dark:bg-blue-900/50 rounded-full" />
-                </div>
-
-                <div className="space-y-4 mb-8">
-                    <div className="h-16 bg-gradient-to-r from-blue-200 to-purple-200 rounded-lg mx-auto max-w-4xl" />
-                    <div className="h-16 bg-gradient-to-r from-indigo-200 to-blue-200 rounded-lg mx-auto max-w-3xl" />
-                    <div className="h-16 bg-gradient-to-r from-cyan-200 to-blue-200 rounded-lg mx-auto max-w-4xl" />
-                </div>
-
-                <div
-                    className="space-y-2 mb-12 max-w-4xl mx-auto"
-                    style={{
-                        height: '96px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center'
-                    }}
-                >
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded" />
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mx-auto" />
-                </div>
-
-                <div className="max-w-4xl mx-auto mb-12">
-                    <div className="h-20 bg-white/90 dark:bg-gray-900/90 rounded-3xl border-2 border-white/20" />
-                    <div className="flex flex-wrap justify-center gap-3 mt-8">
-                        {[1,2,3,4,5,6].map(i => (
-                            <div key={i} className="h-8 w-20 bg-blue-100 dark:bg-blue-900 rounded-full" />
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-                    <div className="h-16 w-64 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl" />
-                    <div className="h-16 w-64 bg-transparent border-2 border-blue-300 rounded-2xl" />
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                    {[1,2,3,4].map(i => (
-                        <div key={i} className="space-y-3">
-                            <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-2xl mx-auto" />
-                            <div className="h-8 w-16 bg-blue-200 rounded mx-auto" />
-                            <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
-                            <div className="h-3 w-12 bg-green-200 rounded mx-auto" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-            <div className="w-6 h-10 border-2 border-blue-600 rounded-full flex justify-center">
-                <div className="w-1 h-3 bg-blue-600 rounded-full mt-2" />
-            </div>
-        </div>
-    </section>
-);
-
-const HeroSectionEnhanced = dynamic(
-    () => import('./hero-section').then(m => ({ default: m.HeroSectionEnhanced })),
-    {
-        ssr: false,
-        loading: () => <HeroSkeleton />
-    }
-);
+import {
+    Code,
+    Palette,
+    Smartphone,
+    TrendingUp,
+    Shield,
+    Zap,
+} from 'lucide-react';
+import {useEffect, useState} from "react";
 
 export default function HeroSectionClient() {
-    return <HeroSectionEnhanced />;
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            setMousePosition({ x: e.clientX, y: e.clientY });
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    const floatingElements = [
+        { icon: Code, delay: 0, duration: 6 },
+        { icon: Palette, delay: 1, duration: 8 },
+        { icon: Smartphone, delay: 2, duration: 7 },
+        { icon: TrendingUp, delay: 3, duration: 9 },
+        { icon: Shield, delay: 4, duration: 6 },
+        { icon: Zap, delay: 5, duration: 8 },
+    ];
+
+    return (
+        <>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-100/30 to-purple-100/30 dark:from-transparent dark:via-blue-900/10 dark:to-purple-900/10" />
+
+        {/* Floating geometric shapes */}
+        <div className="absolute inset-0">
+            {floatingElements.map((element, index) => (
+                <div
+                    key={index}
+                    className="absolute animate-pulse opacity-10 dark:opacity-5"
+                    style={{
+                        left: `${20 + index * 15}%`,
+                        top: `${10 + index * 12}%`,
+                        animationDelay: `${element.delay}s`,
+                        animationDuration: `${element.duration}s`,
+                    }}
+                >
+                    <element.icon className="w-16 h-16 text-blue-600" />
+                </div>
+            ))}
+        </div>
+
+        {/* Interactive cursor effect */}
+        <div
+            className="absolute w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl transition-all duration-1000 ease-out pointer-events-none"
+            style={{
+                left: mousePosition.x - 192,
+                top: mousePosition.y - 192,
+            }}
+        />
+        </>
+    );
 }

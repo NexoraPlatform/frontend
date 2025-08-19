@@ -200,7 +200,7 @@ export default function RootLayout({
                     
                     // Defer loading of component styles
                     requestIdleCallback(() => {
-                        loadCSS('/components.css');
+                        loadCSS('/non-critical.css');
                     });
                 `}
             </Script>

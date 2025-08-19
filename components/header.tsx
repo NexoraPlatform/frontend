@@ -140,7 +140,7 @@ export function Header() {
                 <picture>
                   <source
                       type="image/avif"
-                      srcSet="/logo-60.avif 1x, /logo-120.avif 2x"
+                      srcSet="/logo-white-60.avif 1x, /logo-white-120.avif 2x"
                       className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
                   />
                   <source

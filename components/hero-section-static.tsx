@@ -1,3 +1,5 @@
+import HeroSectionClient from "@/components/hero-section.client";
+
 export const revalidate = false
 export const dynamic = "force-static"
 
@@ -24,6 +26,7 @@ export function HeroSectionStatic() {
             role="banner"
         >
             <div className="absolute inset-0" aria-hidden="true">
+                <HeroSectionClient />
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-100/10 to-purple-100/10 dark:from-transparent dark:via-blue-900/5 dark:to-purple-900/5" />
             </div>
 
