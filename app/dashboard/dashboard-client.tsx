@@ -404,7 +404,7 @@ export default function DashboardClient() {
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {overviewStats.map((stat, index) => (
                     <Card key={index} className="border-2 hover:shadow-lg transition-all duration-300">
                       <CardContent className="p-6">

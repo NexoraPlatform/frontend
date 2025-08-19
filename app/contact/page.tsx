@@ -133,7 +133,7 @@ export default function ContactPage() {
       {/* Contact Info Cards */}
       <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             {contactInfo.map((info, index) => (
               <Card key={index} className="text-center border-2 hover:border-primary/20 transition-colors">
                 <CardHeader>

@@ -214,7 +214,7 @@ export default function HelpInteractive({
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {resources.map((resource, index) => {
                             const Icon = getIcon(resource.iconKey);
                             return (

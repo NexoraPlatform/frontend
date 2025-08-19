@@ -142,7 +142,7 @@ export function HeroSectionStatic() {
                     </div>
 
                     <div
-                        className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+                        className="grid xs:grid-cols-2 md:grid-cols-4 gap-8 text-center"
                         role="list"
                         aria-label="Statistici platformă"
                     >

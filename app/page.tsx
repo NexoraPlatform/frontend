@@ -149,7 +149,7 @@ export default function Home() {
               </div>
 
               <div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+                  className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
                   role="list"
                   aria-label="Lista categorii de servicii"
               >
@@ -245,7 +245,7 @@ export default function Home() {
               </div>
 
               <div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+                  className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
                   role="list"
                   aria-label="Lista beneficii Nexora"
               >
