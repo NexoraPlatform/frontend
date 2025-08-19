@@ -116,23 +116,5 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "browserslist": {
-    "production": [
-      "chrome >= 109",
-      "firefox >= 109",
-      "safari >= 16.4",
-      "edge >= 109",
-      "and_chr >= 109",
-      "and_ff >= 109",
-      "ios_saf >= 16.4",
-      "samsung >= 20",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+  "browserslist": ["chrome >= 91", "firefox >= 90", "safari >= 15", "edge >= 91"]
 }
