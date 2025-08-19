@@ -8,10 +8,10 @@ import Image from 'next/image';
 import {useAuth} from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
 
-const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
-  ssr: false,
-  loading: () => null
-});
+const ChatLauncher = dynamic(
+    () => import('@/components/chat/chat-widget'),
+    { ssr: false, loading: () => null }
+);
 
 export function Footer() {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ export function Footer() {
           role="contentinfo"
           aria-label="Footer cu informații de contact și link-uri"
       >
-        {user && (<ChatLauncher />)}
+        <ChatLauncher />
         <div className="container mx-auto px-4 !py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Company Info */}

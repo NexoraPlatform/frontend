@@ -88,7 +88,7 @@ function getReaders(msg: any, currentUserId?: string | number) {
         : [];
 }
 
-export function ChatWidget() {
+export default function ChatWidget() {
     const { user } = useAuth();
     const {
         groups,

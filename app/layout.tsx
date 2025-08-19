@@ -1,294 +1,206 @@
-import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
-import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/sonner';
-import { AuthProvider } from '@/contexts/auth-context';
-import ActivityTracker from '@/components/ActivityTracker';
-import { NotificationProvider } from "@/contexts/notification-context";
-import { ChatProvider } from "@/contexts/chat-context";
-import './globals.css';
-import Script from 'next/script';
-import { generateSEO, generateStructuredData } from "@/lib/seo";
-import React from "react";
+import type { Metadata, Viewport } from "next"
+import { Inter } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
+import { AuthProvider } from "@/contexts/auth-context"
+import ActivityTracker from "@/components/ActivityTracker"
+import { NotificationProvider } from "@/contexts/notification-context"
+import { ChatProvider } from "@/contexts/chat-context"
+import "./globals.css"
+import Script from "next/script"
+import { generateSEO, generateStructuredData } from "@/lib/seo"
+import type React from "react"
 
-// Optimized font loading for modern browsers
 const inter = Inter({
-    subsets: ['latin'],
-    display: 'swap',
+    subsets: ["latin"],
+    display: "swap",
     preload: true,
-    variable: '--font-inter',
+    variable: "--font-inter",
     adjustFontFallback: true,
-    fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segue UI', 'Roboto', 'Arial', 'sans-serif'],
-});
+    fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Arial", "sans-serif"],
+    weight: ["400", "500", "600", "700", "900"],
+})
 
 // Separate viewport export for Next.js 15
 export const viewport: Viewport = {
-    width: 'device-width',
+    width: "device-width",
     initialScale: 1,
     maximumScale: 5,
     userScalable: true,
-    viewportFit: 'cover',
+    viewportFit: "cover",
     themeColor: [
-        { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
-        { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
+        { media: "(prefers-color-scheme: light)", color: "#3b82f6" },
+        { media: "(prefers-color-scheme: dark)", color: "#1e40af" },
     ],
-    colorScheme: 'light dark',
-};
-
-// Minimal critical CSS using modern features
-const criticalCSS = `
-/* Modern CSS with native cascade layers and container queries */
-@layer reset, base, utilities;
-
-@layer reset {
-  /* Modern CSS reset */
-  *,::before,::after{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-  }
+    colorScheme: "light dark",
 }
 
-@layer base {
-  /* CSS Custom Properties with fallbacks */
-  :root {
-    --font-inter: ${inter.style.fontFamily}, system-ui, -apple-system, sans-serif;
+const criticalCSS = `
+/* Critical above-the-fold styles only */
+:root {
+    --font-inter: ${inter.style.fontFamily}, system-ui, sans-serif;
     --color-background: light-dark(#ffffff, #0f172a);
     --color-foreground: light-dark(#0f172a, #f8fafc);
-    --gradient-hero: light-dark(
-      linear-gradient(135deg, #eff6ff 0%, #e0e7ff 50%, #f3e8ff 100%),
-      linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(67, 56, 202, 0.2) 50%, rgba(126, 34, 206, 0.2) 100%)
-    );
-  }
+}
 
-  html {
+html {
     line-height: 1.6;
     text-size-adjust: 100%;
-    tab-size: 4;
-    font-feature-settings: normal;
-    font-variation-settings: normal;
     scroll-behavior: smooth;
-  }
+}
 
-  body {
+body {
     font-family: var(--font-inter);
     background-color: var(--color-background);
     color: var(--color-foreground);
+    margin: 0;
+    padding: 0;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-  }
 }
 
-@layer utilities {
-  /* Container queries for responsive design */
-  @container (width > 768px) {
-    .container-lg {
-      padding-inline: 2rem;
-    }
-  }
+/* Essential layout classes for header and hero only */
+.container { max-width: 1280px; margin: 0 auto; padding: 0 1rem; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.text-center { text-align: center; }
+.mx-auto { margin-inline: auto; }
+.font-black { font-weight: 900; }
+.text-6xl { font-size: 3.75rem; line-height: 1; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.mb-8 { margin-bottom: 2rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
 
-  /* Modern hero styles with native CSS nesting */
-  .hero-container {
-    min-block-size: 100vh;
-    min-block-size: 100dvh; /* Dynamic viewport height */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--gradient-hero);
-    container-type: inline-size;
-    
-    & .hero-title {
-      font-size: clamp(3rem, 8vw, 6rem);
-      line-height: 1;
-      font-weight: 900;
-      text-align: center;
-      margin-block-end: 2rem;
-    }
-    
-    & .hero-description {
-      font-size: clamp(1.25rem, 4vw, 1.875rem);
-      line-height: 1.625;
-      text-align: center;
-      max-inline-size: 56rem;
-      margin-inline: auto;
-      margin-block-end: 3rem;
-      font-weight: 500;
-      color: light-dark(#64748b, #94a3b8);
-    }
-  }
-
-  /* Modern loading states */
-  @keyframes skeleton {
-    from { background-position: -200px 0; }
-    to { background-position: calc(200px + 100%) 0; }
-  }
-
-  .skeleton {
-    background: linear-gradient(90deg, #f1f5f9 25%, rgba(241, 245, 249, 0.5) 50%, #f1f5f9 75%);
-    background-size: 200px 100%;
-    animation: skeleton 1.2s ease-in-out infinite;
-    
-    @media (prefers-reduced-motion) {
-      animation: none;
-      background: #f1f5f9;
-    }
-  }
-
-  /* Logical properties for better i18n */
-  .container {
-    inline-size: 100%;
-    max-inline-size: 1280px;
-    margin-inline: auto;
-    padding-inline: 1rem;
-  }
-
-  /* Modern utility classes */
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  .justify-between { justify-content: space-between; }
-  .text-center { text-align: center; }
-  .mx-auto { margin-inline: auto; }
-  
-  /* Modern focus styles */
-  .focus-ring {
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-    
-    &:focus-visible {
-      outline-color: #3b82f6;
-      outline-offset: 4px;
-    }
-  }
+/* Glass effect for header */
+.glass-effect {
+    backdrop-filter: blur(20px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Prefers-reduced-motion support */
+.dark .glass-effect {
+    background-color: rgba(17, 25, 40, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Skip link accessibility */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.focus\\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+
+/* Prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
-
-/* Modern font loading with font-display: swap */
-@font-face {
-  font-family: 'Inter Fallback';
-  src: local('system-ui'), local('Arial'), local('Helvetica');
-  font-display: swap;
-  ascent-override: 90.20%;
-  descent-override: 22.48%;
-  line-gap-override: 0.00%;
-  size-adjust: 107.40%;
-}
-`;
+`
 
 export const metadata: Metadata = generateSEO({
-    title: 'Nexora - Marketplace de Servicii IT Premium',
-    description: 'Conectează-te cu cei mai buni experți IT din România. Dezvoltare web, aplicații mobile, design UI/UX, marketing digital. Plăți securizate, experți verificați.',
+    title: "Nexora - Marketplace de Servicii IT Premium",
+    description:
+        "Conectează-te cu cei mai buni experți IT din România. Dezvoltare web, aplicații mobile, design UI/UX, marketing digital. Plăți securizate, experți verificați.",
     keywords: [
-        'nexora', 'servicii IT România', 'dezvoltare web', 'aplicații mobile',
-        'design UI/UX', 'marketing digital', 'freelanceri IT', 'dezvoltatori România',
-        'programare React', 'WordPress', 'SEO', 'e-commerce', 'startup tech'
+        "nexora",
+        "servicii IT România",
+        "dezvoltare web",
+        "aplicații mobile",
+        "design UI/UX",
+        "marketing digital",
+        "freelanceri IT",
+        "dezvoltatori România",
+        "programare React",
+        "WordPress",
+        "SEO",
+        "e-commerce",
+        "startup tech",
     ],
-    url: '/',
-});
+    url: "/",
+})
 
 export default function RootLayout({
                                        children,
                                    }: {
-    children: React.ReactNode;
+    children: React.ReactNode
 }) {
     const organizationStructuredData = generateStructuredData({
-        type: 'Organization',
-    });
+        type: "Organization",
+    })
 
     const websiteStructuredData = generateStructuredData({
-        type: 'WebSite',
-    });
+        type: "WebSite",
+    })
 
     return (
         <html lang="ro" suppressHydrationWarning className={inter.variable}>
         <head>
-            {/* Critical resource hints */}
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-            <link rel="dns-prefetch" href="//images.pexels.com" />
+            <link rel="preconnect" href="https://images.pexels.com" crossOrigin="" />
             <link rel="dns-prefetch" href="//api.nexora.ro" />
+            <link rel="dns-prefetch" href="//vercel.app" />
 
-            {/* Modern favicon with format selection */}
             <link rel="icon" href="/logo.webp" sizes="32x32" type="image/webp" />
-            {/*<link rel="icon" href="/favicon.ico" sizes="32x32" type="image/x-icon" />*/}
             <link rel="apple-touch-icon" href="/logo.webp" sizes="180x180" />
             <link rel="mask-icon" href="/logo.webp" color="#3b82f6" />
 
             {/* PWA manifest */}
             <link rel="manifest" href="/manifest.json" />
 
-            {/* Format detection and mobile optimizations */}
             <meta name="format-detection" content="telephone=no" />
             <meta name="mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-            {/* Inline critical CSS with modern features */}
             <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
 
-            {/* Preload critical assets */}
-            <link
-                rel="preload"
-                href="/logo-60.webp"
-                as="image"
-                type="image/webp"
-                fetchPriority="high"
-            />
-            <link
-                rel="preload"
-                href="/logo-white-60.webp"
-                as="image"
-                type="image/webp"
-                fetchPriority="high"
-            />
-            <link
-                rel="preload"
-                href="/logo-120.webp"
-                as="image"
-                type="image/webp"
-                fetchPriority="high"
-            />
-            <link
-                rel="preload"
-                href="/logo-120.avif"
-                as="image"
-                type="image/avif"
-                fetchPriority="high"
-            />
+            <link rel="preload" href="/logo-60.webp" as="image" type="image/webp" fetchPriority="high" />
+            <link rel="preload" href="/logo-120.webp" as="image" type="image/webp" fetchPriority="high" />
 
-            {/* Performance optimization meta tags */}
             <meta httpEquiv="x-dns-prefetch-control" content="on" />
             <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-
-            {/* Modern browser hints */}
             <meta name="color-scheme" content="light dark" />
-            <meta name="supported-color-schemes" content="light dark" />
 
-            {/* Defer loading of non-critical CSS */}
-            <Script id="load-dynamically-non-critical-css" strategy="lazyOnload">
+            <Script id="load-non-critical-css" strategy="afterInteractive">
                 {`
-                    // Dynamically load non-critical CSS after page is interactive
-                    document.addEventListener('DOMContentLoaded', function() {
+                    // Load non-critical CSS after page is interactive
+                    const loadCSS = (href) => {
                         const link = document.createElement('link');
                         link.rel = 'stylesheet';
-                        link.href = '/non-critical.css';
-                        link.media = 'print'; // Initially load as print media
+                        link.href = href;
+                        link.media = 'print';
                         document.head.appendChild(link);
-                        
-                        // Switch to screen media after load for better performance
-                        link.onload = function() {
-                            link.media = 'all';
-                        };
+                        link.onload = () => { link.media = 'all'; };
+                    };
+                    
+                    // Defer loading of component styles
+                    requestIdleCallback(() => {
+                        loadCSS('/components.css');
                     });
                 `}
             </Script>
@@ -297,29 +209,20 @@ export default function RootLayout({
         <body className={`font-sans antialiased ${inter.className}`}>
         <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded focus-ring"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded"
         >
             Skip to main content
         </a>
 
         <Script
-            id="org-jsonld"
+            id="structured-data"
             type="application/ld+json"
             strategy="afterInteractive"
             dangerouslySetInnerHTML={{
-                __html: JSON.stringify(organizationStructuredData),
-            }}
-        />
-        <Script
-            id="website-jsonld"
-            type="application/ld+json"
-            strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-                __html: JSON.stringify(websiteStructuredData),
+                __html: JSON.stringify([organizationStructuredData, websiteStructuredData]),
             }}
         />
 
-        {/* Context Providers with optimized nesting */}
         <AuthProvider>
             <NotificationProvider>
                 <ChatProvider>
@@ -333,69 +236,14 @@ export default function RootLayout({
                         <ActivityTracker />
 
                         {/* Main content */}
-                        <main id="main-content">
-                            {children}
-                        </main>
+                        <main id="main-content">{children}</main>
 
-                        {/* Toast notifications */}
-                        <Toaster
-                            position="top-right"
-                            expand={false}
-                            richColors
-                            closeButton
-                        />
+                        <Toaster position="top-right" expand={false} richColors closeButton />
                     </ThemeProvider>
                 </ChatProvider>
             </NotificationProvider>
         </AuthProvider>
-
-        {/* Modern performance monitoring */}
-        {process.env.NODE_ENV === 'production' && (
-            <Script strategy="lazyOnload" id="perf-monitor">
-                {`
-                        // Modern performance monitoring with native APIs
-                        if ('PerformanceObserver' in window) {
-                            try {
-                                // Monitor Core Web Vitals
-                                const observer = new PerformanceObserver((list) => {
-                                    for (const entry of list.getEntries()) {
-                                        const { name, startTime, value } = entry;
-                                        console.log(name);
-                                        // Use modern console methods
-                                        switch (name) {
-                                            case 'LCP':
-                                                console.info('🎯 LCP:', Math.round(startTime), 'ms');
-                                                break;
-                                            case 'FID':
-                                                console.info('⚡ FID:', Math.round(value), 'ms');
-                                                break;
-                                            case 'CLS':
-                                                if (!entry.hadRecentInput) {
-                                                    console.info('📐 CLS:', Math.round(value * 1000) / 1000);
-                                                }
-                                                break;
-                                        }
-                                    }
-                                });
-
-                                // Observe all relevant entry types
-                                observer.observe({
-                                    entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift']
-                                });
-
-                                // Modern navigation API monitoring
-                                if ('navigation' in performance) {
-                                    console.info('🚀 Navigation Type:', performance.navigation.type);
-                                }
-                                
-                            } catch (error) {
-                                console.warn('Performance monitoring failed:', error);
-                            }
-                        }
-                    `}
-            </Script>
-        )}
         </body>
         </html>
-    );
+    )
 }
