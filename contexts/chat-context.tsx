@@ -1,10 +1,10 @@
 "use client";
 
-import React, {createContext, useCallback, useContext, useEffect, useState} from 'react';
-import {chatService} from '@/lib/chat';
-import {apiClient} from '@/lib/api';
-import {useAuth} from '@/contexts/auth-context';
-import {toast} from 'sonner';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { chatService } from '@/lib/chat';
+import { apiClient } from '@/lib/api';
+import { useAuth } from '@/contexts/auth-context';
+import { toast } from 'sonner';
 
 export interface ChatGroup {
     id: string;
@@ -126,53 +126,65 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     const startedRef = React.useRef(false);
 
-    useEffect(() => {
-        if (!user) return;
-        if (!startedRef.current) {
-            startedRef.current = true;
-            initializeChat();
-        }
-        return () => {
-            if (process.env.NODE_ENV === 'production') {
-                chatService.disconnect();
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id]);
-
-    useEffect(() => {
-        if (process.env.NODE_ENV !== 'production') return;
-        const onUnload = () => chatService.disconnect();
-        window.addEventListener('beforeunload', onUnload);
-        return () => window.removeEventListener('beforeunload', onUnload);
-    }, []);
-
-    const upsertMessage = (msg: ChatMessage) => {
+    const upsertMessage = useCallback((msg: ChatMessage) => {
         setMessages(prev => {
             const gid = String(msg.groupId);
             const list = prev[gid] || [];
-            const idx = list.findIndex(m => String(m.id) === String(msg.id)); // <- comparație normalizată
+            const idx = list.findIndex(m => String(m.id) === String(msg.id));
             if (idx >= 0) {
                 const clone = [...list];
-                clone[idx] = msg; // replace
+                clone[idx] = msg;
                 return { ...prev, [gid]: clone };
             }
-            return { ...prev, [gid]: [...list, msg] }; // append
+            return { ...prev, [gid]: [...list, msg] };
         });
-    };
+    }, []);
 
-    const isUserOnline = useCallback((userId: string | number) => {
-        return onlineUsers.includes(String(userId));
-    }, [onlineUsers]);
+    const refreshGroups = useCallback(async () => {
+        try {
+            const response = await apiClient.getChatGroups();
+            setGroups(response.groups || []);
+        } catch (e) {
+            console.error('Failed to load chat groups:', e);
+        }
+    }, []);
 
-    const getGroupOnlineCount = useCallback((groupId: string | number) => {
-        const ids = groupOnline[String(groupId)] ?? [];
-        return ids.length;
-    }, [groupOnline]);
+    const loadMessages = useCallback(async (groupId: string, page = 1, pageSize = 20) => {
+        try {
+            setLoadingMessages(prev => ({ ...prev, [groupId]: true }));
+            const response = await apiClient.getChatMessages(groupId, page, pageSize);
+            const newMessages = response.messages || [];
 
-    const listenersReadyRef = React.useRef(false);
+            setMessages(prev => {
+                const existing = prev[groupId] || [];
+                return {
+                    ...prev,
+                    [groupId]: page === 1 ? newMessages : [...newMessages, ...existing],
+                };
+            });
+        } catch (e) {
+            console.error('Failed to load messages:', e);
+        } finally {
+            setLoadingMessages(prev => ({ ...prev, [groupId]: false }));
+        }
+    }, []);
 
-    const initializeChat = async () => {
+    const markAsRead = useCallback(async (groupId: string, messageId?: string) => {
+        try {
+            await apiClient.markChatMessagesAsRead(groupId, messageId);
+            setGroups(prev => prev.map(group =>
+                group.id === groupId ? { ...group, unreadCount: 0 } : group
+            ));
+            setMessages(prev => ({
+                ...prev,
+                [groupId]: (prev[groupId] || []).map(msg => ({ ...msg, isRead: true })),
+            }));
+        } catch (e) {
+            console.error('Failed to mark as read:', e);
+        }
+    }, []);
+
+    const initializeChat = useCallback(async () => {
         if (!user) return;
         try {
             setLoading(true);
@@ -194,20 +206,38 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user, refreshGroups]);
 
-    // Reflectă onlineUsers în starea grupurilor (marchează isOnline)
     useEffect(() => {
-        setGroups(prev =>
-            prev.map(g => ({
-                ...g,
-                members: g.members.map(m => ({
-                    ...m,
-                    isOnline: onlineUsers.includes(String(m.id)),
-                })),
-            }))
-        );
+        if (!user) return;
+        if (!startedRef.current) {
+            startedRef.current = true;
+            initializeChat();
+        }
+        return () => {
+            if (process.env.NODE_ENV === 'production') {
+                chatService.disconnect();
+            }
+        };
+    }, [user, initializeChat]);
+
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'production') return;
+        const onUnload = () => chatService.disconnect();
+        window.addEventListener('beforeunload', onUnload);
+        return () => window.removeEventListener('beforeunload', onUnload);
+    }, []);
+
+    const isUserOnline = useCallback((userId: string | number) => {
+        return onlineUsers.includes(String(userId));
     }, [onlineUsers]);
+
+    const getGroupOnlineCount = useCallback((groupId: string | number) => {
+        const ids = groupOnline[String(groupId)] ?? [];
+        return ids.length;
+    }, [groupOnline]);
+
+    const listenersReadyRef = React.useRef(false);
 
     const setupEventListeners = () => {
         chatService.on('connected', () => setIsConnected(true));
@@ -245,11 +275,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         // ——— Chat events ———
         chatService.on('message', (message: ChatMessage) => {
             upsertMessage(message);
-            // setMessages(prev => ({
-            //     ...prev,
-            //     [message.groupId]: [...(prev[message.groupId] || []), message],
-            // }));
-
             setGroups(prev => prev.map(group =>
                 String(group.id) === String(message.groupId)
                     ? {
@@ -257,7 +282,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                         last_message: {
                             id: String(message.id),
                             content: String(message.content ?? ''),
-                            translations: message.translations ?? {}, // 🔹
+                            translations: message.translations ?? {},
                             sender_id: String(message.sender_id),
                             timestamp: message.timestamp ?? new Date().toISOString(),
                             isRead: false,
@@ -312,86 +337,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!activeGroup) return;
-        chatService.joinGroupPresence(activeGroup.id);   // <-- must run
+        chatService.joinGroupPresence(activeGroup.id);
         return () => chatService.leaveGroupPresence(activeGroup.id);
     }, [activeGroup]);
 
-    const connect = async (): Promise<boolean> => {
-        if (!user) return false;
-        try {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                return await chatService.connect(user.id, token); // ⬅️ elimină joinGroupPresence('online-users')
-            }
-            return false;
-        } catch (e) {
-            console.error('Failed to connect to chat:', e);
-            return false;
-        }
-    };
-
-    const disconnect = () => {
-        chatService.disconnect();
-        setIsConnected(false);
-    };
-
-    const refreshGroups = async () => {
-        try {
-            const response = await apiClient.getChatGroups();
-            setGroups(response.groups || []);
-        } catch (e) {
-            console.error('Failed to load chat groups:', e);
-        }
-    };
-
-    const createGroup = async (data: {
-        name: string;
-        type: 'PROJECT' | 'PROVIDER_ONLY' | 'DIRECT';
-        projectId?: string;
-        participantIds: string[];
-    }): Promise<ChatGroup> => {
-        try {
-            const response = await apiClient.createChatGroup(data);
-            const newGroup = response.group;
-            setGroups(prev => [newGroup, ...prev]);
-            return newGroup;
-        } catch (e) {
-            console.error('Failed to create group:', e);
-            throw e;
-        }
-    };
-
-    const loadMessages = async (groupId: string, page = 1, pageSize = 20) => {
-        try {
-            setLoadingMessages(prev => ({ ...prev, [groupId]: true }));
-            const response = await apiClient.getChatMessages(groupId, page, pageSize);
-            const newMessages = response.messages || [];
-
-            setMessages(prev => {
-                const existing = prev[groupId] || [];
-                return {
-                    ...prev,
-                    [groupId]: page === 1 ? newMessages : [...newMessages, ...existing],
-                };
-            });
-        } catch (e) {
-            console.error('Failed to load messages:', e);
-        } finally {
-            setLoadingMessages(prev => ({ ...prev, [groupId]: false }));
-        }
-    };
-
-    const sendMessage = async (groupId: string, content: string, attachments?: any[]) => {
+    const sendMessage = useCallback(async (groupId: string, content: string, attachments?: any[]) => {
         try {
             const message = await chatService.sendMessageViaApi(groupId, content, attachments);
 
-            // adaugă în cache-ul de mesaje
             setMessages(prev => ({
                 ...prev,
                 [groupId]: [...(prev[groupId] || []), message],
             }));
 
-            // 🔹 OPTIMISTIC: setează last_message pe grupul respectiv
             setGroups(prev => prev.map(g =>
                 String(g.id) === String(groupId)
                     ? {
@@ -404,7 +362,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                             isRead: true,
                             translations: message.translations ?? {},
                         },
-                        // mută-l mai sus în listă, folosind updated_at
                         updated_at: message.timestamp ?? g.updated_at,
                     }
                     : g
@@ -413,9 +370,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             console.error('Failed to send message:', e);
             toast.error('Nu s-a putut trimite mesajul');
         }
-    };
+    }, []);
 
-    const editMessage = async (messageId: string, newContent: string) => {
+    const editMessage = useCallback(async (messageId: string, newContent: string) => {
         try {
             await apiClient.editChatMessage(messageId, newContent);
             setMessages(prev => {
@@ -431,9 +388,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             console.error('Failed to edit message:', e);
             toast.error('Nu s-a putut edita mesajul');
         }
-    };
+    }, []);
 
-    const deleteMessage = async (messageId: string) => {
+    const deleteMessage = useCallback(async (messageId: string) => {
         try {
             await apiClient.deleteChatMessage(messageId);
             setMessages(prev => {
@@ -447,31 +404,47 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             console.error('Failed to delete message:', e);
             toast.error('Nu s-a putut șterge mesajul');
         }
-    };
+    }, []);
 
-    const markAsRead = async (groupId: string, messageId?: string) => {
+    const createGroup = useCallback(async (data: {
+        name: string;
+        type: 'PROJECT' | 'PROVIDER_ONLY' | 'DIRECT';
+        projectId?: string;
+        participantIds: string[];
+    }): Promise<ChatGroup> => {
         try {
-            await apiClient.markChatMessagesAsRead(groupId, messageId);
-            setGroups(prev => prev.map(group =>
-                group.id === groupId ? { ...group, unreadCount: 0 } : group
-            ));
-            setMessages(prev => ({
-                ...prev,
-                [groupId]: (prev[groupId] || []).map(msg => ({ ...msg, isRead: true })),
-            }));
+            const response = await apiClient.createChatGroup(data);
+            const newGroup = response.group;
+            setGroups(prev => [newGroup, ...prev]);
+            return newGroup;
         } catch (e) {
-            console.error('Failed to mark as read:', e);
+            console.error('Failed to create group:', e);
+            throw e;
+        }
+    }, []);
+
+    const connect = async (): Promise<boolean> => {
+        if (!user) return false;
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                return await chatService.connect(user.id, token);
+            }
+            return false;
+        } catch (e) {
+            console.error('Failed to connect to chat:', e);
+            return false;
         }
     };
 
-    // const sendTyping = (groupId: string, isTyping: boolean) => {
-    //     chatService.sendTypingEvent(groupId, isTyping);
-    // };
+    const disconnect = () => {
+        chatService.disconnect();
+        setIsConnected(false);
+    };
 
     const getTotalUnreadCount = () => groups.reduce((total, g) => total + g.unreadCount, 0);
 
     const value: ChatContextType = {
-        // online helpers
         isUserOnline,
         getGroupOnlineCount,
         isPanelOpen,
@@ -487,7 +460,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         deleteMessage,
         markAsRead,
         typingUsers,
-        // sendTyping,
         isConnected,
         connect,
         disconnect,

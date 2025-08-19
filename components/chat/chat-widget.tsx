@@ -1,20 +1,17 @@
-"use client";
+"use client"
 
-import {useState, useEffect, useRef, useMemo} from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import type React from "react"
+
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
     ArrowLeft,
     MessageCircle,
@@ -29,55 +26,55 @@ import {
     CheckCheck,
     Search,
     Minimize2,
-    Maximize2
-} from 'lucide-react';
-import { useChat } from '@/contexts/chat-context';
-import { useAuth } from '@/contexts/auth-context';
-import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
-import {chatService} from "@/lib/chat";
-import Image from 'next/image';
-import dynamic from "next/dynamic";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+    Maximize2,
+} from "lucide-react"
+import { useChat } from "@/contexts/chat-context"
+import { useAuth } from "@/contexts/auth-context"
+import { formatDistanceToNow } from "date-fns"
+import { ro } from "date-fns/locale"
+import { chatService } from "@/lib/chat"
+import Image from "next/image"
+import dynamic from "next/dynamic"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface ChatMessage {
-    id: string;
-    groupId: string;
-    sender_id: string;
-    senderName: string;
-    senderAvatar?: string;
-    content: string;
-    originalContent?: string;
-    isCensored: boolean;
+    id: string
+    groupId: string
+    sender_id: string
+    senderName: string
+    senderAvatar?: string
+    content: string
+    originalContent?: string
+    isCensored: boolean
     attachments?: {
-        id: string;
-        name: string;
-        url: string;
-        type: string;
-        size: number;
-    }[];
-    timestamp: string;
-    isRead: boolean;
-    read_by?: string[] | string | null;
-    editedAt?: string;
-    replyTo?: string;
+        id: string
+        name: string
+        url: string
+        type: string
+        size: number
+    }[]
+    timestamp: string
+    isRead: boolean
+    read_by?: string[] | string | null
+    editedAt?: string
+    replyTo?: string
 }
 
 const EmojiPicker = dynamic(() => import("@/components/emoji-picker"), {
     ssr: false,
-});
+})
 
 function getReaders(msg: any, currentUserId?: string | number) {
-    let raw = msg?.read_by ?? msg?.readBy ?? [];
-    if (typeof raw === 'string') {
+    let raw = msg?.read_by ?? msg?.readBy ?? []
+    if (typeof raw === "string") {
         try {
-            raw = JSON.parse(raw);
+            raw = JSON.parse(raw)
         } catch {
-            raw = [];
+            raw = []
         }
     }
-    const senderId = String(msg?.sender_id ?? msg?.sender?.id ?? '');
-    const me = currentUserId != null ? String(currentUserId) : '';
+    const senderId = String(msg?.sender_id ?? msg?.sender?.id ?? "")
+    const me = currentUserId != null ? String(currentUserId) : ""
 
     return Array.isArray(raw)
         ? raw
@@ -85,11 +82,11 @@ function getReaders(msg: any, currentUserId?: string | number) {
             .filter(Boolean)
             .filter((id) => id !== senderId)
             .filter((id) => id !== me)
-        : [];
+        : []
 }
 
-export default function ChatWidget() {
-    const { user } = useAuth();
+export function ChatWidget() {
+    const { user } = useAuth()
     const {
         groups,
         activeGroup,
@@ -107,131 +104,157 @@ export default function ChatWidget() {
         isPanelOpen,
         openPanel,
         closePanel,
-    } = useChat();
+    } = useChat()
 
-    const [isMinimized, setIsMinimized] = useState(false);
-    const [messageInput, setMessageInput] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showSensitiveWarning, setShowSensitiveWarning] = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const isLoadingMore = useRef(false);
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const onPickFile = () => fileInputRef.current?.click();
+    const [isMinimized, setIsMinimized] = useState(false)
+    const [messageInput, setMessageInput] = useState("")
+    const [searchTerm, setSearchTerm] = useState("")
+    const [showSensitiveWarning, setShowSensitiveWarning] = useState(false)
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const isLoadingMore = useRef(false)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const onPickFile = () => fileInputRef.current?.click()
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const typingTimeoutRef = useRef<NodeJS.Timeout>();
-    const messageInputRef = useRef<HTMLTextAreaElement>(null);
-    const pageRef = useRef(1);
-    const [emojiOpen, setEmojiOpen] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const typingTimeoutRef = useRef<NodeJS.Timeout>()
+    const messageInputRef = useRef<HTMLTextAreaElement>(null)
+    const pageRef = useRef(1)
+    const [emojiOpen, setEmojiOpen] = useState(false)
 
     useEffect(() => {
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
         }
-    }, [messages, activeGroup]);
+    }, [messages, activeGroup])
 
-    // Load messages when active group changes
     useEffect(() => {
-        if (activeGroup) {
-            pageRef.current = 1;
-            loadMessages(activeGroup.id, 1, 10); // încarcă ultimele 20 la început
-            markAsRead(activeGroup.id);
+        if (!activeGroup) return
+
+        // Reset page counter when switching groups
+        pageRef.current = 1
+
+        // Only load if we don't already have messages for this group
+        const existingMessages = messages[activeGroup.id]
+        if (!existingMessages || existingMessages.length === 0) {
+            loadMessages(activeGroup.id, 1, 10)
         }
-    }, [activeGroup, loadMessages, markAsRead]);
+
+        const timeoutId = setTimeout(() => {
+            // Only mark as read if the group still has unread messages
+            if (activeGroup.unreadCount && activeGroup.unreadCount > 0) {
+                markAsRead(activeGroup.id)
+            }
+        }, 500)
+
+        return () => clearTimeout(timeoutId)
+    }, [activeGroup]) // Only depend on activeGroup, not the entire object
 
     const onlineMembers = useMemo(() => {
-        if (!activeGroup) return [];
+        if (!activeGroup) return []
         return activeGroup.members.filter((m: any) => {
-            const uid = String(m.user?.id ?? m.id); // fallback defensiv
-            return isUserOnline(uid);
-        });
-    }, [activeGroup, isUserOnline]);
+            const uid = String(m.user?.id ?? m.id) // fallback defensiv
+            return isUserOnline(uid)
+        })
+    }, [activeGroup, isUserOnline])
 
     const activeGroupMessages = useMemo(() => {
-        if (!activeGroup) return [];
-        return messages[activeGroup.id] || [];
-    }, [activeGroup, messages]);
+        if (!activeGroup) return []
+        return messages[activeGroup.id] || []
+    }, [activeGroup, messages])
 
     const lastSeenIndexByUser = useMemo(() => {
-        if (!activeGroup) return {};
-        const map: Record<string, number> = {};
+        if (!activeGroup) return {}
+        const map: Record<string, number> = {}
 
         activeGroupMessages.forEach((msg: any, idx: number) => {
-            const readers = getReaders(msg, user?.id);
+            const readers = getReaders(msg, user?.id)
             readers.forEach((rid) => {
-                map[String(rid)] = idx; // memorăm cel mai recent index văzut
-            });
-        });
+                map[String(rid)] = idx // memorăm cel mai recent index văzut
+            })
+        })
 
-        return map;
-    }, [activeGroup, activeGroupMessages, user?.id]);
+        return map
+    }, [activeGroup, activeGroupMessages, user?.id])
 
     const seenByMembersForMessage = (msgIndex: number) => {
-        if (!activeGroup) return [];
-        return activeGroup.members
-            .filter((m: any) => {
-                const uid = String(m.user?.id);
-                if (!uid || uid === String(user?.id)) return false;
-                return lastSeenIndexByUser[uid] === msgIndex;
-            })
-            // opțional: sortează ca să ai un ordin stabil
-            .sort((a: any, b: any) =>
-                `${a.user.firstName} ${a.user.lastName}`.localeCompare(
-                    `${b.user.firstName} ${b.user.lastName}`
+        if (!activeGroup) return []
+        return (
+            activeGroup.members
+                .filter((m: any) => {
+                    const uid = String(m.user?.id)
+                    if (!uid || uid === String(user?.id)) return false
+                    return lastSeenIndexByUser[uid] === msgIndex
+                })
+                // opțional: sortează ca să ai un ordin stabil
+                .sort((a: any, b: any) =>
+                    `${a.user.firstName} ${a.user.lastName}`.localeCompare(`${b.user.firstName} ${b.user.lastName}`),
                 )
-            );
-    };
+        )
+    }
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !activeGroup) return;
-        setUploading(true);
+        const file = e.target.files?.[0]
+        if (!file || !activeGroup) return
+        setUploading(true)
         try {
-            if (!['application/pdf', 'text/plain'].includes(file.type) && !file.type.startsWith('image/')) {
-                throw new Error('Tip fișier neacceptat (doar PDF/imagini)');
+            if (!["application/pdf", "text/plain"].includes(file.type) && !file.type.startsWith("image/")) {
+                throw new Error("Tip fișier neacceptat (doar PDF/imagini)")
             }
 
-            const msg = await chatService.uploadAttachment(activeGroup.id, file);
-            upsertMessage(msg);
-        } catch (err:any) {
-            console.error(err);
+            const msg = await chatService.uploadAttachment(activeGroup.id, file)
+            upsertMessage(msg)
+        } catch (err: any) {
+            console.error(err)
         } finally {
-            setUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+            setUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ""
         }
-    };
+    }
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const container = e.currentTarget;
+    const handleScroll = useCallback(
+        (e: React.UIEvent<HTMLDivElement>) => {
+            const container = e.currentTarget
 
-        if (!activeGroup || loadingMessages[activeGroup.id] || isLoadingMore.current) return;
+            if (!activeGroup || loadingMessages[activeGroup.id] || isLoadingMore.current) return
 
-        // Scroll to top trigger
-        if (container.scrollTop === 0) {
-            isLoadingMore.current = true;
+            // Only trigger when scrolled to the very top
+            if (container.scrollTop === 0) {
+                isLoadingMore.current = true
 
-            const previousScrollHeight = container.scrollHeight;
+                const previousScrollHeight = container.scrollHeight
+                const nextPage = pageRef.current + 1
 
-            const nextPage = pageRef.current + 1;
+                setTimeout(() => {
+                    // Double-check conditions before making the request
+                    if (!activeGroup || loadingMessages[activeGroup.id] || !isLoadingMore.current) {
+                        isLoadingMore.current = false
+                        return
+                    }
 
-            loadMessages(activeGroup.id, nextPage, 10).then(() => {
-                pageRef.current = nextPage;
-                isLoadingMore.current = false;
+                    loadMessages(activeGroup.id, nextPage, 10)
+                        .then(() => {
+                            pageRef.current = nextPage
+                            isLoadingMore.current = false
 
-                // Restore scroll position
-                requestAnimationFrame(() => {
-                    const newScrollHeight = container.scrollHeight;
-                    container.scrollTop = newScrollHeight - previousScrollHeight;
-                });
-            });
-        }
-    };
-
+                            // Restore scroll position
+                            requestAnimationFrame(() => {
+                                const newScrollHeight = container.scrollHeight
+                                container.scrollTop = newScrollHeight - previousScrollHeight
+                            })
+                        })
+                        .catch(() => {
+                            isLoadingMore.current = false
+                        })
+                }, 300) // Increased delay from 100ms to 300ms
+            }
+        },
+        [activeGroup, loadingMessages], // Removed loadMessages from dependencies
+    )
 
     // Handle typing indicators
     const handleTyping = () => {
-        if (!activeGroup || !user) return;
+        if (!activeGroup || !user) return
 
         // if (!isTyping) {
         //     setIsTyping(true);
@@ -240,7 +263,7 @@ export default function ChatWidget() {
 
         // Clear existing timeout
         if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
+            clearTimeout(typingTimeoutRef.current)
         }
 
         // Set new timeout
@@ -248,9 +271,9 @@ export default function ChatWidget() {
         //     setIsTyping(false);
         //     sendTyping(activeGroup.id, false);
         // }, 1000);
-    };
+    }
     const handleSendMessage = () => {
-        if (!messageInput.trim() || !activeGroup) return;
+        if (!messageInput.trim() || !activeGroup) return
 
         // Check for sensitive information
         // if (detectSensitiveInfo(messageInput)) {
@@ -258,74 +281,82 @@ export default function ChatWidget() {
         //     return;
         // }
 
-        sendMessage(activeGroup.id, messageInput.trim());
-        setMessageInput('');
+        sendMessage(activeGroup.id, messageInput.trim())
+        setMessageInput("")
 
         // Stop typing indicator
         // if (isTyping) {
         //     setIsTyping(false);
         //     sendTyping(activeGroup.id, false);
         // }
-    };
+    }
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSendMessage();
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            handleSendMessage()
         } else {
-            handleTyping();
+            handleTyping()
         }
-    };
+    }
 
     const autoResizeTextarea = () => {
-        const el = messageInputRef.current;
+        const el = messageInputRef.current
         if (el) {
-            el.style.height = 'auto';
-            const newHeight = Math.min(el.scrollHeight, 150);
-            el.style.height = `${newHeight}px`;
+            el.style.height = "auto"
+            const newHeight = Math.min(el.scrollHeight, 150)
+            el.style.height = `${newHeight}px`
         }
-    };
+    }
 
-    const filteredGroups = groups.filter(group =>
-        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        group.members.some(p =>
-            `${p.user.firstName} ${p.user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
+    const filteredGroups = groups.filter(
+        (group) =>
+            group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            group.members.some((p) =>
+                `${p.user.firstName} ${p.user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
+    )
 
-    const activeGroupTyping = typingUsers.filter(t => t.groupId === activeGroup?.id);
-    const totalUnread = getTotalUnreadCount();
+    const activeGroupTyping = typingUsers.filter((t) => t.groupId === activeGroup?.id)
+    const totalUnread = getTotalUnreadCount()
 
     const getGroupIcon = (type: string) => {
         switch (type) {
-            case 'PROJECT': return '🚀';
-            case 'PROVIDER_ONLY': return '👥';
-            case 'DIRECT': return '💬';
-            default: return '💬';
+            case "PROJECT":
+                return "🚀"
+            case "PROVIDER_ONLY":
+                return "👥"
+            case "DIRECT":
+                return "💬"
+            default:
+                return "💬"
         }
-    };
+    }
 
-    if (!user) return null;
+    if (!user) return null
 
     const insertAtCursor = (text: string) => {
-        const el = messageInputRef.current;
-        if (!el) { setMessageInput(v => v + text); return; }
-        const start = el.selectionStart ?? el.value.length;
-        const end = el.selectionEnd ?? el.value.length;
-        const next = el.value.slice(0, start) + text + el.value.slice(end);
-        setMessageInput(next);
+        const el = messageInputRef.current
+        if (!el) {
+            setMessageInput((v) => v + text)
+            return
+        }
+        const start = el.selectionStart ?? el.value.length
+        const end = el.selectionEnd ?? el.value.length
+        const next = el.value.slice(0, start) + text + el.value.slice(end)
+        setMessageInput(next)
         requestAnimationFrame(() => {
-            el.focus();
-            const caret = start + text.length;
-            el.setSelectionRange(caret, caret);
-        });
-    };
+            el.focus()
+            const caret = start + text.length
+            el.setSelectionRange(caret, caret)
+        })
+    }
 
     const handleEmojiSelect = (emoji: any) => {
-        const toInsert = emoji?.native || "";
-        if (toInsert) insertAtCursor(toInsert);
-        setEmojiOpen(false);
-    };
+        const toInsert = emoji?.native || ""
+        if (toInsert) insertAtCursor(toInsert)
+        setEmojiOpen(false)
+    }
 
     return (
         <>
@@ -339,7 +370,7 @@ export default function ChatWidget() {
                     <MessageCircle className="w-6 h-6" />
                     {totalUnread > 0 && (
                         <Badge className="absolute -top-2 -right-2 w-6 h-6 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
-                            {totalUnread > 99 ? '99+' : totalUnread}
+                            {totalUnread > 99 ? "99+" : totalUnread}
                         </Badge>
                     )}
                 </Button>
@@ -352,18 +383,13 @@ export default function ChatWidget() {
                     <CardHeader className="pb-3 border-b">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
-                                {activeGroup && (<Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setActiveGroup(null)}
-                                    className="p-1"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                </Button>)}
-                                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                                <CardTitle className="text-lg">
-                                    {activeGroup ? activeGroup.name : 'Chat'}
-                                </CardTitle>
+                                {activeGroup && (
+                                    <Button variant="ghost" size="sm" onClick={() => setActiveGroup(null)} className="p-1">
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </Button>
+                                )}
+                                <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
+                                <CardTitle className="text-lg">{activeGroup ? activeGroup.name : "Chat"}</CardTitle>
                                 {activeGroup && (
                                     <Badge variant="outline" className="text-xs">
                                         {getGroupIcon(activeGroup.type)} {activeGroup.members.length}
@@ -371,20 +397,10 @@ export default function ChatWidget() {
                                 )}
                             </div>
                             <div className="flex items-center space-x-1">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsMinimized(!isMinimized)}
-                                    className="w-8 h-8"
-                                >
+                                <Button variant="ghost" size="icon" onClick={() => setIsMinimized(!isMinimized)} className="w-8 h-8">
                                     {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
                                 </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => closePanel()}
-                                    className="w-8 h-8"
-                                >
+                                <Button variant="ghost" size="icon" onClick={() => closePanel()} className="w-8 h-8">
                                     <X className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -395,79 +411,78 @@ export default function ChatWidget() {
                                 <div>
                                     <div className="flex gap-2">
                                         <TooltipProvider delayDuration={150}>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                        <span>{activeGroup.members.length} participanți</span>
-
-                                            </TooltipTrigger>
-                                            <TooltipContent className="p-2">
-                                            {activeGroup.members.map((m: any) => (
-                                                <div key={m.user.id} className="flex items-center gap-2 text-sm">
-                                                    <Avatar className="w-5 h-5">
-                                                        <AvatarImage src={m.user.avatar} />
-                                                        <AvatarFallback className="text-[8px]">
-                                                            {m.user.firstName?.[0]}{m.user.lastName?.[0]}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span>
-                                                                {m.user.firstName} {m.user.lastName}
-                                                        {/* marchează-l pe userul curent */}
-                                                        {String(m.user.id) === String(user?.id) && " (tu)"}
-                                                              </span>
-                                                </div>
-                                            ))}
-                                            </TooltipContent>
-                                        </Tooltip>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span>{activeGroup.members.length} participanți</span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="p-2">
+                                                    {activeGroup.members.map((m: any) => (
+                                                        <div key={m.user.id} className="flex items-center gap-2 text-sm">
+                                                            <Avatar className="w-5 h-5">
+                                                                <AvatarImage src={m.user.avatar || "/placeholder.svg"} />
+                                                                <AvatarFallback className="text-[8px]">
+                                                                    {m.user.firstName?.[0]}
+                                                                    {m.user.lastName?.[0]}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span>
+                                {m.user.firstName} {m.user.lastName}
+                                                                {/* marchează-l pe userul curent */}
+                                                                {String(m.user.id) === String(user?.id) && " (tu)"}
+                              </span>
+                                                        </div>
+                                                    ))}
+                                                </TooltipContent>
+                                            </Tooltip>
                                         </TooltipProvider>
                                         <div>
-                                            <span className="flex items-center space-x-1">
-                                                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                                <TooltipProvider delayDuration={150}>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span className="cursor-default">
-                                                        {onlineMembers.length} online
-                                                      </span>
-                                                    </TooltipTrigger>
+                      <span className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                        <TooltipProvider delayDuration={150}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-default">{onlineMembers.length} online</span>
+                            </TooltipTrigger>
 
-                                                    <TooltipContent className="p-2">
-                                                      {onlineMembers.length === 0 ? (
-                                                          <div className="text-sm text-muted-foreground">Nimeni online acum</div>
-                                                      ) : (
-                                                          <div className="space-y-1">
-                                                              {onlineMembers.map((m: any) => (
-                                                                  <div key={m.user.id} className="flex items-center gap-2 text-sm">
-                                                                      <Avatar className="w-5 h-5">
-                                                                          <AvatarImage src={m.user.avatar} />
-                                                                          <AvatarFallback className="text-[8px]">
-                                                                              {m.user.firstName?.[0]}{m.user.lastName?.[0]}
-                                                                          </AvatarFallback>
-                                                                      </Avatar>
-                                                                      <span>
-                                                                {m.user.firstName} {m.user.lastName}
-                                                                          {/* marchează-l pe userul curent */}
-                                                                          {String(m.user.id) === String(user?.id) && " (tu)"}
-                                                              </span>
-                                                                  </div>
-                                                              ))}
-                                                          </div>
-                                                      )}
-                                                    </TooltipContent>
-                                                  </Tooltip>
-                                                </TooltipProvider>
-                                            </span>
+                            <TooltipContent className="p-2">
+                              {onlineMembers.length === 0 ? (
+                                  <div className="text-sm text-muted-foreground">Nimeni online acum</div>
+                              ) : (
+                                  <div className="space-y-1">
+                                      {onlineMembers.map((m: any) => (
+                                          <div key={m.user.id} className="flex items-center gap-2 text-sm">
+                                              <Avatar className="w-5 h-5">
+                                                  <AvatarImage src={m.user.avatar || "/placeholder.svg"} />
+                                                  <AvatarFallback className="text-[8px]">
+                                                      {m.user.firstName?.[0]}
+                                                      {m.user.lastName?.[0]}
+                                                  </AvatarFallback>
+                                              </Avatar>
+                                              <span>
+                                        {m.user.firstName} {m.user.lastName}
+                                                  {/* marchează-l pe userul curent */}
+                                                  {String(m.user.id) === String(user?.id) && " (tu)"}
+                                      </span>
+                                          </div>
+                                      ))}
+                                  </div>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </span>
                                         </div>
                                     </div>
                                     <div className="flex">
                                         <TooltipProvider delayDuration={150}>
                                             <div className="flex">
                                                 {activeGroup.members.slice(0, 6).map((participant: any) => {
-                                                    const fullName = `${participant.user.firstName} ${participant.user.lastName}`;
+                                                    const fullName = `${participant.user.firstName} ${participant.user.lastName}`
                                                     return (
                                                         <Tooltip key={participant.id}>
                                                             <TooltipTrigger asChild>
                                                                 <Avatar className="w-6 h-6 border-2 border-background">
-                                                                    <AvatarImage src={participant.user.avatar} />
+                                                                    <AvatarImage src={participant.user.avatar || "/placeholder.svg"} />
                                                                     <AvatarFallback className="text-[10px]">
                                                                         {participant.user.firstName[0]}
                                                                         {participant.user.lastName[0]}
@@ -478,7 +493,7 @@ export default function ChatWidget() {
                                                                 <span className="font-medium">{fullName}</span>
                                                             </TooltipContent>
                                                         </Tooltip>
-                                                    );
+                                                    )
                                                 })}
 
                                                 {activeGroup.members.length > 6 && (
@@ -494,7 +509,6 @@ export default function ChatWidget() {
                                         </TooltipProvider>
                                     </div>
                                 </div>
-
                             </CardDescription>
                         )}
                     </CardHeader>
@@ -519,10 +533,10 @@ export default function ChatWidget() {
                                         </div>
                                     </div>
 
-                                    <ScrollArea className="flex-1" >
+                                    <ScrollArea className="flex-1">
                                         <div className="p-2 space-y-1">
-                                            {filteredGroups.map(group => {
-                                                const isUnread = (group.unreadCount ?? 0) > 0;
+                                            {filteredGroups.map((group) => {
+                                                const isUnread = (group.unreadCount ?? 0) > 0
 
                                                 return (
                                                     <div
@@ -538,63 +552,55 @@ export default function ChatWidget() {
                                                             </div>
 
                                                             {/* <- tot textul din acest container devine bold când e unread */}
-                                                            <div className={`flex-1 min-w-0 ${isUnread ? 'font-semibold' : ''}`}>
+                                                            <div className={`flex-1 min-w-0 ${isUnread ? "font-semibold" : ""}`}>
                                                                 <div className="flex items-center justify-between">
                                                                     <h4 className="truncate" title={group.name}>
                                                                         {group.name}
                                                                         {group.unreadCount > 0 && (
-                                                                            <Badge className="ms-2 bg-red-500 text-white">
-                                                                                {group.unreadCount}
-                                                                            </Badge>
+                                                                            <Badge className="ms-2 bg-red-500 text-white">{group.unreadCount}</Badge>
                                                                         )}
                                                                     </h4>
 
                                                                     {group.last_message && (
                                                                         <span
-                                                                            className={`text-xs ${
-                                                                                isUnread ? 'text-foreground' : 'text-muted-foreground'
-                                                                            }`}
-                                                                            title={new Date(group.last_message.timestamp).toLocaleString('ro-RO')}
+                                                                            className={`text-xs ${isUnread ? "text-foreground" : "text-muted-foreground"}`}
+                                                                            title={new Date(group.last_message.timestamp).toLocaleString("ro-RO")}
                                                                         >
-                {formatDistanceToNow(new Date(group.last_message.timestamp), {
-                    addSuffix: true,
-                    locale: ro,
-                })}
-              </span>
+                                      {formatDistanceToNow(new Date(group.last_message.timestamp), {
+                                          addSuffix: true,
+                                          locale: ro,
+                                      })}
+                                    </span>
                                                                     )}
                                                                 </div>
 
                                                                 {group.last_message && (
                                                                     <p
                                                                         className={`text-sm truncate ${
-                                                                            isUnread ? 'text-foreground' : 'text-muted-foreground'
+                                                                            isUnread ? "text-foreground" : "text-muted-foreground"
                                                                         }`}
-                                                                        title={group.last_message.content ?? '---'}
+                                                                        title={group.last_message.content ?? "---"}
                                                                     >
-                                                                        {group.last_message.content ?? '---'}
+                                                                        {group.last_message.content ?? "---"}
                                                                     </p>
                                                                 )}
 
                                                                 <div className="flex items-center space-x-1 mt-1">
                                                                     <Badge variant="outline" className="text-xs">
-                                                                        {group.type === 'PROJECT'
-                                                                            ? 'Proiect'
-                                                                            : group.type === 'PROVIDER_ONLY'
-                                                                                ? 'Prestatori'
-                                                                                : 'Direct'}
+                                                                        {group.type === "PROJECT"
+                                                                            ? "Proiect"
+                                                                            : group.type === "PROVIDER_ONLY"
+                                                                                ? "Prestatori"
+                                                                                : "Direct"}
                                                                     </Badge>
-                                                                    <span
-                                                                        className={`text-xs ${
-                                                                            isUnread ? 'text-foreground' : 'text-muted-foreground'
-                                                                        }`}
-                                                                    >
-              {group.members.length} membri
-            </span>
+                                                                    <span className={`text-xs ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
+                                    {group.members.length} membri
+                                  </span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                );
+                                                )
                                             })}
 
                                             {filteredGroups.length === 0 && (
@@ -636,10 +642,7 @@ export default function ChatWidget() {
                                     {/*</div>*/}
 
                                     {/* Messages */}
-                                    <ScrollArea
-                                        className="p-4 min-h-0"
-                                        viewportProps={{ onScroll: handleScroll, ref: scrollRef }}
-                                    >
+                                    <ScrollArea className="p-4 min-h-0" viewportProps={{ onScroll: handleScroll, ref: scrollRef }}>
                                         <div className="space-y-4">
                                             {activeGroupMessages.map((message: any, index: number) => (
                                                 <MessageBubble
@@ -656,12 +659,16 @@ export default function ChatWidget() {
                                                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                                                     <div className="flex space-x-1">
                                                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                                                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                                        <div
+                                                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                                                            style={{ animationDelay: "0.1s" }}
+                                                        />
+                                                        <div
+                                                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                                                            style={{ animationDelay: "0.2s" }}
+                                                        />
                                                     </div>
-                                                    <span>
-                            {activeGroupTyping.map(t => t.userName).join(', ')} scrie...
-                          </span>
+                                                    <span>{activeGroupTyping.map((t) => t.userName).join(", ")} scrie...</span>
                                                 </div>
                                             )}
 
@@ -673,9 +680,7 @@ export default function ChatWidget() {
                                     <div className="p-4 border-t overflow-hidden">
                                         {uploading && (
                                             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
-                                                <div className="rounded-xl bg-white/90 p-3 text-sm">
-                                                    Se încarcă și se verifică fișierul…
-                                                </div>
+                                                <div className="rounded-xl bg-white/90 p-3 text-sm">Se încarcă și se verifică fișierul…</div>
                                             </div>
                                         )}
                                         {showSensitiveWarning && (
@@ -689,17 +694,14 @@ export default function ChatWidget() {
                                                                 size="sm"
                                                                 variant="outline"
                                                                 onClick={() => {
-                                                                    sendMessage(activeGroup.id, messageInput.trim());
-                                                                    setMessageInput('');
-                                                                    setShowSensitiveWarning(false);
+                                                                    sendMessage(activeGroup.id, messageInput.trim())
+                                                                    setMessageInput("")
+                                                                    setShowSensitiveWarning(false)
                                                                 }}
                                                             >
                                                                 Trimite Oricum
                                                             </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => setShowSensitiveWarning(false)}
-                                                            >
+                                                            <Button size="sm" onClick={() => setShowSensitiveWarning(false)}>
                                                                 Anulează
                                                             </Button>
                                                         </div>
@@ -714,17 +716,17 @@ export default function ChatWidget() {
                                                     ref={messageInputRef}
                                                     value={messageInput}
                                                     onChange={(e) => {
-                                                        setMessageInput(e.target.value);
-                                                        autoResizeTextarea();
+                                                        setMessageInput(e.target.value)
+                                                        autoResizeTextarea()
                                                     }}
                                                     onKeyDown={handleKeyPress}
                                                     placeholder="Scrie un mesaj..."
                                                     className="resize-none min-h-[10px]"
                                                     rows={1}
                                                     style={{
-                                                        overflow: 'scroll',
-                                                        maxHeight: '70px',
-                                                        height: 'auto'
+                                                        overflow: "scroll",
+                                                        maxHeight: "70px",
+                                                        height: "auto",
                                                     }}
                                                     disabled={!isConnected}
                                                 />
@@ -737,8 +739,12 @@ export default function ChatWidget() {
                                                     className="hidden"
                                                     onChange={onFileChange}
                                                 />
-                                                <Button variant="ghost" size="icon" className="w-8 h-8"
-                                                        onClick={onPickFile} disabled={!isConnected || uploading}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="w-8 h-8"
+                                                    onClick={onPickFile}
+                                                    disabled={!isConnected || uploading}
                                                 >
                                                     <Paperclip className="w-4 h-4" />
                                                 </Button>
@@ -748,7 +754,11 @@ export default function ChatWidget() {
                                                             <Smile className="w-4 h-4" />
                                                         </Button>
                                                     </PopoverTrigger>
-                                                    <PopoverContent align="end" side="top" className="p-0 border-0 rounded-2xl shadow-xl overflow-hidden !w-full">
+                                                    <PopoverContent
+                                                        align="end"
+                                                        side="top"
+                                                        className="p-0 border-0 rounded-2xl shadow-xl overflow-hidden !w-full"
+                                                    >
                                                         <EmojiPicker
                                                             locale="ro"
                                                             navPosition="top"
@@ -780,7 +790,7 @@ export default function ChatWidget() {
                 </Card>
             )}
         </>
-    );
+    )
 }
 
 // Message Bubble Component
@@ -790,173 +800,178 @@ function MessageBubble({
                            showAvatar,
                            seenBy = [],
                        }: {
-    message: any;
-    isOwn: boolean;
-    showAvatar: boolean;
-    seenBy?: any[];
-
+    message: any
+    isOwn: boolean
+    showAvatar: boolean
+    seenBy?: any[]
 }) {
+    const [showActions, setShowActions] = useState(false)
+    const { user } = useAuth()
 
-    const [showActions, setShowActions] = useState(false);
-    const { user } = useAuth();
-
-    const userLang = user?.language ?? 'ro';
-    const translated = message.translations?.[userLang];
+    const userLang = user?.language ?? "ro"
+    const translated = message.translations?.[userLang]
 
     const getOwnMessageStatusIcon = (m: ChatMessage) => {
-        if (String(m.sender_id) !== String(user?.id)) return null;
-        const readersCount = getReaders(m, user?.id).length;
-        let readers: string[] = [];
+        if (String(m.sender_id) !== String(user?.id)) return null
+        const readersCount = getReaders(m, user?.id).length
+        let readers: string[] = []
         if (typeof m.read_by === "string") {
             try {
-                readers = JSON.parse(m.read_by);
+                readers = JSON.parse(m.read_by)
             } catch {
-                readers = [];
+                readers = []
             }
         } else if (Array.isArray(m.read_by)) {
-            readers = m.read_by;
+            readers = m.read_by
         }
 
-        const onlyMeRead = readers.length === 1 && readers[0] === String(user?.id);
+        const onlyMeRead = readers.length === 1 && readers[0] === String(user?.id)
         if (readersCount === 0) {
-            if ((!m.isRead && (!m.read_by || (typeof m.read_by === 'string' && (m.read_by.length === 0)))) || onlyMeRead) {
+            if ((!m.isRead && (!m.read_by || (typeof m.read_by === "string" && m.read_by.length === 0))) || onlyMeRead) {
                 return (
                     <TooltipProvider delayDuration={150}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <CheckCheck className="w-4 h-4 text-gray-500" />
                             </TooltipTrigger>
-                            <TooltipContent className="text-xs">
-                                Mesaj trimis, dar nu a fost încă citit
-                            </TooltipContent>
+                            <TooltipContent className="text-xs">Mesaj trimis, dar nu a fost încă citit</TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
-                );
+                )
             }
-            return null;
+            return null
         }
 
-        return null;
-    };
+        return null
+    }
 
     return (
         <>
-        <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-            {isOwn && (
-                <div className="flex items-end space-x-1 me-2">
-                    {message.editedAt && <span>editat</span>}
-                    {getOwnMessageStatusIcon(message)}
-                </div>
-            )}
-        <div className={`flex items-end space-x-2 max-w-[80%] ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
-            {showAvatar && !isOwn && (
-                <Avatar className="w-8 h-8">
-                    <AvatarImage src={message.sender.avatar} />
-                    <AvatarFallback className="text-xs">
-                        {message.sender.firstName[0]} {message.sender.lastName[0]}
-                    </AvatarFallback>
-                </Avatar>
-            )}
-
-            <div
-                className={`relative px-4 py-2 rounded-2xl ${
-                    isOwn
-                        ? 'bg-blue-600 text-white rounded-br-md'
-                        : 'bg-muted rounded-bl-md'
-                }`}
-                onMouseEnter={() => setShowActions(true)}
-                onMouseLeave={() => setShowActions(false)}
-            >
-                {!isOwn && (
-                    <div className="text-xs font-medium mb-1 opacity-70">
-                        {message.senderName}
+            <div className={`flex ${isOwn ? "justify-end" : "justify-start"} group`}>
+                {isOwn && (
+                    <div className="flex items-end space-x-1 me-2">
+                        {message.editedAt && <span>editat</span>}
+                        {getOwnMessageStatusIcon(message)}
                     </div>
                 )}
+                <div className={`flex items-end space-x-2 max-w-[80%] ${isOwn ? "flex-row-reverse space-x-reverse" : ""}`}>
+                    {showAvatar && !isOwn && (
+                        <Avatar className="w-8 h-8">
+                            <AvatarImage src={message.sender.avatar || "/placeholder.svg"} />
+                            <AvatarFallback className="text-xs">
+                                {message.sender.firstName[0]} {message.sender.lastName[0]}
+                            </AvatarFallback>
+                        </Avatar>
+                    )}
 
-                <div className="text-sm">
-                    {message.attachments?.length > 0 && (
-                        <div className="mt-2 space-y-2">
-                            {message.attachments.map((att:any) => (
-                                <div key={att.id} className="flex items-center gap-2 text-xs">
-                                    {att.status === 'scanning' && <span className="italic">Se scanează…</span>}
-                                    {att.status === 'blocked_malware' && <span className="text-red-600">❌ Fișier blocat (malware)</span>}
-                                    {att.status === 'blocked_pii' && <span className="text-red-600">❌ Fișier blocat (date contact)</span>}
-                                    {att.status === 'scan_timeout' && <span className="text-amber-600">⚠️ Scan timeout</span>}
-                                    {att.status === 'ok' && (
-                                        att.type?.startsWith('image/')
-                                            ? <a href={att.url} target="_blank" className="underline hover:opacity-80">
-                                                <Image src={att.url} alt={att.name} width={160} height={120}
-                                                       className="max-w-[160px] max-h-[120px] rounded border object-contain" />
-                                            </a>
-                                            : <a href={att.url} target="_blank" className={`underline hover:opacity-80 ${isOwn && 'text-white'}`}>📄 {att.name}</a>
-                                    )}
+                    <div
+                        className={`relative px-4 py-2 rounded-2xl ${
+                            isOwn ? "bg-blue-600 text-white rounded-br-md" : "bg-muted rounded-bl-md"
+                        }`}
+                        onMouseEnter={() => setShowActions(true)}
+                        onMouseLeave={() => setShowActions(false)}
+                    >
+                        {!isOwn && <div className="text-xs font-medium mb-1 opacity-70">{message.senderName}</div>}
+
+                        <div className="text-sm">
+                            {message.attachments?.length > 0 && (
+                                <div className="mt-2 space-y-2">
+                                    {message.attachments.map((att: any) => (
+                                        <div key={att.id} className="flex items-center gap-2 text-xs">
+                                            {att.status === "scanning" && <span className="italic">Se scanează…</span>}
+                                            {att.status === "blocked_malware" && (
+                                                <span className="text-red-600">❌ Fișier blocat (malware)</span>
+                                            )}
+                                            {att.status === "blocked_pii" && (
+                                                <span className="text-red-600">❌ Fișier blocat (date contact)</span>
+                                            )}
+                                            {att.status === "scan_timeout" && <span className="text-amber-600">⚠️ Scan timeout</span>}
+                                            {att.status === "ok" &&
+                                                (att.type?.startsWith("image/") ? (
+                                                    <a href={att.url} target="_blank" className="underline hover:opacity-80" rel="noreferrer">
+                                                        <Image
+                                                            src={att.url || "/placeholder.svg"}
+                                                            alt={att.name}
+                                                            width={160}
+                                                            height={120}
+                                                            className="max-w-[160px] max-h-[120px] rounded border object-contain"
+                                                        />
+                                                    </a>
+                                                ) : (
+                                                    <a
+                                                        href={att.url}
+                                                        target="_blank"
+                                                        className={`underline hover:opacity-80 ${isOwn && "text-white"}`}
+                                                        rel="noreferrer"
+                                                    >
+                                                        📄 {att.name}
+                                                    </a>
+                                                ))}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+                            <div>{translated ?? message.content}</div>
+                            {message.isCensored && (
+                                <div className="flex items-center space-x-1 mt-1 text-xs opacity-70">
+                                    <EyeOff className="w-3 h-3" />
+                                    <span>Mesaj cenzurat</span>
+                                </div>
+                            )}
                         </div>
-                    )}
-                    <div>{translated ?? message.content}</div>
-                    {message.isCensored && (
-                        <div className="flex items-center space-x-1 mt-1 text-xs opacity-70">
-                            <EyeOff className="w-3 h-3" />
-                            <span>Mesaj cenzurat</span>
+
+                        <div
+                            className={`flex items-center justify-between mt-1 text-xs ${
+                                isOwn ? "text-blue-100" : "text-muted-foreground"
+                            }`}
+                        >
+              <span>
+                {formatDistanceToNow(new Date(message.created_at), {
+                    addSuffix: true,
+                    locale: ro,
+                })}
+              </span>
                         </div>
-                    )}
-                </div>
 
-                <div className={`flex items-center justify-between mt-1 text-xs ${
-                    isOwn ? 'text-blue-100' : 'text-muted-foreground'
-                }`}>
-  <span>
-    {formatDistanceToNow(new Date(message.created_at), {
-        addSuffix: true,
-        locale: ro
-    })}
-  </span>
-                </div>
-
-                {/* Message Actions */}
-                {showActions && (
-                    <div className={`absolute top-0 ${isOwn ? 'left-0' : 'right-0'} transform ${isOwn ? '-translate-x-full' : 'translate-x-full'} flex space-x-1 bg-background border rounded-lg shadow-lg p-1`}>
-                        <Button variant="ghost" size="icon" className="w-6 h-6">
-                            <Edit className={`w-3 h-3 ${isOwn && 'text-blue-600'}`} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && 'text-blue-600'}`}>
-                            <Trash2 className="w-3 h-3" />
-                        </Button>
+                        {/* Message Actions */}
+                        {showActions && (
+                            <div
+                                className={`absolute top-0 ${isOwn ? "left-0" : "right-0"} transform ${isOwn ? "-translate-x-full" : "translate-x-full"} flex space-x-1 bg-background border rounded-lg shadow-lg p-1`}
+                            >
+                                <Button variant="ghost" size="icon" className="w-6 h-6">
+                                    <Edit className={`w-3 h-3 ${isOwn && "text-blue-600"}`} />
+                                </Button>
+                                <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && "text-blue-600"}`}>
+                                    <Trash2 className="w-3 h-3" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
-                )}
-
+                </div>
             </div>
-
-        </div>
-
-    </div>
             {isOwn && seenBy.length > 0 && (
-                <div
-                    className={`!mt-2 flex gap-1 ${isOwn ? 'justify-end pr-2' : 'justify-start'} items-center`}
-                >
+                <div className={`!mt-2 flex gap-1 ${isOwn ? "justify-end pr-2" : "justify-start"} items-center`}>
                     <TooltipProvider delayDuration={150}>
                         {seenBy.map((m: any) => {
-                            const fullName = `${m.user.firstName} ${m.user.lastName}`;
+                            const fullName = `${m.user.firstName} ${m.user.lastName}`
                             return (
                                 <Tooltip key={m.user.id}>
                                     <TooltipTrigger asChild>
                                         <Avatar className="w-5 h-5 ring-2 ring-background">
-                                            <AvatarImage src={m.user.avatar} />
+                                            <AvatarImage src={m.user.avatar || "/placeholder.svg"} />
                                             <AvatarFallback className="text-[8px]">
-                                                {m.user.firstName?.[0]}{m.user.lastName?.[0]}
+                                                {m.user.firstName?.[0]}
+                                                {m.user.lastName?.[0]}
                                             </AvatarFallback>
                                         </Avatar>
                                     </TooltipTrigger>
-                                    <TooltipContent className="px-2 py-1 text-xs">
-                                        Văzut de {fullName}
-                                    </TooltipContent>
+                                    <TooltipContent className="px-2 py-1 text-xs">Văzut de {fullName}</TooltipContent>
                                 </Tooltip>
-                            );
+                            )
                         })}
                     </TooltipProvider>
                 </div>
             )}
-            </>
-    );
+        </>
+    )
 }
