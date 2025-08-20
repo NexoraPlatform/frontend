@@ -54,8 +54,8 @@ export function HeroSectionStatic() {
                         <span className="block text-indigo-600">realitate digitală</span>
                     </h1>
 
-                    <p
-                        className="mx-auto max-w-3xl text-xl lg:text-2xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-8"
+                    <h2
+                        className="mx-auto max-w-4xl text-2xl lg:text-3xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-8"
                         style={{
                             willChange: "auto",
                         }}
@@ -64,7 +64,7 @@ export function HeroSectionStatic() {
                         România.
                         <br />
                         De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
-                    </p>
+                    </h2>
 
                     <div className="max-w-4xl mx-auto mb-12">
                         <form className="relative group" role="search" aria-label="Căutare servicii IT">
@@ -142,7 +142,7 @@ export function HeroSectionStatic() {
                     </div>
 
                     <div
-                        className="grid xs:grid-cols-2 md:grid-cols-4 gap-8 text-center"
+                        className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
                         role="list"
                         aria-label="Statistici platformă"
                     >
