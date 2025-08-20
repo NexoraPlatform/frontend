@@ -148,7 +148,7 @@ export function ChatWidget() {
         }, 500)
 
         return () => clearTimeout(timeoutId)
-    }, [activeGroup]) // Only depend on activeGroup, not the entire object
+    }, [activeGroup, loadMessages, markAsRead, messages]) // Only depend on activeGroup, not the entire object
 
     const onlineMembers = useMemo(() => {
         if (!activeGroup) return []
@@ -249,7 +249,7 @@ export function ChatWidget() {
                 }, 300) // Increased delay from 100ms to 300ms
             }
         },
-        [activeGroup, loadingMessages], // Removed loadMessages from dependencies
+        [activeGroup, loadMessages, loadingMessages], // Removed loadMessages from dependencies
     )
 
     // Handle typing indicators
