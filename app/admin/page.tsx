@@ -72,8 +72,8 @@ export default function AdminDashboard() {
   const stats = [
     {
       title: 'Utilizatori Inregistrati',
-      value: Math.round(statsData?.totalUsers || 0),
-      change: statsData?.currentMonthVsLastMonthUsers,
+      value: statsData?.totalUsers || 0,
+      change: Math.round(statsData?.currentMonthVsLastMonthUsers || 0),
       current: statsData?.currentMonthUsers || 0,
       icon: Users,
       color: 'text-blue-600',
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
     {
       title: 'Servicii Active',
       value: statsData?.activeServices || '0',
-      change: statsData?.currentMonthVsLastMonthServices,
+      change: Math.round(statsData?.currentMonthVsLastMonthServices || 0),
       current: statsData?.currentMonthServices || 0,
       icon: FileText,
       color: 'text-green-600',
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
     {
       title: 'Venituri Totale',
       value: `${statsData?.totalRevenue || '0'} RON`,
-      change: statsData?.currentMonthVsLastMonthRevenue,
+      change: Math.round(statsData?.currentMonthVsLastMonthRevenue || 0),
       current: statsData?.currentMonthRevenue || 0,
       icon: DollarSign,
       color: 'text-yellow-600',
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
     {
       title: 'Proiecte Procesate',
       value: statsData?.totalProjects || 0,
-      change: statsData?.currentMonthVsLastMonthProjects || 0,
+      change: Math.round(statsData?.currentMonthVsLastMonthProjects || 0),
       current: statsData?.currentMonthProjects || 0,
       icon: TrendingUp,
       color: 'text-purple-600',
@@ -147,7 +147,8 @@ export default function AdminDashboard() {
       href: '/admin/users',
       stats: `${statsData?.totalUsers || 0} utilizatori`,
       pending: statsData?.pendingUsers || 0,
-      role: 'admin'
+      role: 'admin',
+      permissions: ['users.read'],
     },
     {
       title: 'Gestionare Servicii',
@@ -365,6 +366,7 @@ export default function AdminDashboard() {
                                 ? { superuser: true }
                                 : { roles: [section.role as string] }
                         )}
+                        allPerms={section.permissions || []}
                     >
                     <Link href={section.href}>
                       <Card className="border hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">

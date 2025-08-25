@@ -223,7 +223,7 @@ export default function SelectServicesPage() {
         </Card>
 
         {/* Categories and Services */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid xs:grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Categories Sidebar */}
           <div className="lg:col-span-1">
             <Card>
@@ -314,7 +314,7 @@ export default function SelectServicesPage() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                   {services.map((service: any) => {
                     const IconComponent = serviceIcons[service.category?.slug as ServiceSlug] || Code;
                     const isSelected = selectedServices.includes(service.id);

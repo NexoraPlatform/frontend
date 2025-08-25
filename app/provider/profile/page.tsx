@@ -385,8 +385,6 @@ export default function ProviderProfileEditPage() {
         }
     };
 
-
-
     const handleSave = async () => {
         if (!validate()) return;
         setSaving(true);
@@ -650,7 +648,7 @@ export default function ProviderProfileEditPage() {
                                     </DialogContent>
                                 </Dialog>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="firstName" className={errors.firstName ? "text-red-500" : ""}>Prenume <span className="text-red-500">*</span></Label>
                                         <Input
@@ -673,7 +671,7 @@ export default function ProviderProfileEditPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>Email <span className="text-red-500">*</span></Label>
                                         <Input
@@ -713,7 +711,7 @@ export default function ProviderProfileEditPage() {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <Label htmlFor="company">Companie</Label>
                                         <Input
@@ -748,7 +746,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Availability */}
                     <TabsContent value="availability" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
@@ -908,7 +906,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Skills & Languages */}
                     <TabsContent value="languages" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Languages */}
                             <Card>
                                 <CardHeader>
@@ -1261,7 +1259,7 @@ export default function ProviderProfileEditPage() {
                                     </Button>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {profileData.portfolio.map((project, index) => (
                                         <div key={index} className="border rounded-lg overflow-hidden">
                                             <div className="aspect-video bg-muted">

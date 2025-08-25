@@ -128,7 +128,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
             </div>
 
             {/* Overview Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid xs:grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <Card>
                     <CardContent className="pt-6">
                         <div className="text-center">
@@ -257,7 +257,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
                                     <h4 className="font-medium mb-4">{question.question}</h4>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                         <div>
                                             <div className="flex justify-between text-sm mb-1">
                                                 <span>Raspuns {questionStat.is_correct ? 'corect' : 'incorect' }</span>

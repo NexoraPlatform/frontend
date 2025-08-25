@@ -7,6 +7,12 @@ export type BaseUser = {
     role: 'ADMIN' | 'PROVIDER' | 'CLIENT';
     phone: string;
     password?: string;
+    is_superuser?: boolean;
+    testVerified?: boolean;
+    callVerified?: boolean;
+    stripe_account_id?: string;
+    location?: string;
+    avatar?: string;
     confirm_password?: string;
     user_permissions?: Record<
         string,

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
 import { apiClient } from '@/lib/api';
 import { AccessPermission } from "@/lib/access";
+import {usePathname} from "next/navigation";
 
 export type AccessRole = {
   id?: number | string;
@@ -43,6 +44,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const pathname = usePathname(); // adaugă
+
+  useEffect(() => {
+    if (!loading && !user) {
+      const isAuthRoute = pathname.startsWith('/auth');
+      if (!isAuthRoute) {
+        window.location.href = '/auth/signin';
+      }
+    }
+  }, [loading, user, pathname]);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const profile = await apiClient.getProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const cookieToken = document.cookie
         .split('; ')
@@ -67,21 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setLoading(false);
     }
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const profile = await apiClient.getProfile();
-      setUser(profile);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-      if (error instanceof Error && /401/.test(error.message)) {
-        logout();
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchProfile]);
 
   const login = async (email: string, password: string) => {
     try {

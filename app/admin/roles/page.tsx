@@ -1,18 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, IdCardLanyard, Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+    GripVertical, ArrowLeft, IdCardLanyard, Plus, Search, Edit, Trash2, Loader2,
+} from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import apiClient from '@/lib/api';
-import { useCallback, useEffect, useMemo, useRef, useState as useStateReact } from 'react';
+import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api';
 
-// -------------------- RolesTab (AdminRolesPage) --------------------
+import {
+    DndContext,
+    closestCenter,
+    DragEndEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    useSortable,
+    arrayMove,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+/* -------------------- Types -------------------- */
 
 type Permissions = {
     id: number;
@@ -36,6 +55,7 @@ type Role = {
     permissions: PermissionGroupForRole[];
     created_at: string;
     updated_at: string;
+    sortOrder?: number | null;
 };
 
 type Paginated<T> = {
@@ -45,8 +65,10 @@ type Paginated<T> = {
     results: T[];
 };
 
+/* -------------------- Utils -------------------- */
+
 function useDebouncedValue<T>(value: T, delay = 300) {
-    const [debounced, setDebounced] = useStateReact(value);
+    const [debounced, setDebounced] = useState<T>(value);
     const timeoutRef = useRef<number | null>(null);
     useEffect(() => {
         if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
@@ -54,7 +76,7 @@ function useDebouncedValue<T>(value: T, delay = 300) {
         return () => {
             if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
         };
-    }, [value, delay, setDebounced]);
+    }, [value, delay]);
     return debounced;
 }
 
@@ -70,6 +92,8 @@ function getPages(current: number, total: number) {
     pages.add(total - 1);
     return Array.from(pages).sort((a, b) => a - b);
 }
+
+/* -------------------- PaginationBar -------------------- */
 
 function PaginationBar({
                            page,
@@ -162,40 +186,166 @@ function PaginationBar({
     );
 }
 
+/* -------------------- SortableRow -------------------- */
+
+function SortableRow({
+                         role,
+                         onEdit,
+                         onDelete,
+                     }: {
+    role: Role;
+    onEdit: (id: number) => void;
+    onDelete: (id: number) => void;
+}) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: role.id,
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    const getStatusBadge = (status: number) =>
+        status === 1 ? (
+            <Badge className="bg-green-100 text-green-800">Activ</Badge>
+        ) : (
+            <Badge className="bg-red-100 text-red-800">Inactiv</Badge>
+        );
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={cn(
+                'flex items-center justify-between rounded-md border bg-card px-3 py-2',
+                isDragging && 'shadow-lg ring-2 ring-primary/30 bg-accent'
+            )}
+        >
+            <div className="flex flex-1 flex-row gap-8">
+                <button
+                    aria-label="Reordonează"
+                    className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                    {...attributes}
+                    {...listeners}
+                >
+                    <GripVertical className="h-5 w-5" />
+                </button>
+
+                <div>
+                    <div className="mb-2 flex items-center space-x-2">
+                        <h3 className="text-lg font-semibold">{role.name}</h3>
+                        {getStatusBadge(role.is_active)}
+                        {role.sortOrder != null && (
+                            <span className="text-xs text-muted-foreground">#{role.sortOrder}</span>
+                        )}
+                    </div>
+
+                    {role.description && (
+                        <p className="mb-3 line-clamp-2 text-muted-foreground">
+                            {role.description}
+                        </p>
+                    )}
+
+                    <div className="mb-3 flex items-center space-x-4 text-sm">
+                        <span className="text-muted-foreground">Slug: {role.slug}</span>
+                    </div>
+                </div>
+
+                {role.permissions.slice(0, 3).map((pg, idx) => (
+                    <div key={idx} className="text-sm text-muted-foreground">
+                        <span className="font-bold">{pg.group}</span>
+                        <ul>
+                            {pg.permissions.slice(0, 4).map((perm) => (
+                                <li key={perm.id}>{perm.name}</li>
+                            ))}
+                            {pg.permissions.length > 4 && <li>…</li>}
+                        </ul>
+                    </div>
+                ))}
+                {role.permissions.length > 4 && <div className="text-sm text-muted-foreground"><span className="font-bold">…</span></div>}
+            </div>
+
+            <div className="flex items-center gap-1">
+                <Link href={`/admin/roles/${role.id}`}>
+                    <Button variant="outline" size="sm">
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editează
+                    </Button>
+                </Link>
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(role.id)}
+                    className="text-red-600 hover:text-red-700"
+                    title="Șterge"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+/* -------------------- RolesTab -------------------- */
+
 function RolesTab({ active }: { active: boolean }) {
-    const [searchTerm, setSearchTerm] = useStateReact('');
+    const router = useRouter();
+    const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
-    const [page, setPage] = useStateReact(1);
-    const [pageSize, setPageSize] = useStateReact(10);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
-    const [roles, setRoles] = useStateReact<Role[]>([]);
-    const [total, setTotal] = useStateReact(0);
-    const [loading, setLoading] = useStateReact(false);
-    const [error, setError] = useStateReact<string | null>(null);
-    const [hasLoaded, setHasLoaded] = useStateReact(false);
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [savingOrder, setSavingOrder] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [hasLoaded, setHasLoaded] = useState(false);
+
+    // snapshot ordinii curente pe pagina vizibilă
+    const prevOrderRef = useRef<Map<number, number>>(new Map());
+
+    // dnd sensors
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch, setPage]);
+    }, [debouncedSearch]);
 
     const abortRef = useRef<AbortController | null>(null);
+
+    const baseIndex = useMemo(() => (page - 1) * pageSize, [page, pageSize]);
 
     const loadRoles = useCallback(async (): Promise<Paginated<Role> | null> => {
         abortRef.current?.abort();
         abortRef.current = new AbortController();
-
         try {
             setLoading(true);
             setError(null);
-            const res = await apiClient.getRoles({
+
+            const res: Paginated<Role> = await apiClient.getRoles({
                 search: debouncedSearch,
                 page,
                 pageSize,
-            });
-            setRoles(res.results);
+            } as any);
+
+            const withOrder = res.results.map((r, idx) => ({
+                ...r,
+                sortOrder: r.sortOrder ?? baseIndex + idx + 1,
+            }));
+
+            setRoles(withOrder);
             setTotal(res.count);
             setHasLoaded(true);
+
+            // setăm snapshot sigur (Map existent)
+            prevOrderRef.current = new Map(
+                withOrder.map((r, idx) => [r.id, Number(r.sortOrder ?? baseIndex + idx + 1)])
+            );
+
             return res;
         } catch (e: any) {
             if (e?.name !== 'AbortError') {
@@ -205,34 +355,80 @@ function RolesTab({ active }: { active: boolean }) {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, page, pageSize, setError, setHasLoaded, setLoading, setRoles, setTotal]);
+    }, [debouncedSearch, page, pageSize, baseIndex]);
 
     useEffect(() => {
         if (!active) return;
-        loadRoles();
+        void loadRoles();
         return () => abortRef.current?.abort();
     }, [active, loadRoles]);
 
-    const handleRoleDelete = async (roleId: number) => {
+    const itemsIds = useMemo(() => roles.map((r) => r.id), [roles]);
+
+    async function saveSortOrder(newList: Role[]) {
+        setSavingOrder(true);
+        try {
+            // fallback ultra-sigur — dacă ceva a resetat ref-ul, recreăm un Map gol
+            const snapshot = prevOrderRef.current;
+            const prevOrder: Map<number, number> =
+                snapshot && typeof (snapshot as any).get === 'function'
+                    ? snapshot
+                    : new Map<number, number>();
+
+            const updates = newList
+                .map((r, idx) => {
+                    const desired = baseIndex + idx + 1;
+                    const before = prevOrder.has(r.id)
+                        ? (prevOrder.get(r.id) as number)
+                        : (typeof r.sortOrder === 'number' ? r.sortOrder : desired);
+                    if (before !== desired) return { id: r.id, desired };
+                    return null;
+                })
+                .filter(Boolean) as { id: number; desired: number }[];
+
+            if (updates.length === 0) {
+                // sincronizează snapshot oricum
+                prevOrderRef.current = new Map(newList.map((r, idx) => [r.id, baseIndex + idx + 1]));
+                return;
+            }
+
+            await Promise.all(updates.map((u) => apiClient.updateRoleSortOrder(u.id, u.desired)));
+
+            // după succes, actualizează snapshot
+            prevOrderRef.current = new Map(newList.map((r, idx) => [r.id, baseIndex + idx + 1]));
+        } finally {
+            setSavingOrder(false);
+        }
+    }
+
+    function onDragEnd(e: DragEndEvent) {
+        const { active, over } = e;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = roles.findIndex((r) => r.id === active.id);
+        const newIndex = roles.findIndex((r) => r.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        const reordered = arrayMove(roles, oldIndex, newIndex);
+        const withDesired = reordered.map((r, idx) => ({
+            ...r,
+            sortOrder: baseIndex + idx + 1,
+        }));
+
+        setRoles(withDesired);
+        void saveSortOrder(withDesired);
+    }
+
+    const onDelete = async (roleId: number) => {
         if (!confirm('Ești sigur că vrei să ștergi acest rol?')) return;
         try {
-            await apiClient.deleteRole(roleId);
-            if (roles.length === 1 && page > 1) {
-                setPage((p) => p - 1);
-            } else {
-                await loadRoles();
-            }
+            await (apiClient as any).deleteRole?.(roleId);
+            if (roles.length === 1 && page > 1) setPage((p) => p - 1);
+            else await loadRoles();
         } catch (error: any) {
             alert('Eroare: ' + (error?.message ?? ''));
         }
     };
-
-    const getStatusBadge = (status: number) =>
-        status === 1 ? (
-            <Badge className="bg-green-100 text-green-800">Activ</Badge>
-        ) : (
-            <Badge className="bg-red-100 text-red-800">Inactiv</Badge>
-        );
 
     const foundText = useMemo(
         () => (total === 1 ? '1 rol găsit' : `${total} roluri găsite`),
@@ -251,9 +447,7 @@ function RolesTab({ active }: { active: boolean }) {
                     </Link>
                     <div>
                         <h1 className="text-3xl font-bold">Gestionare Roluri</h1>
-                        <p className="text-muted-foreground">
-                            Administrează rolurile și permisiunile platformei
-                        </p>
+                        <p className="text-muted-foreground">Administrează rolurile și permisiunile platformei</p>
                     </div>
                 </div>
                 <Link href="/admin/roles/new">
@@ -279,6 +473,13 @@ function RolesTab({ active }: { active: boolean }) {
                                 />
                             </div>
                         </div>
+
+                        {savingOrder && (
+                            <div className="flex items-center text-sm text-muted-foreground">
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Salvăm ordinea…
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -307,64 +508,20 @@ function RolesTab({ active }: { active: boolean }) {
                         </div>
                     ) : (
                         <>
-                            <div className="space-y-4">
-                                {roles.map((role) => (
-                                    <div
-                                        key={role.id}
-                                        className="flex items-start justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                                    >
-                                        <div className="flex flex-1 flex-row gap-8">
-                                            <div>
-                                                <div className="mb-2 flex items-center space-x-2">
-                                                    <h3 className="text-lg font-semibold">{role.name}</h3>
-                                                    {getStatusBadge(role.is_active)}
-                                                </div>
-
-                                                {role.description && (
-                                                    <p className="mb-3 line-clamp-2 text-muted-foreground">
-                                                        {role.description}
-                                                    </p>
-                                                )}
-
-                                                <div className="mb-3 flex items-center space-x-4 text-sm">
-                                                    <span className="text-muted-foreground">Slug: {role.slug}</span>
-                                                </div>
-                                            </div>
-
-                                            {role.permissions.slice(0, 3).map((permissionGroup, index) => (
-                                                <div key={index} className="text-sm text-muted-foreground">
-                                                    <span className="font-bold">{permissionGroup.group}</span>
-                                                    <ul>
-                                                        {permissionGroup.permissions.slice(0, 4).map((permission) => (
-                                                            <li key={permission.id}>{permission.name}</li>
-                                                        ))}
-                                                        {permissionGroup.permissions.length > 4 && <li>…</li>}
-                                                    </ul>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <div className="flex items-center gap-1">
-                                            <Link href={`/admin/roles/${role.id}`}>
-                                                <Button variant="outline" size="sm">
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Editează
-                                                </Button>
-                                            </Link>
-
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleRoleDelete(role.id)}
-                                                className="text-red-600 hover:text-red-700"
-                                                title="Șterge"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                                <SortableContext items={roles.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                                    <div className="flex flex-col gap-4">
+                                        {roles.map((role) => (
+                                            <SortableRow
+                                                key={role.id}
+                                                role={role}
+                                                onEdit={(id) => router.push(`/admin/roles/${id}`)}
+                                                onDelete={onDelete}
+                                            />
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </SortableContext>
+                            </DndContext>
 
                             <PaginationBar
                                 page={page}
@@ -387,21 +544,17 @@ function RolesTab({ active }: { active: boolean }) {
     );
 }
 
-// -------------------- PermissionMatrixTab (lazy-loaded) --------------------
+/* -------------------- PermissionMatrixTab (lazy) -------------------- */
 
 const PermissionMatrixTab = dynamic(
     () => import('./PermissionMatrixTab').then((m) => m.default),
     {
         ssr: false,
-        loading: () => (
-            <div className="p-6 text-sm text-muted-foreground">
-                Încarc interfața de permisiuni...
-            </div>
-        ),
+        loading: () => <div className="p-6 text-sm text-muted-foreground">Încarc interfața de permisiuni...</div>,
     }
 );
 
-// -------------------- Page with Tabs --------------------
+/* -------------------- Page with Tabs -------------------- */
 
 export default function RolesWithTabsPage() {
     const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
@@ -410,8 +563,6 @@ export default function RolesWithTabsPage() {
         <div className="container mx-auto px-4 py-8">
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
                 <div className="mb-6 flex items-center justify-between">
-
-
                     <TabsList>
                         <TabsTrigger value="roles">Roluri</TabsTrigger>
                         <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
@@ -423,7 +574,6 @@ export default function RolesWithTabsPage() {
                 </TabsContent>
 
                 <TabsContent value="permissions">
-                    {/* dynamic import + fetch doar când intri pe tab */}
                     {tab === 'permissions' ? <PermissionMatrixTab /> : null}
                 </TabsContent>
             </Tabs>

@@ -329,6 +329,13 @@ class ApiClient {
     });
   }
 
+  async updateRoleSortOrder(roleId: number, sortOrder: number) {
+    return this.request<any>(`/admin/access/${roleId}/sort-order`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sortOrder }),
+    });
+  }
+
   async createUser(userData: any) {
     return this.request<any>('/admin/users', {
       method: 'POST',

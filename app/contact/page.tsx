@@ -158,14 +158,14 @@ export default function ContactPage() {
       {/* Contact Form & Quick Contact */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div>
               <h2 className="text-3xl font-bold mb-6">Trimite-ne un mesaj</h2>
               <Card>
                 <CardContent className="p-6">
                   <form className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-2 block">Nume *</label>
                         <Input placeholder="Numele tău complet" required />
@@ -176,7 +176,7 @@ export default function ContactPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-2 block">Telefon</label>
                         <Input placeholder="+40 123 456 789" />
@@ -281,7 +281,7 @@ export default function ContactPage() {
             <p className="text-muted-foreground">Suntem prezenți în principalele orașe din România</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-8">
             {offices.map((office, index) => (
               <Card key={index} className={`${office.primary ? 'border-primary border-2' : ''}`}>
                 <CardHeader>

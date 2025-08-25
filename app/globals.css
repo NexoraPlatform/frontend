@@ -431,3 +431,13 @@ body {
     content-visibility: auto;
     contain-intrinsic-size: 400px;
 }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.02); }
+}
+.motion-safe\:animate-float {
+    animation-name: float;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
+import {AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus, Verified} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import apiClient from '@/lib/api';
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 
 type PermissionState = {
     [slug: string]: { id: number; name: string; allowed: boolean };
@@ -39,6 +40,12 @@ export default function AdminCard({
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
     const [selectedPermissions, setSelectedPermissions] = useState<PermissionState>({});
     const hasInitializedPermissions = useRef(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+    const [showCrop, setShowCrop] = useState(false);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
 
     useEffect(() => {
         if (hasInitializedPermissions.current) return;
@@ -148,6 +155,22 @@ export default function AdminCard({
                 <div className="grid xs:grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8">
                     {/* Left Side */}
                     <div>
+                        <div className="relative mb-5">
+                            <Avatar className="w-28 h-28 border-4 border-white shadow-lg">
+                                <AvatarImage src={formData.avatar} />
+                                <AvatarFallback className="text-2xl">
+                                    {formData.firstName[0]}
+                                    {formData.lastName[0]}
+                                </AvatarFallback>
+                            </Avatar>
+
+                            {(formData.callVerified && formData.testVerified) && (
+                                <div className="absolute left-[9%] top-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white">
+                                    <Verified className="w-5 h-5 text-white" />
+                                </div>
+                            )}
+                        </div>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
@@ -164,7 +187,7 @@ export default function AdminCard({
                                     </Alert>
                                 )}
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                                     <div>
                                         <Label htmlFor="firstName">
                                             Prenume <span className="text-red-500">*</span>
@@ -206,7 +229,7 @@ export default function AdminCard({
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                                     <div>
                                         <Label htmlFor="role">
                                             Rol <span className="text-red-500">*</span>

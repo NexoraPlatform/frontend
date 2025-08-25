@@ -253,7 +253,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="category_id">Categorie *</Label>
                                     <Select

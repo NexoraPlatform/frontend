@@ -216,12 +216,15 @@ export default function AdminUsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <Can superuser>
-                          <DropdownMenuItem className={`${user.is_superuser ? 'bg-red-500' : 'bg-green-500'} text-white cursor-pointer`} onClick={() => handleUserAction(user.id, "superuser", user.is_superuser)}>
-                            <UserRound className="w-4 h-4 mr-2" />
-                            {user.is_superuser ? 'Scoate SuperUser' : 'Seteaza SuperUser'}
-                          </DropdownMenuItem>
-                        </Can>
+                        {user.id !== 1 && (
+                            <Can superuser>
+                              <DropdownMenuItem className={`${user.is_superuser ? 'bg-red-500' : 'bg-green-500'} text-white cursor-pointer`} onClick={() => handleUserAction(user.id, "superuser", user.is_superuser)}>
+                                <UserRound className="w-4 h-4 mr-2" />
+                                {user.is_superuser ? 'Scoate SuperUser' : 'Seteaza SuperUser'}
+                              </DropdownMenuItem>
+                            </Can>
+                        )}
+
                         <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>
                           <Pencil className="w-4 h-4 mr-2" />
                           Modifica profil

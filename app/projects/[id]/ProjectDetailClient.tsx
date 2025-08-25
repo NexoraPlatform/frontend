@@ -81,7 +81,7 @@ export default async function ProjectDetailClient({ id }: {  id: string; }) {
                             <h1 className="text-3xl font-bold mb-2">
                                 {project.title.replace(/^Proiect(\s+)/i, "")}
                             </h1>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                 <div className="text-center p-3 bg-muted/30 rounded-lg">
                                     <div className="text-sm text-muted-foreground">Adaugat</div>
                                     <div className="text-2xl font-bold text-blue-600">

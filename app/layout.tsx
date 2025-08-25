@@ -160,6 +160,7 @@ export default function RootLayout({
     return (
         <html lang="ro" suppressHydrationWarning className={inter.variable}>
         <head>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
             <link rel="preconnect" href="https://images.pexels.com" crossOrigin="" />
             <link rel="dns-prefetch" href="//api.nexora.ro" />

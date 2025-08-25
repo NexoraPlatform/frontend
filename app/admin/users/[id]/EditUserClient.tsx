@@ -6,9 +6,12 @@ import AdminCard from "@/app/admin/users/[id]/AdminCard";
 import ClientCard from "@/app/admin/users/[id]/ClientCard";
 import ProviderCard from "@/app/admin/users/[id]/ProviderCard";
 import {AnyFormData} from "@/types/user-forms";
+import {useAuth} from "@/contexts/auth-context";
 
 export default function EditUserClient({ id }: { id: number }) {
+    const { user } = useAuth();
     const [formData, setFormData] = useState<AnyFormData>({
+        avatar: "",
         firstName: "",
         lastName: "",
         email: "",
@@ -16,10 +19,16 @@ export default function EditUserClient({ id }: { id: number }) {
         confirm_password: "",
         role: "CLIENT",
         phone: "",
+        is_superuser: false,
+        testVerified: false,
+        callVerified: false,
+        stripe_account_id: "",
+        location: "",
     } as AnyFormData);
     const [permissions, setPermissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>("");
+
 
     useEffect(() => {
         const getUser = async () => {
@@ -44,7 +53,10 @@ export default function EditUserClient({ id }: { id: number }) {
         getPermissions();
     }, [id]);
 
-    // This is the only place that calls your update endpoint
+    if (!!user?.is_superuser) {
+        if (Number(user?.id) !== 1 && Number(id) === 1) return <div>Nu poți edita utilizatorul acest utilizator.</div>;
+    }
+
     const submitAction = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);

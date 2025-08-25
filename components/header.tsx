@@ -250,11 +250,11 @@ export function Header() {
                             <Link href="/provider/profile">Editează Profil</Link>
                           </DropdownMenuItem>
                       )}
-                      <Can {...({ superuser: true } || { roles: ['admin'] })}>
+                      {/*<Can {...({ superuser: true } || { roles: ['admin'] })}>*/}
                           <DropdownMenuItem asChild>
                             <Link href="/admin">Admin Panel</Link>
                           </DropdownMenuItem>
-                      </Can>
+                      {/*</Can>*/}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />

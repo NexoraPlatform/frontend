@@ -378,7 +378,7 @@ export default function EditTestClient({ id }: { id: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="title">Titlu Test *</Label>
                                 <Input
@@ -418,7 +418,7 @@ export default function EditTestClient({ id }: { id: string }) {
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <Label htmlFor="timeLimit">Timp Limită (minute) *</Label>
                                 <Input
@@ -485,7 +485,7 @@ export default function EditTestClient({ id }: { id: string }) {
                             </TabsList>
 
                             <TabsContent value="add" className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <Label>Tip Întrebare *</Label>
                                         <Select
@@ -643,7 +643,7 @@ export default function EditTestClient({ id }: { id: string }) {
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-3">
                                                         <div>
                                                             <Label>Input</Label>
                                                             <Input
@@ -683,7 +683,7 @@ export default function EditTestClient({ id }: { id: string }) {
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-3">
                                                         <div>
                                                             <Label>Input</Label>
                                                             <Input

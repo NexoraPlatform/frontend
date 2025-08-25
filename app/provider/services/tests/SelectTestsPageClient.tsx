@@ -525,7 +525,7 @@ export default function SelectTestsPageClient() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                     <div className="text-center">
                                         <div className={`text-4xl font-bold mb-2 ${testResult.passed ? 'text-green-600' : 'text-red-600'}`}>
                                             {testResult.score}%
@@ -748,7 +748,7 @@ export default function SelectTestsPageClient() {
                             <CardContent>
                                 <p className="text-muted-foreground mb-4">{test.test.description}</p>
 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                     <div className="flex items-center space-x-2 text-sm">
                                         <BookOpen className="w-4 h-4 text-blue-500" />
                                         <span>{test.test.totalQuestions || test.test.questions.length} întrebări</span>

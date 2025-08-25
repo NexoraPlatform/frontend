@@ -69,6 +69,7 @@ export default function DashboardClient() {
 
   useEffect(() => {
     if (!loading && !user) {
+      console.log('Auth loading:', loading, 'User:', user);
       router.push('/auth/signin');
     }
   }, [user, loading, router]);
@@ -442,7 +443,7 @@ export default function DashboardClient() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {user.role === 'PROVIDER' ? (
                         <>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
@@ -814,7 +815,7 @@ export default function DashboardClient() {
 
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Profile Settings */}
                 <Card>
                   <CardHeader>

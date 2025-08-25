@@ -166,7 +166,7 @@ export default function NewCategoryPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 <div ref={containerRef}>
                   <Label htmlFor="icon">Iconiță</Label>
 

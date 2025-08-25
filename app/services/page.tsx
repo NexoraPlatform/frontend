@@ -397,7 +397,7 @@ export default function ServicesPage() {
               </Select>
             </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                 {services.map((service: any) => (
                   <Card key={service.id} className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/20">
                     <CardHeader>

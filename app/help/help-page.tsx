@@ -110,7 +110,7 @@ export default function HelpInteractive({
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                    <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
                         {supportOptions.map((option, index) => {
                             const Icon = getIcon(option.iconKey);
                             return (
@@ -263,7 +263,7 @@ export default function HelpInteractive({
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-medium mb-2 block">Nume</label>
                                         <Input placeholder="Numele tău" />

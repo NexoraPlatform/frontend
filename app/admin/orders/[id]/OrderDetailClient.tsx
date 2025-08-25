@@ -252,7 +252,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
                         <CardHeader>
@@ -320,7 +320,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-3">
                                     <h5 className="font-medium text-blue-600">Client</h5>
                                     <div className="flex items-center space-x-3">

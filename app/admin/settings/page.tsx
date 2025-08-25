@@ -158,7 +158,7 @@ export default function AdminSettingsPage() {
         </TabsList>
 
         <TabsContent value="general">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -233,7 +233,7 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="platform">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -357,7 +357,7 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="payments">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -502,7 +502,7 @@ export default function AdminSettingsPage() {
               </div>
 
               {settings.emailProvider === 'smtp' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="smtpHost">SMTP Host</Label>
                     <Input
@@ -545,7 +545,7 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="security">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">

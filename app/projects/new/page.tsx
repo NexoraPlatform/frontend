@@ -777,7 +777,7 @@ export default function NewProjectPage() {
 
                         {/* Detalii Proiect */}
                         <TabsContent value="details" className="space-y-6">
-                            <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
+                            <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
                                 <div>
                                     <Card className="mb-6">
                                         <CardHeader>
@@ -823,7 +823,7 @@ export default function NewProjectPage() {
                                                 />
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                                 {/*<div>*/}
                                                 {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
                                                 {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
@@ -921,7 +921,7 @@ export default function NewProjectPage() {
                                                                 <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
 
                                                                 {/* Lista serviciilor */}
-                                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                                <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
                                                                     {services.map((service) => (
                                                                         <div key={service.id} className="flex items-center space-x-2">
                                                                             <Checkbox
@@ -968,7 +968,7 @@ export default function NewProjectPage() {
                                                 </RadioGroup>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
                                                         Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} <span className="text-red-500">*</span>
@@ -1410,7 +1410,7 @@ export default function NewProjectPage() {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                                                         {currentProviders.map((provider) => {
                                                             const passedReasons = provider.matchReasons.filter(reason => reason.passed);
                                                             const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
@@ -1503,7 +1503,7 @@ export default function NewProjectPage() {
                                                                                         {/*<div className="text-sm font-medium text-green-600">*/}
                                                                                         {/*    De ce este potrivit:*/}
                                                                                         {/*</div>*/}
-                                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                                                                             {/* Coloana 1: Passed */}
                                                                                             <div>
                                                                                                 <h4 className="text-sm font-medium text-green-600 mb-2">De ce este potrivit:</h4>
@@ -1701,7 +1701,7 @@ export default function NewProjectPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     {/* Rezumat proiect */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div className="space-y-4">
                                             <div>
                                                 <h4 className="font-semibold mb-2">Detalii Proiect</h4>

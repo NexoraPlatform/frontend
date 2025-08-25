@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  TrendingUp, 
+import {
+  TrendingUp,
   Search,
   Eye,
   Loader2,
@@ -90,8 +90,8 @@ export default function AdminOrdersPage() {
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input 
-                  placeholder="Caută comenzi după număr, serviciu sau client..." 
+                <Input
+                  placeholder="Caută comenzi după număr, serviciu sau client..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -142,12 +142,12 @@ export default function AdminOrdersPage() {
                       {getStatusBadge(order.status)}
                       {getPaymentStatusBadge(order.paymentStatus)}
                     </div>
-                    
+
                     <h4 className="font-medium text-blue-600 mb-2">
                       {order.service?.title}
                     </h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+
+                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={order.client?.avatar} />
@@ -162,7 +162,7 @@ export default function AdminOrdersPage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={order.provider?.avatar} />
@@ -178,7 +178,7 @@ export default function AdminOrdersPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <DollarSign className="w-4 h-4" />
@@ -202,7 +202,7 @@ export default function AdminOrdersPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <Link href={`/admin/orders/${order.id}`}>
                     <Button variant="ghost" size="icon">
                       <Eye className="w-4 h-4" />
@@ -210,7 +210,7 @@ export default function AdminOrdersPage() {
                   </Link>
                 </div>
               ))}
-              
+
               {filteredOrders.length === 0 && (
                 <div className="text-center py-12">
                   <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

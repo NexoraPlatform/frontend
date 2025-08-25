@@ -144,7 +144,7 @@ export default function NewRolePage() {
                             </div>
 
                             <Accordion type="multiple" className="w-full">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     {permissionGroups.map((group) => (
                                         <AccordionItem key={group.id} value={group.slug} className="border rounded-md p-2">
                                             <AccordionTrigger className="text-md font-semibold">

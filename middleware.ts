@@ -193,9 +193,9 @@ export default async function middleware(req: NextRequest) {
       undefined;
 
   // If authenticated, keep users away from signin/signup pages
-  if ((pathname === '/auth/signin' || pathname === '/auth/signup') && token) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
+  // if ((pathname === '/auth/signin' || pathname === '/auth/signup') && token) {
+  //   return NextResponse.redirect(new URL('/dashboard', req.url));
+  // }
 
   const requirement = findRequirement(pathname);
   if (!requirement) return NextResponse.next();

@@ -172,7 +172,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                 <div ref={containerRef}>
                                     <Label htmlFor="icon">Iconiță</Label>
                                     <IconSearchDropdown collections={collections} onChangeAction={handleSelect} />

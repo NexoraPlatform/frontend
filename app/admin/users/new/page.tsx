@@ -77,7 +77,7 @@ export default function NewUserPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">Prenume *</Label>
                   <Input
@@ -124,7 +124,7 @@ export default function NewUserPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="role">Rol *</Label>
                   <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>

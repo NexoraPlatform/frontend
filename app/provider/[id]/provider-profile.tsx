@@ -526,7 +526,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                     </div>
 
                                     {/* Quick Stats */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                         <div className="text-center p-3 bg-muted/30 rounded-lg">
                                             <div className="text-2xl font-bold text-blue-600">{provider.completedProjects}</div>
                                             <div className="text-sm text-muted-foreground">Proiecte finalizate</div>
@@ -548,7 +548,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                     </div>
 
                                     {/* Contact Info */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                         {provider.company && (
                                             <div className="flex items-center space-x-2 text-sm">
                                                 <Building className="w-4 h-4 text-muted-foreground" />
@@ -610,7 +610,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Overview Tab */}
                     <TabsContent value="overview" className="space-y-6">
-                        <div className={`grid grid-cols-1 ${cardClass} gap-6`}>
+                        <div className={`grid xs:grid-cols-1 ${cardClass} gap-6`}>
                             {/*/!* Skills *!/*/}
                             {/*<Card>*/}
                             {/*    <CardHeader>*/}
@@ -735,7 +735,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Services Tab */}
                     <TabsContent value="services" className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
                             {services.map((service: any) => (
                                 <Card key={service.id} className="hover:shadow-lg transition-shadow">
                                     <CardHeader>
@@ -785,7 +785,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Portfolio Tab */}
                     <TabsContent value="portfolio" className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {provider.portfolio.map((project: any, index: number) => (
                                 <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
                                     <div className="aspect-video bg-muted relative overflow-hidden">
@@ -819,7 +819,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Experience Tab */}
                     <TabsContent value="experience" className="space-y-6">
-                        <div className={`grid grid-cols-1 ${provider.education.length > 0 || provider.workHistory.length > 0 ? 'lg:grid-cols-1' : 'lg:grid-cols-0'} gap-6`}>
+                        <div className={`grid xs:grid-cols-1 ${provider.education.length > 0 || provider.workHistory.length > 0 ? 'lg:grid-cols-1' : 'lg:grid-cols-0'} gap-6`}>
                             {provider.workHistory.length > 0 && (
                                 <Card>
                                     <CardHeader>
@@ -904,7 +904,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Reviews Tab */}
                     <TabsContent value="reviews" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Reviews Summary */}
                             <Card>
                                 <CardHeader>
@@ -1000,7 +1000,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                     {/* Availability Tab */}
                     <TabsContent value="availability" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Current Status */}
                             <Card>
                                 <CardHeader>
@@ -1095,7 +1095,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <div className="flex items-center space-x-3">
                                             <Mail className="w-5 h-5 text-muted-foreground" />

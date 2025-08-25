@@ -195,7 +195,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="basePrice">Preț de Bază (RON) *</Label>
                                 <Input
@@ -282,7 +282,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="deliveryTime">Timp de Livrare (zile)</Label>
                                 <Input
