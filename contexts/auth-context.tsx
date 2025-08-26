@@ -46,15 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname(); // adaugă
 
-  useEffect(() => {
-    if (!loading && !user) {
-      const isAuthRoute = pathname.startsWith('/auth');
-      if (!isAuthRoute) {
-        window.location.href = '/auth/signin';
-      }
-    }
-  }, [loading, user, pathname]);
-
   const fetchProfile = useCallback(async () => {
     try {
       const profile = await apiClient.getProfile();

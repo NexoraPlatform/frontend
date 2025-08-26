@@ -30,7 +30,6 @@ const ROUTE_RULES: RouteRule[] = [
   { pattern: /\/tests(\/|$)/i, require: { roles: ['provider'] } },
   { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
-  { pattern: /\/projects(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /\/projects\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
 
   // examples:
@@ -193,9 +192,9 @@ export default async function middleware(req: NextRequest) {
       undefined;
 
   // If authenticated, keep users away from signin/signup pages
-  // if ((pathname === '/auth/signin' || pathname === '/auth/signup') && token) {
-  //   return NextResponse.redirect(new URL('/dashboard', req.url));
-  // }
+  if ((pathname === '/auth/signin' || pathname === '/auth/signup') && token) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
 
   const requirement = findRequirement(pathname);
   if (!requirement) return NextResponse.next();
@@ -219,7 +218,7 @@ export default async function middleware(req: NextRequest) {
       (!needsRole || (user.roles && user.roles.length > 0)) &&
       (!needsSuper || user.is_superuser !== undefined);
 
-  if (!hasEnoughClaims) {
+  if (!hasEnoughClaims && token) {
     user = await fetchUserFromApi(token);
   }
   if (!user) return redirectToSignin(req);

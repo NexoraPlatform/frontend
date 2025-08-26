@@ -274,19 +274,19 @@ export default function ProjectsPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Button className="w-full">
-                                                <Target className="w-4 h-4 mr-2" />
-                                                Aplică Acum
-                                            </Button>
-                                            <div className="flex space-x-2">
+                                            {/*<Button className="w-full">*/}
+                                            {/*    <Target className="w-4 h-4 mr-2" />*/}
+                                            {/*    Aplică Acum*/}
+                                            {/*</Button>*/}
+                                            <div className="flex justify-end space-x-2">
                                                 <Button variant="outline" size="sm">
                                                     <Eye className="w-3 h-3 mr-1" />
                                                     Detalii
                                                 </Button>
-                                                <Button variant="outline" size="sm">
-                                                    <MessageSquare className="w-3 h-3 mr-1" />
-                                                    Întreabă
-                                                </Button>
+                                                {/*<Button variant="outline" size="sm">*/}
+                                                {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
+                                                {/*    Întreabă*/}
+                                                {/*</Button>*/}
                                             </div>
                                         </div>
                                     </div>
