@@ -21,7 +21,7 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const router = useRouter();
   const { login } = useAuth();
-  console.log('Auth context:', useAuth());
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -143,3 +143,5 @@ export default function SignInPage() {
     </div>
   );
 }
+
+
