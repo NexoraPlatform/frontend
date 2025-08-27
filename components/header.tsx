@@ -72,13 +72,25 @@ export function Header() {
   const lightText = useAsyncTranslation(locale, 'navigation.light');
   const openMainUserMenuText = useAsyncTranslation(locale, 'navigation.open_main_user_menu');
 
+    const servicesText    = useAsyncTranslation(locale, 'navigation.services');
+    const projectsText    = useAsyncTranslation(locale, 'navigation.projects');
+    const aboutText       = useAsyncTranslation(locale, 'navigation.about');
+    const helpText        = useAsyncTranslation(locale, 'navigation.help');
+    const contactText     = useAsyncTranslation(locale, 'navigation.contact');
+    const dashboardText   = useAsyncTranslation(locale, 'navigation.dashboard');
+    const editProfileText = useAsyncTranslation(locale, 'navigation.edit_profile');
+    const adminPanelText  = useAsyncTranslation(locale, 'navigation.admin_panel');
+    const logoutText      = useAsyncTranslation(locale, 'navigation.logout');
+    const loginText       = useAsyncTranslation(locale, 'navigation.login');
+    const registerText    = useAsyncTranslation(locale, 'navigation.register');
+
   const navigation = [
-    { name: homeText, href: `/` },
-    { name: t(locale as Locale, "navigation.services"), href: '/services' },
-    { name: t(locale as Locale, "navigation.projects"), href: '/projects' },
-    { name: t(locale as Locale, "navigation.about"), href: '/about' },
-    { name: t(locale as Locale, "navigation.help"), href: '/help' },
-    { name: t(locale as Locale, "navigation.contact"), href: '/contact' },
+      { name: homeText,     href: '/' },
+      { name: servicesText, href: '/services' },
+      { name: projectsText, href: '/projects' },
+      { name: aboutText,    href: '/about' },
+      { name: helpText,     href: '/help' },
+      { name: contactText,  href: '/contact' },
   ];
 
 
@@ -256,32 +268,32 @@ export function Header() {
                       </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href={`/${locale}/dashboard`}>{t(locale, "navigation.dashboard")}</Link>
+                        <Link href={`/${locale}/dashboard`}>{dashboardText}</Link>
                       </DropdownMenuItem>
                       <Can {...({ superuser: true } || { roles: ['provider'] })}>
                           <DropdownMenuItem asChild>
-                            <Link href={`/${locale}/provider/profile`}>{t(locale, "navigation.edit_profile")}</Link>
+                            <Link href={`/${locale}/provider/profile`}>{editProfileText}</Link>
                           </DropdownMenuItem>
                       </Can>
                       <Can {...({ superuser: true } || { roles: ['admin'] })}>
                           <DropdownMenuItem asChild>
-                            <Link href={`/${locale}/admin`}>{t(locale, "navigation.admin_panel")}</Link>
+                            <Link href={`/${locale}/admin`}>{adminPanelText}</Link>
                           </DropdownMenuItem>
                       </Can>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>{t(locale, "navigation.logout")}</span>
+                        <span>{logoutText}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
               ) : (
                   <div className="hidden md:flex items-center space-x-3">
                     <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
-                      <Link href={`/${locale}/auth/signin`}>{t(locale, "navigation.login")}</Link>
+                      <Link href={`/${locale}/auth/signin`}>{loginText}</Link>
                     </Button>
                     <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
-                      <Link href={`/${locale}/auth/signup`}>{t(locale, "navigation.register")}</Link>
+                      <Link href={`/${locale}/auth/signup`}>{registerText}</Link>
                     </Button>
                   </div>
               )}
@@ -309,10 +321,10 @@ export function Header() {
                     {!user && (
                         <div className="flex flex-col space-y-4 pt-6">
                           <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
-                            <Link href={`/${locale}/auth/signin`}>{t(locale, "navigation.login")}</Link>
+                            <Link href={`/${locale}/auth/signin`}>{loginText}</Link>
                           </Button>
                           <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
-                            <Link href={`/${locale}/auth/signup`}>{t(locale, "navigation.register")}</Link>
+                            <Link href={`/${locale}/auth/signup`}>{registerText}</Link>
                           </Button>
                         </div>
                     )}
