@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "title": "About Us",
+    "description": "Want to learn more about Nexora? Here you’ll find information about our mission, vision and values, the team behind the platform and our success story."
+  },
+  "hero": {
+    "badge": "🚀 About Nexora",
+    "title": "Building Romania's digital future",
+    "description": "Nexora is the Romanian platform that connects entrepreneurs with the best IT experts. Our mission is to democratize access to quality IT services and support the growth of the local tech ecosystem.",
+    "explore_services": "Explore Services",
+    "join_team": "Join the Team"
+  },
+  "stats": {
+    "cities_covered": "Cities Covered"
+  },
+  "mission": {
+    "title": "Our Mission",
+    "description": "We believe every idea deserves to become reality. That's why we built Nexora – a platform that removes barriers between vision and execution by connecting entrepreneurs with the right IT experts.",
+    "bullets": {
+      "accessibility": {
+        "title": "Accessibility",
+        "description": "Quality IT services at fair prices for all businesses"
+      },
+      "transparency": {
+        "title": "Transparency",
+        "description": "Clear process, transparent pricing and open communication"
+      },
+      "excellence": {
+        "title": "Excellence",
+        "description": "High standards of quality and guaranteed satisfaction"
+      }
+    },
+    "vision_title": "Vision 2030",
+    "vision_description": "To become the reference platform for IT services in Eastern Europe"
+  },
+  "values": {
+    "title": "Our Values",
+    "description": "The principles that guide everything we do and help us build trust with our clients and partners",
+    "trust_safety": {
+      "title": "Trust and Safety",
+      "description": "All transactions are secure and providers are verified to give you complete peace of mind."
+    },
+    "exceptional_quality": {
+      "title": "Exceptional Quality",
+      "description": "We collaborate only with experts with proven experience and excellent client reviews."
+    },
+    "efficiency_speed": {
+      "title": "Efficiency and Speed",
+      "description": "Our platform is optimized to quickly find the right experts for your project."
+    },
+    "dedicated_support": {
+      "title": "Dedicated Support",
+      "description": "Our team is available 24/7 to help you at any time during the collaboration."
+    }
+  },
+  "timeline": {
+    "title": "Our Story",
+    "description": "From a simple idea to the trusted platform for thousands of Romanian entrepreneurs",
+    "milestones": {
+      "2020": {
+        "title": "Nexora Founded",
+        "description": "We launched the platform with the vision of connecting Romanian IT talent with global opportunities."
+      },
+      "2021": {
+        "title": "First Million RON",
+        "description": "We reached the first million RON in processed transactions, confirming the market need for our services."
+      },
+      "2022": {
+        "title": "National Expansion",
+        "description": "We expanded services to all major cities in Romania, reaching over 500 verified experts."
+      },
+      "2023": {
+        "title": "International Recognition",
+        "description": "We were recognized as the most innovative IT services platform in Eastern Europe."
+      },
+      "2024": {
+        "title": "Digital Future",
+        "description": "We continue to innovate with AI and automation to improve the user experience."
+      }
+    }
+  },
+  "team": {
+    "title": "The Nexora Team",
+    "description": "The passionate people making Romania's digital transformation possible",
+    "alexandru_popescu": {
+      "role": "CEO & Co-Founder",
+      "description": "Entrepreneur with over 10 years of tech experience, passionate about innovation and developing the Romanian IT ecosystem."
+    },
+    "maria_ionescu": {
+      "role": "CTO & Co-Founder",
+      "description": "Expert in software development with a background in scalable system architecture and user experience."
+    },
+    "andrei_radu": {
+      "role": "Head of Operations",
+      "description": "Specialist in operations and management, focused on process optimization and customer satisfaction."
+    },
+    "diana_stoica": {
+      "role": "Head of Marketing",
+      "description": "Digital marketing and growth expert with experience building successful tech brands."
+    }
+  },
+  "cta": {
+    "title": "Join the Nexora Community",
+    "description": "Whether you're an entrepreneur looking for the right expert or an IT specialist wanting to grow your career, Nexora is the place where dreams come true.",
+    "find_experts": "Find Experts",
+    "become_provider": "Become a Provider"
+  }
+}

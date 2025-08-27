@@ -13,99 +13,194 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import type {Metadata} from "next";
-import {generateSEO} from "@/lib/seo";
+import type { Metadata } from 'next';
+import { generateSEO } from '@/lib/seo';
+import { t } from '@/lib/i18n';
+import { Locale } from '@/types/locale';
 
-export const metadata: Metadata = generateSEO({
-  title: 'Despre noi',
-  description: 'Vrei sa aflii mai multe despre Nexora? Aici găsești informații despre misiunea, viziunea și valorile noastre, echipa din spatele platformei și povestea noastră de succes.',
-  url: '/about',
-});
+export async function generateMetadata({ params }: { params: { locale: Locale } }): Promise<Metadata> {
+  const { locale } = params;
+  const [title, description] = await Promise.all([
+    t(locale, 'about.metadata.title'),
+    t(locale, 'about.metadata.description'),
+  ]);
+  return generateSEO({ title, description, url: '/about' });
+}
 
-export default function AboutPage() {
-  const values = [
-    {
-      icon: Shield,
-      title: 'Încredere și Siguranță',
-      description: 'Toate tranzacțiile sunt securizate, iar furnizorii sunt verificați pentru a-ți oferi liniște deplină.'
-    },
-    {
-      icon: Award,
-      title: 'Calitate Excepțională',
-      description: 'Colaborăm doar cu experți cu experiență dovedită și evaluări excelente din partea clienților.'
-    },
-    {
-      icon: Zap,
-      title: 'Eficiență și Rapiditate',
-      description: 'Platforma noastră este optimizată pentru a-ți găsi rapid experții potriviți pentru proiectul tău.'
-    },
-    {
-      icon: Heart,
-      title: 'Suport Dedicat',
-      description: 'Echipa noastră este disponibilă 24/7 pentru a te ajuta în orice moment al colaborării.'
-    }
-  ];
+export default async function AboutPage({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}) {
+  const { locale } = await Promise.resolve(params);
+
+  const [
+    heroBadge,
+    heroTitle,
+    heroDescription,
+    exploreServices,
+    joinTeam,
+    citiesCoveredLabel,
+    missionTitle,
+    missionDescription,
+    accessibilityTitle,
+    accessibilityDesc,
+    transparencyTitle,
+    transparencyDesc,
+    excellenceTitle,
+    excellenceDesc,
+    visionTitle,
+    visionDescription,
+    valuesTitle,
+    valuesDescription,
+    trustTitle,
+    trustDesc,
+    qualityTitle,
+    qualityDesc,
+    efficiencyTitle,
+    efficiencyDesc,
+    supportTitle,
+    supportDesc,
+    timelineTitle,
+    timelineDescription,
+    milestone2020Title,
+    milestone2020Desc,
+    milestone2021Title,
+    milestone2021Desc,
+    milestone2022Title,
+    milestone2022Desc,
+    milestone2023Title,
+    milestone2023Desc,
+    milestone2024Title,
+    milestone2024Desc,
+    teamTitle,
+    teamDescription,
+    alexRole,
+    alexDesc,
+    mariaRole,
+    mariaDesc,
+    andreiRole,
+    andreiDesc,
+    dianaRole,
+    dianaDesc,
+    ctaTitle,
+    ctaDescription,
+    findExperts,
+    becomeProvider,
+    verifiedExpertsLabel,
+    completedProjectsLabel,
+    satisfactionRateLabel,
+  ] = await Promise.all([
+    t(locale, 'about.hero.badge'),
+    t(locale, 'about.hero.title'),
+    t(locale, 'about.hero.description'),
+    t(locale, 'about.hero.explore_services'),
+    t(locale, 'about.hero.join_team'),
+    t(locale, 'about.stats.cities_covered'),
+    t(locale, 'about.mission.title'),
+    t(locale, 'about.mission.description'),
+    t(locale, 'about.mission.bullets.accessibility.title'),
+    t(locale, 'about.mission.bullets.accessibility.description'),
+    t(locale, 'about.mission.bullets.transparency.title'),
+    t(locale, 'about.mission.bullets.transparency.description'),
+    t(locale, 'about.mission.bullets.excellence.title'),
+    t(locale, 'about.mission.bullets.excellence.description'),
+    t(locale, 'about.mission.vision_title'),
+    t(locale, 'about.mission.vision_description'),
+    t(locale, 'about.values.title'),
+    t(locale, 'about.values.description'),
+    t(locale, 'about.values.trust_safety.title'),
+    t(locale, 'about.values.trust_safety.description'),
+    t(locale, 'about.values.exceptional_quality.title'),
+    t(locale, 'about.values.exceptional_quality.description'),
+    t(locale, 'about.values.efficiency_speed.title'),
+    t(locale, 'about.values.efficiency_speed.description'),
+    t(locale, 'about.values.dedicated_support.title'),
+    t(locale, 'about.values.dedicated_support.description'),
+    t(locale, 'about.timeline.title'),
+    t(locale, 'about.timeline.description'),
+    t(locale, 'about.timeline.milestones.2020.title'),
+    t(locale, 'about.timeline.milestones.2020.description'),
+    t(locale, 'about.timeline.milestones.2021.title'),
+    t(locale, 'about.timeline.milestones.2021.description'),
+    t(locale, 'about.timeline.milestones.2022.title'),
+    t(locale, 'about.timeline.milestones.2022.description'),
+    t(locale, 'about.timeline.milestones.2023.title'),
+    t(locale, 'about.timeline.milestones.2023.description'),
+    t(locale, 'about.timeline.milestones.2024.title'),
+    t(locale, 'about.timeline.milestones.2024.description'),
+    t(locale, 'about.team.title'),
+    t(locale, 'about.team.description'),
+    t(locale, 'about.team.alexandru_popescu.role'),
+    t(locale, 'about.team.alexandru_popescu.description'),
+    t(locale, 'about.team.maria_ionescu.role'),
+    t(locale, 'about.team.maria_ionescu.description'),
+    t(locale, 'about.team.andrei_radu.role'),
+    t(locale, 'about.team.andrei_radu.description'),
+    t(locale, 'about.team.diana_stoica.role'),
+    t(locale, 'about.team.diana_stoica.description'),
+    t(locale, 'about.cta.title'),
+    t(locale, 'about.cta.description'),
+    t(locale, 'about.cta.find_experts'),
+    t(locale, 'about.cta.become_provider'),
+    t(locale, 'common.verified_experts'),
+    t(locale, 'common.completed_projects'),
+    t(locale, 'common.satisfaction_rate'),
+  ]);
 
   const stats = [
-    { number: '500+', label: 'Experți Verificați' },
-    { number: '2,000+', label: 'Proiecte Finalizate' },
-    { number: '98%', label: 'Rata de Satisfacție' },
-    { number: '50+', label: 'Orașe Acoperite' }
+    { number: '500+', label: verifiedExpertsLabel },
+    { number: '2,000+', label: completedProjectsLabel },
+    { number: '98%', label: satisfactionRateLabel },
+    { number: '50+', label: citiesCoveredLabel },
+  ];
+
+  const missionBullets = [
+    { title: accessibilityTitle, description: accessibilityDesc },
+    { title: transparencyTitle, description: transparencyDesc },
+    { title: excellenceTitle, description: excellenceDesc },
+  ];
+
+  const values = [
+    { icon: Shield, title: trustTitle, description: trustDesc },
+    { icon: Award, title: qualityTitle, description: qualityDesc },
+    { icon: Zap, title: efficiencyTitle, description: efficiencyDesc },
+    { icon: Heart, title: supportTitle, description: supportDesc },
+  ];
+
+  const milestones = [
+    { year: '2020', title: milestone2020Title, description: milestone2020Desc },
+    { year: '2021', title: milestone2021Title, description: milestone2021Desc },
+    { year: '2022', title: milestone2022Title, description: milestone2022Desc },
+    { year: '2023', title: milestone2023Title, description: milestone2023Desc },
+    { year: '2024', title: milestone2024Title, description: milestone2024Desc },
   ];
 
   const team = [
     {
       name: 'Alexandru Popescu',
-      role: 'CEO & Co-Fondator',
+      role: alexRole,
       avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=200',
-      description: 'Antreprenor cu peste 10 ani de experiență în tech, pasionat de inovație și dezvoltarea ecosistemului IT românesc.'
+      description: alexDesc,
     },
     {
       name: 'Maria Ionescu',
-      role: 'CTO & Co-Fondator',
+      role: mariaRole,
       avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=200',
-      description: 'Expert în dezvoltare software cu background în arhitectura sistemelor scalabile și experiența utilizatorului.'
+      description: mariaDesc,
     },
     {
       name: 'Andrei Radu',
-      role: 'Head of Operations',
+      role: andreiRole,
       avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200',
-      description: 'Specialist în operațiuni și management, cu focus pe optimizarea proceselor și satisfacția clienților.'
+      description: andreiDesc,
     },
     {
       name: 'Diana Stoica',
-      role: 'Head of Marketing',
+      role: dianaRole,
       avatar: 'https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=200',
-      description: 'Expert în marketing digital și growth, cu experiență în construirea brandurilor tech de succes.'
-    }
-  ];
-
-  const milestones = [
-    {
-      year: '2020',
-      title: 'Înființarea Nexora',
-      description: 'Am lansat platforma cu viziunea de a conecta talentele IT românești cu oportunitățile globale.'
+      description: dianaDesc,
     },
-    {
-      year: '2021',
-      title: 'Primul Milion de RON',
-      description: 'Am atins primul milion de RON în tranzacții procesate, confirmând nevoia pieței pentru serviciile noastre.'
-    },
-    {
-      year: '2022',
-      title: 'Expansiunea Națională',
-      description: 'Am extins serviciile în toate orașele mari din România, ajungând la peste 500 de experți verificați.'
-    },
-    {
-      year: '2023',
-      title: 'Recunoaștere Internațională',
-      description: 'Am fost recunoscuți ca cea mai inovatoare platformă de servicii IT din Europa de Est.'
-    },
-    {
-      year: '2024',
-      title: 'Viitorul Digital',
-      description: 'Continuăm să inovăm cu AI și automatizare pentru a îmbunătăți experiența utilizatorilor.'
-    }
   ];
 
   return (
@@ -117,22 +212,20 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="mb-6">
-              🚀 Despre Nexora
+              {heroBadge}
             </Badge>
             <h1 className="text-4xl lg:text-6xl font-bold mb-6">
-              Construim viitorul digital al României
+              {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-              Nexora este platforma românească care conectează antreprenorii cu cei mai buni experți IT.
-              Misiunea noastră este să democratizăm accesul la servicii IT de calitate și să susținem
-              creșterea ecosistemului tehnologic local.
+              {heroDescription}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="px-8 py-6 text-lg" asChild>
-                <Link href="/services">Explorează Serviciile</Link>
+                <Link href="/services">{exploreServices}</Link>
               </Button>
               <Button variant="outline" size="lg" className="px-8 py-6 text-lg">
-                Alătură-te Echipei
+                {joinTeam}
               </Button>
             </div>
           </div>
@@ -163,44 +256,30 @@ export default function AboutPage() {
           <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-                Misiunea Noastră
+                {missionTitle}
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Credem că fiecare idee merită să devină realitate. De aceea, am construit Nexora -
-                o platformă care elimină barierele dintre viziune și execuție, conectând antreprenorii
-                cu experții IT potriviți.
+                {missionDescription}
               </p>
               <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Accesibilitate</h3>
-                    <p className="text-muted-foreground">Servicii IT de calitate la prețuri corecte pentru toate businessurile</p>
+                {missionBullets.map((bullet, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold mb-1">{bullet.title}</h3>
+                      <p className="text-muted-foreground">{bullet.description}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Transparență</h3>
-                    <p className="text-muted-foreground">Proces clar, prețuri transparente și comunicare deschisă</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Excelență</h3>
-                    <p className="text-muted-foreground">Standarde înalte de calitate și satisfacția garantată</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
             <div className="relative">
               <div className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center">
                 <div className="text-center space-y-4">
                   <Target className="w-16 h-16 text-primary mx-auto" />
-                  <h3 className="text-2xl font-bold">Viziunea 2030</h3>
+                  <h3 className="text-2xl font-bold">{visionTitle}</h3>
                   <p className="text-muted-foreground max-w-xs">
-                    Să devenim platforma de referință pentru servicii IT în Europa de Est
+                    {visionDescription}
                   </p>
                 </div>
               </div>
@@ -214,11 +293,10 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Valorile Noastre
+              {valuesTitle}
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Principiile care ne ghidează în tot ceea ce facem și ne ajută să construim
-              relații de încredere cu clienții și partenerii noștri
+              {valuesDescription}
             </p>
           </div>
 
@@ -247,10 +325,10 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Povestea Noastră
+              {timelineTitle}
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              De la o idee simplă la platforma de încredere pentru mii de antreprenori români
+              {timelineDescription}
             </p>
           </div>
 
@@ -279,10 +357,10 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Echipa Nexora
+              {teamTitle}
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Oamenii pasionați care fac posibilă transformarea digitală a României
+              {teamDescription}
             </p>
           </div>
 
@@ -314,18 +392,21 @@ export default function AboutPage() {
       <section className="py-20 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            Alătură-te Comunității Nexora
+            {ctaTitle}
           </h2>
           <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-            Fie că ești antreprenor în căutarea expertului potrivit sau specialist IT care vrea să își
-            dezvolte cariera, Nexora este locul unde visurile devin realitate.
+            {ctaDescription}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" className="px-8 py-6 text-lg" asChild>
-              <Link href="/services">Găsește Experți</Link>
+              <Link href="/services">{findExperts}</Link>
             </Button>
-            <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-white text-white hover:bg-white hover:text-primary">
-              Devino Furnizor
+            <Button
+              size="lg"
+              variant="outline"
+              className="px-8 py-6 text-lg border-white text-white hover:bg-white hover:text-primary"
+            >
+              {becomeProvider}
             </Button>
           </div>
         </div>
