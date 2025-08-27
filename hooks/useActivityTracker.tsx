@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect } from 'react';
 import apiClient from '@/lib/api';
 import {useAuth} from "@/contexts/auth-context";
