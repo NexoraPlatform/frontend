@@ -17,53 +17,6 @@ interface HomePageProps {
   };
 }
 
-const CATEGORIES = [
-  {
-    title: "Web Development",
-    description: "Build modern web applications",
-    icon: Code,
-    color: "from-blue-500 to-blue-700",
-    projects: "100",
-    trend: "+20%",
-    count: "50",
-    avgPrice: "$500",
-    slug: "web-development",
-  },
-  {
-    title: "Mobile Apps",
-    description: "Develop cross-platform mobile applications",
-    icon: Smartphone,
-    color: "from-green-500 to-green-700",
-    projects: "80",
-    trend: "+15%",
-    count: "40",
-    avgPrice: "$400",
-    slug: "mobile-apps",
-  },
-  {
-    title: "UI/UX Design",
-    description: "Create stunning user interfaces",
-    icon: Palette,
-    color: "from-red-500 to-red-700",
-    projects: "120",
-    trend: "+25%",
-    count: "60",
-    avgPrice: "$600",
-    slug: "ui-ux-design",
-  },
-  {
-    title: "Data Analytics",
-    description: "Analyze data for insights",
-    icon: TrendingUp,
-    color: "from-yellow-500 to-yellow-700",
-    projects: "90",
-    trend: "+18%",
-    count: "55",
-    avgPrice: "$550",
-    slug: "data-analytics",
-  },
-]
-
 const TestimonialsSection = dynamic(
     () => import("@/components/testimonials-section").then((m) => ({ default: m.TestimonialsSection })),
     {
@@ -101,37 +54,125 @@ export default async function Home({
     params: Promise<{ locale: Locale }>;
 }) {
   const { locale } = await Promise.resolve(params);
+  const [
+    securePlatform,
+    securePlatformDescription,
+    expertTeam,
+    expertTeamDescription,
+    globalReach,
+    globalReachDescription,
+    awardWinning,
+    awardWinningDescription,
+    webDevelopmentTitle,
+    webDevelopmentDescription,
+    mobileAppsTitle,
+    mobileAppsDescription,
+    uiuxDesignTitle,
+    uiuxDesignDescription,
+    dataAnalyticsTitle,
+    dataAnalyticsDescription,
+    findMore,
+    learnMoreAbout,
+    exploreServicesInCategory,
+  ] = await Promise.all([
+    t(locale, "homepage.why_nexora.secure_platform"),
+    t(locale, "homepage.why_nexora.secure_platform_description"),
+    t(locale, "homepage.why_nexora.expert_team"),
+    t(locale, "homepage.why_nexora.expert_team_description"),
+    t(locale, "homepage.why_nexora.global_reach"),
+    t(locale, "homepage.why_nexora.global_reach_description"),
+    t(locale, "homepage.why_nexora.award_winning"),
+    t(locale, "homepage.why_nexora.award_winning_description"),
+    t(locale, "homepage.categories.web_development.title"),
+    t(locale, "homepage.categories.web_development.description"),
+    t(locale, "homepage.categories.mobile_apps.title"),
+    t(locale, "homepage.categories.mobile_apps.description"),
+    t(locale, "homepage.categories.ui_ux_design.title"),
+    t(locale, "homepage.categories.ui_ux_design.description"),
+    t(locale, "homepage.categories.data_analytics.title"),
+    t(locale, "homepage.categories.data_analytics.description"),
+    t(locale, "common.find_more"),
+    t(locale, "common.learn_more_about"),
+    t(locale, "homepage.explore_services_in_category"),
+  ]);
 
-    const FEATURES = [
-        {
-            title: t(locale, "homepage.why_nexora.secure_platform"),
-            description: t(locale, "homepage.why_nexora.secure_platform_description"),
-            icon: Shield,
-            gradient: "from-blue-500 to-blue-700",
-            stats: "99.9%",
-        },
-        {
-            title: t(locale, "homepage.why_nexora.expert_team"),
-            description: t(locale, "homepage.why_nexora.expert_team_description"),
-            icon: Users,
-            gradient: "from-green-500 to-green-700",
-            stats: "1000+",
-        },
-        {
-            title: t(locale, "homepage.why_nexora.global_reach"),
-            description: t(locale, "homepage.why_nexora.global_reach_description"),
-            icon: Globe,
-            gradient: "from-red-500 to-red-700",
-            stats: "150 countries",
-        },
-        {
-            title: t(locale, "homepage.why_nexora.award_winning"),
-            description: t(locale, "homepage.why_nexora.award_winning_description"),
-            icon: Award,
-            gradient: "from-yellow-500 to-yellow-700",
-            stats: "5 awards",
-        },
-    ]
+  const CATEGORIES = [
+    {
+      title: webDevelopmentTitle,
+      description: webDevelopmentDescription,
+      icon: Code,
+      color: "from-blue-500 to-blue-700",
+      projects: "100",
+      trend: "+20%",
+      count: "50",
+      avgPrice: "$500",
+      slug: "web-development",
+    },
+    {
+      title: mobileAppsTitle,
+      description: mobileAppsDescription,
+      icon: Smartphone,
+      color: "from-green-500 to-green-700",
+      projects: "80",
+      trend: "+15%",
+      count: "40",
+      avgPrice: "$400",
+      slug: "mobile-apps",
+    },
+    {
+      title: uiuxDesignTitle,
+      description: uiuxDesignDescription,
+      icon: Palette,
+      color: "from-red-500 to-red-700",
+      projects: "120",
+      trend: "+25%",
+      count: "60",
+      avgPrice: "$600",
+      slug: "ui-ux-design",
+    },
+    {
+      title: dataAnalyticsTitle,
+      description: dataAnalyticsDescription,
+      icon: TrendingUp,
+      color: "from-yellow-500 to-yellow-700",
+      projects: "90",
+      trend: "+18%",
+      count: "55",
+      avgPrice: "$550",
+      slug: "data-analytics",
+    },
+  ];
+
+  const FEATURES = [
+    {
+      title: securePlatform,
+      description: securePlatformDescription,
+      icon: Shield,
+      gradient: "from-blue-500 to-blue-700",
+      stats: "99.9%",
+    },
+    {
+      title: expertTeam,
+      description: expertTeamDescription,
+      icon: Users,
+      gradient: "from-green-500 to-green-700",
+      stats: "1000+",
+    },
+    {
+      title: globalReach,
+      description: globalReachDescription,
+      icon: Globe,
+      gradient: "from-red-500 to-red-700",
+      stats: "150 countries",
+    },
+    {
+      title: awardWinning,
+      description: awardWinningDescription,
+      icon: Award,
+      gradient: "from-yellow-500 to-yellow-700",
+      stats: "5 awards",
+    },
+  ];
 
   return (
       <div className="bg-background font-sans">
@@ -213,17 +254,17 @@ export default async function Home({
                           <span className="text-sm font-bold text-blue-600">{category.avgPrice}</span>
                         </div>
 
-                        <Button
-                            variant="ghost"
-                            className="w-full mt-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-950 font-semibold transition-colors"
-                            aria-label={`${t(locale, "homepage.explore_services_in_category")} ${category.title}`}
-                            asChild
-                        >
-                          <Link href={`/services?category=${category.slug}`}>
-                              {t(locale, "common.explore")}
-                            <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
+                          <Button
+                              variant="ghost"
+                              className="w-full mt-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-950 font-semibold transition-colors"
+                              aria-label={`${exploreServicesInCategory} ${category.title}`}
+                              asChild
+                          >
+                            <Link href={`/services?category=${category.slug}`}>
+                                {t(locale, "common.explore")}
+                              <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                          </Button>
                       </CardContent>
                     </Card>
                 ))}
@@ -295,22 +336,22 @@ export default async function Home({
 
                       <p className="text-base text-muted-foreground mb-6 leading-relaxed">{feature.description}</p>
 
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <Button
-                            variant="ghost"
-                            className="text-blue-600 font-semibold"
-                            aria-label={`Află mai multe despre ${feature.title}`}
-                            asChild
-                        >
-                          <Link href={`/${locale}/about`}>
-                            Află mai mult
-                            <ChevronRight className="ml-2 w-4 h-4" />
-                          </Link>
-                        </Button>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Button
+                              variant="ghost"
+                              className="text-blue-600 font-semibold"
+                              aria-label={`${learnMoreAbout} ${feature.title}`}
+                              asChild
+                          >
+                            <Link href={`/${locale}/about`}>
+                              {findMore}
+                              <ChevronRight className="ml-2 w-4 h-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                ))}
-              </div>
+                  ))}
+                </div>
             </div>
           </section>
 

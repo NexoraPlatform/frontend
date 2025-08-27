@@ -33,5 +33,23 @@
     "start_now": "Începe Acum",
     "become_expert": "Devino Expert"
   },
+  "categories": {
+    "web_development": {
+      "title": "Dezvoltare Web",
+      "description": "Construiește aplicații web moderne"
+    },
+    "mobile_apps": {
+      "title": "Aplicații Mobile",
+      "description": "Dezvoltă aplicații mobile cross-platform"
+    },
+    "ui_ux_design": {
+      "title": "Design UI/UX",
+      "description": "Creează interfețe de utilizator uimitoare"
+    },
+    "data_analytics": {
+      "title": "Analiză de Date",
+      "description": "Analizează date pentru informații utile"
+    }
+  },
   "explore_services_in_category": "Explorează servicii din categoria"
 }

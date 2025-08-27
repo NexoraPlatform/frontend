@@ -33,6 +33,24 @@
     "start_now": "Start Now",
     "become_expert": "Become an Expert"
   },
+  "categories": {
+    "web_development": {
+      "title": "Web Development",
+      "description": "Build modern web applications"
+    },
+    "mobile_apps": {
+      "title": "Mobile Apps",
+      "description": "Develop cross-platform mobile applications"
+    },
+    "ui_ux_design": {
+      "title": "UI/UX Design",
+      "description": "Create stunning user interfaces"
+    },
+    "data_analytics": {
+      "title": "Data Analytics",
+      "description": "Analyze data for insights"
+    }
+  },
   "explore_services_in_category": "Explorează servicii din categoria"
 
 }
