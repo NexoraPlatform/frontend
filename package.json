@@ -75,6 +75,7 @@
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
     "framer-motion": "^12.23.6",
+    "html-react-parser": "^5.2.6",
     "input-otp": "^1.2.4",
     "jose": "^6.0.12",
     "laravel-echo": "^2.1.7",

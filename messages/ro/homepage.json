@@ -2,7 +2,12 @@
   "hero": {
     "badge": "Platforma #1 pentru servicii IT în România",
     "title": "<span class='block text-blue-600'>Transformă-ți</span><span class='block text-foreground mt-2'>ideile în</span><span class='block text-indigo-600'>realitate digitală</span>",
-    "subtitle": "Conectează-te cu <strong class='text-blue-600 font-semibold'>cei mai buni experți IT</strong> din România.<br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău."
+    "subtitleParts": {
+      "before": "Conectează-te cu",
+      "highlight": "cei mai buni experți IT",
+      "after": "din România.",
+      "extra": "De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău."
+    }
   },
   "features": {
     "badge": "Servicii Premium",

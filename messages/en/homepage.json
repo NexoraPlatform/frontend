@@ -2,7 +2,12 @@
   "hero": {
     "badge": "The #1 platform for IT services in Romania",
     "title": "<span class='block text-blue-600'>Transform your</span><span class='block text-foreground mt-2'>ideas into</span><span class='block text-indigo-600'>digital reality</span>",
-    "subtitle": "Connect with <strong class='text-blue-600 font-semibold'>the best IT experts</strong> in Romania.<br />From web development to digital marketing, find the perfect solution for your project."
+    "subtitleParts": {
+      "before": "Connect with",
+      "highlight": "the best IT experts",
+      "after": "in Romania.",
+      "extra": "From web development to digital marketing, find the perfect solution for your project."
+    }
   },
   "features": {
     "badge": "Servicii Premium",

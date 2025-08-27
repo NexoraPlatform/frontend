@@ -29,7 +29,10 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
     const [
         heroBadge,
         heroTitleHtml,
-        heroSubtitleHtml,
+        subtitleBefore,
+        subtitleHighlight,
+        subtitleAfter,
+        subtitleExtra,
         searchPlaceholder,
         searchPlaceholderAria,
         searchNow,
@@ -47,7 +50,10 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
     ] = await Promise.all([
         t(locale as Locale, "homepage.hero.badge"),
         t(locale as Locale, "homepage.hero.title"),
-        t(locale as Locale, "homepage.hero.subtitle"),
+        t(locale as Locale, "homepage.hero.subtitleParts.before"),
+        t(locale as Locale, "homepage.hero.subtitleParts.highlight"),
+        t(locale as Locale, "homepage.hero.subtitleParts.after"),
+        t(locale as Locale, "homepage.hero.subtitleParts.extra"),
         t(locale as Locale, "common.search_placeholder"),
         t(locale as Locale, "common.search_placeholder_aria_label"),
         t(locale as Locale, "common.search_now"),
@@ -103,11 +109,15 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
                         <span dangerouslySetInnerHTML={{ __html: heroTitleHtml }} />
                     </h1>
 
-                    <h2
-                        className="mx-auto max-w-4xl text-2xl lg:text-3xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-8"
-                        style={{ willChange: "auto" }}
-                        dangerouslySetInnerHTML={{ __html: heroSubtitleHtml }}
-                    />
+                    <h2 className="mx-auto max-w-4xl text-2xl lg:text-3xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-8">
+                        {subtitleBefore}{" "}
+                        <strong className="text-blue-600 font-semibold">
+                            {subtitleHighlight}
+                        </strong>{" "}
+                        {subtitleAfter}
+                        <br />
+                        {subtitleExtra}
+                    </h2>
 
                     <div className="max-w-4xl mx-auto mb-12">
                         <form className="relative group" role="search" aria-label="Căutare servicii IT">
