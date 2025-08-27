@@ -19,15 +19,6 @@
 .grid { display: grid; }
 .gap-8 { gap: 2rem; }
 
-@media (min-width: 768px) {
-    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-@media (min-width: 1024px) {
-    .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
 /* Extended Typography */
 .text-5xl { font-size: 3rem; line-height: 1; }
 .text-balance { text-wrap: balance; }

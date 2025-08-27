@@ -5,9 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import Image from "next/image";
+import {usePathname} from "next/navigation";
+import { t } from '@/lib/i18n';
+import {Locale} from "@/types/locale";
+
 
 export function TestimonialsSection() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+    const pathname = usePathname();
 
   const testimonials = [
     {
@@ -54,6 +59,7 @@ export function TestimonialsSection() {
     }, 6000);
     return () => clearInterval(interval);
   }, [testimonials.length]);
+    const locale = pathname.split('/')[1] as Locale || 'ro';
 
   return (
     <section className="py-12 bg-gradient-to-b from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950/50 dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden">
@@ -61,13 +67,13 @@ export function TestimonialsSection() {
         <div className="text-center mb-20">
           <Badge variant="secondary" className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/50 dark:to-orange-900/50 border border-yellow-200 dark:border-yellow-800">
             <Star className="w-5 h-5 mr-2" />
-            Testimoniale
+              {t(locale as Locale, "homepage.testimonials.badge")}
           </Badge>
           <h2 className="text-5xl lg:text-6xl font-black mb-8 bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-            Ce spun clienții noștri
+              {t(locale as Locale, "homepage.testimonials.title")}
           </h2>
           <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-            Mii de antreprenori și companii și-au realizat visurile cu ajutorul experților de pe Nexora
+              {t(locale as Locale, "homepage.testimonials.subtitle")}
           </p>
         </div>
 

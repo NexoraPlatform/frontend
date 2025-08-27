@@ -147,7 +147,10 @@ class ApiClient {
       }
     });
 
-    return this.request<any>(`/services?${searchParams.toString()}`);
+    return this.request<any>(`/services`, {
+        method: 'POST',
+        body: JSON.stringify(params),
+    });
   }
 
   // Servicii disponibile pentru prestatori să se înscrie
@@ -294,7 +297,7 @@ class ApiClient {
   }
 
   async createRole(data: any) {
-    return this.request<any>(`admin/access/`, {
+    return this.request<any>(`/admin/access/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })

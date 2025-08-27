@@ -1,0 +1,19 @@
+{
+  "home": "Acasă",
+  "services": "Servicii",
+  "projects": "Proiecte",
+  "about": "Despre",
+  "help": "Ajutor",
+  "contact": "Contact",
+  "main_navigation": "Navigare principală",
+  "open_main_user_menu": "Deschide meniul principal al utilizatorului",
+  "dashboard": "Tablou de bord",
+  "profile": "Profil",
+  "edit_profile": "Editează Profil",
+  "admin_panel": "Panou de administrare",
+  "logout": "Deconectare",
+  "signin": "Conectează-te",
+  "login": "Conectează-te",
+  "signup": "Înregistrează-te",
+  "register": "Înregistrează-te"
+}

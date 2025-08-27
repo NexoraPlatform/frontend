@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import {useAuth} from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
+import {useAsyncTranslation} from "@/hooks/use-async-translation";
+import {usePathname} from 'next/navigation';
+import {Locale} from "@/types/locale";
 
 const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
   ssr: false,
@@ -15,11 +18,33 @@ const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
 
 export function Footer() {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const locale = pathname.split('/')[1] as Locale || 'ro';
+  const footerInfoText = useAsyncTranslation(locale, "common.footer_info")
+  const followUsSocialText = useAsyncTranslation(locale, "common.follow_us_social");
+  const followUsOnText = useAsyncTranslation(locale, "common.follow_us_on");
+  const footerPlatformDescriptionText = useAsyncTranslation(locale, "common.footer_platform_description");
+  const quickLinksText = useAsyncTranslation(locale, "common.quick_links");
+  const servicesText = useAsyncTranslation(locale, "navigation.services")
+  const aboutText = useAsyncTranslation(locale, "navigation.about")
+  const helpText = useAsyncTranslation(locale, "navigation.help")
+  const contactText = useAsyncTranslation(locale, "navigation.contact")
+  const popularServicesText = useAsyncTranslation(locale, "common.popular_services");
+  const emailForNewsletterText = useAsyncTranslation(locale, "common.newsletter_email_address");
+  const yourEmailText = useAsyncTranslation(locale, "common.your_email");
+  const subscribeToNewsletterText = useAsyncTranslation(locale, "common.subscribe_to_newsletter");
+  const subscribeText = useAsyncTranslation(locale, "common.subscribe");
+  const privacyPolicyText = useAsyncTranslation(locale, "common.privacy_policy");
+  const readPrivacyPolicyText = useAsyncTranslation(locale, "common.read_privacy_policy");
+  const termsConditionsText = useAsyncTranslation(locale, "common.terms_conditions");
+  const readTermsConditionsText = useAsyncTranslation(locale, "common.read_terms_conditions");
+  const allRightsReservedText = useAsyncTranslation(locale, "common.all_rights_reserved");
+
   return (
       <footer
           className="border-t"
           role="contentinfo"
-          aria-label="Footer cu informații de contact și link-uri"
+          aria-label={footerInfoText}
       >
         {user && (<ChatLauncher />)}
         <div className="container mx-auto px-4 !py-12">
@@ -77,34 +102,34 @@ export function Footer() {
                 <span className="text-xl font-bold text-primary pb-3">Nexora</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Platforma românească pentru servicii IT profesionale. Conectăm clienții cu experții potriviți pentru proiectele lor.
+                  {footerPlatformDescriptionText}
               </p>
-              <div className="flex space-x-2" role="group" aria-label="Urmărește-ne pe rețelele sociale">
+              <div className="flex space-x-2" role="group" aria-label={followUsSocialText}>
                 <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Urmărește-ne pe Facebook"
+                    aria-label={`${followUsOnText} Facebook`}
                 >
                   <Facebook className="h-4 w-4" />
                 </Button>
                 <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Urmărește-ne pe Twitter"
+                    aria-label={`${followUsOnText} Twitter`}
                 >
                   <Twitter className="h-4 w-4" />
                 </Button>
                 <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Urmărește-ne pe LinkedIn"
+                    aria-label={`${followUsOnText} LinkedIn`}
                 >
                   <Linkedin className="h-4 w-4" />
                 </Button>
                 <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Urmărește-ne pe Instagram"
+                    aria-label={`${followUsOnText} Instagram`}
                 >
                   <Instagram className="h-4 w-4" />
                 </Button>
@@ -112,37 +137,37 @@ export function Footer() {
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold" id="quick-links-heading">Link-uri Rapide</h2>
+              <h2 className="text-lg font-semibold" id="quick-links-heading">{quickLinksText}</h2>
               <nav className="space-y-2" aria-labelledby="quick-links-heading">
-                <Link href="/services" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Servicii
+                <Link href={`/${locale}/services`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {servicesText}
                 </Link>
-                <Link href="/about" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Despre Noi
+                <Link href={`/${locale}/about`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {aboutText}
                 </Link>
-                <Link href="/help" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Ajutor
+                <Link href={`/${locale}/help`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {helpText}
                 </Link>
-                <Link href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Contact
+                <Link href={`/${locale}/contact`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {contactText}
                 </Link>
               </nav>
             </div>
 
             {/* Services */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold" id="popular-services-heading">Servicii Populare</h2>
+              <h2 className="text-lg font-semibold" id="popular-services-heading">{popularServicesText}</h2>
               <nav className="space-y-2" aria-labelledby="popular-services-heading">
-                <Link href="/services?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href={`/${locale}/services?category=web-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Dezvoltare Web
                 </Link>
-                <Link href="/services?category=mobile-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href={`/${locale}/services?category=mobile-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Aplicații Mobile
                 </Link>
-                <Link href="/services?category=design" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href={`/${locale}/services?category=design`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Design UI/UX
                 </Link>
-                <Link href="/services?category=marketing" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Link href={`/${locale}/services?category=marketing`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                   Marketing Digital
                 </Link>
               </nav>
@@ -173,15 +198,15 @@ export function Footer() {
                 <h3 className="text-sm font-medium" id="newsletter-heading">Newsletter</h3>
                 <form className="flex space-x-2" aria-labelledby="newsletter-heading">
                   <Input
-                      placeholder="Email-ul tău"
+                      placeholder={yourEmailText}
                       className="text-sm"
                       type="email"
-                      aria-label="Adresa de email pentru newsletter"
+                      aria-label={emailForNewsletterText}
                   />
                   <Button
                       size="sm"
                       type="submit"
-                      aria-label="Abonează-te la newsletter"
+                      aria-label={subscribeToNewsletterText}
                       className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors
          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
          disabled:pointer-events-none disabled:opacity-50
@@ -190,7 +215,7 @@ export function Footer() {
          dark:bg-blue-500 dark:hover:bg-blue-600
          h-9 rounded-md px-3"
                   >
-                    Abonează-te
+                      {subscribeText}
                   </Button>
                 </form>
               </div>
@@ -199,20 +224,20 @@ export function Footer() {
 
           <div className="border-t mt-8 pt-8 text-center" role="contentinfo">
             <p className="text-sm text-muted-foreground">
-              © 2024 Nexora. Toate drepturile rezervate. |
+              © 2024 Nexora. {allRightsReservedText}. |
               <Link
                   href="/privacy"
                   className="hover:text-primary ml-1"
-                  aria-label="Citește politica de confidențialitate"
+                  aria-label={readPrivacyPolicyText}
               >
-                Politica de Confidențialitate
+                  {privacyPolicyText}
               </Link> |
               <Link
                   href="/terms"
                   className="hover:text-primary ml-1"
-                  aria-label="Citește termenii și condițiile"
+                  aria-label={readTermsConditionsText}
               >
-                Termeni și Condiții
+                  {termsConditionsText}
               </Link>
             </p>
           </div>

@@ -1,0 +1,38 @@
+{
+  "hero": {
+    "badge": "The #1 platform for IT services in Romania",
+    "title": "<span class='block text-blue-600'>Transform your</span><span class='block text-foreground mt-2'>ideas into</span><span class='block text-indigo-600'>digital reality</span>",
+    "subtitle": "Connect with <strong class='text-blue-600 font-semibold'>the best IT experts</strong> in Romania.<br />From web development to digital marketing, find the perfect solution for your project."
+  },
+  "features": {
+    "badge": "Servicii Premium",
+    "title": "Popular Service Categories",
+    "subtitle": "Discover a wide range of professional IT services, all verified and rated by our community"
+  },
+  "why_nexora": {
+    "badge": "Why Nexora?",
+    "title": "Trusted Experience for Your Projects",
+    "subtitle": "We provide a secure, fast, and transparent platform for all your IT collaborations",
+    "secure_platform": "Secure Platform",
+    "secure_platform_description": "Your projects are safe with us",
+    "expert_team": "Expert Team",
+    "expert_team_description": "Work with highly skilled professionals",
+    "global_reach": "Global Reach",
+    "global_reach_description": "Serve customers worldwide",
+    "award_winning": "Award Winning",
+    "award_winning_description": "Recognized for excellence"
+  },
+  "testimonials": {
+    "badge": "Testimonials",
+    "title": "What Our Clients Say",
+    "subtitle": "Thousands of entrepreneurs and companies have achieved their dreams with the help of experts on Nexora"
+  },
+  "cta": {
+    "title": "Ready to turn your idea into reality?",
+    "subtitle": "Join thousands of entrepreneurs who have found the right experts on Nexora. Start today and watch your project come to life.",
+    "start_now": "Start Now",
+    "become_expert": "Become an Expert"
+  },
+  "explore_services_in_category": "Explorează servicii din categoria"
+
+}

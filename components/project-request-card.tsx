@@ -60,7 +60,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         if (!loading && !user) {
             // router.push('/auth/signin');
         }
-        if (user && user.role !== 'CLIENT') {
+        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
             router.push('/dashboard');
         }
         if (user) {
@@ -204,7 +204,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         );
     }
 
-    if (!user || user.role !== 'CLIENT') {
+    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
         return null;
     }
 
