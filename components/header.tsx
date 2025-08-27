@@ -14,7 +14,11 @@ import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
 import {cn} from "@/lib/utils";
 import dynamic from 'next/dynamic';
-import { Can } from './Can';
+import { Locale } from '@/types/locale';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import {t} from "@/lib/i18n";
+import {Can} from "@/components/Can";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
@@ -58,14 +62,25 @@ export function Header() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const locale = pathname.split('/')[1] as Locale || 'ro';
+  const homeText = useAsyncTranslation(locale, 'navigation.home');
+  const skipToContentText = useAsyncTranslation(locale, 'common.skip_to_content')
+  const navigateToText = useAsyncTranslation(locale, 'navigation.navigate_to');
+  const mainNavigationText = useAsyncTranslation(locale, 'navigation.main_navigation');
+  const changeThemeToText = useAsyncTranslation(locale, 'navigation.change_theme');
+  const darkText = useAsyncTranslation(locale, 'navigation.dark');
+  const lightText = useAsyncTranslation(locale, 'navigation.light');
+  const openMainUserMenuText = useAsyncTranslation(locale, 'navigation.open_main_user_menu');
+
   const navigation = [
-    { name: 'Acasă', href: '/' },
-    { name: 'Servicii', href: '/services' },
-    { name: 'Proiecte', href: '/projects' },
-    { name: 'Despre', href: '/about' },
-    { name: 'Ajutor', href: '/help' },
-    { name: 'Contact', href: '/contact' },
+    { name: homeText, href: `/` },
+    { name: t(locale as Locale, "navigation.services"), href: '/services' },
+    { name: t(locale as Locale, "navigation.projects"), href: '/projects' },
+    { name: t(locale as Locale, "navigation.about"), href: '/about' },
+    { name: t(locale as Locale, "navigation.help"), href: '/help' },
+    { name: t(locale as Locale, "navigation.contact"), href: '/contact' },
   ];
+
 
   useEffect(() => {
     setMounted(true);
@@ -78,6 +93,7 @@ export function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
 
   const handleLogout = () => {
     logout();
@@ -96,22 +112,22 @@ export function Header() {
                   : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
           }`}
           role="banner"
-          aria-label="Navigare principală"
+          aria-label={mainNavigationText}
       >
         <a
             href="#main-content"
             className="skip-link focus-visible:focus-visible"
-            aria-label="Sari la conținutul principal"
+            aria-label={skipToContentText}
         >
-          Sari la conținut
+            {skipToContentText}
         </a>
 
         <div className="container mx-auto px-4">
           <div className="flex h-20 items-center justify-between">
             <Link
-                href="/"
+                href={`/${locale}`}
                 className="flex items-center space-x-4 group"
-                aria-label="Nexora - Acasă"
+                aria-label={`Nexora - ${homeText}`}
             >
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -173,19 +189,19 @@ export function Header() {
             <nav
                 className="hidden lg:flex items-center space-x-8"
                 role="navigation"
-                aria-label="Navigare principală"
+                aria-label={mainNavigationText}
             >
-              {navigation.map((item) => (
+              {navigation.map((item, index) => (
                   <Link
-                      key={item.name}
-                      href={item.href}
+                      key={index}
+                      href={`/` + locale + item.href}
                       className={cn(
                           'text-sm font-medium transition-colors hover:text-primary relative',
                           pathname === item.href
                               ? 'text-primary'
                               : 'text-muted-foreground'
                       )}
-                      aria-label={`Navighează la ${item.name}`}
+                      aria-label={`${navigateToText} + ' ' + ${item.name}`}
                   >
                     {item.name}
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
@@ -193,8 +209,6 @@ export function Header() {
                   </Link>
               ))}
             </nav>
-
-
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-3">
@@ -214,17 +228,19 @@ export function Header() {
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105"
-                  aria-label={`Schimbă la tema ${theme === 'dark' ? 'deschisă' : 'întunecată'}`}
+                  aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               </Button>
 
+              <LocaleSwitcher className="hidden lg:block" currentLocale={locale} />
+
               {/* User Menu or Auth Buttons */}
               {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label="Deschide meniul principal al utilizatorului">
+                      <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label={openMainUserMenuText}>
                         <Avatar className="h-9 w-9">
                           <AvatarImage src={user.avatar} alt={user.firstName} />
                           <AvatarFallback>
@@ -240,35 +256,32 @@ export function Header() {
                       </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard">Dashboard</Link>
+                        <Link href={`/${locale}/dashboard`}>{t(locale, "navigation.dashboard")}</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard">Profil</Link>
-                      </DropdownMenuItem>
-                      {user.role === 'PROVIDER' && (
+                      <Can {...({ superuser: true } || { roles: ['provider'] })}>
                           <DropdownMenuItem asChild>
-                            <Link href="/provider/profile">Editează Profil</Link>
+                            <Link href={`/${locale}/provider/profile`}>{t(locale, "navigation.edit_profile")}</Link>
                           </DropdownMenuItem>
-                      )}
-                      {/*<Can {...({ superuser: true } || { roles: ['admin'] })}>*/}
+                      </Can>
+                      <Can {...({ superuser: true } || { roles: ['admin'] })}>
                           <DropdownMenuItem asChild>
-                            <Link href="/admin">Admin Panel</Link>
+                            <Link href={`/${locale}/admin`}>{t(locale, "navigation.admin_panel")}</Link>
                           </DropdownMenuItem>
-                      {/*</Can>*/}
+                      </Can>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>Deconectare</span>
+                        <span>{t(locale, "navigation.logout")}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
               ) : (
                   <div className="hidden md:flex items-center space-x-3">
                     <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
-                      <Link href="/auth/signin">Conectează-te</Link>
+                      <Link href={`/${locale}/auth/signin`}>{t(locale, "navigation.login")}</Link>
                     </Button>
                     <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
-                      <Link href="/auth/signup">Înregistrează-te</Link>
+                      <Link href={`/${locale}/auth/signup`}>{t(locale, "navigation.register")}</Link>
                     </Button>
                   </div>
               )}
@@ -283,10 +296,10 @@ export function Header() {
                 <SheetContent side="right" className="w-80 glass-effect border-l-2 border-blue-200 dark:border-blue-800">
                   <div className="flex flex-col space-y-6 mt-8">
                     <SearchBar className="lg:hidden" />
-                    {navigation.map((item) => (
+                    {navigation.map((item, index) => (
                         <Link
-                            key={item.name}
-                            href={item.href}
+                            key={index}
+                            href={locale + item.href}
                             className="text-lg font-semibold hover:text-blue-600 transition-colors py-3 border-b border-border/50 hover:border-blue-200 dark:hover:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950 px-4"
                             onClick={() => setIsOpen(false)}
                         >
@@ -296,13 +309,14 @@ export function Header() {
                     {!user && (
                         <div className="flex flex-col space-y-4 pt-6">
                           <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
-                            <Link href="/auth/signin">Conectează-te</Link>
+                            <Link href={`/${locale}/auth/signin`}>{t(locale, "navigation.login")}</Link>
                           </Button>
                           <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
-                            <Link href="/auth/signup">Înregistrează-te</Link>
+                            <Link href={`/${locale}/auth/signup`}>{t(locale, "navigation.register")}</Link>
                           </Button>
                         </div>
                     )}
+                    <LocaleSwitcher currentLocale={locale} />
                   </div>
                 </SheetContent>
               </Sheet>

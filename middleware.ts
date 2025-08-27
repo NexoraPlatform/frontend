@@ -24,9 +24,9 @@ const ROUTE_RULES: RouteRule[] = [
   { pattern: /\/dashboard(\/|$)/i, require: 'auth-only' },
   { pattern: /\/profile(\/|$)/i, require: 'auth-only' },
   { pattern: /\/settings(\/|$)/i, require: 'auth-only' },
-  { pattern: /^\/providers\/profile\/?$/i, require: { roles: ['provider'] } },
-  { pattern: /\/providers\/services(\/|$)/i, require: { roles: ['provider'] } },
-  { pattern: /^\/providers\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
+  { pattern: /^\/provider\/profile\/?$/i, require: { roles: ['provider'] } },
+  { pattern: /\/provider\/services(\/|$)/i, require: { roles: ['provider'] } },
+  { pattern: /^\/provider\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
   { pattern: /\/tests(\/|$)/i, require: { roles: ['provider'] } },
   { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
@@ -178,6 +178,44 @@ function redirectToSignin(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
+const locales = ['ro', 'en'];
+const defaultLocale = 'ro';
+
+function getLocale(request: NextRequest): string {
+  // Check if locale is in pathname
+  const pathname = request.nextUrl.pathname;
+  const pathnameIsMissingLocale = locales.every(
+      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  );
+
+  // Redirect if there is no locale
+  if (pathnameIsMissingLocale) {
+    // Try to get locale from Accept-Language header
+    const acceptLanguage = request.headers.get('Accept-Language');
+    let locale = defaultLocale;
+
+    if (acceptLanguage) {
+      const preferredLanguages = acceptLanguage
+          .split(',')
+          .map(lang => lang.split(';')[0].trim().toLowerCase());
+
+      for (const lang of preferredLanguages) {
+        if (lang.startsWith('ro')) {
+          locale = 'ro';
+          break;
+        } else if (lang.startsWith('en')) {
+          locale = 'en';
+          break;
+        }
+      }
+    }
+
+    return locale;
+  }
+
+  return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
+}
+
 // ---- Middleware ----
 
 export default async function middleware(req: NextRequest) {
@@ -185,6 +223,26 @@ export default async function middleware(req: NextRequest) {
   // console.log('[MW] path', req.nextUrl.pathname);
 
   const { pathname } = req.nextUrl;
+
+  if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/_next') ||
+      pathname.includes('.') ||
+      pathname.startsWith('/favicon')
+  ) {
+    return NextResponse.next();
+  }
+
+  const pathnameIsMissingLocale = locales.every(
+      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  );
+
+  if (pathnameIsMissingLocale) {
+    const locale = getLocale(req);
+    return NextResponse.redirect(
+        new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url)
+    );
+  }
 
   const token =
       req.cookies.get('auth_token')?.value ||

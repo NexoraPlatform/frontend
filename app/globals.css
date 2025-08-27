@@ -137,8 +137,6 @@ body {
 .flex-col { flex-direction: column; }
 .flex-1 { flex: 1 1 0%; }
 
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .space-x-2 > * + * { margin-left: 0.5rem; }
 .space-x-3 > * + * { margin-left: 0.75rem; }
@@ -310,26 +308,6 @@ body {
 .hover\:scale-105:hover { transform: scale(1.05); }
 .hover\:text-primary:hover { color: hsl(var(--primary)); }
 
-/* Critical responsive classes */
-@media (min-width: 768px) {
-    .md\:flex { display: flex; }
-    .md\:hidden { display: none; }
-    .md\:text-6xl { font-size: 3.75rem; line-height: 1; }
-    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .md\:mr-3 { margin-right: 0.75rem; }
-    .md\:px-12 { padding-left: 3rem; padding-right: 3rem; }
-    .md\:inline { display: inline; }
-}
-
-@media (min-width: 1024px) {
-    .lg\:flex { display: flex; }
-    .lg\:hidden { display: none; }
-    .lg\:text-8xl { font-size: 6rem; line-height: 1; }
-    .lg\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
-    .lg\:text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
-    .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
 
 /* Width and Height utilities */
 .w-5 { width: 1.25rem; }

@@ -1,0 +1,37 @@
+{
+  "hero": {
+    "badge": "Platforma #1 pentru servicii IT în România",
+    "title": "<span class='block text-blue-600'>Transformă-ți</span><span class='block text-foreground mt-2'>ideile în</span><span class='block text-indigo-600'>realitate digitală</span>",
+    "subtitle": "Conectează-te cu <strong class='text-blue-600 font-semibold'>cei mai buni experți IT</strong> din România.<br />De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău."
+  },
+  "features": {
+    "badge": "Servicii Premium",
+    "title": "Categorii Populare de Servicii",
+    "subtitle": "Descoperă o gamă largă de servicii IT profesionale, toate verificate și evaluate de comunitatea noastră"
+  },
+  "why_nexora": {
+    "badge": "De ce Nexora?",
+    "title": "Experiență de încredere pentru proiectele tale",
+    "subtitle": "Oferim o platformă sigură, rapidă și transparentă pentru toate colaborările tale IT",
+    "secure_platform": "Platforma sigura",
+    "secure_platform_description": "Proiectele tale sunt sigure cu noi",
+    "expert_team": "Prestatori experți",
+    "expert_team_description": "Lucrează cu profesioniști cu înaltă calificare",
+    "global_reach": "Acoperire globală",
+    "global_reach_description": "Deservim clienți din întreaga lume",
+    "award_winning": "Premiată",
+    "award_winning_description": "Recunoscută pentru excelență"
+  },
+  "testimonials": {
+    "badge": "Testimoniale",
+    "title": "Ce spun clienții noștri",
+    "subtitle": "Mii de antreprenori și companii și-au realizat visurile cu ajutorul experților de pe Nexora"
+  },
+  "cta": {
+    "title": "Gata să îți transformi ideea în realitate?",
+    "subtitle": "Alătură-te miilor de antreprenori care și-au găsit experții potriviți pe Nexora. Începe astăzi și vezi-ți proiectul prind viață.",
+    "start_now": "Începe Acum",
+    "become_expert": "Devino Expert"
+  },
+  "explore_services_in_category": "Explorează servicii din categoria"
+}

@@ -1,24 +1,76 @@
 import HeroSectionClient from "@/components/hero-section.client";
 
-export const revalidate = false
-export const dynamic = "force-static"
+export const revalidate = false;
+export const dynamic = "force-static";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, Rocket, Sparkles, Target, Play, Users, CheckCircle, Star, Clock } from "lucide-react"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Search,
+    Rocket,
+    Sparkles,
+    Target,
+    Play,
+    Users,
+    CheckCircle,
+    Star,
+    Clock,
+    Globe,
+} from "lucide-react";
+import Link from "next/link";
+import { t } from "@/lib/i18n";
+import { Locale } from "@/types/locale";
 
-const STATS = [
-    { number: "500+", label: "Experți Verificați", icon: Users, change: "+12%" },
-    { number: "2,847", label: "Proiecte Finalizate", icon: CheckCircle, change: "+23%" },
-    { number: "98.5%", label: "Rata de Satisfacție", icon: Star, change: "+2.1%" },
-    { number: "24/7", label: "Suport Tehnic", icon: Clock, change: "Non-stop" },
-]
+const POPULAR_TAGS = ["React", "WordPress", "Logo Design", "SEO", "Mobile App", "E-commerce"];
 
-const POPULAR_TAGS = ["React", "WordPress", "Logo Design", "SEO", "Mobile App", "E-commerce"]
+export async function HeroSectionStatic({ locale }: { locale: string }) {
 
-export function HeroSectionStatic() {
+    const [
+        heroBadge,
+        heroTitleHtml,
+        heroSubtitleHtml,
+        searchPlaceholder,
+        searchPlaceholderAria,
+        searchNow,
+        searchNowAria,
+        popularLabel,
+        searchServicesFor,
+        joinAsClient,
+        joinAsProvider,
+        platformStatistics,
+        verifiedExperts,
+        completedProjects,
+        satisfactionRate,
+        tehnicalSupport,
+        change
+    ] = await Promise.all([
+        t(locale as Locale, "homepage.hero.badge"),
+        t(locale as Locale, "homepage.hero.title"),
+        t(locale as Locale, "homepage.hero.subtitle"),
+        t(locale as Locale, "common.search_placeholder"),
+        t(locale as Locale, "common.search_placeholder_aria_label"),
+        t(locale as Locale, "common.search_now"),
+        t(locale as Locale, "common.search_now_aria_label"),
+        t(locale as Locale, "common.popular"),
+        t(locale as Locale, "common.search_services_for"),
+        t(locale as Locale, "common.join_as_client"),
+        t(locale as Locale, "common.join_as_provider"),
+        t(locale as Locale, "common.platform_statistics"),
+        t(locale as Locale, "common.verified_experts"),
+        t(locale as Locale, "common.completed_projects"),
+        t(locale as Locale, "common.satisfaction_rate"),
+        t(locale as Locale, "common.tehnical_support"),
+        t(locale as Locale, "common.change")
+    ]);
+
+    const STATS = [
+        { number: "500+", label: verifiedExperts, icon: Users, change: "+12%" },
+        { number: "2,847", label: completedProjects, icon: CheckCircle, change: "+23%" },
+        { number: "98.5%", label: satisfactionRate, icon: Star, change: "+2.1%" },
+        { number: "24/7", label: tehnicalSupport, icon: Clock, change: "Non-stop" },
+    ];
+
     return (
         <section
             className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20"
@@ -36,7 +88,8 @@ export function HeroSectionStatic() {
                         variant="secondary"
                         className="inline-flex h-12 items-center px-8 mb-8 text-base font-semibold bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 shadow-sm"
                     >
-                        <Sparkles className="w-5 h-5 mr-3 text-blue-600" />🚀 Platforma #1 pentru servicii IT în România
+                        <Sparkles className="w-5 h-5 mr-3 text-blue-600" />
+                        🚀 {heroBadge}
                         <span className="ml-3 inline-flex h-6 w-[36px] items-center justify-center bg-blue-600 text-white text-xs rounded-full">
               LIVE
             </span>
@@ -45,26 +98,16 @@ export function HeroSectionStatic() {
                     <h1
                         id="hero-heading"
                         className="text-5xl lg:text-7xl font-black mb-8 leading-tight"
-                        style={{
-                            willChange: "auto",
-                        }}
+                        style={{ willChange: "auto" }}
                     >
-                        <span className="block text-blue-600">Transformă-ți</span>
-                        <span className="block text-foreground mt-2">ideile în</span>
-                        <span className="block text-indigo-600">realitate digitală</span>
+                        <span dangerouslySetInnerHTML={{ __html: heroTitleHtml }} />
                     </h1>
 
                     <h2
                         className="mx-auto max-w-4xl text-2xl lg:text-3xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium mb-8"
-                        style={{
-                            willChange: "auto",
-                        }}
-                    >
-                        Conectează-te cu <strong className="text-blue-600 font-semibold">cei mai buni experți IT</strong> din
-                        România.
-                        <br />
-                        De la dezvoltare web la marketing digital, găsește soluția perfectă pentru proiectul tău.
-                    </h2>
+                        style={{ willChange: "auto" }}
+                        dangerouslySetInnerHTML={{ __html: heroSubtitleHtml }}
+                    />
 
                     <div className="max-w-4xl mx-auto mb-12">
                         <form className="relative group" role="search" aria-label="Căutare servicii IT">
@@ -76,9 +119,9 @@ export function HeroSectionStatic() {
                                             aria-hidden="true"
                                         />
                                         <Input
-                                            placeholder="Caută servicii, tehnologii sau experți... (ex: dezvoltare React, logo design, SEO)"
+                                            placeholder={searchPlaceholder}
                                             className="w-[98%] pl-20 pr-6 py-8 text-xl border-0 bg-transparent focus:ring-0 focus:outline-none placeholder:text-muted-foreground/70"
-                                            aria-label="Caută servicii IT, tehnologii sau experți"
+                                            aria-label={searchPlaceholderAria}
                                             autoComplete="off"
                                             spellCheck="false"
                                             name="search"
@@ -88,10 +131,10 @@ export function HeroSectionStatic() {
                                         type="submit"
                                         size="lg"
                                         className="mr-3 px-4 md:px-12 py-8 text-xl font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg transition-colors duration-200"
-                                        aria-label="Începe căutarea de servicii IT"
+                                        aria-label={searchNowAria}
                                     >
                                         <Rocket className="w-6 h-6 md:mr-3" />
-                                        <span className="hidden md:inline">Caută Acum</span>
+                                        <span className="hidden md:inline">{searchNow}</span>
                                     </Button>
                                 </div>
                             </div>
@@ -102,14 +145,14 @@ export function HeroSectionStatic() {
                             role="group"
                             aria-label="Căutări populare"
                         >
-                            <span className="text-sm text-muted-foreground font-medium">Populare:</span>
+                            <span className="text-sm text-muted-foreground font-medium">{popularLabel}:</span>
                             {POPULAR_TAGS.map((tag) => (
                                 <Button
                                     key={tag}
                                     variant="outline"
                                     size="sm"
                                     className="rounded-full border border-blue-200 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-800 dark:hover:border-blue-600 dark:hover:bg-blue-950 transition-colors duration-200 bg-transparent"
-                                    aria-label={`Caută servicii pentru ${tag}`}
+                                    aria-label={`${searchServicesFor} ${tag}`}
                                 >
                                     {tag}
                                 </Button>
@@ -123,9 +166,9 @@ export function HeroSectionStatic() {
                             className="px-12 py-8 text-xl font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl transition-colors duration-200"
                             asChild
                         >
-                            <Link href="/auth/signup?type=client">
+                            <Link href={`/${locale}/auth/signup?type=client`}>
                                 <Target className="mr-3 w-6 h-6" />
-                                Alătură-te ca client
+                                {joinAsClient}
                             </Link>
                         </Button>
                         <Button
@@ -134,17 +177,17 @@ export function HeroSectionStatic() {
                             className="px-12 py-8 text-xl font-bold border-2 border-blue-300 hover:border-blue-500 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:hover:border-blue-500 dark:text-blue-300 dark:hover:bg-blue-950 rounded-2xl shadow-lg transition-colors duration-200 bg-transparent"
                             asChild
                         >
-                            <Link href="/auth/signup?type=provider">
+                            <Link href={`/${locale}/auth/signup?type=provider`}>
                                 <Play className="mr-3 w-6 h-6" />
-                                Alătură-te ca prestator
+                                {joinAsProvider}
                             </Link>
                         </Button>
                     </div>
 
                     <div
-                        className="grid xs:grid-cols-2 md:grid-cols-4 gap-8 text-center"
+                        className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
                         role="list"
-                        aria-label="Statistici platformă"
+                        aria-label={platformStatistics}
                     >
                         {STATS.map((stat) => (
                             <div
@@ -163,13 +206,19 @@ export function HeroSectionStatic() {
                                 >
                                     {stat.number}
                                 </div>
-                                <div className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</div>
-                                <div className="text-xs text-green-600 font-semibold" aria-label={`Schimbare: ${stat.change}`}>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                    {stat.label}
+                                </div>
+                                <div
+                                    className="text-xs text-green-600 font-semibold"
+                                    aria-label={change + ': ' + stat.change}
+                                >
                                     {stat.change}
                                 </div>
                             </div>
                         ))}
                     </div>
+
                 </div>
             </div>
 
@@ -179,5 +228,5 @@ export function HeroSectionStatic() {
                 </div>
             </div>
         </section>
-    )
+    );
 }
