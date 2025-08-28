@@ -273,5 +273,113 @@
       "subtitle": "Modifică detaliile serviciului (tarifele sunt setate de prestatori)",
       "status_label": "Status"
     }
+  },
+  "settings": {
+    "title": "Setări Platformă",
+    "subtitle": "Configurează setările generale ale platformei Nexora",
+    "saving": "Se salvează...",
+    "save_all": "Salvează Toate",
+    "saved_success": "Setările au fost salvate cu succes!",
+    "tabs": {
+      "general": "General",
+      "platform": "Platformă",
+      "payments": "Plăți",
+      "email": "Email",
+      "security": "Securitate",
+      "notifications": "Notificări"
+    },
+    "general": {
+      "site_info_title": "Informații Site",
+      "site_info_desc": "Configurează informațiile de bază ale site-ului",
+      "site_name_label": "Nume Site",
+      "site_description_label": "Descriere Site",
+      "site_url_label": "URL Site",
+      "contact_title": "Contact",
+      "contact_desc": "Adresele de email pentru contact",
+      "admin_email_label": "Email Administrator",
+      "support_email_label": "Email Suport"
+    },
+    "platform": {
+      "financial_title": "Setări Financiare",
+      "financial_desc": "Configurează comisioanele și limitele de preț",
+      "commission_label": "Comision Platformă (%)",
+      "min_price_label": "Preț Minim Serviciu (RON)",
+      "max_price_label": "Preț Maxim Serviciu (RON)",
+      "currency_label": "Moneda Implicită",
+      "currency_options": {
+        "RON": "RON - Leu Românesc",
+        "EUR": "EUR - Euro",
+        "USD": "USD - Dolar American"
+      },
+      "user_title": "Setări Utilizatori",
+      "user_desc": "Configurează comportamentul utilizatorilor",
+      "guest_browsing_label": "Permite navigarea fără cont",
+      "guest_browsing_desc": "Utilizatorii pot vedea serviciile fără să se înregistreze",
+      "email_verification_label": "Verificare email obligatorie",
+      "email_verification_desc": "Utilizatorii trebuie să își verifice email-ul",
+      "auto_approve_label": "Auto-aprobare servicii",
+      "auto_approve_desc": "Serviciile sunt aprobate automat",
+      "registration_open_label": "Înregistrări deschise",
+      "registration_open_desc": "Permite înregistrarea de utilizatori noi"
+    },
+    "payments": {
+      "methods_title": "Metode de Plată",
+      "methods_desc": "Activează sau dezactivează metodele de plată",
+      "stripe_label": "Stripe",
+      "stripe_desc": "Carduri de credit și debit",
+      "paypal_label": "PayPal",
+      "paypal_desc": "Plăți prin PayPal",
+      "bank_transfer_label": "Transfer Bancar",
+      "bank_transfer_desc": "Plăți prin transfer bancar",
+      "active": "Activ",
+      "inactive": "Inactiv",
+      "security_title": "Securitate Plăți",
+      "security_desc": "Configurează securitatea plăților",
+      "escrow_label": "Sistem Escrow",
+      "escrow_desc": "Banii sunt ținuți în siguranță până la finalizarea proiectului",
+      "escrow_alert": "Sistemul Escrow este recomandat pentru protecția atât a clienților cât și a prestatorilor."
+    },
+    "email": {
+      "config_title": "Configurare Email",
+      "config_desc": "Configurează setările pentru trimiterea de email-uri",
+      "provider_label": "Furnizor Email",
+      "provider_options": {
+        "sendgrid": "SendGrid",
+        "mailgun": "Mailgun",
+        "smtp": "SMTP Custom"
+      },
+      "smtp": {
+        "host_label": "SMTP Host",
+        "host_placeholder": "smtp.gmail.com",
+        "port_label": "SMTP Port",
+        "port_placeholder": "587",
+        "user_label": "SMTP User",
+        "password_label": "SMTP Password"
+      }
+    },
+    "security": {
+      "auth_title": "Autentificare",
+      "auth_desc": "Configurează securitatea autentificării",
+      "two_factor_label": "Autentificare cu 2 factori obligatorie",
+      "two_factor_desc": "Toți utilizatorii trebuie să activeze 2FA",
+      "password_length_label": "Lungime minimă parolă",
+      "max_attempts_label": "Încercări maxime de login",
+      "sessions_title": "Sesiuni",
+      "sessions_desc": "Configurează durata sesiunilor",
+      "session_timeout_label": "Timeout sesiune (ore)",
+      "session_timeout_desc": "Utilizatorii vor fi deconectați automat după această perioadă de inactivitate"
+    },
+    "notifications": {
+      "title": "Setări Notificări",
+      "desc": "Configurează tipurile de notificări activate",
+      "email_label": "Notificări Email",
+      "email_desc": "Trimite notificări prin email pentru evenimente importante",
+      "sms_label": "Notificări SMS",
+      "sms_desc": "Trimite notificări prin SMS pentru evenimente critice",
+      "push_label": "Notificări Push",
+      "push_desc": "Trimite notificări push în browser",
+      "marketing_label": "Email-uri Marketing",
+      "marketing_desc": "Permite trimiterea de email-uri promoționale"
+    }
   }
 }
