@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,16 +25,50 @@ import {
 } from 'lucide-react';
 import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import { usePathname } from 'next/navigation';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function AdminServicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const { data: servicesData, loading: servicesLoading, refetch: refetchServices } = useAdminServices();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+  const manageTitle = useAsyncTranslation(locale, 'admin.services.manage_title');
+  const manageSubtitle = useAsyncTranslation(locale, 'admin.services.manage_subtitle');
+  const addService = useAsyncTranslation(locale, 'admin.services.add_service');
+  const searchPlaceholder = useAsyncTranslation(locale, 'admin.services.search_placeholder');
+  const statusFilterPlaceholder = useAsyncTranslation(locale, 'admin.services.status_filter_placeholder');
+  const filterAll = useAsyncTranslation(locale, 'admin.services.filters.all');
+  const statusActive = useAsyncTranslation(locale, 'admin.services.statuses.ACTIVE');
+  const statusDraft = useAsyncTranslation(locale, 'admin.services.statuses.DRAFT');
+  const statusSuspended = useAsyncTranslation(locale, 'admin.services.statuses.SUSPENDED');
+  const listTitle = useAsyncTranslation(locale, 'admin.services.list_title');
+  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.services.list_description');
+  const recommendedLabel = useAsyncTranslation(locale, 'admin.services.recommended');
+  const slugPrefix = useAsyncTranslation(locale, 'admin.services.slug_prefix');
+  const categoryPrefix = useAsyncTranslation(locale, 'admin.services.category_prefix');
+  const reviewsLabelTemplate = useAsyncTranslation(locale, 'admin.services.reviews');
+  const ordersLabelTemplate = useAsyncTranslation(locale, 'admin.services.orders');
+  const viewsLabelTemplate = useAsyncTranslation(locale, 'admin.services.views');
+  const viewDetails = useAsyncTranslation(locale, 'admin.services.view_details');
+  const editLabel = useAsyncTranslation(locale, 'admin.services.edit');
+  const approveLabel = useAsyncTranslation(locale, 'admin.services.approve');
+  const featureLabel = useAsyncTranslation(locale, 'admin.services.feature');
+  const unfeatureLabel = useAsyncTranslation(locale, 'admin.services.unfeature');
+  const suspendLabel = useAsyncTranslation(locale, 'admin.services.suspend');
+  const deleteLabel = useAsyncTranslation(locale, 'admin.services.delete');
+  const confirmDeleteText = useAsyncTranslation(locale, 'admin.services.confirm_delete');
+  const errorPrefix = useAsyncTranslation(locale, 'admin.services.error_prefix');
+  const noServicesTitle = useAsyncTranslation(locale, 'admin.services.no_services_title');
+  const noServicesDescription = useAsyncTranslation(locale, 'admin.services.no_services_description');
 
   const handleServiceAction = async (serviceId: string, action: string) => {
     try {
       if (action === 'delete') {
-        if (confirm('Ești sigur că vrei să ștergi acest serviciu?')) {
+        if (confirm(confirmDeleteText)) {
           await apiClient.deleteService(serviceId);
           await refetchServices();
         }
@@ -43,28 +77,34 @@ export default function AdminServicesPage() {
         await refetchServices();
       }
     } catch (error: any) {
-      alert('Eroare: ' + error.message);
+      alert(errorPrefix + error.message);
     }
   };
 
-  const filteredServices = (servicesData?.services || []).filter((service: any) => {
-    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = serviceFilter === 'all' || service.status === serviceFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredServices = useMemo(() => {
+    const services = servicesData?.services || [];
+    return services.filter((service: any) => {
+      const matchesSearch =
+        service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = serviceFilter === 'all' || service.status === serviceFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [servicesData, searchTerm, serviceFilter]);
+
+  const statusBadges = useMemo(
+    () => ({
+      ACTIVE: { label: statusActive, className: 'bg-green-100 text-green-800' },
+      DRAFT: { label: statusDraft, className: 'bg-yellow-100 text-yellow-800' },
+      SUSPENDED: { label: statusSuspended, className: 'bg-red-100 text-red-800' },
+    }),
+    [statusActive, statusDraft, statusSuspended]
+  );
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Activ</Badge>;
-      case 'DRAFT':
-        return <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>;
-      case 'SUSPENDED':
-        return <Badge className="bg-red-100 text-red-800">Suspendat</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    const badge = statusBadges[status as keyof typeof statusBadges];
+    if (!badge) return <Badge variant="secondary">{status}</Badge>;
+    return <Badge className={badge.className}>{badge.label}</Badge>;
   };
 
   return (
@@ -78,16 +118,16 @@ export default function AdminServicesPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Gestionare Servicii</h1>
+            <h1 className="text-3xl font-bold">{manageTitle}</h1>
             <p className="text-muted-foreground">
-              Administrează serviciile platformei
+              {manageSubtitle}
             </p>
           </div>
         </div>
         <Link href="/admin/services/new">
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Adaugă Serviciu
+            {addService}
           </Button>
         </Link>
       </div>
@@ -100,7 +140,7 @@ export default function AdminServicesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Caută servicii după titlu sau descriere..."
+                  placeholder={searchPlaceholder}
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -110,13 +150,13 @@ export default function AdminServicesPage() {
             <Select value={serviceFilter} onValueChange={setServiceFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtru status" />
+                <SelectValue placeholder={statusFilterPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toate serviciile</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="SUSPENDED">Suspendate</SelectItem>
+                <SelectItem value="all">{filterAll}</SelectItem>
+                <SelectItem value="ACTIVE">{statusActive}</SelectItem>
+                <SelectItem value="DRAFT">{statusDraft}</SelectItem>
+                <SelectItem value="SUSPENDED">{statusSuspended}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -128,10 +168,10 @@ export default function AdminServicesPage() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="w-5 h-5" />
-            <span>Lista Servicii</span>
+            <span>{listTitle}</span>
           </CardTitle>
           <CardDescription>
-            {filteredServices.length} servicii găsite
+            {listDescriptionTemplate.replace('{count}', String(filteredServices.length))}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -148,7 +188,7 @@ export default function AdminServicesPage() {
                       <h3 className="font-semibold text-lg">{service.name}</h3>
                       {service.isFeatured && (
                         <Badge className="bg-yellow-100 text-yellow-800">
-                          ⭐ Recomandat
+                          {recommendedLabel}
                         </Badge>
                       )}
                     </div>
@@ -159,10 +199,10 @@ export default function AdminServicesPage() {
 
                     <div className="flex items-center space-x-4 text-sm mb-3">
                       <span className="text-muted-foreground">
-                        Slug: /{service.slug}
+                        {slugPrefix}{service.slug}
                       </span>
                       <span className="text-muted-foreground">
-                        Categorie: {service.category?.name}
+                        {categoryPrefix}{service.category?.name}
                       </span>
                     </div>
 
@@ -171,13 +211,15 @@ export default function AdminServicesPage() {
                       <div className="flex items-center space-x-1">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span>{service.rating || 0}</span>
-                        <span className="text-muted-foreground">({service.reviewCount || 0} recenzii)</span>
+                        <span className="text-muted-foreground">
+                          ({reviewsLabelTemplate.replace('{count}', String(service.reviewCount || 0))})
+                        </span>
                       </div>
                       <span className="text-muted-foreground">
-                        {service.orderCount || 0} comenzi
+                        {ordersLabelTemplate.replace('{count}', String(service.orderCount || 0))}
                       </span>
                       <span className="text-muted-foreground">
-                        {service.viewCount || 0} vizualizări
+                        {viewsLabelTemplate.replace('{count}', String(service.viewCount || 0))}
                       </span>
                     </div>
                   </div>
@@ -191,32 +233,32 @@ export default function AdminServicesPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleServiceAction(service.id, 'view')}>
                         <Eye className="w-4 h-4 mr-2" />
-                        Vezi Detalii
+                        {viewDetails}
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/services/${service.id}/edit`}>
                           <Edit className="w-4 h-4 mr-2" />
-                          Editează
+                          {editLabel}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleServiceAction(service.id, 'approve')}>
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Aprobă
+                        {approveLabel}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleServiceAction(service.id, 'feature')}>
                         <Star className="w-4 h-4 mr-2" />
-                        {service.isFeatured ? 'Elimină din Recomandate' : 'Marchează ca Recomandat'}
+                        {service.isFeatured ? unfeatureLabel : featureLabel}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleServiceAction(service.id, 'suspend')}>
                         <Ban className="w-4 h-4 mr-2" />
-                        Suspendă
+                        {suspendLabel}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleServiceAction(service.id, 'delete')}
                         className="text-red-600"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Șterge
+                        {deleteLabel}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -226,9 +268,9 @@ export default function AdminServicesPage() {
               {filteredServices.length === 0 && (
                 <div className="text-center py-12">
                   <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Nu s-au găsit servicii</h3>
+                  <h3 className="text-lg font-medium mb-2">{noServicesTitle}</h3>
                   <p className="text-muted-foreground">
-                    Încearcă să modifici filtrele sau termenii de căutare
+                    {noServicesDescription}
                   </p>
                 </div>
               )}

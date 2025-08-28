@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, AlertCircle, Loader2, X } from 'lucide-react';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import {InputAdornment, TextField} from "@mui/material";
+import { InputAdornment, TextField } from "@mui/material";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function NewServicePage() {
   const [formData, setFormData] = useState({
@@ -34,7 +36,38 @@ export default function NewServicePage() {
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
 
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
   const { data: categoriesData } = useCategories();
+
+  const pageTitle = useAsyncTranslation(locale, 'admin.services.new_service.title');
+  const pageSubtitle = useAsyncTranslation(locale, 'admin.services.new_service.subtitle');
+  const errorOccurred = useAsyncTranslation(locale, 'admin.services.error_occurred');
+  const infoTitle = useAsyncTranslation(locale, 'admin.services.info_title');
+  const infoDescription = useAsyncTranslation(locale, 'admin.services.info_description');
+  const titleLabel = useAsyncTranslation(locale, 'admin.services.title_label');
+  const titlePlaceholder = useAsyncTranslation(locale, 'admin.services.title_placeholder');
+  const slugLabel = useAsyncTranslation(locale, 'admin.services.slug_label');
+  const slugPlaceholder = useAsyncTranslation(locale, 'admin.services.slug_placeholder');
+  const slugHelp = useAsyncTranslation(locale, 'admin.services.slug_help');
+  const descriptionLabel = useAsyncTranslation(locale, 'admin.services.description_label');
+  const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.services.description_placeholder');
+  const requirementsLabel = useAsyncTranslation(locale, 'admin.services.requirements_label');
+  const requirementsPlaceholder = useAsyncTranslation(locale, 'admin.services.requirements_placeholder');
+  const categoryLabel = useAsyncTranslation(locale, 'admin.services.category_label');
+  const categoryPlaceholder = useAsyncTranslation(locale, 'admin.services.category_placeholder');
+  const skillsTagsTitle = useAsyncTranslation(locale, 'admin.services.skills_tags_title');
+  const skillsTagsDescription = useAsyncTranslation(locale, 'admin.services.skills_tags_description');
+  const skillsLabel = useAsyncTranslation(locale, 'admin.services.skills_label');
+  const skillsPlaceholder = useAsyncTranslation(locale, 'admin.services.skills_placeholder');
+  const tagsLabel = useAsyncTranslation(locale, 'admin.services.tags_label');
+  const tagsPlaceholder = useAsyncTranslation(locale, 'admin.services.tags_placeholder');
+  const pricingNoteTitle = useAsyncTranslation(locale, 'admin.services.pricing_note_title');
+  const pricingNoteDescription = useAsyncTranslation(locale, 'admin.services.pricing_note_description');
+  const creatingLabel = useAsyncTranslation(locale, 'admin.services.creating');
+  const createServiceLabel = useAsyncTranslation(locale, 'admin.services.create_service');
+  const cancelLabel = useAsyncTranslation(locale, 'admin.services.cancel');
+  const categoryLoadError = useAsyncTranslation(locale, 'admin.services.category_load_error');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +85,7 @@ export default function NewServicePage() {
       await apiClient.createService(serviceData);
       router.push('/admin/services');
     } catch (error: any) {
-      setError(error.message || 'A apărut o eroare');
+      setError(error.message || errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -111,7 +144,7 @@ export default function NewServicePage() {
 
       setSelectedCategorySlug(categorySlug);
     } catch (error: any) {
-      setError('Nu s-a putut încărca categoria');
+      setError(categoryLoadError);
     }
   }
 
@@ -137,7 +170,7 @@ export default function NewServicePage() {
   };
 
 
-  const categoryOptions = buildCategoryOptions(categoriesData || []);
+  const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [categoriesData]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -149,9 +182,9 @@ export default function NewServicePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Adaugă Serviciu Nou</h1>
+          <h1 className="text-3xl font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground">
-            Creează un serviciu - prestatorii își vor seta propriile tarife
+            {pageSubtitle}
           </p>
         </div>
       </div>
@@ -168,30 +201,30 @@ export default function NewServicePage() {
           {/* Informații de bază */}
           <Card>
             <CardHeader>
-              <CardTitle>Informații de Bază</CardTitle>
+              <CardTitle>{infoTitle}</CardTitle>
               <CardDescription>
-                Detaliile principale ale serviciului
+                {infoDescription}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="title">Titlu Serviciu *</Label>
+                <Label htmlFor="title">{titleLabel}</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="ex: Dezvoltare Website Modern cu React"
+                  placeholder={titlePlaceholder}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="slug">Slug (URL) *</Label>
+                <Label htmlFor="slug">{slugLabel}</Label>
                 <TextField
                     required
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    placeholder="ex: creare-aplicatie"
+                    placeholder={slugPlaceholder}
                     slotProps={{
                       input: {
                         startAdornment: selectedCategorySlug ? (
@@ -204,35 +237,35 @@ export default function NewServicePage() {
                     fullWidth
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Se generează automat din nume. Folosit în URL-uri.
+                  {slugHelp}
                 </p>
               </div>
 
               <div>
-                <Label htmlFor="description">Descriere *</Label>
+                <Label htmlFor="description">{descriptionLabel}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Descrie serviciul în detaliu..."
+                  placeholder={descriptionPlaceholder}
                   rows={4}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="requirements">Cerințe și Specificații</Label>
+                <Label htmlFor="requirements">{requirementsLabel}</Label>
                 <Textarea
                   id="requirements"
                   value={formData.requirements}
                   onChange={(e) => setFormData({...formData, requirements: e.target.value})}
-                  placeholder="Ce informații ai nevoie de la client..."
+                  placeholder={requirementsPlaceholder}
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label htmlFor="category_id">Categorie *</Label>
+                <Label htmlFor="category_id">{categoryLabel}</Label>
                 <Select
                     value={String(formData.category_id)}
                     onValueChange={(value) => {
@@ -241,7 +274,7 @@ export default function NewServicePage() {
                     }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selectează categoria" />
+                    <SelectValue placeholder={categoryPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {categoryOptions.map((category: any) => (
@@ -261,19 +294,19 @@ export default function NewServicePage() {
           {/* Skills și Tags */}
           <Card>
             <CardHeader>
-              <CardTitle>Skills și Tags</CardTitle>
+              <CardTitle>{skillsTagsTitle}</CardTitle>
               <CardDescription>
-                Definește competențele necesare și cuvintele cheie
+                {skillsTagsDescription}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label>Skills Necesare</Label>
+                <Label>{skillsLabel}</Label>
                 <div className="flex space-x-2 mb-3">
                   <Input
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="ex: React, Node.js"
+                    placeholder={skillsPlaceholder}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -302,12 +335,12 @@ export default function NewServicePage() {
               </div>
 
               <div>
-                <Label>Tags</Label>
+                <Label>{tagsLabel}</Label>
                 <div className="flex space-x-2 mb-3">
                   <Input
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="ex: website, modern, responsive"
+                    placeholder={tagsPlaceholder}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -346,12 +379,10 @@ export default function NewServicePage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    Tarife Flexibile
+                    {pricingNoteTitle}
                   </h3>
                   <p className="text-blue-800 dark:text-blue-200 text-sm">
-                    Prestatorii își vor seta propriile tarife pentru acest serviciu.
-                    Ei pot alege între preț fix, tarif pe oră, pe zi, sau preț negociabil,
-                    în funcție de natura proiectului și preferințele lor.
+                    {pricingNoteDescription}
                   </p>
                 </div>
               </div>
@@ -364,18 +395,18 @@ export default function NewServicePage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Se creează...
+                  {creatingLabel}
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Creează Serviciul
+                  {createServiceLabel}
                 </>
               )}
             </Button>
             <Link href="/admin/services">
               <Button type="button" variant="outline">
-                Anulează
+                {cancelLabel}
               </Button>
             </Link>
           </div>
