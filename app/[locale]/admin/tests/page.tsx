@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,9 @@ import {
 } from 'lucide-react';
 import { useAdminTests } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import { usePathname } from 'next/navigation';
+import { Locale } from '@/types/locale';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 export default function AdminTestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,11 +38,48 @@ export default function AdminTestsPage() {
   const [levelFilter, setLevelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+  const manageTitle = useAsyncTranslation(locale, 'admin.tests.manage_title');
+  const manageSubtitle = useAsyncTranslation(locale, 'admin.tests.manage_subtitle');
+  const addTest = useAsyncTranslation(locale, 'admin.tests.add_test');
+  const searchPlaceholder = useAsyncTranslation(locale, 'admin.tests.search_placeholder');
+  const levelFilterPlaceholder = useAsyncTranslation(locale, 'admin.tests.level_filter_placeholder');
+  const statusFilterPlaceholder = useAsyncTranslation(locale, 'admin.tests.status_filter_placeholder');
+  const levelAll = useAsyncTranslation(locale, 'admin.tests.levels.all');
+  const levelJunior = useAsyncTranslation(locale, 'admin.tests.levels.JUNIOR');
+  const levelMediu = useAsyncTranslation(locale, 'admin.tests.levels.MEDIU');
+  const levelSenior = useAsyncTranslation(locale, 'admin.tests.levels.SENIOR');
+  const levelExpert = useAsyncTranslation(locale, 'admin.tests.levels.EXPERT');
+  const statusAll = useAsyncTranslation(locale, 'admin.tests.statuses.all');
+  const statusActive = useAsyncTranslation(locale, 'admin.tests.statuses.ACTIVE');
+  const statusInactive = useAsyncTranslation(locale, 'admin.tests.statuses.INACTIVE');
+  const statusDraft = useAsyncTranslation(locale, 'admin.tests.statuses.DRAFT');
+  const listTitle = useAsyncTranslation(locale, 'admin.tests.list_title');
+  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.tests.list_description');
+  const questionCountTemplate = useAsyncTranslation(locale, 'admin.tests.question_count');
+  const minuteSuffix = useAsyncTranslation(locale, 'admin.tests.minute_suffix');
+  const passingScoreTemplate = useAsyncTranslation(locale, 'admin.tests.passing_score');
+  const categoryPrefix = useAsyncTranslation(locale, 'admin.tests.category_prefix');
+  const createdPrefix = useAsyncTranslation(locale, 'admin.tests.created_prefix');
+  const resultsTemplate = useAsyncTranslation(locale, 'admin.tests.results_count');
+  const viewDetails = useAsyncTranslation(locale, 'admin.tests.view_details');
+  const editLabel = useAsyncTranslation(locale, 'admin.tests.edit');
+  const statisticsLabel = useAsyncTranslation(locale, 'admin.tests.statistics');
+  const deactivateLabel = useAsyncTranslation(locale, 'admin.tests.deactivate');
+  const activateLabel = useAsyncTranslation(locale, 'admin.tests.activate');
+  const deleteLabel = useAsyncTranslation(locale, 'admin.tests.delete');
+  const confirmDeleteText = useAsyncTranslation(locale, 'admin.tests.confirm_delete');
+  const errorPrefix = useAsyncTranslation(locale, 'admin.tests.error_prefix');
+  const noTestsTitle = useAsyncTranslation(locale, 'admin.tests.no_tests_title');
+  const noTestsDescription = useAsyncTranslation(locale, 'admin.tests.no_tests_description');
+  const addFirstTest = useAsyncTranslation(locale, 'admin.tests.add_first_test');
 
   const handleTestAction = async (testId: string, action: string) => {
     try {
       if (action === 'delete') {
-        if (confirm('Ești sigur că vrei să ștergi acest test?')) {
+        if (confirm(confirmDeleteText)) {
           await apiClient.deleteTest(testId);
           refetchTests();
         }
@@ -51,44 +91,44 @@ export default function AdminTestsPage() {
         refetchTests();
       }
     } catch (error: any) {
-      alert('Eroare: ' + error.message);
+      alert(errorPrefix + error.message);
     }
   };
 
-  const filteredTests = (testsData?.tests || []).filter((test: any) => {
-    const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         test.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         test.service?.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesService = serviceFilter === 'all' || test.serviceId === serviceFilter;
-    const matchesLevel = levelFilter === 'all' || test.level === levelFilter;
-    const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
-    return matchesSearch && matchesService && matchesLevel && matchesStatus;
-  });
+  const filteredTests = useMemo(() => {
+    return (testsData?.tests || []).filter((test: any) => {
+      const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        test.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        test.service?.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesService = serviceFilter === 'all' || test.serviceId === serviceFilter;
+      const matchesLevel = levelFilter === 'all' || test.level === levelFilter;
+      const matchesStatus = statusFilter === 'all' || test.status === statusFilter;
+      return matchesSearch && matchesService && matchesLevel && matchesStatus;
+    });
+  }, [testsData?.tests, searchTerm, serviceFilter, levelFilter, statusFilter]);
+
+  const statusBadgeMap = useMemo(() => ({
+    ACTIVE: <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{statusActive}</Badge>,
+    INACTIVE: <Badge className="bg-gray-100 text-gray-800"><XCircle className="w-3 h-3 mr-1" />{statusInactive}</Badge>,
+    DRAFT: <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="w-3 h-3 mr-1" />{statusDraft}</Badge>,
+  }), [statusActive, statusInactive, statusDraft]);
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Activ</Badge>;
-      case 'INACTIVE':
-        return <Badge className="bg-gray-100 text-gray-800"><XCircle className="w-3 h-3 mr-1" />Inactiv</Badge>;
-      case 'DRAFT':
-        return <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="w-3 h-3 mr-1" />Draft</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    return statusBadgeMap[status as keyof typeof statusBadgeMap] || <Badge variant="secondary">{status}</Badge>;
   };
 
   type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
 
-  const getLevelBadge = (level: Level) => {
-    const colors: Record<Level, string> = {
-      JUNIOR: 'bg-green-100 text-green-800',
-      MEDIU: 'bg-blue-100 text-blue-800',
-      SENIOR: 'bg-purple-100 text-purple-800',
-      EXPERT: 'bg-orange-100 text-orange-800',
-    };
+  const levelBadgeMap = useMemo(() => ({
+    JUNIOR: { label: levelJunior, color: 'bg-green-100 text-green-800' },
+    MEDIU: { label: levelMediu, color: 'bg-blue-100 text-blue-800' },
+    SENIOR: { label: levelSenior, color: 'bg-purple-100 text-purple-800' },
+    EXPERT: { label: levelExpert, color: 'bg-orange-100 text-orange-800' },
+  }), [levelJunior, levelMediu, levelSenior, levelExpert]);
 
-    return <Badge className={colors[level] || 'bg-gray-100 text-gray-800'}>{level}</Badge>;
+  const getLevelBadge = (level: Level) => {
+    const badge = levelBadgeMap[level];
+    return <Badge className={badge?.color || 'bg-gray-100 text-gray-800'}>{badge?.label || level}</Badge>;
   };
 
   return (
@@ -102,16 +142,16 @@ export default function AdminTestsPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Gestionare Teste</h1>
+            <h1 className="text-3xl font-bold">{manageTitle}</h1>
             <p className="text-muted-foreground">
-              Administrează testele de competență pentru servicii
+              {manageSubtitle}
             </p>
           </div>
         </div>
         <Link href="/admin/tests/new">
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Adaugă Test
+            {addTest}
           </Button>
         </Link>
       </div>
@@ -124,7 +164,7 @@ export default function AdminTestsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Caută teste după titlu, descriere sau serviciu..."
+                  placeholder={searchPlaceholder}
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -133,26 +173,26 @@ export default function AdminTestsPage() {
             </div>
             <Select value={levelFilter} onValueChange={setLevelFilter}>
               <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filtru nivel" />
+                <SelectValue placeholder={levelFilterPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toate nivelurile</SelectItem>
-                <SelectItem value="JUNIOR">Junior</SelectItem>
-                <SelectItem value="MEDIU">Mediu</SelectItem>
-                <SelectItem value="SENIOR">Senior</SelectItem>
-                <SelectItem value="EXPERT">Expert</SelectItem>
+                <SelectItem value="all">{levelAll}</SelectItem>
+                <SelectItem value="JUNIOR">{levelJunior}</SelectItem>
+                <SelectItem value="MEDIU">{levelMediu}</SelectItem>
+                <SelectItem value="SENIOR">{levelSenior}</SelectItem>
+                <SelectItem value="EXPERT">{levelExpert}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtru status" />
+                <SelectValue placeholder={statusFilterPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toate statusurile</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="all">{statusAll}</SelectItem>
+                <SelectItem value="ACTIVE">{statusActive}</SelectItem>
+                <SelectItem value="INACTIVE">{statusInactive}</SelectItem>
+                <SelectItem value="DRAFT">{statusDraft}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -164,10 +204,10 @@ export default function AdminTestsPage() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <BookOpen className="w-5 h-5" />
-            <span>Lista Teste</span>
+            <span>{listTitle}</span>
           </CardTitle>
           <CardDescription>
-            {filteredTests.length} teste găsite
+            {listDescriptionTemplate.replace('{count}', String(filteredTests.length))}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -197,23 +237,26 @@ export default function AdminTestsPage() {
                       </div>
                       <div className="flex items-center space-x-1">
                         <Target className="w-4 h-4 text-green-500" />
-                        <span>{test.totalQuestions} întrebări</span>
+                        <span>{questionCountTemplate.replace('{count}', String(test.totalQuestions))}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4 text-orange-500" />
-                        <span>{test.timeLimit} minute</span>
+                        <span>{`${test.timeLimit} ${minuteSuffix}`}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <BarChart3 className="w-4 h-4 text-purple-500" />
-                        <span>Nota de trecere: {test.passingScore}%</span>
+                        <span>{passingScoreTemplate.replace('{score}', String(test.passingScore))}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span>Categorie: {test.service?.category?.name}</span>
-                      <span>Creat: {new Date(test.createdAt).toLocaleDateString('ro-RO')}</span>
+                      <span>{categoryPrefix}{test.service?.category?.name}</span>
+                      <span>
+                        {createdPrefix}
+                        {new Date(test.createdAt).toLocaleDateString(locale)}
+                      </span>
                       {test.results && (
-                        <span>{test.results.length} rezultate</span>
+                        <span>{resultsTemplate.replace('{count}', String(test.results.length))}</span>
                       )}
                     </div>
                   </div>
@@ -228,30 +271,30 @@ export default function AdminTestsPage() {
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/tests/${test.id}`}>
                           <Eye className="w-4 h-4 mr-2" />
-                          Vezi Detalii
+                          {viewDetails}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/tests/${test.id}/edit`}>
                           <Edit className="w-4 h-4 mr-2" />
-                          Editează
+                          {editLabel}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/tests/${test.id}/statistics`}>
                           <BarChart3 className="w-4 h-4 mr-2" />
-                          Statistici
+                          {statisticsLabel}
                         </Link>
                       </DropdownMenuItem>
                       {test.status === 'ACTIVE' ? (
                         <DropdownMenuItem onClick={() => handleTestAction(test.id, 'deactivate')}>
                           <XCircle className="w-4 h-4 mr-2" />
-                          Dezactivează
+                          {deactivateLabel}
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem onClick={() => handleTestAction(test.id, 'activate')}>
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          Activează
+                          {activateLabel}
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -259,7 +302,7 @@ export default function AdminTestsPage() {
                         className="text-red-600"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        Șterge
+                        {deleteLabel}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -269,14 +312,14 @@ export default function AdminTestsPage() {
               {filteredTests.length === 0 && (
                 <div className="text-center py-12">
                   <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Nu s-au găsit teste</h3>
+                  <h3 className="text-lg font-medium mb-2">{noTestsTitle}</h3>
                   <p className="text-muted-foreground mb-4">
-                    Încearcă să modifici filtrele sau termenii de căutare
+                    {noTestsDescription}
                   </p>
                   <Link href="/admin/tests/new">
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
-                      Adaugă Primul Test
+                      {addFirstTest}
                     </Button>
                   </Link>
                 </div>

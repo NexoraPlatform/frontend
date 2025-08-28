@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 import parseJson from "parse-json";
 
 interface Question {
@@ -93,6 +95,10 @@ export default function EditTestClient({ id }: { id: string }) {
     const router = useRouter();
 
     const { data: testData, loading: testLoading, error: testError } = useTest(id);
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const pageTitle = useAsyncTranslation(locale, 'admin.tests.edit.title');
+    const pageSubtitle = useAsyncTranslation(locale, 'admin.tests.edit.subtitle');
 
     useEffect(() => {
         if (testData) {
@@ -354,9 +360,9 @@ export default function EditTestClient({ id }: { id: string }) {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-bold">Editează Test</h1>
+                    <h1 className="text-3xl font-bold">{pageTitle}</h1>
                     <p className="text-muted-foreground">
-                        Modifică detaliile și întrebările testului
+                        {pageSubtitle}
                     </p>
                 </div>
             </div>

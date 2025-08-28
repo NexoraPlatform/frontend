@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 type QuestionType =
     | 'SINGLE_CHOICE'
@@ -55,9 +57,55 @@ interface Question {
 
 export default function TestDetailsClient({ id }: { id: string; }) {
     const router = useRouter();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
     const { data: test, loading, error, refetch } = useTest(id);
     const [actionLoading, setActionLoading] = useState(false);
     const [actionError, setActionError] = useState('');
+
+    const confirmDeleteText = useAsyncTranslation(locale, 'admin.tests.confirm_delete');
+    const errorPrefix = useAsyncTranslation(locale, 'admin.tests.error_prefix');
+    const detailTitle = useAsyncTranslation(locale, 'admin.tests.detail.test_details');
+    const generalInfo = useAsyncTranslation(locale, 'admin.tests.detail.general_info');
+    const serviceLabel = useAsyncTranslation(locale, 'admin.tests.detail.service_label');
+    const categoryLabel = useAsyncTranslation(locale, 'admin.tests.detail.category_label');
+    const levelLabel = useAsyncTranslation(locale, 'admin.tests.detail.level_label');
+    const statusLabel = useAsyncTranslation(locale, 'admin.tests.detail.status_label');
+    const createdLabel = useAsyncTranslation(locale, 'admin.tests.detail.created_label');
+    const testConfig = useAsyncTranslation(locale, 'admin.tests.detail.test_config');
+    const timeLimitLabel = useAsyncTranslation(locale, 'admin.tests.detail.time_limit_label');
+    const passingScoreLabel = useAsyncTranslation(locale, 'admin.tests.detail.passing_score_label');
+    const questionsLabel = useAsyncTranslation(locale, 'admin.tests.detail.questions_label');
+    const totalPointsLabel = useAsyncTranslation(locale, 'admin.tests.detail.total_points_label');
+    const descriptionLabel = useAsyncTranslation(locale, 'admin.tests.detail.description');
+    const questionsSectionTemplate = useAsyncTranslation(locale, 'admin.tests.detail.questions_section');
+    const questionLabelTemplate = useAsyncTranslation(locale, 'admin.tests.detail.question_label');
+    const codeTemplateLabel = useAsyncTranslation(locale, 'admin.tests.detail.code_template');
+    const expectedOutputLabel = useAsyncTranslation(locale, 'admin.tests.detail.expected_output');
+    const testCasesLabel = useAsyncTranslation(locale, 'admin.tests.detail.test_cases');
+    const inputLabel = useAsyncTranslation(locale, 'admin.tests.detail.input_label');
+    const expectedOutputCaseLabel = useAsyncTranslation(locale, 'admin.tests.detail.expected_output_label');
+    const explanationLabel = useAsyncTranslation(locale, 'admin.tests.detail.explanation');
+    const editTestLabel = useAsyncTranslation(locale, 'admin.tests.detail.edit_test');
+    const viewStatisticsLabel = useAsyncTranslation(locale, 'admin.tests.detail.view_statistics');
+    const previewLabel = useAsyncTranslation(locale, 'admin.tests.detail.preview');
+    const deleteTestLabel = useAsyncTranslation(locale, 'admin.tests.detail.delete_test');
+    const deactivateLabel = useAsyncTranslation(locale, 'admin.tests.detail.deactivate');
+    const activateLabel = useAsyncTranslation(locale, 'admin.tests.detail.activate');
+    const questionTypeSingle = useAsyncTranslation(locale, 'admin.tests.question_types.SINGLE_CHOICE');
+    const questionTypeMultiple = useAsyncTranslation(locale, 'admin.tests.question_types.MULTIPLE_CHOICE');
+    const questionTypeCode = useAsyncTranslation(locale, 'admin.tests.question_types.CODE_WRITING');
+    const questionTypeText = useAsyncTranslation(locale, 'admin.tests.question_types.TEXT_INPUT');
+    const pointsTemplate = useAsyncTranslation(locale, 'admin.tests.points_template');
+    const minuteSuffix = useAsyncTranslation(locale, 'admin.tests.minute_suffix');
+    const correctAnswerLabel = useAsyncTranslation(locale, 'admin.tests.statistics.correct_answer');
+    const statusActive = useAsyncTranslation(locale, 'admin.tests.statuses.ACTIVE');
+    const statusInactive = useAsyncTranslation(locale, 'admin.tests.statuses.INACTIVE');
+    const statusDraft = useAsyncTranslation(locale, 'admin.tests.statuses.DRAFT');
+    const levelJunior = useAsyncTranslation(locale, 'admin.tests.levels.JUNIOR');
+    const levelMediu = useAsyncTranslation(locale, 'admin.tests.levels.MEDIU');
+    const levelSenior = useAsyncTranslation(locale, 'admin.tests.levels.SENIOR');
+    const levelExpert = useAsyncTranslation(locale, 'admin.tests.levels.EXPERT');
 
     const handleAction = async (action: string) => {
         setActionLoading(true);
@@ -65,7 +113,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
 
         try {
             if (action === 'delete') {
-                if (confirm('Ești sigur că vrei să ștergi acest test?')) {
+                if (confirm(confirmDeleteText)) {
                     await apiClient.deleteTest(id);
                     router.push('/admin/tests');
                 }
@@ -77,7 +125,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                 refetch();
             }
         } catch (error: any) {
-            setActionError(error.message || 'A apărut o eroare');
+            setActionError(error.message || errorPrefix);
         } finally {
             setActionLoading(false);
         }
@@ -93,39 +141,39 @@ export default function TestDetailsClient({ id }: { id: string; }) {
         }
     };
 
+    const questionTypeLabelMap = useMemo(() => ({
+        SINGLE_CHOICE: questionTypeSingle,
+        MULTIPLE_CHOICE: questionTypeMultiple,
+        CODE_WRITING: questionTypeCode,
+        TEXT_INPUT: questionTypeText,
+    }), [questionTypeSingle, questionTypeMultiple, questionTypeCode, questionTypeText]);
+
     const getQuestionTypeLabel = (type: string) => {
-        switch (type) {
-            case 'SINGLE_CHOICE': return 'Alegere Unică';
-            case 'MULTIPLE_CHOICE': return 'Alegere Multiplă';
-            case 'CODE_WRITING': return 'Scriere Cod';
-            case 'TEXT_INPUT': return 'Răspuns Text';
-            default: return type;
-        }
+        return questionTypeLabelMap[type as keyof typeof questionTypeLabelMap] || type;
     };
+
+    const statusBadgeMap = useMemo(() => ({
+        ACTIVE: <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{statusActive}</Badge>,
+        INACTIVE: <Badge className="bg-gray-100 text-gray-800"><XCircle className="w-3 h-3 mr-1" />{statusInactive}</Badge>,
+        DRAFT: <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="w-3 h-3 mr-1" />{statusDraft}</Badge>,
+    }), [statusActive, statusInactive, statusDraft]);
 
     const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'ACTIVE':
-                return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Activ</Badge>;
-            case 'INACTIVE':
-                return <Badge className="bg-gray-100 text-gray-800"><XCircle className="w-3 h-3 mr-1" />Inactiv</Badge>;
-            case 'DRAFT':
-                return <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="w-3 h-3 mr-1" />Draft</Badge>;
-            default:
-                return <Badge variant="secondary">{status}</Badge>;
-        }
+        return statusBadgeMap[status as keyof typeof statusBadgeMap] || <Badge variant="secondary">{status}</Badge>;
     };
+
     type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
 
-    const getLevelBadge = (level: Level) => {
-        const colors: Record<Level, string> = {
-            JUNIOR: 'bg-green-100 text-green-800',
-            MEDIU: 'bg-blue-100 text-blue-800',
-            SENIOR: 'bg-purple-100 text-purple-800',
-            EXPERT: 'bg-orange-100 text-orange-800',
-        };
+    const levelBadgeMap = useMemo(() => ({
+        JUNIOR: { label: levelJunior, color: 'bg-green-100 text-green-800' },
+        MEDIU: { label: levelMediu, color: 'bg-blue-100 text-blue-800' },
+        SENIOR: { label: levelSenior, color: 'bg-purple-100 text-purple-800' },
+        EXPERT: { label: levelExpert, color: 'bg-orange-100 text-orange-800' },
+    }), [levelJunior, levelMediu, levelSenior, levelExpert]);
 
-        return <Badge className={colors[level]}>{level}</Badge>;
+    const getLevelBadge = (level: Level) => {
+        const badge = levelBadgeMap[level];
+        return <Badge className={badge?.color || 'bg-gray-100 text-gray-800'}>{badge?.label || level}</Badge>;
     };
 
     if (loading) {
@@ -183,64 +231,64 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <BookOpen className="w-5 h-5" />
-                        <span>Detalii Test</span>
+                        <span>{detailTitle}</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <h3 className="font-semibold text-lg mb-4">Informații Generale</h3>
+                            <h3 className="font-semibold text-lg mb-4">{generalInfo}</h3>
                             <div className="space-y-3">
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Serviciu:</div>
+                                    <div className="text-muted-foreground">{serviceLabel}</div>
                                     <div className="font-medium">{test.service?.title}</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Categorie:</div>
+                                    <div className="text-muted-foreground">{categoryLabel}</div>
                                     <div className="font-medium">{test.service?.category?.name}</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Nivel:</div>
+                                    <div className="text-muted-foreground">{levelLabel}</div>
                                     <div>{getLevelBadge(test.level)}</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Status:</div>
+                                    <div className="text-muted-foreground">{statusLabel}</div>
                                     <div>{getStatusBadge(test.status)}</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Creat la:</div>
-                                    <div>{new Date(test.created_at).toLocaleDateString('ro-RO')}</div>
+                                    <div className="text-muted-foreground">{createdLabel}</div>
+                                    <div>{new Date(test.created_at).toLocaleDateString(locale)}</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div>
-                            <h3 className="font-semibold text-lg mb-4">Configurație Test</h3>
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Timp Limită:</div>
-                                    <div className="font-medium">{test.timeLimit} minute</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Nota de Trecere:</div>
-                                    <div className="font-medium">{test.passingScore}%</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Număr Întrebări:</div>
-                                    <div className="font-medium">{test.totalQuestions}</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">Punctaj Total:</div>
-                                    <div className="font-medium">{test.questions.reduce((sum: number, q: { points: number }) => sum + q.points, 0)} puncte</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div>
+            <h3 className="font-semibold text-lg mb-4">{testConfig}</h3>
+            <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">{timeLimitLabel}</div>
+                    <div className="font-medium">{test.timeLimit} {minuteSuffix}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">{passingScoreLabel}</div>
+                    <div className="font-medium">{test.passingScore}%</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">{questionsLabel}</div>
+                    <div className="font-medium">{test.totalQuestions}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="text-muted-foreground">{totalPointsLabel}</div>
+                    <div className="font-medium">{pointsTemplate.replace('{count}', String(test.questions.reduce((sum: number, q: { points: number }) => sum + q.points, 0)))} </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <div className="mt-6 pt-6 border-t">
-                        <h3 className="font-semibold text-lg mb-2">Descriere</h3>
-                        <p className="text-muted-foreground">{test.description}</p>
-                    </div>
+    <div className="mt-6 pt-6 border-t">
+        <h3 className="font-semibold text-lg mb-2">{descriptionLabel}</h3>
+        <p className="text-muted-foreground">{test.description}</p>
+    </div>
                 </CardContent>
             </Card>
 
@@ -249,7 +297,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <Target className="w-5 h-5" />
-                        <span>Întrebări ({test.questions.length})</span>
+                        <span>{questionsSectionTemplate.replace('{count}', String(test.questions.length))}</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -266,11 +314,11 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                                 {getQuestionTypeLabel(question.type)}
                                             </Badge>
                                             <Badge variant="secondary">
-                                                {question.points} puncte
+                                                {pointsTemplate.replace('{count}', String(question.points))}
                                             </Badge>
                                         </div>
                                         <div className="text-sm text-muted-foreground">
-                                            Întrebarea {index + 1}
+                                            {questionLabelTemplate.replace('{number}', String(index + 1))}
                                         </div>
                                     </div>
 
@@ -317,7 +365,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                         <div className="space-y-3 mb-4">
                                             {question.codeTemplate && (
                                                 <div>
-                                                    <div className="text-sm font-medium mb-1">Template Cod:</div>
+                                                    <div className="text-sm font-medium mb-1">{codeTemplateLabel}</div>
                                                     <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto">
                             {question.codeTemplate}
                           </pre>
@@ -326,7 +374,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
 
                                             {question.expectedOutput && (
                                                 <div>
-                                                    <div className="text-sm font-medium mb-1">Output Așteptat:</div>
+                                                    <div className="text-sm font-medium mb-1">{expectedOutputLabel}</div>
                                                     <div className="bg-muted p-3 rounded-lg text-sm">
                                                         {question.expectedOutput}
                                                     </div>
@@ -335,16 +383,16 @@ export default function TestDetailsClient({ id }: { id: string; }) {
 
                                             {question.testCases && question.testCases.length > 0 && (
                                                 <div>
-                                                    <div className="text-sm font-medium mb-1">Test Cases:</div>
+                                                    <div className="text-sm font-medium mb-1">{testCasesLabel}</div>
                                                     <div className="space-y-2">
                                                         {question.testCases.map((testCase, tcIndex) => (
                                                             <div key={tcIndex} className="bg-muted p-3 rounded-lg text-sm">
                                                                 <div className="grid grid-cols-2 gap-4">
                                                                     <div>
-                                                                        <strong>Input:</strong> {testCase.input}
+                                                                        <strong>{inputLabel}</strong> {testCase.input}
                                                                     </div>
                                                                     <div>
-                                                                        <strong>Output așteptat:</strong> {testCase.expectedOutput}
+                                                                        <strong>{expectedOutputCaseLabel}</strong> {testCase.expectedOutput}
                                                                     </div>
                                                                 </div>
                                                                 {testCase.description && (
@@ -363,7 +411,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                     {/* Text Input */}
                                     {question.type === 'TEXT_INPUT' && (
                                         <div className="mb-4">
-                                            <div className="text-sm font-medium mb-1">Răspuns Corect:</div>
+                                            <div className="text-sm font-medium mb-1">{correctAnswerLabel}</div>
                                             <div className="bg-muted p-3 rounded-lg text-sm">
                                                 {JSON.parse(question.correct_answers as string)}
                                             </div>
@@ -373,7 +421,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                     {/* Explanation */}
                                     {question.explanation && (
                                         <div>
-                                            <div className="text-sm font-medium mb-1">Explicație:</div>
+                                            <div className="text-sm font-medium mb-1">{explanationLabel}</div>
                                             <div className="bg-muted p-3 rounded-lg text-sm">
                                                 {question.explanation}
                                             </div>
@@ -391,14 +439,14 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                 <Link href={`/admin/tests/${id}/edit`}>
                     <Button>
                         <Edit className="w-4 h-4 mr-2" />
-                        Editează Test
+                        {editTestLabel}
                     </Button>
                 </Link>
 
                 <Link href={`/admin/tests/${id}/statistics`}>
                     <Button variant="outline">
                         <BarChart3 className="w-4 h-4 mr-2" />
-                        Vezi Statistici
+                        {viewStatisticsLabel}
                     </Button>
                 </Link>
 
@@ -409,7 +457,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                         disabled={actionLoading}
                     >
                         <XCircle className="w-4 h-4 mr-2" />
-                        Dezactivează
+                        {deactivateLabel}
                     </Button>
                 ) : (
                     <Button
@@ -418,7 +466,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                         disabled={actionLoading}
                     >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Activează
+                        {activateLabel}
                     </Button>
                 )}
 
@@ -427,7 +475,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                     onClick={() => window.open(`/tests/preview/${id}`, '_blank')}
                 >
                     <PlayCircle className="w-4 h-4 mr-2" />
-                    Previzualizare
+                    {previewLabel}
                 </Button>
 
                 <Button
@@ -436,7 +484,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                     disabled={actionLoading}
                 >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Șterge Test
+                    {deleteTestLabel}
                 </Button>
             </div>
         </div>

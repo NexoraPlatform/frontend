@@ -381,5 +381,107 @@
       "marketing_label": "Marketing Emails",
       "marketing_desc": "Allow sending promotional emails"
     }
+  },
+  "tests": {
+    "manage_title": "Manage Tests",
+    "manage_subtitle": "Administer skill tests for services",
+    "add_test": "Add Test",
+    "search_placeholder": "Search tests by title, description or service...",
+    "level_filter_placeholder": "Level filter",
+    "status_filter_placeholder": "Status filter",
+    "levels": {
+      "all": "All levels",
+      "JUNIOR": "Junior",
+      "MEDIU": "Mid",
+      "SENIOR": "Senior",
+      "EXPERT": "Expert"
+    },
+    "statuses": {
+      "all": "All statuses",
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "DRAFT": "Draft"
+    },
+    "list_title": "Tests List",
+    "list_description": "{count} tests found",
+    "question_count": "{count} questions",
+    "minute_suffix": "minutes",
+    "passing_score": "Passing score: {score}%",
+    "category_prefix": "Category: ",
+    "created_prefix": "Created: ",
+    "results_count": "{count} results",
+    "points_template": "{count} points",
+    "question_types": {
+      "SINGLE_CHOICE": "Single Choice",
+      "MULTIPLE_CHOICE": "Multiple Choice",
+      "CODE_WRITING": "Code Writing",
+      "TEXT_INPUT": "Text Answer"
+    },
+    "view_details": "View Details",
+    "edit": "Edit",
+    "statistics": "Statistics",
+    "deactivate": "Deactivate",
+    "activate": "Activate",
+    "delete": "Delete",
+    "confirm_delete": "Are you sure you want to delete this test?",
+    "error_prefix": "Error: ",
+    "no_tests_title": "No tests found",
+    "no_tests_description": "Try adjusting the filters or search terms",
+    "add_first_test": "Add First Test",
+    "detail": {
+      "test_details": "Test Details",
+      "general_info": "General Information",
+      "service_label": "Service:",
+      "category_label": "Category:",
+      "level_label": "Level:",
+      "status_label": "Status:",
+      "created_label": "Created:",
+      "test_config": "Test Configuration",
+      "time_limit_label": "Time Limit:",
+      "passing_score_label": "Passing Score:",
+      "questions_label": "Number of Questions:",
+      "total_points_label": "Total Points:",
+      "description": "Description",
+      "questions_section": "Questions ({count})",
+      "question_label": "Question {number}",
+      "code_template": "Code Template:",
+      "expected_output": "Expected Output:",
+      "test_cases": "Test Cases:",
+      "input_label": "Input:",
+      "expected_output_label": "Expected Output:",
+      "explanation": "Explanation:",
+      "edit_test": "Edit Test",
+      "view_statistics": "View Statistics",
+      "preview": "Preview",
+      "delete_test": "Delete Test",
+      "deactivate": "Deactivate",
+      "activate": "Activate"
+    },
+    "statistics": {
+      "subtitle": "Detailed test performance analysis",
+      "title_suffix": "Statistics",
+      "user_label": "User",
+      "passed_label": "Test Passed",
+      "passed_yes": "Yes",
+      "passed_no": "No",
+      "score_label": "Score",
+      "time_spent_label": "Time Spent",
+      "question_stats_title": "Question Statistics",
+      "question_stats_description": "Candidate performance per question",
+      "question_label": "Question {number}",
+      "correct_answer": "Correct answer",
+      "user_answer": "User answer",
+      "answer_correct": "Correct",
+      "answer_incorrect": "Incorrect",
+      "error_loading": "Unable to load data"
+    },
+    "new": {
+      "title": "Add New Test",
+      "subtitle": "Create a new skill test"
+    },
+    "edit": {
+      "title": "Edit Test",
+      "subtitle": "Modify a skill test"
+    }
   }
 }
