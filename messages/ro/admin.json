@@ -483,5 +483,106 @@
       "title": "Editează Test",
       "subtitle": "Modifică un test de competență"
     }
+  },
+  "users": {
+    "manage_title": "Gestionare Utilizatori",
+    "manage_subtitle": "Administrează utilizatorii platformei",
+    "add_user": "Adaugă Utilizator",
+    "search_placeholder": "Caută utilizatori după nume sau email...",
+    "filter_role": "Filtru rol",
+    "filter_all": "Toți utilizatorii",
+    "filter_clients": "Clienți",
+    "filter_providers": "Prestatori",
+    "filter_admins": "Administratori",
+    "list_title": "Lista Utilizatori",
+    "list_description": "{count} utilizatori găsiți",
+    "statuses": {
+      "ACTIVE": "Activ",
+      "SUSPENDED": "Suspendat",
+      "PENDING_VERIFICATION": "În așteptare"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "PROVIDER": "Prestator",
+      "CLIENT": "Client",
+      "SUPERUSER": "SuperUser"
+    },
+    "actions": {
+      "modify_profile": "Modifică profil",
+      "verify": "Verifică",
+      "suspend": "Suspendă",
+      "activate": "Activează",
+      "delete": "Șterge",
+      "set_superuser": "Setează SuperUser",
+      "remove_superuser": "Scoate SuperUser",
+      "confirm_delete": "Ești sigur că vrei să ștergi acest utilizator?",
+      "error_prefix": "Eroare: "
+    },
+    "reviews_label": "{count} recenzii",
+    "registered_prefix": "Înregistrat: {date}",
+    "no_users_title": "Nu s-au găsit utilizatori",
+    "no_users_description": "Încearcă să modifici filtrele sau termenii de căutare",
+    "new": {
+      "title": "Adaugă Utilizator Nou",
+      "subtitle": "Creează un cont nou pentru un utilizator",
+      "info_title": "Informații Utilizator",
+      "info_description": "Completează toate câmpurile pentru a crea contul",
+      "error_occurred": "A apărut o eroare",
+      "first_name_label": "Prenume *",
+      "last_name_label": "Nume *",
+      "email_label": "Email *",
+      "password_label": "Parola *",
+      "password_hint": "Parola trebuie să aibă cel puțin 6 caractere",
+      "role_label": "Rol *",
+      "phone_label": "Telefon",
+      "phone_placeholder": "+40 123 456 789",
+      "creating": "Se creează...",
+      "create_user": "Creează Utilizator",
+      "cancel": "Anulează",
+      "roles": {
+        "CLIENT": "Client",
+        "PROVIDER": "Prestator",
+        "ADMIN": "Administrator"
+      }
+    },
+    "edit": {
+      "cannot_edit": "Nu poți edita acest utilizator.",
+      "passwords_not_match": "Parolele nu coincid.",
+      "error_saving": "Eroare la salvare.",
+      "fetch_user_error": "Eroare la preluarea datelor utilizatorului: ",
+      "fetch_permissions_error": "Eroare la preluarea permisiunilor: ",
+      "admin": {
+        "title": "Modifică administratorul {name}",
+        "subtitle": "Modifică contul pentru un administrator existent",
+        "info_title": "Informații Admin",
+        "info_description": "Completează toate câmpurile pentru a crea contul",
+        "first_name_label": "Prenume *",
+        "last_name_label": "Nume *",
+        "email_label": "Email *",
+        "role_label": "Rol *",
+        "phone_label": "Telefon *",
+        "change_password": "Modifică Parola",
+        "password_optional": "Lasă câmpurile goale pentru a nu modifica parola",
+        "password_label": "Parola",
+        "confirm_password_label": "Confirmă Parola",
+        "saving": "Se modifică...",
+        "save_admin": "Salvează Administrator",
+        "permissions": "Permisiuni",
+        "edit_permissions": "Editează Permisiunile",
+        "select_permissions": "Selectează Permisiunile",
+        "no_permission_selected": "Nicio permisiune selectată.",
+        "allow": "Permite",
+        "deny": "Respinge"
+      }
+    },
+    "detail_card": {
+      "provider_title": "Detalii Prestator",
+      "client_title": "Detalii Client",
+      "id": "ID:",
+      "name": "Nume:",
+      "email": "Email:",
+      "role": "Rol:",
+      "phone": "Telefon:"
+    }
   }
 }

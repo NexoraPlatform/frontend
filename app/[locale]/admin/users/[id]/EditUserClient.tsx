@@ -7,9 +7,19 @@ import ClientCard from "./ClientCard";
 import ProviderCard from "./ProviderCard";
 import {AnyFormData} from "@/types/user-forms";
 import {useAuth} from "@/contexts/auth-context";
+import { usePathname } from 'next/navigation';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function EditUserClient({ id }: { id: number }) {
     const { user } = useAuth();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const cannotEdit = useAsyncTranslation(locale, 'admin.users.edit.cannot_edit');
+    const passwordsNotMatch = useAsyncTranslation(locale, 'admin.users.edit.passwords_not_match');
+    const errorSaving = useAsyncTranslation(locale, 'admin.users.edit.error_saving');
+    const fetchUserErrorPrefix = useAsyncTranslation(locale, 'admin.users.edit.fetch_user_error');
+    const fetchPermErrorPrefix = useAsyncTranslation(locale, 'admin.users.edit.fetch_permissions_error');
     const [formData, setFormData] = useState<AnyFormData>({
         avatar: "",
         firstName: "",
@@ -36,7 +46,7 @@ export default function EditUserClient({ id }: { id: number }) {
                 const response = await apiClient.getUserById(id);
                 setFormData(response);
             } catch (error: any) {
-                alert("Error fetching user data: " + error.message);
+                alert(fetchUserErrorPrefix + error.message);
             }
         };
 
@@ -45,7 +55,7 @@ export default function EditUserClient({ id }: { id: number }) {
                 const response = await apiClient.getPermissions();
                 setPermissions(response);
             } catch (error: any) {
-                alert("Error fetching permissions: " + error.message);
+                alert(fetchPermErrorPrefix + error.message);
             }
         };
 
@@ -54,7 +64,7 @@ export default function EditUserClient({ id }: { id: number }) {
     }, [id]);
 
     if (!!user?.is_superuser) {
-        if (Number(user?.id) !== 1 && Number(id) === 1) return <div>Nu poți edita utilizatorul acest utilizator.</div>;
+        if (Number(user?.id) !== 1 && Number(id) === 1) return <div>{cannotEdit}</div>;
     }
 
     const submitAction = async (e: React.FormEvent) => {
@@ -64,7 +74,7 @@ export default function EditUserClient({ id }: { id: number }) {
 
         if (formData.password && formData.password.length > 0) {
             if (formData.password !== formData.confirm_password) {
-                setError("Parolele nu coincid.");
+                setError(passwordsNotMatch);
                 setLoading(false);
                 return;
             }
@@ -87,7 +97,7 @@ export default function EditUserClient({ id }: { id: number }) {
             const { firstName, lastName, email, phone, role, password, confirm_password } = formData;
 
             if (password && password.length > 0 && password !== confirm_password) {
-                setError("Parolele nu coincid.");
+                setError(passwordsNotMatch);
                 setLoading(false);
                 return;
             }
@@ -103,7 +113,7 @@ export default function EditUserClient({ id }: { id: number }) {
             // Optional: clear password fields locally after success
             setFormData((prev: any) => ({ ...prev, password: "", confirm_password: "" }));
         } catch (e: any) {
-            setError(e?.message ?? "Eroare la salvare.");
+            setError(e?.message ?? errorSaving);
         } finally {
             setLoading(false);
         }
