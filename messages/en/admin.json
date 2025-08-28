@@ -1,4 +1,110 @@
 {
+  "loading": "Loading...",
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "subtitle": "Manage the Nexora platform with flexible rates and competency tests",
+    "stats": {
+      "users": "Registered Users",
+      "services": "Active Services",
+      "revenue": "Total Revenue",
+      "projects": "Processed Projects",
+      "change_template": "{percent}% this month"
+    },
+    "quick_actions": {
+      "title": "Quick Actions",
+      "description": "Common actions for platform administration",
+      "add_user": {
+        "title": "Add User",
+        "description": "Create a new user account"
+      },
+      "add_category": {
+        "title": "Add Category",
+        "description": "Create a new service category"
+      },
+      "add_test": {
+        "title": "Add Test",
+        "description": "Create a new competency test"
+      },
+      "view_reports": {
+        "title": "View Reports",
+        "description": "Analyze platform performance"
+      }
+    },
+    "sections": {
+      "title": "Administration Sections",
+      "description": "Access all administration sections",
+      "users": {
+        "title": "User Management",
+        "description": "Administer platform users",
+        "stats_template": "{count} users"
+      },
+      "services": {
+        "title": "Service Management",
+        "description": "Administer custom priced services",
+        "stats_template": "{count} active services"
+      },
+      "categories": {
+        "title": "Category Management",
+        "description": "Organize service categories",
+        "stats": "Categories and subcategories"
+      },
+      "tests": {
+        "title": "Test Management",
+        "description": "Administer competency tests",
+        "stats": "Tests for all levels"
+      },
+      "calls": {
+        "title": "Call Management",
+        "description": "Administer verification calls",
+        "stats_template": "{count} scheduled calls"
+      },
+      "projects": {
+        "title": "Project Management",
+        "description": "Monitor projects and payments",
+        "stats_template": "{count} processed projects"
+      },
+      "disputes": {
+        "title": "Dispute Management",
+        "description": "Resolve user disputes",
+        "stats": "Disputes and complaints"
+      },
+      "roles": {
+        "title": "Role Management",
+        "description": "Create or edit roles",
+        "stats": "Roles and permissions"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "description": "Analyze platform performance",
+        "stats": "Detailed statistics"
+      }
+    },
+    "pending_template": "{count} pending",
+    "activity": {
+      "title": "Recent Activity",
+      "entries": {
+        "user": { "message": "New user registered", "time": "5 minutes ago" },
+        "order": { "message": "New order completed", "time": "12 minutes ago" },
+        "service": { "message": "New custom priced service", "time": "25 minutes ago" },
+        "test": { "message": "New competency test created", "time": "45 minutes ago" },
+        "dispute": { "message": "New dispute reported", "time": "1 hour ago" }
+      },
+      "view_all": "View All Activity"
+    },
+    "system_status": {
+      "title": "System Status",
+      "server_status": "Server Status",
+      "database": "Database",
+      "api_response": "API Response",
+      "provider_rates": "Provider Rates",
+      "competency_tests": "Competency Tests",
+      "online": "Online",
+      "healthy": "Healthy",
+      "fast": "Fast",
+      "flexible": "Flexible",
+      "active": "Active"
+    }
+  },
   "categories": {
     "manage_title": "Manage Categories",
     "manage_subtitle": "Administer service categories",
