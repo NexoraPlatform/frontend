@@ -20,11 +20,15 @@ export const translations = {
         navigation: () => import("@/locales/ro/navigation.json"),
         common: () => import("@/locales/ro/common.json"),
         homepage: () => import("@/locales/ro/homepage.json"),
+        errors: () => import("@/locales/ro/errors.json"),
+        admin: () => import("@/locales/ro/admin.json"),
     },
     en: {
         navigation: () => import("@/locales/en/navigation.json"),
         common: () => import("@/locales/en/common.json"),
         homepage: () => import("@/locales/en/homepage.json"),
+        errors: () => import("@/locales/en/errors.json"),
+        admin: () => import("@/locales/en/admin.json"),
     },
 };
 

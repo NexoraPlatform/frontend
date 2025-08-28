@@ -69,6 +69,14 @@ export default async function Home(props: HomePageProps) {
         exploreLabel,
         exploreServicesInCategory,
 
+        // accessibility labels
+        mainContentLabel,
+        serviceCategoriesListLabel,
+        categoryLabel,
+        nexoraBenefitsListLabel,
+        benefitLabel,
+        statisticLabel,
+
         // FEATURES cards
         securePlatform,
         securePlatformDescription,
@@ -99,6 +107,13 @@ export default async function Home(props: HomePageProps) {
         t(locale, "common.growth"),
         t(locale, "common.explore"),
         t(locale, "homepage.explore_services_in_category"),
+
+        t(locale, "common.main_content"),
+        t(locale, "common.service_categories_list"),
+        t(locale, "common.category_label"),
+        t(locale, "common.nexora_benefits_list"),
+        t(locale, "common.benefit_label"),
+        t(locale, "common.statistic_label"),
 
         t(locale, "homepage.why_nexora.secure_platform"),
         t(locale, "homepage.why_nexora.secure_platform_description"),
@@ -171,7 +186,7 @@ export default async function Home(props: HomePageProps) {
         <div className="bg-background font-sans">
             <Header />
 
-            <main role="main" aria-label="Conținut principal" id="main-content">
+            <main role="main" aria-label={mainContentLabel} id="main-content">
                 <HeroSectionStatic locale={locale} />
 
                 {/* CATEGORIES */}
@@ -198,14 +213,14 @@ export default async function Home(props: HomePageProps) {
                             </p>
                         </div>
 
-                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista categorii de servicii">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label={serviceCategoriesListLabel}>
                             {CATEGORIES.map((category) => (
                                 <Card
                                     key={category.title}
                                     className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm will-change-transform"
                                     role="listitem"
                                     tabIndex={0}
-                                    aria-label={`Categorie ${category.title}: ${category.description}`}
+                                    aria-label={`${categoryLabel} ${category.title}: ${category.description}`}
                                 >
                                     <div className={`h-3 bg-gradient-to-r ${category.color}`} />
 
@@ -282,16 +297,16 @@ export default async function Home(props: HomePageProps) {
                             <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">{whySubtitle}</p>
                         </div>
 
-                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label="Lista beneficii Nexora">
+                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label={nexoraBenefitsListLabel}>
                             {FEATURES.map((feature, i) => (
-                                <div key={i} className="text-center group relative" role="listitem" tabIndex={0} aria-label={`Beneficiu ${feature.title}: ${feature.description}`}>
+                                <div key={i} className="text-center group relative" role="listitem" tabIndex={0} aria-label={`${benefitLabel} ${feature.title}: ${feature.description}`}>
                                     <div className="relative mb-8">
                                         <div className={`w-28 h-28 mx-auto bg-gradient-to-br ${feature.gradient} rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-2xl relative overflow-hidden`} aria-hidden="true">
                                             {feature.icon && <feature.icon className="w-14 h-14 text-white relative z-10" />}
                                             <div className="absolute inset-0 bg-white/20" />
                                             <div className="absolute -inset-1 bg-gradient-to-r from-white/20 to-transparent rounded-3xl blur" />
                                         </div>
-                                        <div className="absolute -top-2 -right-2 bg-white dark:bg-gray-900 rounded-full px-3 py-1 text-xs font-bold text-blue-600 shadow-lg border-2 border-blue-200 dark:border-blue-800" aria-label={`Statistică: ${feature.stats}`}>
+                                        <div className="absolute -top-2 -right-2 bg-white dark:bg-gray-900 rounded-full px-3 py-1 text-xs font-bold text-blue-600 shadow-lg border-2 border-blue-200 dark:border-blue-800" aria-label={`${statisticLabel}: ${feature.stats}`}>
                                             {feature.stats}
                                         </div>
                                     </div>

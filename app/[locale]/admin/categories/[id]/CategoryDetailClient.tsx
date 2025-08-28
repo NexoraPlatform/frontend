@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {useRouter} from 'next/navigation';
+import {useRouter, usePathname} from 'next/navigation';
 import Link from 'next/link';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -14,6 +14,8 @@ import {AlertCircle, ArrowLeft, FolderEdit, Loader2} from 'lucide-react';
 import {useAdminCategories} from '@/hooks/use-api';
 import {apiClient} from '@/lib/api';
 import {IconSearchDropdown} from "@/components/IconSearchDropdown";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function CategoryDetailPage({ id }: { id: string }) {
     const [formData, setFormData] = useState({
@@ -27,8 +29,33 @@ export default function CategoryDetailPage({ id }: { id: string }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
     const { data: categoriesData } = useAdminCategories();
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const modifyTitle = useAsyncTranslation(locale, 'admin.categories.modify_title');
+    const modifySubtitle = useAsyncTranslation(locale, 'admin.categories.modify_subtitle');
+    const infoTitle = useAsyncTranslation(locale, 'admin.categories.info_title');
+    const infoDescription = useAsyncTranslation(locale, 'admin.categories.info_description');
+    const errorOccurred = useAsyncTranslation(locale, 'admin.categories.error_occurred');
+    const nameLabel = useAsyncTranslation(locale, 'admin.categories.name_label');
+    const namePlaceholder = useAsyncTranslation(locale, 'admin.categories.name_placeholder');
+    const slugLabel = useAsyncTranslation(locale, 'admin.categories.slug_label');
+    const slugPlaceholder = useAsyncTranslation(locale, 'admin.categories.slug_placeholder');
+    const slugHelp = useAsyncTranslation(locale, 'admin.categories.slug_help');
+    const descriptionLabel = useAsyncTranslation(locale, 'admin.categories.description_label');
+    const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.categories.description_placeholder');
+    const iconLabel = useAsyncTranslation(locale, 'admin.categories.icon_label');
+    const sortOrderLabel = useAsyncTranslation(locale, 'admin.categories.sort_order_label');
+    const sortOrderPlaceholder = useAsyncTranslation(locale, 'admin.categories.sort_order_placeholder');
+    const parentCategoryLabel = useAsyncTranslation(locale, 'admin.categories.parent_category_label');
+    const parentCategoryPlaceholder = useAsyncTranslation(locale, 'admin.categories.parent_category_placeholder');
+    const noParent = useAsyncTranslation(locale, 'admin.categories.no_parent');
+    const noParentHelp = useAsyncTranslation(locale, 'admin.categories.no_parent_help');
+    const modifyButton = useAsyncTranslation(locale, 'admin.categories.modify_button');
+    const modifyingLabel = useAsyncTranslation(locale, 'admin.categories.modifying');
+    const cancelLabel = useAsyncTranslation(locale, 'admin.categories.cancel');
 
     const handleSelect = (iconName: string) => {
         setFormData(prev => ({ ...prev, icon: iconName }));
@@ -48,7 +75,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                     sortOrder: response.sortOrder || 0
                 });
             } catch (err) {
-                console.error('Eroare la încărcarea categoriei:', err);
+                console.error(errorOccurred, err);
             }
         };
 
@@ -84,18 +111,18 @@ export default function CategoryDetailPage({ id }: { id: string }) {
             await apiClient.updateCategory(id, {
                 ...formData,
                 slug,
-                parentId: formData.parentId === 'none' ? undefined : formData.parentId, // Convertim 'none' înapoi la undefined
+                parentId: formData.parentId === 'none' ? undefined : formData.parentId, // Convert 'none' back to undefined
                 sortOrder: formData.sortOrder || 0
             });
             router.push('/admin/categories');
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare');
+            setError(error.message || errorOccurred);
         } finally {
             setLoading(false);
         }
     };
 
-    const parentCategories = (categoriesData?.categories || []).filter((cat: any) => !cat.parentId);
+    const parentCategories = useMemo(() => (categoriesData?.categories || []).filter((cat: any) => !cat.parentId), [categoriesData?.categories]);
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -106,9 +133,9 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-bold">Modifica Categorie</h1>
+                    <h1 className="text-3xl font-bold">{modifyTitle}</h1>
                     <p className="text-muted-foreground">
-                        Modifica o categoria pentru servicii
+                        {modifySubtitle}
                     </p>
                 </div>
             </div>
@@ -118,10 +145,10 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
                             <FolderEdit className="w-5 h-5" />
-                            <span>Informații Categorie</span>
+                            <span>{infoTitle}</span>
                         </CardTitle>
                         <CardDescription>
-                            Completează informațiile pentru noua categorie
+                            {infoDescription}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -134,66 +161,66 @@ export default function CategoryDetailPage({ id }: { id: string }) {
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <Label htmlFor="name">Nume Categorie *</Label>
+                                <Label htmlFor="name">{nameLabel}</Label>
                                 <Input
                                     id="name"
                                     value={formData.name}
                                     onChange={(e) => handleNameChange(e.target.value)}
-                                    placeholder="ex: Dezvoltare Web"
+                                    placeholder={namePlaceholder}
                                     required
                                 />
                             </div>
 
                             <div>
-                                <Label htmlFor="slug">Slug (URL) *</Label>
+                                <Label htmlFor="slug">{slugLabel}</Label>
                                 <Input
                                     id="slug"
                                     value={formData.slug}
                                     onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                                    placeholder="ex: dezvoltare-web"
+                                    placeholder={slugPlaceholder}
                                     required
                                 />
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Se generează automat din nume. Folosit în URL-uri.
+                                    {slugHelp}
                                 </p>
                             </div>
 
                             <div>
-                                <Label htmlFor="description">Descriere</Label>
+                                <Label htmlFor="description">{descriptionLabel}</Label>
                                 <Textarea
                                     id="description"
                                     value={formData.description}
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                    placeholder="Descrierea categoriei..."
+                                    placeholder={descriptionPlaceholder}
                                     rows={3}
                                 />
                             </div>
 
                             <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                 <div ref={containerRef}>
-                                    <Label htmlFor="icon">Iconiță</Label>
+                                    <Label htmlFor="icon">{iconLabel}</Label>
                                     <IconSearchDropdown collections="*" value={formData.icon} onChangeAction={handleSelect} />
                                 </div>
                                 <div>
-                                    <Label htmlFor="sortOrder">Ordine Sortare</Label>
+                                    <Label htmlFor="sortOrder">{sortOrderLabel}</Label>
                                     <Input
                                         id="sortOrder"
                                         type="number"
                                         value={formData.sortOrder}
                                         onChange={(e) => setFormData({...formData, sortOrder: parseInt(e.target.value) || 0})}
-                                        placeholder="0"
+                                        placeholder={sortOrderPlaceholder}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <Label htmlFor="parentId">Categorie Părinte</Label>
+                                <Label htmlFor="parentId">{parentCategoryLabel}</Label>
                                 <Select value={formData.parentId} onValueChange={(value) => setFormData({...formData, parentId: value})}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selectează categoria părinte (opțional)" />
+                                        <SelectValue placeholder={parentCategoryPlaceholder} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Fără părinte (categorie principală)</SelectItem>
+                                        <SelectItem value="none">{noParent}</SelectItem>
                                         {parentCategories
                                             .filter((category: any) => category.id !== id)
                                             .map((category: any) => (
@@ -204,7 +231,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                                     </SelectContent>
                                 </Select>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Lasă gol pentru o categorie principală
+                                    {noParentHelp}
                                 </p>
                             </div>
 
@@ -213,18 +240,18 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                                     {loading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Se modifica...
+                                            {modifyingLabel}
                                         </>
                                     ) : (
                                         <>
                                             <FolderEdit className="w-4 h-4 mr-2" />
-                                            Modifica Categoria
+                                            {modifyButton}
                                         </>
                                     )}
                                 </Button>
                                 <Link href="/admin/categories">
                                     <Button type="button" variant="outline">
-                                        Anulează
+                                        {cancelLabel}
                                     </Button>
                                 </Link>
                             </div>
