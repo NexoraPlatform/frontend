@@ -29,9 +29,10 @@ import apiClient from "@/lib/api";
 import {MuiIcon} from "@/components/MuiIcons";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
 import {DialogTitle} from "@mui/material";
-import {useRouter} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
 import {toast} from "sonner";
 import {loadStripe} from "@stripe/stripe-js";
+import {Locale} from "@/types/locale";
 
 interface ProjectRequestCardProps {
     project: any;
@@ -55,6 +56,8 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
     const elementsRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
 
     useEffect(() => {
         if (!loading && !user) {
@@ -204,9 +207,13 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+    if (!user) {
         return null;
     }
+
+    const servicesMap = new Map(
+        (project?.existing_services ?? []).map((s: any) => [s.id, s])
+    );
 
     return (
         <Card key={project.id} className="border-2">
@@ -214,11 +221,11 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                 <div className="flex items-start justify-between">
                     <div>
                         <CardTitle className="text-xl mb-2">
-                            {project.title}
+                            {project.title[locale]}
                             <span className="ms-2">{getStatusBadge(project.status)}</span>
                         </CardTitle>
                         <CardDescription className="line-clamp-2">
-                            {project.description}
+                            {project.description[locale]}
                         </CardDescription>
                         <div className="flex items-center space-x-4 mt-3 text-sm text-muted-foreground">
                             <div className="flex items-center space-x-1">
@@ -249,12 +256,8 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                             </div>
                         </div>
                     </div>
-                    {Array.from(
-                        new Map(
-                            project.existing_services.map((s:any) => [s.category.id, s.category])
-                        ).values()
-                    ).map((category: any) => (
-                        <Badge key={category.id} className="bg-blue-100 text-blue-800 inline-flex whitespace-nowrap me-1">
+                    {Array.from(servicesMap).map((category: any, index: number) => (
+                        <Badge key={index} className="bg-blue-100 text-blue-800 inline-flex whitespace-nowrap me-1">
                             {category.name}
                         </Badge>
                     ))}
@@ -431,7 +434,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                             <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-blue-100">Proiect:</span>
-                                    <span className="font-semibold">{project.title}</span>
+                                    <span className="font-semibold">{project.title[locale]}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm mt-2">
                                     <span className="text-blue-100">Valoare totală:</span>
