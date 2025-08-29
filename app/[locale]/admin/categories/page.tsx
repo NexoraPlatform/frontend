@@ -84,7 +84,7 @@ export default function AdminCategoriesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
-          <Link href="/admin">
+          <Link href={`/${locale}/admin`}>
             <Button variant="outline" size="icon">
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -96,7 +96,7 @@ export default function AdminCategoriesPage() {
             </p>
           </div>
         </div>
-        <Link href="/admin/categories/new">
+        <Link href={`/${locale}/admin/categories/new`}>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
             {addCategory}
@@ -137,7 +137,7 @@ export default function AdminCategoriesPage() {
                         </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="font-semibold text-lg">{category.name}</h3>
+                            <h3 className="font-semibold text-lg">{category.name[locale]}</h3>
                             <Badge variant="outline" className="text-xs">
                               {category.slug}
                             </Badge>
@@ -147,7 +147,7 @@ export default function AdminCategoriesPage() {
                           </div>
                           {category.description && (
                             <p className="text-sm text-muted-foreground mb-2">
-                              {category.description}
+                              {category.description[locale]}
                             </p>
                           )}
                           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
@@ -194,7 +194,7 @@ export default function AdminCategoriesPage() {
                               </div>
                               <div>
                                 <div className="flex items-center space-x-2 mb-1">
-                                  <h4 className="font-medium">{child.name}</h4>
+                                  <h4 className="font-medium">{child.name[locale]}</h4>
                                   <Badge variant="outline" className="text-xs">
                                     {child.slug}
                                   </Badge>
@@ -204,7 +204,7 @@ export default function AdminCategoriesPage() {
                                 </div>
                                 {child.description && (
                                   <p className="text-sm text-muted-foreground mb-1">
-                                    {child.description}
+                                    {child.description[locale]}
                                   </p>
                                 )}
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
@@ -251,7 +251,7 @@ export default function AdminCategoriesPage() {
                   <p className="text-muted-foreground mb-4">
                     {noCategoriesDescription}
                   </p>
-                  <Link href="/admin/categories/new">
+                  <Link href={`/${locale}/admin/categories/new`}>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
                       {addFirstCategory}

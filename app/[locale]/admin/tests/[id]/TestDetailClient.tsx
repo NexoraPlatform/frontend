@@ -209,7 +209,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                     <div>
                         <h1 className="text-3xl font-bold">{test.title}</h1>
                         <p className="text-muted-foreground">
-                            {test.service?.title} - {test.service?.category?.name}
+                            {test.service?.title} - {test.service?.category?.name?.[locale]}
                         </p>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="text-muted-foreground">{categoryLabel}</div>
-                                    <div className="font-medium">{test.service?.category?.name}</div>
+                                    <div className="font-medium">{test.service?.category?.name?.[locale]}</div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="text-muted-foreground">{levelLabel}</div>

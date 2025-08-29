@@ -391,7 +391,7 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => (
-          <Link key={index} href={stat.href}>
+          <Link key={index} href={`/${locale}${stat.href}`}>
             <Card className="border-2 hover:shadow-lg transition-all duration-300 hover:border-primary/20 cursor-pointer group">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -440,7 +440,7 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
-                  <Link key={index} href={action.href}>
+                  <Link key={index} href={`/${locale}${action.href}`}>
                     <Card className="border-2 hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
@@ -484,7 +484,7 @@ export default function AdminDashboard() {
                     )}
                     allPerms={section.permissions || []}
                   >
-                    <Link href={section.href}>
+                    <Link href={`/${locale}${section.href}`}>
                       <Card className="border hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">

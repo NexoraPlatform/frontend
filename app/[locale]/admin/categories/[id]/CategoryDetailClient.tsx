@@ -67,9 +67,9 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                 const response = await apiClient.getCategoryById(id);
 
                 setFormData({
-                    name: response.name || '',
-                    slug: response.slug || generateSlug(response.name || ''),
-                    description: response.description || '',
+                    name: response.name[locale] || '',
+                    slug: response.slug || generateSlug(response.name[locale] || ''),
+                    description: response.description[locale] || '',
                     icon: response.icon || '',
                     parentId: response.parent_id || 'none',
                     sortOrder: response.sortOrder || 0
@@ -225,7 +225,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
                                             .filter((category: any) => category.id !== id)
                                             .map((category: any) => (
                                                 <SelectItem key={category.id} value={String(category.id)}>
-                                                    {category.name}
+                                                    {category.name[locale]}
                                                 </SelectItem>
                                             ))}
                                     </SelectContent>

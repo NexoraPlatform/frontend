@@ -43,12 +43,6 @@ export default function AdminCard({
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
     const [selectedPermissions, setSelectedPermissions] = useState<PermissionState>({});
     const hasInitializedPermissions = useRef(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [imageSrc, setImageSrc] = useState<string | null>(null);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
-    const [showCrop, setShowCrop] = useState(false);
-    const [crop, setCrop] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(1);
     const pathname = usePathname();
     const locale = (pathname.split('/')[1] as Locale) || 'ro';
     const editAdminTitleTemplate = useAsyncTranslation(locale, 'admin.users.edit.admin.title');
@@ -162,6 +156,7 @@ export default function AdminCard({
             setFormDataAction((prev: any) => ({ ...prev, user_permissions: prevSelected }));
         }
     };
+//user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'admin')
 
     return (
         <div className="container mx-auto px-4 py-8">

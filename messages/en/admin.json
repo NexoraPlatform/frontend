@@ -51,7 +51,9 @@
       "tests": {
         "title": "Test Management",
         "description": "Administer competency tests",
-        "stats": "Tests for all levels"
+        "stats": "Tests for all levels",
+        "edit": "Edit",
+        "statistics": "Statistics"
       },
       "calls": {
         "title": "Call Management",
@@ -524,8 +526,6 @@
       "TEXT_INPUT": "Text Answer"
     },
     "view_details": "View Details",
-    "edit": "Edit",
-    "statistics": "Statistics",
     "deactivate": "Deactivate",
     "activate": "Activate",
     "delete": "Delete",

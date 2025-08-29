@@ -81,16 +81,23 @@ export default function AdminServicesPage() {
     }
   };
 
-  const filteredServices = useMemo(() => {
-    const services = servicesData?.services || [];
-    return services.filter((service: any) => {
-      const matchesSearch =
-        service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = serviceFilter === 'all' || service.status === serviceFilter;
-      return matchesSearch && matchesFilter;
-    });
-  }, [servicesData, searchTerm, serviceFilter]);
+    const filteredServices = useMemo(() => {
+        const services = servicesData?.services ?? [];
+
+        const q = (searchTerm ?? '').toString().trim().toLowerCase();
+        const statusFilterNorm = (serviceFilter ?? 'all').toString().toUpperCase();
+
+        return services.filter((service: any) => {
+            const name = (service?.name[locale] ?? '').toString().toLowerCase();
+            const desc = (service?.description[locale] ?? '').toString().toLowerCase();
+            const status = (service?.status ?? '').toString().toUpperCase();
+
+            const matchesSearch = !q || name.includes(q) || desc.includes(q);
+            const matchesFilter = statusFilterNorm === 'ALL' || status === statusFilterNorm;
+
+            return matchesSearch && matchesFilter;
+        });
+    }, [servicesData?.services, searchTerm, serviceFilter, locale]);
 
   const statusBadges = useMemo(
     () => ({
@@ -170,9 +177,11 @@ export default function AdminServicesPage() {
             <FileText className="w-5 h-5" />
             <span>{listTitle}</span>
           </CardTitle>
-          <CardDescription>
-            {listDescriptionTemplate.replace('{count}', String(filteredServices.length))}
-          </CardDescription>
+            <CardDescription>
+                {typeof listDescriptionTemplate === 'string'
+                    ? listDescriptionTemplate.replace('{count}', String(filteredServices.length))
+                    : ''}
+            </CardDescription>
         </CardHeader>
         <CardContent>
           {servicesLoading ? (
@@ -185,7 +194,7 @@ export default function AdminServicesPage() {
                 <div key={service.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="font-semibold text-lg">{service.name}</h3>
+                      <h3 className="font-semibold text-lg">{service.name[locale]}</h3>
                       {service.isFeatured && (
                         <Badge className="bg-yellow-100 text-yellow-800">
                           {recommendedLabel}
@@ -194,7 +203,7 @@ export default function AdminServicesPage() {
                     </div>
 
                     <p className="text-muted-foreground mb-3 line-clamp-2">
-                      {service.description}
+                      {service.description[locale]}
                     </p>
 
                     <div className="flex items-center space-x-4 text-sm mb-3">
@@ -202,7 +211,7 @@ export default function AdminServicesPage() {
                         {slugPrefix}{service.slug}
                       </span>
                       <span className="text-muted-foreground">
-                        {categoryPrefix}{service.category?.name}
+                        {categoryPrefix}{service.category?.name[locale]}
                       </span>
                     </div>
 

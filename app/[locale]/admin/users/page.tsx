@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
         user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = userFilter === 'all' || user.role === userFilter;
+      const matchesFilter = userFilter === 'all' || user?.roles?.some((r: any) => r.slug?.toLowerCase() === filterRole);
       return matchesSearch && matchesFilter;
     });
   }, [usersData, searchTerm, userFilter]);

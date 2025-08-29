@@ -24,6 +24,7 @@ import { useTestStatistics } from '@/hooks/use-api';
 import { usePathname } from 'next/navigation';
 import { Locale } from '@/types/locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import {useMemo} from "react";
 
 interface QuestionStat {
     id: string;
@@ -141,7 +142,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
         <div className="container mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/tests">
+                <Link href={`/${locale}/admin/tests`}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>

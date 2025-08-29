@@ -73,9 +73,9 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
         try {
             const service = await apiClient.getService(id);
             setFormData({
-                name: service.name || '',
+                name: service.name[locale] || '',
                 slug: service.slug || '',
-                description: service.description || '',
+                description: service.description[locale] || '',
                 requirements: service.requirements || '',
                 category_id: service.category_id || '',
                 skills: service.skills || [],
@@ -88,11 +88,28 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, serviceLoadError]);
 
     useEffect(() => {
         loadService();
     }, [id, loadService]);
+
+    const buildCategoryOptions = useCallback((categories: any[], parentId: number | null = null, level = 0): any[] => {
+        let result: any[] = [];
+        categories
+            .filter(cat => cat.parent_id === parentId)
+            .forEach(cat => {
+                result.push({
+                    ...cat,
+                    displayName: `${'--'.repeat(level)} ${cat.name[locale]}`,
+                });
+                result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
+            });
+        return result;
+    }, []);
+
+
+    const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [buildCategoryOptions, categoriesData]);
 
     const handleNameChange = (title: string) => {
         setFormData(prev => ({
@@ -182,23 +199,6 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
             </div>
         );
     }
-
-    const buildCategoryOptions = (categories: any[], parentId: number | null = null, level = 0): any[] => {
-        let result: any[] = [];
-        categories
-            .filter(cat => cat.parent_id === parentId)
-            .forEach(cat => {
-                result.push({
-                    ...cat,
-                    displayName: `${'--'.repeat(level)} ${cat.name}`,
-                });
-                result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
-            });
-        return result;
-    };
-
-
-    const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [categoriesData]);
 
     return (
         <div className="container mx-auto px-4 py-8">

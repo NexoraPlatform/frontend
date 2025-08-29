@@ -162,7 +162,7 @@ export default function NewServicePage() {
         .forEach(cat => {
           result.push({
             ...cat,
-            displayName: `${'--'.repeat(level)} ${cat.name}`,
+            displayName: `${'--'.repeat(level)} ${cat.name[locale]}`,
           });
           result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
         });

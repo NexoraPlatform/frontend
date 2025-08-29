@@ -65,8 +65,8 @@ export default function AdminTestsPage() {
   const createdPrefix = useAsyncTranslation(locale, 'admin.tests.created_prefix');
   const resultsTemplate = useAsyncTranslation(locale, 'admin.tests.results_count');
   const viewDetails = useAsyncTranslation(locale, 'admin.tests.view_details');
-  const editLabel = useAsyncTranslation(locale, 'admin.tests.edit');
-  const statisticsLabel = useAsyncTranslation(locale, 'admin.tests.statistics');
+  const editLabel = useAsyncTranslation(locale, 'admin.tests.edit.title');
+  const statisticsLabel = useAsyncTranslation(locale, 'admin.tests.statistics.title_suffix');
   const deactivateLabel = useAsyncTranslation(locale, 'admin.tests.deactivate');
   const activateLabel = useAsyncTranslation(locale, 'admin.tests.activate');
   const deleteLabel = useAsyncTranslation(locale, 'admin.tests.delete');
@@ -148,7 +148,7 @@ export default function AdminTestsPage() {
             </p>
           </div>
         </div>
-        <Link href="/admin/tests/new">
+        <Link href={`/${locale}/admin/tests/new`}>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
             {addTest}
@@ -250,10 +250,10 @@ export default function AdminTestsPage() {
                     </div>
 
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span>{categoryPrefix}{test.service?.category?.name}</span>
+                      <span>{categoryPrefix}{test.service?.category?.name?.[locale]}</span>
                       <span>
                         {createdPrefix}
-                        {new Date(test.createdAt).toLocaleDateString(locale)}
+                        {new Date(test.created_at).toLocaleDateString(locale)}
                       </span>
                       {test.results && (
                         <span>{resultsTemplate.replace('{count}', String(test.results.length))}</span>
@@ -274,14 +274,14 @@ export default function AdminTestsPage() {
                           {viewDetails}
                         </Link>
                       </DropdownMenuItem>
+                      {/*<DropdownMenuItem asChild>*/}
+                      {/*  <Link href={`/${locale}/admin/tests/${test.id}/edit`}>*/}
+                      {/*    <Edit className="w-4 h-4 mr-2" />*/}
+                      {/*    {editLabel}*/}
+                      {/*  </Link>*/}
+                      {/*</DropdownMenuItem>*/}
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/tests/${test.id}/edit`}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          {editLabel}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/tests/${test.id}/statistics`}>
+                        <Link href={`/${locale}/admin/tests/${test.id}/statistics`}>
                           <BarChart3 className="w-4 h-4 mr-2" />
                           {statisticsLabel}
                         </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -33,30 +33,115 @@ import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
 import parseJson from "parse-json";
 
-interface Question {
-    id: string;
-    type: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'CODE_WRITING' | 'TEXT_INPUT';
-    question: string;
-    points: number;
-    options?: string[];
-    correctAnswers: string[];
-    explanation?: string;
-    codeTemplate?: string;
-    codeSolution?: string;
-    expectedOutput?: string;
-    meta: string;
-    testCases?: Array<{
-        input: string;
-        expectedOutput: string;
-        description?: string;
-    }>;
+// ---------- Helpers to parse/normalize ----------
+
+function parseStringArray(input: unknown): string[] {
+    if (Array.isArray(input)) return input.map(String);
+    if (input == null) return [];
+    if (typeof input === 'string') {
+        try {
+            const parsed = JSON.parse(input);
+            if (Array.isArray(parsed)) return parsed.map(String);
+        } catch {
+            // fallback "a,b,c"
+            return input.split(',').map(s => s.trim()).filter(Boolean);
+        }
+    }
+    return [];
 }
+
+function tryParseJSON<T = any>(input: unknown, fallback: T): T {
+    if (typeof input !== 'string') return fallback;
+    try {
+        return JSON.parse(input);
+    } catch {
+        return fallback;
+    }
+}
+
+function isJSON(str: string): boolean {
+    if (typeof str !== 'string') return false;
+    try {
+        const parsed = JSON.parse(str);
+        return typeof parsed === 'object' && parsed !== null;
+    } catch {
+        return false;
+    }
+}
+
+type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'CODE_WRITING' | 'TEXT_INPUT';
 
 interface TestCase {
     input: string;
     expectedOutput: string;
     description?: string;
 }
+
+// NOTE: options/correctAnswers can be string or array from API
+interface Question {
+    id: string;
+    type: QuestionType;
+    question: string;
+    points: number;
+    options?: string[] | string;
+    correctAnswers: string[] | string;
+    explanation?: string;
+    codeTemplate?: string;
+    codeSolution?: string;
+    expectedOutput?: string;
+    meta?: string;
+    testCases?: TestCase[];
+}
+
+function normalizeQuestion(raw: Question): Question {
+    const normalizedOptions = parseStringArray(raw.options as any);
+    const normalizedCorrect = parseStringArray((raw as any).correctAnswers ?? (raw as any).correct_answers);
+    const metaObj = tryParseJSON(raw.meta, {}) as any;
+
+    return {
+        ...raw,
+        options: normalizedOptions,
+        correctAnswers: normalizedCorrect,
+        // If meta has structured code fields, mirror them onto the flat fields for editing.
+        codeTemplate: raw.codeTemplate ?? metaObj.codeTemplate ?? '',
+        codeSolution: raw.codeSolution ?? metaObj.codeSolution ?? '',
+        expectedOutput: raw.expectedOutput ?? metaObj.expectedOutput ?? '',
+        testCases: raw.testCases ?? metaObj.testCases ?? []
+    };
+}
+
+function serializeQuestionForApi(q: Question) {
+    const isChoice = q.type === 'SINGLE_CHOICE' || q.type === 'MULTIPLE_CHOICE';
+
+    // Ensure arrays are arrays
+    const optionsArr = parseStringArray(q.options as any);
+    const correctArr = parseStringArray(q.correctAnswers as any);
+
+    const payload: any = {
+        ...q,
+        // stringify for API (consistent with your example JSON)
+        options: isChoice ? JSON.stringify(optionsArr.filter(Boolean)) : null,
+        correctAnswers: JSON.stringify(correctArr),
+    };
+
+    // Build meta from code fields (for CODE_WRITING)
+    if (q.type === 'CODE_WRITING') {
+        const metaObj = {
+            codeTemplate: q.codeTemplate ?? '',
+            codeSolution: q.codeSolution ?? '',
+            expectedOutput: q.expectedOutput ?? '',
+            testCases: q.testCases ?? [],
+        };
+        payload.meta = JSON.stringify(metaObj);
+    } else {
+        // clear code-only fields if not code question
+        payload.meta = q.meta ?? null;
+    }
+
+    return payload;
+}
+
+// ------------------------------------------------
 
 export default function EditTestClient({ id }: { id: string }) {
     const [formData, setFormData] = useState({
@@ -68,6 +153,7 @@ export default function EditTestClient({ id }: { id: string }) {
         passingScore: 70,
         status: 'DRAFT'
     });
+
     const [questions, setQuestions] = useState<Question[]>([]);
     const [currentQuestion, setCurrentQuestion] = useState<Question>({
         id: '',
@@ -89,6 +175,7 @@ export default function EditTestClient({ id }: { id: string }) {
             },
         ],
     });
+
     const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -111,7 +198,10 @@ export default function EditTestClient({ id }: { id: string }) {
                 passingScore: testData.passingScore,
                 status: testData.status
             });
-            setQuestions(testData.questions || []);
+
+            // normalize questions from API (options/correctAnswers may be strings)
+            const normalized = (testData.questions || []).map((q: Question) => normalizeQuestion(q));
+            setQuestions(normalized);
         }
     }, [testData]);
 
@@ -129,6 +219,11 @@ export default function EditTestClient({ id }: { id: string }) {
         { value: 'EXPERT', label: 'Expert', color: 'bg-orange-100 text-orange-800' }
     ];
 
+    const totalPoints = useMemo(
+        () => questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0),
+        [questions]
+    );
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -141,11 +236,13 @@ export default function EditTestClient({ id }: { id: string }) {
         setError('');
 
         try {
-            await apiClient.updateTest(id, {
+            const payload = {
                 ...formData,
-                questions
-            });
-            router.push('/admin/tests');
+                questions: questions.map(serializeQuestionForApi),
+            };
+
+            await apiClient.updateTest(id, payload);
+            router.push(`/${locale}/admin/tests`);
         } catch (error: any) {
             setError(error.message || 'A apărut o eroare');
         } finally {
@@ -159,33 +256,43 @@ export default function EditTestClient({ id }: { id: string }) {
             return;
         }
 
-        // Verifică dacă este nevoie de răspunsuri corecte în funcție de tipul întrebării
-        if (currentQuestion.type !== 'CODE_WRITING' && currentQuestion.correctAnswers.length === 0) {
+        const isCode = currentQuestion.type === 'CODE_WRITING';
+        const correctArr = parseStringArray(currentQuestion.correctAnswers as any);
+
+        if (!isCode && correctArr.length === 0) {
             setError('Selectează cel puțin un răspuns corect');
             return;
         }
 
-        // Pentru întrebări de tip CODE_WRITING, asigură-te că există cel puțin un output așteptat sau un test case
-        if (currentQuestion.type === 'CODE_WRITING' &&
-            (isJSON(currentQuestion.meta) ? (parseJson(currentQuestion.meta).expectedOutput && (!parseJson(currentQuestion.meta).testCases || parseJson(currentQuestion.meta).testCases.length === 0)) : !currentQuestion.expectedOutput &&
-                (!currentQuestion.testCases || currentQuestion.testCases.length === 0))
-        ) {
-            setError('Adaugă cel puțin un output așteptat sau un test case pentru întrebarea de cod');
-            return;
+        // For CODE_WRITING require an expected output or at least one test case
+        if (isCode) {
+            const metaObj = isJSON(currentQuestion.meta ?? '')
+                ? tryParseJSON<any>(currentQuestion.meta, {})
+                : null;
+
+            const expectedOutput =
+                (metaObj ? metaObj.expectedOutput : currentQuestion.expectedOutput) ?? '';
+            const testCases =
+                (metaObj ? metaObj.testCases : currentQuestion.testCases) ?? [];
+
+            if (!expectedOutput && (!Array.isArray(testCases) || testCases.length === 0)) {
+                setError('Adaugă cel puțin un output așteptat sau un test case pentru întrebarea de cod');
+                return;
+            }
         }
 
-        const questionToAdd = {
-            ...currentQuestion,
+        const questionToAdd: Question = {
+            ...normalizeQuestion(currentQuestion),
             id: editingQuestionIndex !== null ? currentQuestion.id : `q${Date.now()}`
         };
 
         if (editingQuestionIndex !== null) {
-            const updatedQuestions = [...questions];
-            updatedQuestions[editingQuestionIndex] = questionToAdd;
-            setQuestions(updatedQuestions);
+            const updated = [...questions];
+            updated[editingQuestionIndex] = questionToAdd;
+            setQuestions(updated);
             setEditingQuestionIndex(null);
         } else {
-            setQuestions([...questions, questionToAdd]);
+            setQuestions(prev => [...prev, questionToAdd]);
         }
 
         // Reset form
@@ -213,71 +320,73 @@ export default function EditTestClient({ id }: { id: string }) {
     };
 
     const editQuestion = (index: number) => {
-
-        setCurrentQuestion(questions[index]);
+        setCurrentQuestion(normalizeQuestion(questions[index]));
         setEditingQuestionIndex(index);
     };
 
     const deleteQuestion = (index: number) => {
         setQuestions(questions.filter((_, i) => i !== index));
+        if (editingQuestionIndex === index) {
+            setEditingQuestionIndex(null);
+        }
     };
 
+    const currentOptions = useMemo(
+        () => parseStringArray(currentQuestion.options as any),
+        [currentQuestion.options]
+    );
+
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...(currentQuestion.options || [])];
+        const newOptions = [...currentOptions];
         newOptions[index] = value;
         setCurrentQuestion({ ...currentQuestion, options: newOptions });
     };
 
     const handleCorrectAnswerToggle = (answer: string) => {
-        const currentAnswers = currentQuestion.correctAnswers || [];
+        const currentAnswers = parseStringArray(currentQuestion.correctAnswers as any);
 
         if (currentQuestion.type === 'SINGLE_CHOICE') {
             setCurrentQuestion({ ...currentQuestion, correctAnswers: [answer] });
         } else {
-            const newAnswers = currentAnswers.includes(answer)
+            const exists = currentAnswers.includes(answer);
+            const next = exists
                 ? currentAnswers.filter(a => a !== answer)
                 : [...currentAnswers, answer];
-            setCurrentQuestion({ ...currentQuestion, correctAnswers: newAnswers });
+            setCurrentQuestion({ ...currentQuestion, correctAnswers: next });
         }
     };
 
-    // Când se schimbă tipul întrebării, resetăm anumite câmpuri
     const handleQuestionTypeChange = (type: string) => {
-        let updatedQuestion: Question = {
+        const t = type as QuestionType;
+        let updated: Question = {
             ...currentQuestion,
-            type: type as any,
+            type: t,
             correctAnswers: []
         };
 
-        // Resetăm opțiunile pentru întrebări cu alegere
-        if (type === 'SINGLE_CHOICE' || type === 'MULTIPLE_CHOICE') {
-            updatedQuestion.options = ['', '', '', ''];
-            delete updatedQuestion.codeTemplate;
-            delete updatedQuestion.codeSolution;
-            delete updatedQuestion.expectedOutput;
-            delete updatedQuestion.testCases;
-        }
-        // Resetăm câmpurile pentru întrebări de cod
-        else if (type === 'CODE_WRITING') {
-            delete updatedQuestion.options;
-            updatedQuestion.codeTemplate = '';
-            updatedQuestion.codeSolution = '';
-            updatedQuestion.expectedOutput = '';
-            updatedQuestion.testCases = [];
-            // Pentru întrebări de cod, punem un placeholder în correctAnswers
-            // doar pentru a trece validarea
-            updatedQuestion.correctAnswers = ['CODE_SOLUTION'];
-        }
-        // Resetăm pentru întrebări cu text
-        else if (type === 'TEXT_INPUT') {
-            delete updatedQuestion.options;
-            delete updatedQuestion.codeTemplate;
-            delete updatedQuestion.codeSolution;
-            delete updatedQuestion.expectedOutput;
-            delete updatedQuestion.testCases;
+        if (t === 'SINGLE_CHOICE' || t === 'MULTIPLE_CHOICE') {
+            updated.options = ['', '', '', ''];
+            updated.codeTemplate = '';
+            updated.codeSolution = '';
+            updated.expectedOutput = '';
+            updated.testCases = [];
+        } else if (t === 'CODE_WRITING') {
+            updated.options = [];
+            updated.codeTemplate = '';
+            updated.codeSolution = '';
+            updated.expectedOutput = '';
+            updated.testCases = [];
+            // keep a placeholder for validation if your backend requires something in correctAnswers
+            updated.correctAnswers = ['CODE_SOLUTION'];
+        } else if (t === 'TEXT_INPUT') {
+            updated.options = [];
+            updated.codeTemplate = '';
+            updated.codeSolution = '';
+            updated.expectedOutput = '';
+            updated.testCases = [];
         }
 
-        setCurrentQuestion(updatedQuestion);
+        setCurrentQuestion(updated);
     };
 
     const getQuestionTypeIcon = (type: string) => {
@@ -301,33 +410,21 @@ export default function EditTestClient({ id }: { id: string }) {
     };
 
     const addTestCase = () => {
-        const newTestCases = [...(currentQuestion.testCases || [])];
-        newTestCases.push({ input: '', expectedOutput: '', description: '' });
-        setCurrentQuestion({ ...currentQuestion, testCases: newTestCases });
+        const list = Array.isArray(currentQuestion.testCases) ? currentQuestion.testCases : [];
+        setCurrentQuestion({ ...currentQuestion, testCases: [...list, { input: '', expectedOutput: '', description: '' }] });
     };
 
-    const updateTestCase = (index: number, field: string, value: string) => {
-        const newTestCases = [...(currentQuestion.testCases || [])];
-        newTestCases[index] = { ...newTestCases[index], [field]: value };
-        setCurrentQuestion({ ...currentQuestion, testCases: newTestCases });
+    const updateTestCase = (index: number, field: keyof TestCase, value: string) => {
+        const list = Array.isArray(currentQuestion.testCases) ? [...currentQuestion.testCases] : [];
+        list[index] = { ...list[index], [field]: value };
+        setCurrentQuestion({ ...currentQuestion, testCases: list });
     };
 
     const removeTestCase = (index: number) => {
-        const newTestCases = [...(currentQuestion.testCases || [])];
-        newTestCases.splice(index, 1);
-        setCurrentQuestion({ ...currentQuestion, testCases: newTestCases });
+        const list = Array.isArray(currentQuestion.testCases) ? [...currentQuestion.testCases] : [];
+        list.splice(index, 1);
+        setCurrentQuestion({ ...currentQuestion, testCases: list });
     };
-
-    function isJSON(str: string): boolean {
-        try {
-            const parsed = JSON.parse(str);
-            return typeof parsed === 'object' && parsed !== null;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
 
     if (testLoading) {
         return (
@@ -361,9 +458,7 @@ export default function EditTestClient({ id }: { id: string }) {
                 </Link>
                 <div>
                     <h1 className="text-3xl font-bold">{pageTitle}</h1>
-                    <p className="text-muted-foreground">
-                        {pageSubtitle}
-                    </p>
+                    <p className="text-muted-foreground">{pageSubtitle}</p>
                 </div>
             </div>
 
@@ -390,14 +485,14 @@ export default function EditTestClient({ id }: { id: string }) {
                                 <Input
                                     id="title"
                                     value={formData.title}
-                                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     placeholder="ex: Test JavaScript Junior"
                                     required
                                 />
                             </div>
                             <div>
                                 <Label htmlFor="level">Nivel *</Label>
-                                <Select value={formData.level} onValueChange={(value) => setFormData({...formData, level: value})}>
+                                <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -417,7 +512,7 @@ export default function EditTestClient({ id }: { id: string }) {
                             <Textarea
                                 id="description"
                                 value={formData.description}
-                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 placeholder="Descrierea testului..."
                                 rows={3}
                                 required
@@ -431,9 +526,9 @@ export default function EditTestClient({ id }: { id: string }) {
                                     id="timeLimit"
                                     type="number"
                                     value={formData.timeLimit}
-                                    onChange={(e) => setFormData({...formData, timeLimit: parseInt(e.target.value)})}
-                                    min="5"
-                                    max="180"
+                                    onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 0 })}
+                                    min={5}
+                                    max={180}
                                     required
                                 />
                             </div>
@@ -443,15 +538,15 @@ export default function EditTestClient({ id }: { id: string }) {
                                     id="passingScore"
                                     type="number"
                                     value={formData.passingScore}
-                                    onChange={(e) => setFormData({...formData, passingScore: parseInt(e.target.value)})}
-                                    min="50"
-                                    max="100"
+                                    onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) || 0 })}
+                                    min={50}
+                                    max={100}
                                     required
                                 />
                             </div>
                             <div>
                                 <Label htmlFor="status">Status</Label>
-                                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+                                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -474,15 +569,13 @@ export default function EditTestClient({ id }: { id: string }) {
                                 <Target className="w-5 h-5" />
                                 <span>Întrebări ({questions.length})</span>
                                 {totalPoints > 0 && (
-                                    <Badge variant="outline">
-                                        Total: {totalPoints} puncte
-                                    </Badge>
+                                    <Badge variant="outline">Total: {totalPoints} puncte</Badge>
                                 )}
                             </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue="list" className="w-full">
+                        <Tabs defaultValue="add" className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="add">
                                     {editingQuestionIndex !== null ? 'Editează Întrebare' : 'Adaugă Întrebare'}
@@ -522,9 +615,9 @@ export default function EditTestClient({ id }: { id: string }) {
                                             id="points"
                                             type="number"
                                             value={currentQuestion.points}
-                                            onChange={(e) => setCurrentQuestion({...currentQuestion, points: parseInt(e.target.value)})}
-                                            min="1"
-                                            max="100"
+                                            onChange={(e) => setCurrentQuestion({ ...currentQuestion, points: parseInt(e.target.value) || 0 })}
+                                            min={1}
+                                            max={100}
                                             required
                                         />
                                     </div>
@@ -535,7 +628,7 @@ export default function EditTestClient({ id }: { id: string }) {
                                     <Textarea
                                         id="question"
                                         value={currentQuestion.question}
-                                        onChange={(e) => setCurrentQuestion({...currentQuestion, question: e.target.value})}
+                                        onChange={(e) => setCurrentQuestion({ ...currentQuestion, question: e.target.value })}
                                         placeholder="Scrie întrebarea aici..."
                                         rows={3}
                                         required
@@ -547,31 +640,34 @@ export default function EditTestClient({ id }: { id: string }) {
                                     <div>
                                         <Label>Opțiuni de Răspuns *</Label>
                                         <div className="space-y-3">
-                                            {currentQuestion.options?.map((option, index) => (
-                                                <div key={index} className="flex items-center space-x-3">
-                                                    <Input
-                                                        value={option}
-                                                        onChange={(e) => handleOptionChange(index, e.target.value)}
-                                                        placeholder={`Opțiunea ${index + 1}`}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant={currentQuestion.correctAnswers.includes(option) ? "default" : "outline"}
-                                                        size="sm"
-                                                        onClick={() => handleCorrectAnswerToggle(option)}
-                                                        disabled={!option.trim()}
-                                                    >
-                                                        {currentQuestion.correctAnswers.includes(option) ? 'Corect' : 'Marcare'}
-                                                    </Button>
-                                                </div>
-                                            ))}
+                                            {currentOptions.map((option, index) => {
+                                                const selected = parseStringArray(currentQuestion.correctAnswers as any).includes(option);
+                                                return (
+                                                    <div key={index} className="flex items-center space-x-3">
+                                                        <Input
+                                                            value={option}
+                                                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                                                            placeholder={`Opțiunea ${index + 1}`}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant={selected ? "default" : "outline"}
+                                                            size="sm"
+                                                            onClick={() => handleCorrectAnswerToggle(option)}
+                                                            disabled={!option.trim()}
+                                                        >
+                                                            {selected ? 'Corect' : 'Marcare'}
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            })}
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => setCurrentQuestion({
                                                     ...currentQuestion,
-                                                    options: [...(currentQuestion.options || []), '']
+                                                    options: [...currentOptions, '']
                                                 })}
                                             >
                                                 <Plus className="w-4 h-4 mr-2" />
@@ -588,9 +684,9 @@ export default function EditTestClient({ id }: { id: string }) {
                                             <Label htmlFor="codeTemplate">Template Cod (opțional)</Label>
                                             <Textarea
                                                 id="codeTemplate"
-                                                value={isJSON(currentQuestion.meta) ? parseJson(currentQuestion.meta).codeTemplate : (currentQuestion.codeTemplate ?? '')}
-                                                onChange={(e) => setCurrentQuestion({...currentQuestion, codeTemplate: e.target.value})}
-                                                placeholder="function solutie() {&#10;  // Completează funcția&#10;}"
+                                                value={isJSON(currentQuestion.meta ?? '') ? parseJson(currentQuestion.meta as string).codeTemplate : (currentQuestion.codeTemplate ?? '')}
+                                                onChange={(e) => setCurrentQuestion({ ...currentQuestion, codeTemplate: e.target.value })}
+                                                placeholder={`function solutie() {\n  // Completează funcția\n}`}
                                                 rows={5}
                                                 className="font-mono"
                                             />
@@ -601,12 +697,11 @@ export default function EditTestClient({ id }: { id: string }) {
 
                                         <div>
                                             <Label htmlFor="codeSolution">Soluție Cod (pentru evaluare)</Label>
-
                                             <Textarea
                                                 id="codeSolution"
-                                                value={isJSON(currentQuestion.meta) ? parseJson(currentQuestion.meta).codeSolution : (currentQuestion.codeSolution ?? '')}
-                                                onChange={(e) => setCurrentQuestion({...currentQuestion, codeSolution: e.target.value})}
-                                                placeholder="function solutie() {&#10;  // Soluția corectă a problemei&#10;  return rezultat;&#10;}"
+                                                value={isJSON(currentQuestion.meta ?? '') ? parseJson(currentQuestion.meta as string).codeSolution : (currentQuestion.codeSolution ?? '')}
+                                                onChange={(e) => setCurrentQuestion({ ...currentQuestion, codeSolution: e.target.value })}
+                                                placeholder={`function solutie() {\n  // Soluția corectă a problemei\n  return rezultat;\n}`}
                                                 rows={5}
                                                 className="font-mono"
                                             />
@@ -617,11 +712,10 @@ export default function EditTestClient({ id }: { id: string }) {
 
                                         <div>
                                             <Label htmlFor="expectedOutput">Output Așteptat</Label>
-
                                             <Input
                                                 id="expectedOutput"
-                                                value={isJSON(currentQuestion.meta) ? parseJson(currentQuestion.meta).expectedOutput : (currentQuestion.expectedOutput ?? '')}
-                                                onChange={(e) => setCurrentQuestion({...currentQuestion, expectedOutput: e.target.value})}
+                                                value={isJSON(currentQuestion.meta ?? '') ? parseJson(currentQuestion.meta as string).expectedOutput : (currentQuestion.expectedOutput ?? '')}
+                                                onChange={(e) => setCurrentQuestion({ ...currentQuestion, expectedOutput: e.target.value })}
                                                 placeholder="Rezultatul așteptat"
                                             />
                                         </div>
@@ -636,88 +730,79 @@ export default function EditTestClient({ id }: { id: string }) {
                                                 </Button>
                                             </div>
 
-                                            {isJSON(currentQuestion.meta) ? parseJson(currentQuestion.meta).testCases?.map((testCase: TestCase, index: number) => (
-                                                <div key={index} className="border rounded-lg p-4 space-y-3 mb-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <h4 className="font-medium">Test Case {index + 1}</h4>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => removeTestCase(index)}
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-3">
-                                                        <div>
-                                                            <Label>Input</Label>
-                                                            <Input
-                                                                value={testCase.input}
-                                                                onChange={(e) => updateTestCase(index, 'input', e.target.value)}
-                                                                placeholder="Input pentru test"
-                                                            />
+                                            {isJSON(currentQuestion.meta ?? '')
+                                                ? (parseJson(currentQuestion.meta as string).testCases || []).map((testCase: TestCase, index: number) => (
+                                                    <div key={index} className="border rounded-lg p-4 space-y-3 mb-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="font-medium">Test Case {index + 1}</h4>
+                                                            <Button type="button" variant="ghost" size="sm" onClick={() => removeTestCase(index)}>
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <div>
+                                                                <Label>Input</Label>
+                                                                <Input
+                                                                    value={testCase.input}
+                                                                    onChange={(e) => updateTestCase(index, 'input', e.target.value)}
+                                                                    placeholder="Input pentru test"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <Label>Output Așteptat</Label>
+                                                                <Input
+                                                                    value={testCase.expectedOutput}
+                                                                    onChange={(e) => updateTestCase(index, 'expectedOutput', e.target.value)}
+                                                                    placeholder="Output așteptat"
+                                                                />
+                                                            </div>
                                                         </div>
                                                         <div>
-                                                            <Label>Output Așteptat</Label>
+                                                            <Label>Descriere (opțional)</Label>
                                                             <Input
-                                                                value={testCase.expectedOutput}
-                                                                onChange={(e) => updateTestCase(index, 'expectedOutput', e.target.value)}
-                                                                placeholder="Output așteptat"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <Label>Descriere (opțional)</Label>
-                                                        <Input
-                                                            value={testCase.description || ''}
-                                                            onChange={(e) => updateTestCase(index, 'description', e.target.value)}
-                                                            placeholder="Descrierea test case-ului"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )) : currentQuestion.testCases?.map((testCase, index) => (
-                                                <div key={index} className="border rounded-lg p-4 space-y-3 mb-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <h4 className="font-medium">Test Case {index + 1}</h4>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => removeTestCase(index)}
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-3">
-                                                        <div>
-                                                            <Label>Input</Label>
-                                                            <Input
-                                                                value={testCase.input}
-                                                                onChange={(e) => updateTestCase(index, 'input', e.target.value)}
-                                                                placeholder="Input pentru test"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label>Output Așteptat</Label>
-                                                            <Input
-                                                                value={testCase.expectedOutput}
-                                                                onChange={(e) => updateTestCase(index, 'expectedOutput', e.target.value)}
-                                                                placeholder="Output așteptat"
+                                                                value={testCase.description || ''}
+                                                                onChange={(e) => updateTestCase(index, 'description', e.target.value)}
+                                                                placeholder="Descrierea test case-ului"
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <Label>Descriere (opțional)</Label>
-                                                        <Input
-                                                            value={testCase.description || ''}
-                                                            onChange={(e) => updateTestCase(index, 'description', e.target.value)}
-                                                            placeholder="Descrierea test case-ului"
-                                                        />
+                                                ))
+                                                : (currentQuestion.testCases || []).map((testCase, index) => (
+                                                    <div key={index} className="border rounded-lg p-4 space-y-3 mb-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="font-medium">Test Case {index + 1}</h4>
+                                                            <Button type="button" variant="ghost" size="sm" onClick={() => removeTestCase(index)}>
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <div>
+                                                                <Label>Input</Label>
+                                                                <Input
+                                                                    value={testCase.input}
+                                                                    onChange={(e) => updateTestCase(index, 'input', e.target.value)}
+                                                                    placeholder="Input pentru test"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <Label>Output Așteptat</Label>
+                                                                <Input
+                                                                    value={testCase.expectedOutput}
+                                                                    onChange={(e) => updateTestCase(index, 'expectedOutput', e.target.value)}
+                                                                    placeholder="Output așteptat"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <Label>Descriere (opțional)</Label>
+                                                            <Input
+                                                                value={testCase.description || ''}
+                                                                onChange={(e) => updateTestCase(index, 'description', e.target.value)}
+                                                                placeholder="Descrierea test case-ului"
+                                                            />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
-
+                                                ))}
                                         </div>
                                     </div>
                                 )}
@@ -728,8 +813,8 @@ export default function EditTestClient({ id }: { id: string }) {
                                         <Label htmlFor="correctAnswer">Răspuns Corect *</Label>
                                         <Input
                                             id="correctAnswer"
-                                            value={currentQuestion.correctAnswers[0] || ''}
-                                            onChange={(e) => setCurrentQuestion({...currentQuestion, correctAnswers: [e.target.value]})}
+                                            value={parseStringArray(currentQuestion.correctAnswers as any)[0] || ''}
+                                            onChange={(e) => setCurrentQuestion({ ...currentQuestion, correctAnswers: [e.target.value] })}
                                             placeholder="Răspunsul corect"
                                             required
                                         />
@@ -741,7 +826,7 @@ export default function EditTestClient({ id }: { id: string }) {
                                     <Textarea
                                         id="explanation"
                                         value={currentQuestion.explanation || ''}
-                                        onChange={(e) => setCurrentQuestion({...currentQuestion, explanation: e.target.value})}
+                                        onChange={(e) => setCurrentQuestion({ ...currentQuestion, explanation: e.target.value })}
                                         placeholder="Explicația răspunsului corect..."
                                         rows={2}
                                     />
@@ -800,63 +885,53 @@ export default function EditTestClient({ id }: { id: string }) {
                                     <div className="text-center py-8">
                                         <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                                         <h3 className="text-lg font-medium mb-2">Nicio întrebare adăugată</h3>
-                                        <p className="text-muted-foreground">
-                                            Adaugă întrebări pentru a crea testul
-                                        </p>
+                                        <p className="text-muted-foreground">Adaugă întrebări pentru a crea testul</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
                                         {questions.map((question, index) => {
                                             const IconComponent = getQuestionTypeIcon(question.type);
-                                            const parsedMeta = JSON.parse(question.meta ?? '{}');
+                                            const parsedMeta = tryParseJSON<any>(question.meta, {});
+                                            const opts = parseStringArray(question.options as any);
+                                            const correct = parseStringArray(question.correctAnswers as any);
+
                                             return (
-                                                <div key={question.id} className="border rounded-lg p-4">
+                                                <div key={question.id || `${question.type}-${index}`} className="border rounded-lg p-4">
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div className="flex items-center space-x-2">
                                                             <IconComponent className="w-5 h-5 text-primary" />
-                                                            <Badge variant="outline">
-                                                                {getQuestionTypeLabel(question.type)}
-                                                            </Badge>
-                                                            <Badge variant="secondary">
-                                                                {question.points} puncte
-                                                            </Badge>
+                                                            <Badge variant="outline">{getQuestionTypeLabel(question.type)}</Badge>
+                                                            <Badge variant="secondary">{question.points} puncte</Badge>
                                                         </div>
                                                         <div className="flex space-x-2">
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => editQuestion(index)}
-                                                            >
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => editQuestion(index)}>
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => deleteQuestion(index)}
-                                                            >
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => deleteQuestion(index)}>
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
                                                         </div>
                                                     </div>
+
                                                     <h4 className="font-medium mb-2">
                                                         {index + 1}. {question.question}
                                                     </h4>
-                                                    {question.options && (
+
+                                                    {opts.length > 0 && (
                                                         <div className="space-y-1">
-                                                            {question.options.map((option, optIndex) => (
+                                                            {opts.map((option, optIndex) => (
                                                                 <div key={optIndex} className="flex items-center space-x-2 text-sm">
-                                  <span className={question.correctAnswers.includes(option) ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                                  <span className={correct.includes(option) ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
                                     {String.fromCharCode(65 + optIndex)}. {option}
                                   </span>
-                                                                    {question.correctAnswers.includes(option) && (
+                                                                    {correct.includes(option) && (
                                                                         <Badge className="bg-green-100 text-green-800 text-xs">Corect</Badge>
                                                                     )}
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     )}
+
                                                     {question.type === 'CODE_WRITING' && (
                                                         <div className="space-y-1 text-sm">
                                                             {parsedMeta.codeTemplate && (
@@ -877,21 +952,23 @@ export default function EditTestClient({ id }: { id: string }) {
                                                             )}
                                                             {parsedMeta.expectedOutput && (
                                                                 <div className="mb-2">
-                                                                    <strong>Output așteptat:</strong> {question.expectedOutput}
+                                                                    <strong>Output așteptat:</strong> {parsedMeta.expectedOutput}
                                                                 </div>
                                                             )}
-                                                            {parsedMeta.testCases && parsedMeta.testCases.length > 0 && (
+                                                            {Array.isArray(parsedMeta.testCases) && parsedMeta.testCases.length > 0 && (
                                                                 <div>
                                                                     <strong>Test Cases:</strong> {parsedMeta.testCases.length} definite
                                                                 </div>
                                                             )}
                                                         </div>
                                                     )}
+
                                                     {question.type === 'TEXT_INPUT' && (
                                                         <p className="text-sm text-green-600 font-medium">
-                                                            Răspuns corect: {question.correctAnswers[0]}
+                                                            Răspuns corect: {correct.join(', ')}
                                                         </p>
                                                     )}
+
                                                     {question.explanation && (
                                                         <p className="text-sm text-muted-foreground mt-2">
                                                             <strong>Explicație:</strong> {question.explanation}
