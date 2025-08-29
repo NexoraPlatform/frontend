@@ -5,6 +5,8 @@ import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GripVertical, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 import {
     DndContext,
     closestCenter,
@@ -49,14 +51,14 @@ function extractRoles(data: any): { items: RoleRow[]; total: number | null } {
 
 function SortableRow({
                          role,
-                         index,
                          onEdit,
                          onDelete,
+                         locale,
                      }: {
     role: RoleRow;
-    index: number;
     onEdit: (id: number) => void;
     onDelete: (id: number) => void;
+    locale: Locale;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: role.id,
@@ -79,7 +81,7 @@ function SortableRow({
             <div className="flex items-center gap-3">
                 {/* drag handle */}
                 <button
-                    aria-label="Reordonează"
+                    aria-label={useAsyncTranslation(locale, 'admin.roles.reorder_aria')}
                     className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
                     {...attributes}
                     {...listeners}
@@ -96,10 +98,10 @@ function SortableRow({
                 {role.sortOrder != null && (
                     <span className="text-xs text-muted-foreground">#{role.sortOrder}</span>
                 )}
-                <Button size="icon" variant="ghost" onClick={() => onEdit(role.id)} aria-label="Editează">
+                <Button size="icon" variant="ghost" onClick={() => onEdit(role.id)} aria-label={useAsyncTranslation(locale, 'admin.roles.edit')}>
                     <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => onDelete(role.id)} aria-label="Șterge">
+                <Button size="icon" variant="ghost" onClick={() => onDelete(role.id)} aria-label={useAsyncTranslation(locale, 'admin.roles.delete')}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </div>
@@ -107,7 +109,7 @@ function SortableRow({
     );
 }
 
-export default function RolesListClient() {
+export default function RolesListClient({ locale }: { locale: Locale }) {
     const [roles, setRoles] = useState<RoleRow[]>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -115,6 +117,18 @@ export default function RolesListClient() {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [savingOrder, setSavingOrder] = useState(false);
+
+    const searchPlaceholder = useAsyncTranslation(locale, 'admin.roles.search_placeholder');
+    const searchButton = useAsyncTranslation(locale, 'admin.roles.search_button');
+    const savingOrderLabel = useAsyncTranslation(locale, 'admin.roles.saving_order');
+    const loadingRoles = useAsyncTranslation(locale, 'admin.roles.loading_roles');
+    const noRolesShort = useAsyncTranslation(locale, 'admin.roles.no_roles_short');
+    const pageLabel = useAsyncTranslation(locale, 'admin.roles.pagination.page');
+    const ofLabel = useAsyncTranslation(locale, 'admin.roles.pagination.of');
+    const totalLabelTemplate = useAsyncTranslation(locale, 'admin.roles.pagination.total');
+    const previousLabel = useAsyncTranslation(locale, 'admin.roles.pagination.previous');
+    const nextLabel = useAsyncTranslation(locale, 'admin.roles.pagination.next');
+    const perPageLabel = useAsyncTranslation(locale, 'admin.roles.pagination.per_page');
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -208,7 +222,7 @@ export default function RolesListClient() {
                 <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Caută roluri…"
+                    placeholder={searchPlaceholder}
                     className="w-64"
                 />
                 <Button
@@ -217,14 +231,14 @@ export default function RolesListClient() {
                         void load();
                     }}
                 >
-                    Caută
+                    {searchButton}
                 </Button>
 
                 <div className="ml-auto flex items-center gap-2">
                     {savingOrder && (
                         <span className="flex items-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Salvăm ordinea…
+              {savingOrderLabel}
             </span>
                     )}
                 </div>
@@ -234,23 +248,23 @@ export default function RolesListClient() {
                 {loading ? (
                     <div className="flex items-center justify-center py-16 text-muted-foreground">
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Încărcăm rolurile…
+                        {loadingRoles}
                     </div>
                 ) : roles.length === 0 ? (
                     <div className="py-10 text-center text-sm text-muted-foreground">
-                        Niciun rol găsit.
+                        {noRolesShort}
                     </div>
                 ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                         <SortableContext items={itemsIds} strategy={verticalListSortingStrategy}>
                             <div className="flex flex-col gap-2">
-                                {roles.map((role, idx) => (
+                                {roles.map((role) => (
                                     <SortableRow
                                         key={role.id}
                                         role={role}
-                                        index={idx}
                                         onEdit={onEdit}
                                         onDelete={onDelete}
+                                        locale={locale}
                                     />
                                 ))}
                             </div>
@@ -262,8 +276,8 @@ export default function RolesListClient() {
             {/* Pagination */}
             <div className="mt-6 flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                    Pagina {page} {total ? `din ${Math.ceil(total / pageSize)}` : ''}{' '}
-                    {total != null ? `(total ${total})` : ''}
+                    {pageLabel} {page} {total ? `${ofLabel} ${Math.ceil(total / pageSize)}` : ''}{' '}
+                    {total != null ? `(${totalLabelTemplate.replace('{count}', String(total))})` : ''}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -274,24 +288,25 @@ export default function RolesListClient() {
                     >
                         {[5, 10, 20, 50].map((n) => (
                             <option key={n} value={n}>
-                                {n}/pag
+                                {n}
                             </option>
                         ))}
                     </select>
+                    <span className="ml-2 text-sm text-muted-foreground">{perPageLabel}</span>
 
                     <Button
                         variant="outline"
                         disabled={page <= 1 || loading}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
-                        Anterior
+                        {previousLabel}
                     </Button>
                     <Button
                         variant="outline"
                         disabled={total != null ? page >= Math.ceil(total / pageSize) || loading : false}
                         onClick={() => setPage((p) => p + 1)}
                     >
-                        Următor
+                        {nextLabel}
                     </Button>
                 </div>
             </div>

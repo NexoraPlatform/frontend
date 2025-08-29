@@ -9,7 +9,9 @@ import {Card, CardContent} from "@mui/material";
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
 import apiClient from "@/lib/api";
-import {useRouter} from "next/navigation";
+import {useRouter, usePathname} from "next/navigation";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 import {
     Accordion,
     AccordionContent,
@@ -50,6 +52,21 @@ export default function NewRolePage() {
     const [loading, setLoading] = useState<boolean>(false);
     const [permissionGroups, setPermissionGroups] = useState<GroupPermissions[]>([]);
     const router = useRouter();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+    const title = useAsyncTranslation(locale, 'admin.roles.new_role.title');
+    const subtitle = useAsyncTranslation(locale, 'admin.roles.new_role.subtitle');
+    const infoTitle = useAsyncTranslation(locale, 'admin.roles.new_role.info_title');
+    const infoDescription = useAsyncTranslation(locale, 'admin.roles.new_role.info_description');
+    const nameLabel = useAsyncTranslation(locale, 'admin.roles.new_role.name_label');
+    const namePlaceholder = useAsyncTranslation(locale, 'admin.roles.new_role.name_placeholder');
+    const descriptionLabel = useAsyncTranslation(locale, 'admin.roles.new_role.description_label');
+    const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.roles.new_role.description_placeholder');
+    const creatingLabel = useAsyncTranslation(locale, 'admin.roles.new_role.creating');
+    const createButtonLabel = useAsyncTranslation(locale, 'admin.roles.new_role.create_button');
+    const cancelLabel = useAsyncTranslation(locale, 'admin.roles.new_role.cancel');
+    const errorOccurred = useAsyncTranslation(locale, 'admin.roles.error_occurred');
 
     useEffect(() => {
         const loadPermissions = async () => {
@@ -79,7 +96,7 @@ export default function NewRolePage() {
             await apiClient.createRole(roleData);
             router.push('/admin/roles');
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare');
+            setError(error.message || errorOccurred);
         } finally {
             setLoading(false);
         }
@@ -95,10 +112,8 @@ export default function NewRolePage() {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-bold">Adaugă Rol Nou</h1>
-                    <p className="text-muted-foreground">
-                        Creează un rol nou
-                    </p>
+                    <h1 className="text-3xl font-bold">{title}</h1>
+                    <p className="text-muted-foreground">{subtitle}</p>
                 </div>
             </div>
 
@@ -107,16 +122,16 @@ export default function NewRolePage() {
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
                             <IdCardLanyard className="w-5 h-5" />
-                            <span>Informații Rol</span>
+                            <span>{infoTitle}</span>
                         </CardTitle>
                         <CardDescription>
-                            Completează informațiile pentru un nou rol
+                            {infoDescription}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <Label htmlFor="name" className={`${error && 'text-red-500'}`}>Nume Rol *</Label>
+                                <Label htmlFor="name" className={`${error && 'text-red-500'}`}>{nameLabel}</Label>
                                 <Input
                                     id="name"
                                     value={roleData.name}
@@ -124,13 +139,13 @@ export default function NewRolePage() {
                                         setRoleData((prev) => ({ ...prev, name: e.target.value }));
                                         setError('');
                                     }}
-                                    placeholder="ex: Dezvoltare Web"
+                                    placeholder={namePlaceholder}
                                     className={`${error && 'border-red-500'}`}
                                 />
                             </div>
 
                             <div>
-                                <Label htmlFor="description" className={`${error && 'text-red-500'}`}>Descriere Rol *</Label>
+                                <Label htmlFor="description" className={`${error && 'text-red-500'}`}>{descriptionLabel}</Label>
                                 <Input
                                     id="description"
                                     value={roleData.description}
@@ -138,7 +153,7 @@ export default function NewRolePage() {
                                         setRoleData((prev) => ({ ...prev, description: e.target.value }));
                                         setError('');
                                     }}
-                                    placeholder="ex: Dezvoltare Web"
+                                    placeholder={descriptionPlaceholder}
                                     className={`${error && 'border-red-500'}`}
                                 />
                             </div>
@@ -191,18 +206,18 @@ export default function NewRolePage() {
                                     {loading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Se creează...
+                                            {creatingLabel}
                                         </>
                                     ) : (
                                         <>
                                             <IdCardLanyard className="w-4 h-4 mr-2" />
-                                            Creează Rolul
+                                            {createButtonLabel}
                                         </>
                                     )}
                                 </Button>
                                 <Link href="/admin/roles">
                                     <Button type="button" variant="outline">
-                                        Anulează
+                                        {cancelLabel}
                                     </Button>
                                 </Link>
                             </div>

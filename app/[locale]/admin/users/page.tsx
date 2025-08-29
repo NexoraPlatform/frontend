@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,19 +25,61 @@ import {
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import {useRouter} from "next/navigation";
+import {useRouter, usePathname} from "next/navigation";
 import {Can} from "@/components/Can";
+import {useAsyncTranslation} from "@/hooks/use-async-translation";
+import {Locale} from "@/types/locale";
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [userFilter, setUserFilter] = useState('all');
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+  const manageTitle = useAsyncTranslation(locale, 'admin.users.manage_title');
+  const manageSubtitle = useAsyncTranslation(locale, 'admin.users.manage_subtitle');
+  const addUser = useAsyncTranslation(locale, 'admin.users.add_user');
+  const searchPlaceholder = useAsyncTranslation(locale, 'admin.users.search_placeholder');
+  const filterRole = useAsyncTranslation(locale, 'admin.users.filter_role');
+  const filterAll = useAsyncTranslation(locale, 'admin.users.filter_all');
+  const filterClients = useAsyncTranslation(locale, 'admin.users.filter_clients');
+  const filterProviders = useAsyncTranslation(locale, 'admin.users.filter_providers');
+  const filterAdmins = useAsyncTranslation(locale, 'admin.users.filter_admins');
+  const listTitle = useAsyncTranslation(locale, 'admin.users.list_title');
+  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.users.list_description');
+  const confirmDeleteText = useAsyncTranslation(locale, 'admin.users.actions.confirm_delete');
+  const errorPrefix = useAsyncTranslation(locale, 'admin.users.actions.error_prefix');
+  const modifyProfile = useAsyncTranslation(locale, 'admin.users.actions.modify_profile');
+  const verifyLabel = useAsyncTranslation(locale, 'admin.users.actions.verify');
+  const suspendLabel = useAsyncTranslation(locale, 'admin.users.actions.suspend');
+  const activateLabel = useAsyncTranslation(locale, 'admin.users.actions.activate');
+  const deleteLabel = useAsyncTranslation(locale, 'admin.users.actions.delete');
+  const setSuperuser = useAsyncTranslation(locale, 'admin.users.actions.set_superuser');
+  const removeSuperuser = useAsyncTranslation(locale, 'admin.users.actions.remove_superuser');
+  const noUsersTitle = useAsyncTranslation(locale, 'admin.users.no_users_title');
+  const noUsersDescription = useAsyncTranslation(locale, 'admin.users.no_users_description');
+  const reviewsTemplate = useAsyncTranslation(locale, 'admin.users.reviews_label');
+  const registeredTemplate = useAsyncTranslation(locale, 'admin.users.registered_prefix');
+  const superuserBadge = useAsyncTranslation(locale, 'admin.users.roles.SUPERUSER');
+
+  const statusLabels = {
+    ACTIVE: useAsyncTranslation(locale, 'admin.users.statuses.ACTIVE'),
+    SUSPENDED: useAsyncTranslation(locale, 'admin.users.statuses.SUSPENDED'),
+    PENDING_VERIFICATION: useAsyncTranslation(locale, 'admin.users.statuses.PENDING_VERIFICATION'),
+  } as const;
+
+  const roleLabels = {
+    ADMIN: useAsyncTranslation(locale, 'admin.users.roles.ADMIN'),
+    PROVIDER: useAsyncTranslation(locale, 'admin.users.roles.PROVIDER'),
+    CLIENT: useAsyncTranslation(locale, 'admin.users.roles.CLIENT'),
+  } as const;
 
   const handleUserAction = async (userId: string, action: string, isSuperuser?: boolean) => {
     try {
       if (action === 'delete') {
-        if (confirm('Ești sigur că vrei să ștergi acest utilizator?')) {
+        if (confirm(confirmDeleteText)) {
           await apiClient.deleteUser(userId);
           refetchUsers();
         }
@@ -53,42 +95,41 @@ export default function AdminUsersPage() {
         refetchUsers();
       }
     } catch (error: any) {
-      alert('Eroare: ' + error.message);
+      alert(errorPrefix + error.message);
     }
   };
 
-  const filteredUsers = (usersData?.users || []).filter((user: any) => {
-    const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = userFilter === 'all' || user.role === userFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredUsers = useMemo(() => {
+    return (usersData?.users || []).filter((user: any) => {
+      const matchesSearch =
+        user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = userFilter === 'all' || user?.roles?.some((r: any) => r.slug?.toLowerCase() === filterRole);
+      return matchesSearch && matchesFilter;
+    });
+  }, [usersData, searchTerm, userFilter]);
+
+  const STATUS_STYLES: Record<string, string> = {
+    ACTIVE: 'bg-green-100 text-green-800',
+    SUSPENDED: 'bg-red-100 text-red-800',
+    PENDING_VERIFICATION: 'bg-yellow-100 text-yellow-800',
+  };
+
+  const ROLE_STYLES: Record<string, string> = {
+    ADMIN: 'bg-purple-100 text-purple-800',
+    PROVIDER: 'bg-blue-100 text-blue-800',
+    CLIENT: 'bg-secondary',
+  };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Activ</Badge>;
-      case 'SUSPENDED':
-        return <Badge className="bg-red-100 text-red-800">Suspendat</Badge>;
-      case 'PENDING_VERIFICATION':
-        return <Badge className="bg-yellow-100 text-yellow-800">În așteptare</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    const label = statusLabels[status as keyof typeof statusLabels] || status;
+    return <Badge className={STATUS_STYLES[status] || 'bg-secondary'}>{label}</Badge>;
   };
 
   const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>;
-      case 'PROVIDER':
-        return <Badge className="bg-blue-100 text-blue-800">Prestator</Badge>;
-      case 'CLIENT':
-        return <Badge variant="secondary">Client</Badge>;
-      default:
-        return <Badge variant="secondary">{role}</Badge>;
-    }
+    const label = roleLabels[role as keyof typeof roleLabels] || role;
+    return <Badge className={ROLE_STYLES[role] || 'bg-secondary'}>{label}</Badge>;
   };
 
   return (
@@ -102,9 +143,9 @@ export default function AdminUsersPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Gestionare Utilizatori</h1>
+            <h1 className="text-3xl font-bold">{manageTitle}</h1>
             <p className="text-muted-foreground">
-              Administrează utilizatorii platformei
+              {manageSubtitle}
             </p>
           </div>
         </div>
@@ -119,7 +160,7 @@ export default function AdminUsersPage() {
   />
             <span className="relative z-10 flex flex-nowrap items-center">
     <Plus className="w-4 h-4 mr-2" />
-    Adaugă Utilizator
+    {addUser}
   </span>
           </Button>
         </Link>
@@ -133,7 +174,7 @@ export default function AdminUsersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Caută utilizatori după nume sau email..."
+                  placeholder={searchPlaceholder}
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -143,13 +184,13 @@ export default function AdminUsersPage() {
             <Select value={userFilter} onValueChange={setUserFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filtru rol" />
+                <SelectValue placeholder={filterRole} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toți utilizatorii</SelectItem>
-                <SelectItem value="CLIENT">Clienți</SelectItem>
-                <SelectItem value="PROVIDER">Prestatori</SelectItem>
-                <SelectItem value="ADMIN">Administratori</SelectItem>
+                <SelectItem value="all">{filterAll}</SelectItem>
+                <SelectItem value="CLIENT">{filterClients}</SelectItem>
+                <SelectItem value="PROVIDER">{filterProviders}</SelectItem>
+                <SelectItem value="ADMIN">{filterAdmins}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -161,10 +202,10 @@ export default function AdminUsersPage() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="w-5 h-5" />
-            <span>Lista Utilizatori</span>
+            <span>{listTitle}</span>
           </CardTitle>
           <CardDescription>
-            {filteredUsers.length} utilizatori găsiți
+            {listDescriptionTemplate.replace('{count}', filteredUsers.length.toString())}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -192,7 +233,7 @@ export default function AdminUsersPage() {
                       <div className="flex space-x-2">
                         {getRoleBadge(user.role)}
                         {getStatusBadge(user.status)}
-                        {user.is_superuser && (<Badge variant="destructive" className="">SuperUser</Badge>)}
+                        {user.is_superuser && (<Badge variant="destructive" className="">{superuserBadge}</Badge>)}
                       </div>
                     </div>
                   </div>
@@ -203,9 +244,11 @@ export default function AdminUsersPage() {
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span className="font-medium">{user.rating || 0}</span>
                       </div>
-                      <p className="text-muted-foreground text-left">{user.reviewCount || 0} recenzii</p>
+                      <p className="text-muted-foreground text-left">{
+                        reviewsTemplate.replace('{count}', (user.reviewCount || 0).toString())
+                      }</p>
                       <p className="text-xs text-muted-foreground">
-                        Înregistrat: {new Date(user.created_at).toLocaleDateString('ro-RO')}
+                        {registeredTemplate.replace('{date}', new Date(user.created_at).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-US'))}
                       </p>
                     </div>
 
@@ -220,29 +263,29 @@ export default function AdminUsersPage() {
                             <Can superuser>
                               <DropdownMenuItem className={`${user.is_superuser ? 'bg-red-500' : 'bg-green-500'} text-white cursor-pointer`} onClick={() => handleUserAction(user.id, "superuser", user.is_superuser)}>
                                 <UserRound className="w-4 h-4 mr-2" />
-                                {user.is_superuser ? 'Scoate SuperUser' : 'Seteaza SuperUser'}
+                                {user.is_superuser ? removeSuperuser : setSuperuser}
                               </DropdownMenuItem>
                             </Can>
                         )}
 
                         <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>
                           <Pencil className="w-4 h-4 mr-2" />
-                          Modifica profil
+                          {modifyProfile}
                         </DropdownMenuItem>
 
                         <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'verify')}>
                           <UserCheck className="w-4 h-4 mr-2" />
-                          Verifică
+                          {verifyLabel}
                         </DropdownMenuItem>
                         {user.status === 'ACTIVE' ? (
                           <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'suspend')}>
                             <Ban className="w-4 h-4 mr-2" />
-                            Suspendă
+                            {suspendLabel}
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'activate')}>
                             <UserCheck className="w-4 h-4 mr-2" />
-                            Activează
+                            {activateLabel}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
@@ -250,7 +293,7 @@ export default function AdminUsersPage() {
                           className="text-red-600"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Șterge
+                          {deleteLabel}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -261,9 +304,9 @@ export default function AdminUsersPage() {
               {filteredUsers.length === 0 && (
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Nu s-au găsit utilizatori</h3>
+                  <h3 className="text-lg font-medium mb-2">{noUsersTitle}</h3>
                   <p className="text-muted-foreground">
-                    Încearcă să modifici filtrele sau termenii de căutare
+                    {noUsersDescription}
                   </p>
                 </div>
               )}

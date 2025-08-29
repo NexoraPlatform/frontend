@@ -7,6 +7,8 @@ import {ArrowLeft, ChevronDown, ChevronRight} from 'lucide-react';
 import apiClient from '@/lib/api';
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 type Permission = {
     id: number;
@@ -55,7 +57,7 @@ function normalizeSlugArray(input: unknown): string[] {
     return [];
 }
 
-export default function PermissionMatrixTab() {
+export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
     const [loading, setLoading] = useState(true);
     const [savingRoles, setSavingRoles] = useState<Set<string>>(new Set()); // roleSlug care salvează
     const [filter, setFilter] = useState('');
@@ -254,8 +256,23 @@ export default function PermissionMatrixTab() {
         };
     };
 
+    const title = useAsyncTranslation(locale, 'admin.roles.permission_matrix.title');
+    const subtitle = useAsyncTranslation(locale, 'admin.roles.permission_matrix.subtitle');
+    const searchPlaceholder = useAsyncTranslation(locale, 'admin.roles.permission_matrix.search_placeholder');
+    const savingChanges = useAsyncTranslation(locale, 'admin.roles.permission_matrix.saving_changes');
+    const savedAuto = useAsyncTranslation(locale, 'admin.roles.permission_matrix.saved_auto');
+    const permissionsLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.permissions');
+    const hideLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.hide');
+    const showLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.show');
+    const loadingLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.loading');
+    const noPermissions = useAsyncTranslation(locale, 'admin.roles.permission_matrix.no_permissions');
+    const savingShort = useAsyncTranslation(locale, 'admin.roles.permission_matrix.saving_short');
+    const selectAllForTemplate = useAsyncTranslation(locale, 'admin.roles.permission_matrix.select_all_for');
+    const permissionForRoleTemplate = useAsyncTranslation(locale, 'admin.roles.permission_matrix.permission_for_role');
+    const selectGroupForRoleTemplate = useAsyncTranslation(locale, 'admin.roles.permission_matrix.select_group_for_role');
+
     if (loading) {
-        return <div className="p-6 text-sm text-muted-foreground">Încarc datele...</div>;
+        return <div className="p-6 text-sm text-muted-foreground">{loadingLabel}</div>;
     }
 
     return (
@@ -268,24 +285,22 @@ export default function PermissionMatrixTab() {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-bold">Gestionare Access</h1>
-                    <p className="text-muted-foreground">Roluri și permisiuni</p>
+                    <h1 className="text-3xl font-bold">{title}</h1>
+                    <p className="text-muted-foreground">{subtitle}</p>
                 </div>
             </div>
             {/* Toolbar */}
             <div className="mb-2 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                     <Input
-                        placeholder="Caută permisiuni (nume / slug / descriere)"
+                        placeholder={searchPlaceholder}
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                         className="w-80"
                     />
                 </div>
                 <div className="text-xs text-muted-foreground">
-                    {Array.from(savingRoles).length > 0
-                        ? 'Se salvează modificările...'
-                        : 'Toate schimbările sunt salvate automat'}
+                    {Array.from(savingRoles).length > 0 ? savingChanges : savedAuto}
                 </div>
             </div>
 
@@ -295,7 +310,7 @@ export default function PermissionMatrixTab() {
                     <thead className="bg-muted">
                     <tr>
                         <th className="text-left p-3 border-r min-w-[360px] bg-muted sticky top-0 z-20">
-                            Permisiuni
+                            {permissionsLabel}
                         </th>
                         {roles.map((role) => {
                             const col = getColState(role.slug);
@@ -311,10 +326,10 @@ export default function PermissionMatrixTab() {
                                         <Checkbox
                                             checked={checkboxState as any}
                                             onCheckedChange={(v) => toggleRoleColumn(role.slug, Boolean(v))}
-                                            aria-label={`Selectează toate permisiunile pentru ${role.name}`}
+                                            aria-label={selectAllForTemplate.replace('{role}', role.name)}
                                         />
                                         <span className="text-[10px] text-muted-foreground h-3">
-                        {saving ? 'salvez…' : ''}
+                        {saving ? savingShort : ''}
                       </span>
                                     </div>
                                 </th>
@@ -353,7 +368,7 @@ export default function PermissionMatrixTab() {
                           </span>
                         </span>
                                             <span className="text-xs text-muted-foreground">
-                          {open ? 'Ascunde' : 'Arată'}
+                          {open ? hideLabel : showLabel}
                         </span>
                                         </button>
                                     </td>
@@ -372,7 +387,9 @@ export default function PermissionMatrixTab() {
                                                     onCheckedChange={(v) =>
                                                         toggleGroupForRole(group, role.slug, Boolean(v))
                                                     }
-                                                    aria-label={`Selectează toate permisiunile din grupul ${group.name} pentru rolul ${role.name}`}
+                                                    aria-label={selectGroupForRoleTemplate
+                                                        .replace('{group}', group.name)
+                                                        .replace('{role}', role.name)}
                                                 />
                                             </td>
                                         );
@@ -406,7 +423,9 @@ export default function PermissionMatrixTab() {
                                                             onCheckedChange={(v) =>
                                                                 toggleCell(role.slug, perm.slug, Boolean(v))
                                                             }
-                                                            aria-label={`Permisiunea ${perm.name} pentru rolul ${role.name}`}
+                                                    aria-label={permissionForRoleTemplate
+                                                        .replace('{permission}', perm.name)
+                                                        .replace('{role}', role.name)}
                                                         />
                                                     </td>
                                                 ))}
@@ -423,7 +442,7 @@ export default function PermissionMatrixTab() {
                                 colSpan={roles.length + 1}
                                 className="p-6 text-center text-sm text-muted-foreground"
                             >
-                                Nicio permisiune găsită pentru filtrul curent.
+                                {noPermissions}
                             </td>
                         </tr>
                     )}

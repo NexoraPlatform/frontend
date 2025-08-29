@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 interface Question {
   id: string;
@@ -74,6 +76,10 @@ export default function NewTestPage() {
   const router = useRouter();
 
   const { data: servicesData } = useAdminServices();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+  const pageTitle = useAsyncTranslation(locale, 'admin.tests.new.title');
+  const pageSubtitle = useAsyncTranslation(locale, 'admin.tests.new.subtitle');
 
   const questionTypes = [
     { value: 'SINGLE_CHOICE', label: 'Alegere Unică', icon: Square },
@@ -282,9 +288,9 @@ export default function NewTestPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Adaugă Test Nou</h1>
+          <h1 className="text-3xl font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground">
-            Creează un test de competență pentru un serviciu și nivel specific
+            {pageSubtitle}
           </p>
         </div>
       </div>

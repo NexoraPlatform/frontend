@@ -1,7 +1,7 @@
 "use client";
 
-import {useState, useEffect, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import {useState, useEffect, useCallback, useMemo} from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import { ArrowLeft, Save, AlertCircle, Loader2, X, Plus } from 'lucide-react';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {InputAdornment, TextField} from "@mui/material";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function ServiceDetailClient({ id }: { id: string;}) {
     const [formData, setFormData] = useState({
@@ -34,15 +36,46 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
     const [newTag, setNewTag] = useState('');
     const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
     const router = useRouter();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
     const { data: categoriesData } = useCategories();
+
+    const pageTitle = useAsyncTranslation(locale, 'admin.services.edit_service.title');
+    const pageSubtitle = useAsyncTranslation(locale, 'admin.services.edit_service.subtitle');
+    const infoTitle = useAsyncTranslation(locale, 'admin.services.info_title');
+    const titleLabel = useAsyncTranslation(locale, 'admin.services.title_label');
+    const slugLabel = useAsyncTranslation(locale, 'admin.services.slug_label');
+    const slugPlaceholder = useAsyncTranslation(locale, 'admin.services.slug_placeholder');
+    const slugHelp = useAsyncTranslation(locale, 'admin.services.slug_help');
+    const descriptionLabel = useAsyncTranslation(locale, 'admin.services.description_label');
+    const requirementsLabel = useAsyncTranslation(locale, 'admin.services.requirements_label');
+    const categoryLabel = useAsyncTranslation(locale, 'admin.services.category_label');
+    const categoryPlaceholder = useAsyncTranslation(locale, 'admin.services.category_placeholder');
+    const statusLabel = useAsyncTranslation(locale, 'admin.services.edit_service.status_label');
+    const skillsTagsTitle = useAsyncTranslation(locale, 'admin.services.skills_tags_title');
+    const skillsLabel = useAsyncTranslation(locale, 'admin.services.skills_label');
+    const skillsPlaceholder = useAsyncTranslation(locale, 'admin.services.skills_placeholder');
+    const tagsLabel = useAsyncTranslation(locale, 'admin.services.tags_label');
+    const tagsPlaceholder = useAsyncTranslation(locale, 'admin.services.tags_placeholder');
+    const pricingNoteTitle = useAsyncTranslation(locale, 'admin.services.pricing_note_title_edit');
+    const pricingNoteDescription = useAsyncTranslation(locale, 'admin.services.pricing_note_description_edit');
+    const savingLabel = useAsyncTranslation(locale, 'admin.services.saving');
+    const saveChangesLabel = useAsyncTranslation(locale, 'admin.services.save_changes');
+    const cancelLabel = useAsyncTranslation(locale, 'admin.services.cancel');
+    const categoryLoadError = useAsyncTranslation(locale, 'admin.services.category_load_error');
+    const serviceLoadError = useAsyncTranslation(locale, 'admin.services.service_load_error');
+    const errorOccurred = useAsyncTranslation(locale, 'admin.services.error_occurred');
+    const statusActive = useAsyncTranslation(locale, 'admin.services.statuses.ACTIVE');
+    const statusDraft = useAsyncTranslation(locale, 'admin.services.statuses.DRAFT');
+    const statusSuspended = useAsyncTranslation(locale, 'admin.services.statuses.SUSPENDED');
 
     const loadService = useCallback(async () => {
         try {
             const service = await apiClient.getService(id);
             setFormData({
-                name: service.name || '',
+                name: service.name[locale] || '',
                 slug: service.slug || '',
-                description: service.description || '',
+                description: service.description[locale] || '',
                 requirements: service.requirements || '',
                 category_id: service.category_id || '',
                 skills: service.skills || [],
@@ -51,15 +84,32 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
             });
             setSelectedCategorySlug(service.category.slug || null);
         } catch (error: any) {
-            setError('Nu s-a putut încărca serviciul');
+            setError(serviceLoadError);
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, serviceLoadError]);
 
     useEffect(() => {
         loadService();
     }, [id, loadService]);
+
+    const buildCategoryOptions = useCallback((categories: any[], parentId: number | null = null, level = 0): any[] => {
+        let result: any[] = [];
+        categories
+            .filter(cat => cat.parent_id === parentId)
+            .forEach(cat => {
+                result.push({
+                    ...cat,
+                    displayName: `${'--'.repeat(level)} ${cat.name[locale]}`,
+                });
+                result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
+            });
+        return result;
+    }, []);
+
+
+    const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [buildCategoryOptions, categoriesData]);
 
     const handleNameChange = (title: string) => {
         setFormData(prev => ({
@@ -87,7 +137,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
 
             setSelectedCategorySlug(categorySlug);
         } catch (error: any) {
-            setError('Nu s-a putut încărca categoria');
+            setError(categoryLoadError);
         }
     }
 
@@ -100,7 +150,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
             await apiClient.updateService(id, formData);
             router.push('/admin/services');
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare');
+            setError(error.message || errorOccurred);
         } finally {
             setSaving(false);
         }
@@ -150,23 +200,6 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
         );
     }
 
-    const buildCategoryOptions = (categories: any[], parentId: number | null = null, level = 0): any[] => {
-        let result: any[] = [];
-        categories
-            .filter(cat => cat.parent_id === parentId)
-            .forEach(cat => {
-                result.push({
-                    ...cat,
-                    displayName: `${'--'.repeat(level)} ${cat.name}`,
-                });
-                result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
-            });
-        return result;
-    };
-
-
-    const categoryOptions = buildCategoryOptions(categoriesData || []);
-
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Header */}
@@ -177,9 +210,9 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-bold">Editează Serviciu</h1>
+                    <h1 className="text-3xl font-bold">{pageTitle}</h1>
                     <p className="text-muted-foreground">
-                        Modifică detaliile serviciului (tarifele sunt setate de prestatori)
+                        {pageSubtitle}
                     </p>
                 </div>
             </div>
@@ -196,11 +229,11 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                     {/* Informații de bază */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Informații de Bază</CardTitle>
+                            <CardTitle>{infoTitle}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div>
-                                <Label htmlFor="title">Titlu Serviciu *</Label>
+                                <Label htmlFor="title">{titleLabel}</Label>
                                 <Input
                                     id="title"
                                     value={formData.name}
@@ -210,12 +243,12 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                             </div>
 
                             <div>
-                                <Label htmlFor="slug">Slug (URL) *</Label>
+                                <Label htmlFor="slug">{slugLabel}</Label>
                                 <TextField
                                     required
                                     value={formData.slug}
                                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                                    placeholder="ex: creare-aplicatie"
+                                    placeholder={slugPlaceholder}
                                     slotProps={{
                                         input: {
                                             startAdornment: selectedCategorySlug ? (
@@ -228,12 +261,12 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                     fullWidth
                                 />
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Se generează automat din nume. Folosit în URL-uri.
+                                    {slugHelp}
                                 </p>
                             </div>
 
                             <div>
-                                <Label htmlFor="description">Descriere *</Label>
+                                <Label htmlFor="description">{descriptionLabel}</Label>
                                 <Textarea
                                     id="description"
                                     value={formData.description}
@@ -244,7 +277,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                             </div>
 
                             <div>
-                                <Label htmlFor="requirements">Cerințe și Specificații</Label>
+                                <Label htmlFor="requirements">{requirementsLabel}</Label>
                                 <Textarea
                                     id="requirements"
                                     value={formData.requirements}
@@ -255,7 +288,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
 
                             <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <Label htmlFor="category_id">Categorie *</Label>
+                                    <Label htmlFor="category_id">{categoryLabel}</Label>
                                     <Select
                                         value={String(formData.category_id)}
                                         onValueChange={(value) => {
@@ -264,7 +297,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                         }}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Selectează categoria" />
+                                            <SelectValue placeholder={categoryPlaceholder} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {categoryOptions.map((category: any) => (
@@ -279,15 +312,15 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                     </Select>
                                 </div>
                                 <div>
-                                    <Label htmlFor="status">Status</Label>
+                                    <Label htmlFor="status">{statusLabel}</Label>
                                     <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="DRAFT">Draft</SelectItem>
-                                            <SelectItem value="ACTIVE">Activ</SelectItem>
-                                            <SelectItem value="SUSPENDED">Suspendat</SelectItem>
+                                            <SelectItem value="DRAFT">{statusDraft}</SelectItem>
+                                            <SelectItem value="ACTIVE">{statusActive}</SelectItem>
+                                            <SelectItem value="SUSPENDED">{statusSuspended}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -298,16 +331,16 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                     {/* Skills și Tags */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Skills și Tags</CardTitle>
+                            <CardTitle>{skillsTagsTitle}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div>
-                                <Label>Skills</Label>
+                                <Label>{skillsLabel}</Label>
                                 <div className="flex space-x-2 mb-3">
                                     <Input
                                         value={newSkill}
                                         onChange={(e) => setNewSkill(e.target.value)}
-                                        placeholder="Adaugă skill"
+                                        placeholder={skillsPlaceholder}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
@@ -336,12 +369,12 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                             </div>
 
                             <div>
-                                <Label>Tags</Label>
+                                <Label>{tagsLabel}</Label>
                                 <div className="flex space-x-2 mb-3">
                                     <Input
                                         value={newTag}
                                         onChange={(e) => setNewTag(e.target.value)}
-                                        placeholder="Adaugă tag"
+                                        placeholder={tagsPlaceholder}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
@@ -380,11 +413,10 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                                        Tarife Personalizate
+                                        {pricingNoteTitle}
                                     </h3>
                                     <p className="text-blue-800 dark:text-blue-200 text-sm">
-                                        Prestatorii își gestionează propriile tarife pentru acest serviciu.
-                                        Modificările de aici afectează doar informațiile generale, nu prețurile.
+                                        {pricingNoteDescription}
                                     </p>
                                 </div>
                             </div>
@@ -397,18 +429,18 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                             {saving ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Se salvează...
+                                    {savingLabel}
                                 </>
                             ) : (
                                 <>
                                     <Save className="w-4 h-4 mr-2" />
-                                    Salvează Modificările
+                                    {saveChangesLabel}
                                 </>
                             )}
                         </Button>
                         <Link href="/admin/services">
                             <Button type="button" variant="outline">
-                                Anulează
+                                {cancelLabel}
                             </Button>
                         </Link>
                     </div>

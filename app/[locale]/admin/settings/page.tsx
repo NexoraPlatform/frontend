@@ -24,8 +24,12 @@ import {
   Users,
   AlertCircle,
   CheckCircle,
-  Loader2, Clock
+  Loader2,
+  Clock,
 } from 'lucide-react';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { usePathname } from 'next/navigation';
+import { Locale } from '@/types/locale';
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(false);
@@ -69,13 +73,31 @@ export default function AdminSettingsPage() {
     maintenanceMode: false,
     registrationOpen: true,
     featuredServicesCount: '8',
-    recentServicesCount: '12'
+    recentServicesCount: '12',
   });
+
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+  const pageTitle = useAsyncTranslation(locale, 'admin.settings.title');
+  const pageSubtitle = useAsyncTranslation(locale, 'admin.settings.subtitle');
+  const savingLabel = useAsyncTranslation(locale, 'admin.settings.saving');
+  const saveAllLabel = useAsyncTranslation(locale, 'admin.settings.save_all');
+  const savedSuccess = useAsyncTranslation(locale, 'admin.settings.saved_success');
+
+  const generalTab = useAsyncTranslation(locale, 'admin.settings.tabs.general');
+  const platformTab = useAsyncTranslation(locale, 'admin.settings.tabs.platform');
+  const paymentsTab = useAsyncTranslation(locale, 'admin.settings.tabs.payments');
+  const emailTab = useAsyncTranslation(locale, 'admin.settings.tabs.email');
+  const securityTab = useAsyncTranslation(locale, 'admin.settings.tabs.security');
+  const notificationsTab = useAsyncTranslation(locale, 'admin.settings.tabs.notifications');
+  const activeLabel = useAsyncTranslation(locale, 'admin.settings.payments.active');
+  const inactiveLabel = useAsyncTranslation(locale, 'admin.settings.payments.inactive');
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
@@ -86,7 +108,7 @@ export default function AdminSettingsPage() {
   };
 
   const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -99,22 +121,20 @@ export default function AdminSettingsPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Setări Platformă</h1>
-            <p className="text-muted-foreground">
-              Configurează setările generale ale platformei Nexora
-            </p>
+            <h1 className="text-3xl font-bold">{pageTitle}</h1>
+            <p className="text-muted-foreground">{pageSubtitle}</p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Se salvează...
+              {savingLabel}
             </>
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
-              Salvează Toate
+              {saveAllLabel}
             </>
           )}
         </Button>
@@ -124,7 +144,7 @@ export default function AdminSettingsPage() {
         <Alert className="mb-6 border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            Setările au fost salvate cu succes!
+            {savedSuccess}
           </AlertDescription>
         </Alert>
       )}
@@ -133,27 +153,27 @@ export default function AdminSettingsPage() {
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general" className="flex items-center space-x-2">
             <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">General</span>
+            <span className="hidden sm:inline">{generalTab}</span>
           </TabsTrigger>
           <TabsTrigger value="platform" className="flex items-center space-x-2">
             <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Platformă</span>
+            <span className="hidden sm:inline">{platformTab}</span>
           </TabsTrigger>
           <TabsTrigger value="payments" className="flex items-center space-x-2">
             <DollarSign className="w-4 h-4" />
-            <span className="hidden sm:inline">Plăți</span>
+            <span className="hidden sm:inline">{paymentsTab}</span>
           </TabsTrigger>
           <TabsTrigger value="email" className="flex items-center space-x-2">
             <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">Email</span>
+            <span className="hidden sm:inline">{emailTab}</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Securitate</span>
+            <span className="hidden sm:inline">{securityTab}</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center space-x-2">
             <Bell className="w-4 h-4" />
-            <span className="hidden sm:inline">Notificări</span>
+            <span className="hidden sm:inline">{notificationsTab}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -163,15 +183,17 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Globe className="w-5 h-5" />
-                  <span>Informații Site</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.general.site_info_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configurează informațiile de bază ale site-ului
+                  {useAsyncTranslation(locale, 'admin.settings.general.site_info_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="siteName">Nume Site</Label>
+                  <Label htmlFor="siteName">
+                    {useAsyncTranslation(locale, 'admin.settings.general.site_name_label')}
+                  </Label>
                   <Input
                     id="siteName"
                     value={settings.siteName}
@@ -179,7 +201,9 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="siteDescription">Descriere Site</Label>
+                  <Label htmlFor="siteDescription">
+                    {useAsyncTranslation(locale, 'admin.settings.general.site_description_label')}
+                  </Label>
                   <Textarea
                     id="siteDescription"
                     value={settings.siteDescription}
@@ -188,7 +212,9 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="siteUrl">URL Site</Label>
+                  <Label htmlFor="siteUrl">
+                    {useAsyncTranslation(locale, 'admin.settings.general.site_url_label')}
+                  </Label>
                   <Input
                     id="siteUrl"
                     value={settings.siteUrl}
@@ -202,15 +228,17 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Mail className="w-5 h-5" />
-                  <span>Contact</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.general.contact_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Adresele de email pentru contact
+                  {useAsyncTranslation(locale, 'admin.settings.general.contact_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="adminEmail">Email Administrator</Label>
+                  <Label htmlFor="adminEmail">
+                    {useAsyncTranslation(locale, 'admin.settings.general.admin_email_label')}
+                  </Label>
                   <Input
                     id="adminEmail"
                     type="email"
@@ -219,7 +247,9 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="supportEmail">Email Suport</Label>
+                  <Label htmlFor="supportEmail">
+                    {useAsyncTranslation(locale, 'admin.settings.general.support_email_label')}
+                  </Label>
                   <Input
                     id="supportEmail"
                     type="email"
@@ -238,15 +268,17 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <DollarSign className="w-5 h-5" />
-                  <span>Setări Financiare</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.platform.financial_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configurează comisioanele și limitele de preț
+                  {useAsyncTranslation(locale, 'admin.settings.platform.financial_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="platformCommission">Comision Platformă (%)</Label>
+                  <Label htmlFor="platformCommission">
+                    {useAsyncTranslation(locale, 'admin.settings.platform.commission_label')}
+                  </Label>
                   <Input
                     id="platformCommission"
                     type="number"
@@ -257,7 +289,9 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="minServicePrice">Preț Minim Serviciu (RON)</Label>
+                  <Label htmlFor="minServicePrice">
+                    {useAsyncTranslation(locale, 'admin.settings.platform.min_price_label')}
+                  </Label>
                   <Input
                     id="minServicePrice"
                     type="number"
@@ -267,7 +301,9 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="maxServicePrice">Preț Maxim Serviciu (RON)</Label>
+                  <Label htmlFor="maxServicePrice">
+                    {useAsyncTranslation(locale, 'admin.settings.platform.max_price_label')}
+                  </Label>
                   <Input
                     id="maxServicePrice"
                     type="number"
@@ -277,15 +313,26 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="defaultCurrency">Moneda Implicită</Label>
-                  <Select value={settings.defaultCurrency} onValueChange={(value) => updateSetting('defaultCurrency', value)}>
+                  <Label htmlFor="defaultCurrency">
+                    {useAsyncTranslation(locale, 'admin.settings.platform.currency_label')}
+                  </Label>
+                  <Select
+                    value={settings.defaultCurrency}
+                    onValueChange={(value) => updateSetting('defaultCurrency', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="RON">RON - Leu Românesc</SelectItem>
-                      <SelectItem value="EUR">EUR - Euro</SelectItem>
-                      <SelectItem value="USD">USD - Dolar American</SelectItem>
+                      <SelectItem value="RON">
+                        {useAsyncTranslation(locale, 'admin.settings.platform.currency_options.RON')}
+                      </SelectItem>
+                      <SelectItem value="EUR">
+                        {useAsyncTranslation(locale, 'admin.settings.platform.currency_options.EUR')}
+                      </SelectItem>
+                      <SelectItem value="USD">
+                        {useAsyncTranslation(locale, 'admin.settings.platform.currency_options.USD')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -296,59 +343,75 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="w-5 h-5" />
-                  <span>Setări Utilizatori</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.platform.user_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configurează comportamentul utilizatorilor
+                  {useAsyncTranslation(locale, 'admin.settings.platform.user_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Permite navigarea fără cont</Label>
+                    <Label>
+                      {useAsyncTranslation(locale, 'admin.settings.platform.guest_browsing_label')}
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Utilizatorii pot vedea serviciile fără să se înregistreze
+                      {useAsyncTranslation(locale, 'admin.settings.platform.guest_browsing_desc')}
                     </p>
                   </div>
                   <Switch
                     checked={settings.allowGuestBrowsing}
-                    onCheckedChange={(checked) => updateSetting('allowGuestBrowsing', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSetting('allowGuestBrowsing', checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Verificare email obligatorie</Label>
+                    <Label>
+                      {useAsyncTranslation(locale, 'admin.settings.platform.email_verification_label')}
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Utilizatorii trebuie să își verifice email-ul
+                      {useAsyncTranslation(locale, 'admin.settings.platform.email_verification_desc')}
                     </p>
                   </div>
                   <Switch
                     checked={settings.requireEmailVerification}
-                    onCheckedChange={(checked) => updateSetting('requireEmailVerification', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSetting('requireEmailVerification', checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Auto-aprobare servicii</Label>
+                    <Label>
+                      {useAsyncTranslation(locale, 'admin.settings.platform.auto_approve_label')}
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Serviciile sunt aprobate automat
+                      {useAsyncTranslation(locale, 'admin.settings.platform.auto_approve_desc')}
                     </p>
                   </div>
                   <Switch
                     checked={settings.autoApproveServices}
-                    onCheckedChange={(checked) => updateSetting('autoApproveServices', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSetting('autoApproveServices', checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Înregistrări deschise</Label>
+                    <Label>
+                      {useAsyncTranslation(locale, 'admin.settings.platform.registration_open_label')}
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Permite înregistrarea de utilizatori noi
+                      {useAsyncTranslation(locale, 'admin.settings.platform.registration_open_desc')}
                     </p>
                   </div>
                   <Switch
                     checked={settings.registrationOpen}
-                    onCheckedChange={(checked) => updateSetting('registrationOpen', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSetting('registrationOpen', checked)
+                    }
                   />
                 </div>
               </CardContent>
@@ -362,10 +425,10 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <DollarSign className="w-5 h-5" />
-                  <span>Metode de Plată</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.payments.methods_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Activează sau dezactivează metodele de plată
+                  {useAsyncTranslation(locale, 'admin.settings.payments.methods_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -375,19 +438,21 @@ export default function AdminSettingsPage() {
                       <DollarSign className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <Label>Stripe</Label>
+                      <Label>{useAsyncTranslation(locale, 'admin.settings.payments.stripe_label')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Carduri de credit și debit
+                        {useAsyncTranslation(locale, 'admin.settings.payments.stripe_desc')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={settings.stripeEnabled ? "default" : "secondary"}>
-                      {settings.stripeEnabled ? "Activ" : "Inactiv"}
+                    <Badge variant={settings.stripeEnabled ? 'default' : 'secondary'}>
+                      {settings.stripeEnabled ? activeLabel : inactiveLabel}
                     </Badge>
                     <Switch
                       checked={settings.stripeEnabled}
-                      onCheckedChange={(checked) => updateSetting('stripeEnabled', checked)}
+                      onCheckedChange={(checked) =>
+                        updateSetting('stripeEnabled', checked)
+                      }
                     />
                   </div>
                 </div>
@@ -398,19 +463,21 @@ export default function AdminSettingsPage() {
                       <DollarSign className="w-5 h-5 text-yellow-600" />
                     </div>
                     <div>
-                      <Label>PayPal</Label>
+                      <Label>{useAsyncTranslation(locale, 'admin.settings.payments.paypal_label')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Plăți prin PayPal
+                        {useAsyncTranslation(locale, 'admin.settings.payments.paypal_desc')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={settings.paypalEnabled ? "default" : "secondary"}>
-                      {settings.paypalEnabled ? "Activ" : "Inactiv"}
+                    <Badge variant={settings.paypalEnabled ? 'default' : 'secondary'}>
+                      {settings.paypalEnabled ? activeLabel : inactiveLabel}
                     </Badge>
                     <Switch
                       checked={settings.paypalEnabled}
-                      onCheckedChange={(checked) => updateSetting('paypalEnabled', checked)}
+                      onCheckedChange={(checked) =>
+                        updateSetting('paypalEnabled', checked)
+                      }
                     />
                   </div>
                 </div>
@@ -421,19 +488,25 @@ export default function AdminSettingsPage() {
                       <DollarSign className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <Label>Transfer Bancar</Label>
+                      <Label>
+                        {useAsyncTranslation(locale, 'admin.settings.payments.bank_transfer_label')}
+                      </Label>
                       <p className="text-sm text-muted-foreground">
-                        Plăți prin transfer bancar
+                        {useAsyncTranslation(locale, 'admin.settings.payments.bank_transfer_desc')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={settings.bankTransferEnabled ? "default" : "secondary"}>
-                      {settings.bankTransferEnabled ? "Activ" : "Inactiv"}
+                    <Badge
+                      variant={settings.bankTransferEnabled ? 'default' : 'secondary'}
+                    >
+                      {settings.bankTransferEnabled ? activeLabel : inactiveLabel}
                     </Badge>
                     <Switch
                       checked={settings.bankTransferEnabled}
-                      onCheckedChange={(checked) => updateSetting('bankTransferEnabled', checked)}
+                      onCheckedChange={(checked) =>
+                        updateSetting('bankTransferEnabled', checked)
+                      }
                     />
                   </div>
                 </div>
@@ -444,30 +517,32 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Shield className="w-5 h-5" />
-                  <span>Securitate Plăți</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.payments.security_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configurează securitatea plăților
+                  {useAsyncTranslation(locale, 'admin.settings.payments.security_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Sistem Escrow</Label>
+                    <Label>{useAsyncTranslation(locale, 'admin.settings.payments.escrow_label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Banii sunt ținuți în siguranță până la finalizarea proiectului
+                      {useAsyncTranslation(locale, 'admin.settings.payments.escrow_desc')}
                     </p>
                   </div>
                   <Switch
                     checked={settings.escrowEnabled}
-                    onCheckedChange={(checked) => updateSetting('escrowEnabled', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSetting('escrowEnabled', checked)
+                    }
                   />
                 </div>
 
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Sistemul Escrow este recomandat pentru protecția atât a clienților cât și a prestatorilor.
+                    {useAsyncTranslation(locale, 'admin.settings.payments.escrow_alert')}
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -480,23 +555,43 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Mail className="w-5 h-5" />
-                <span>Configurare Email</span>
+                <span>{useAsyncTranslation(locale, 'admin.settings.email.config_title')}</span>
               </CardTitle>
               <CardDescription>
-                Configurează setările pentru trimiterea de email-uri
+                {useAsyncTranslation(locale, 'admin.settings.email.config_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="emailProvider">Furnizor Email</Label>
-                <Select value={settings.emailProvider} onValueChange={(value) => updateSetting('emailProvider', value)}>
+                <Label htmlFor="emailProvider">
+                  {useAsyncTranslation(locale, 'admin.settings.email.provider_label')}
+                </Label>
+                <Select
+                  value={settings.emailProvider}
+                  onValueChange={(value) => updateSetting('emailProvider', value)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sendgrid">SendGrid</SelectItem>
-                    <SelectItem value="mailgun">Mailgun</SelectItem>
-                    <SelectItem value="smtp">SMTP Custom</SelectItem>
+                    <SelectItem value="sendgrid">
+                      {useAsyncTranslation(
+                        locale,
+                        'admin.settings.email.provider_options.sendgrid'
+                      )}
+                    </SelectItem>
+                    <SelectItem value="mailgun">
+                      {useAsyncTranslation(
+                        locale,
+                        'admin.settings.email.provider_options.mailgun'
+                      )}
+                    </SelectItem>
+                    <SelectItem value="smtp">
+                      {useAsyncTranslation(
+                        locale,
+                        'admin.settings.email.provider_options.smtp'
+                      )}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -504,25 +599,37 @@ export default function AdminSettingsPage() {
               {settings.emailProvider === 'smtp' && (
                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="smtpHost">SMTP Host</Label>
+                    <Label htmlFor="smtpHost">
+                      {useAsyncTranslation(locale, 'admin.settings.email.smtp.host_label')}
+                    </Label>
                     <Input
                       id="smtpHost"
                       value={settings.smtpHost}
                       onChange={(e) => updateSetting('smtpHost', e.target.value)}
-                      placeholder="smtp.gmail.com"
+                      placeholder={useAsyncTranslation(
+                        locale,
+                        'admin.settings.email.smtp.host_placeholder'
+                      )}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="smtpPort">SMTP Port</Label>
+                    <Label htmlFor="smtpPort">
+                      {useAsyncTranslation(locale, 'admin.settings.email.smtp.port_label')}
+                    </Label>
                     <Input
                       id="smtpPort"
                       value={settings.smtpPort}
                       onChange={(e) => updateSetting('smtpPort', e.target.value)}
-                      placeholder="587"
+                      placeholder={useAsyncTranslation(
+                        locale,
+                        'admin.settings.email.smtp.port_placeholder'
+                      )}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="smtpUser">SMTP User</Label>
+                    <Label htmlFor="smtpUser">
+                      {useAsyncTranslation(locale, 'admin.settings.email.smtp.user_label')}
+                    </Label>
                     <Input
                       id="smtpUser"
                       value={settings.smtpUser}
@@ -530,12 +637,16 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="smtpPassword">SMTP Password</Label>
+                    <Label htmlFor="smtpPassword">
+                      {useAsyncTranslation(locale, 'admin.settings.email.smtp.password_label')}
+                    </Label>
                     <Input
                       id="smtpPassword"
                       type="password"
                       value={settings.smtpPassword}
-                      onChange={(e) => updateSetting('smtpPassword', e.target.value)}
+                      onChange={(e) =>
+                        updateSetting('smtpPassword', e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -550,45 +661,57 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Shield className="w-5 h-5" />
-                  <span>Autentificare</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.security.auth_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configurează securitatea autentificării
+                  {useAsyncTranslation(locale, 'admin.settings.security.auth_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Autentificare cu 2 factori obligatorie</Label>
+                    <Label>
+                      {useAsyncTranslation(locale, 'admin.settings.security.two_factor_label')}
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Toți utilizatorii trebuie să activeze 2FA
+                      {useAsyncTranslation(locale, 'admin.settings.security.two_factor_desc')}
                     </p>
                   </div>
                   <Switch
                     checked={settings.twoFactorRequired}
-                    onCheckedChange={(checked) => updateSetting('twoFactorRequired', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSetting('twoFactorRequired', checked)
+                    }
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="passwordMinLength">Lungime minimă parolă</Label>
+                  <Label htmlFor="passwordMinLength">
+                    {useAsyncTranslation(locale, 'admin.settings.security.password_length_label')}
+                  </Label>
                   <Input
                     id="passwordMinLength"
                     type="number"
                     value={settings.passwordMinLength}
-                    onChange={(e) => updateSetting('passwordMinLength', e.target.value)}
+                    onChange={(e) =>
+                      updateSetting('passwordMinLength', e.target.value)
+                    }
                     min="6"
                     max="20"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="maxLoginAttempts">Încercări maxime de login</Label>
+                  <Label htmlFor="maxLoginAttempts">
+                    {useAsyncTranslation(locale, 'admin.settings.security.max_attempts_label')}
+                  </Label>
                   <Input
                     id="maxLoginAttempts"
                     type="number"
                     value={settings.maxLoginAttempts}
-                    onChange={(e) => updateSetting('maxLoginAttempts', e.target.value)}
+                    onChange={(e) =>
+                      updateSetting('maxLoginAttempts', e.target.value)
+                    }
                     min="3"
                     max="10"
                   />
@@ -600,25 +723,29 @@ export default function AdminSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Clock className="w-5 h-5" />
-                  <span>Sesiuni</span>
+                  <span>{useAsyncTranslation(locale, 'admin.settings.security.sessions_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configurează durata sesiunilor
+                  {useAsyncTranslation(locale, 'admin.settings.security.sessions_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="sessionTimeout">Timeout sesiune (ore)</Label>
+                  <Label htmlFor="sessionTimeout">
+                    {useAsyncTranslation(locale, 'admin.settings.security.session_timeout_label')}
+                  </Label>
                   <Input
                     id="sessionTimeout"
                     type="number"
                     value={settings.sessionTimeout}
-                    onChange={(e) => updateSetting('sessionTimeout', e.target.value)}
+                    onChange={(e) =>
+                      updateSetting('sessionTimeout', e.target.value)
+                    }
                     min="1"
                     max="168"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Utilizatorii vor fi deconectați automat după această perioadă de inactivitate
+                    {useAsyncTranslation(locale, 'admin.settings.security.session_timeout_desc')}
                   </p>
                 </div>
               </CardContent>
@@ -631,62 +758,78 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Bell className="w-5 h-5" />
-                <span>Setări Notificări</span>
+                <span>{useAsyncTranslation(locale, 'admin.settings.notifications.title')}</span>
               </CardTitle>
               <CardDescription>
-                Configurează tipurile de notificări activate
+                {useAsyncTranslation(locale, 'admin.settings.notifications.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Notificări Email</Label>
+                  <Label>
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.email_label')}
+                  </Label>
                   <p className="text-sm text-muted-foreground">
-                    Trimite notificări prin email pentru evenimente importante
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.email_desc')}
                   </p>
                 </div>
                 <Switch
                   checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                  onCheckedChange={(checked) =>
+                    updateSetting('emailNotifications', checked)
+                  }
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Notificări SMS</Label>
+                  <Label>
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.sms_label')}
+                  </Label>
                   <p className="text-sm text-muted-foreground">
-                    Trimite notificări prin SMS pentru evenimente critice
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.sms_desc')}
                   </p>
                 </div>
                 <Switch
                   checked={settings.smsNotifications}
-                  onCheckedChange={(checked) => updateSetting('smsNotifications', checked)}
+                  onCheckedChange={(checked) =>
+                    updateSetting('smsNotifications', checked)
+                  }
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Notificări Push</Label>
+                  <Label>
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.push_label')}
+                  </Label>
                   <p className="text-sm text-muted-foreground">
-                    Trimite notificări push în browser
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.push_desc')}
                   </p>
                 </div>
                 <Switch
                   checked={settings.pushNotifications}
-                  onCheckedChange={(checked) => updateSetting('pushNotifications', checked)}
+                  onCheckedChange={(checked) =>
+                    updateSetting('pushNotifications', checked)
+                  }
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Email-uri Marketing</Label>
+                  <Label>
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.marketing_label')}
+                  </Label>
                   <p className="text-sm text-muted-foreground">
-                    Permite trimiterea de email-uri promoționale
+                    {useAsyncTranslation(locale, 'admin.settings.notifications.marketing_desc')}
                   </p>
                 </div>
                 <Switch
                   checked={settings.marketingEmails}
-                  onCheckedChange={(checked) => updateSetting('marketingEmails', checked)}
+                  onCheckedChange={(checked) =>
+                    updateSetting('marketingEmails', checked)
+                  }
                 />
               </div>
             </CardContent>
@@ -696,3 +839,4 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+

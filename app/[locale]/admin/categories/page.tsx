@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,54 +18,88 @@ import {
 } from 'lucide-react';
 import { useAdminCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import {useRouter} from "next/navigation";
-import {MuiIcon} from "@/components/MuiIcons";
+import { useRouter, usePathname } from 'next/navigation';
+import { MuiIcon } from '@/components/MuiIcons';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function AdminCategoriesPage() {
   const { data: categoriesData, loading: categoriesLoading, refetch: refetchCategories } = useAdminCategories();
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+  const manageTitle = useAsyncTranslation(locale, 'admin.categories.manage_title');
+  const manageSubtitle = useAsyncTranslation(locale, 'admin.categories.manage_subtitle');
+  const addCategory = useAsyncTranslation(locale, 'admin.categories.add_category');
+  const listTitle = useAsyncTranslation(locale, 'admin.categories.list_title');
+  const totalSummaryTemplate = useAsyncTranslation(locale, 'admin.categories.total_summary');
+  const inactiveLabel = useAsyncTranslation(locale, 'admin.categories.inactive');
+  const orderLabel = useAsyncTranslation(locale, 'admin.categories.order_label');
+  const subcategoriesLabel = useAsyncTranslation(locale, 'admin.categories.subcategories_label');
+  const iconLabel = useAsyncTranslation(locale, 'admin.categories.icon_label');
+  const editLabel = useAsyncTranslation(locale, 'admin.categories.edit');
+  const deleteLabel = useAsyncTranslation(locale, 'admin.categories.delete');
+  const confirmDeleteText = useAsyncTranslation(locale, 'admin.categories.confirm_delete');
+  const errorPrefix = useAsyncTranslation(locale, 'admin.categories.error_prefix');
+  const noCategoriesTitle = useAsyncTranslation(locale, 'admin.categories.no_categories_title');
+  const noCategoriesDescription = useAsyncTranslation(locale, 'admin.categories.no_categories_description');
+  const addFirstCategory = useAsyncTranslation(locale, 'admin.categories.add_first_category');
 
   const handleCategoryAction = async (categoryId: string, action: string) => {
     try {
       if (action === 'delete') {
-        if (confirm('Ești sigur că vrei să ștergi această categorie?')) {
+        if (confirm(confirmDeleteText)) {
           await apiClient.deleteCategory(categoryId);
           await refetchCategories();
         }
       }
     } catch (error: any) {
-      alert('Eroare: ' + error.message);
+      alert(errorPrefix + error.message);
     }
   };
 
   const categories = categoriesData?.categories || [];
-  const parentCategories = categories.filter((cat: any) => !cat.parent_id);
-  const childCategories = categories.filter((cat: any) => cat.parent_id);
+  const { parentCategories, childCategories, childrenMap } = useMemo(() => {
+    const parents: any[] = [];
+    const children: any[] = [];
+    const map: Record<string, any[]> = {};
+    for (const cat of categories) {
+      if (!cat.parent_id) {
+        parents.push(cat);
+      } else {
+        children.push(cat);
+        if (!map[cat.parent_id]) map[cat.parent_id] = [];
+        map[cat.parent_id].push(cat);
+      }
+    }
+    return { parentCategories: parents, childCategories: children, childrenMap: map };
+  }, [categories]);
 
   const getChildrenForParent = (parentId: string) => {
-    return childCategories.filter((cat: any) => cat.parent_id === parentId);
+    return childrenMap[parentId] || [];
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
-          <Link href="/admin">
+          <Link href={`/${locale}/admin`}>
             <Button variant="outline" size="icon">
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Gestionare Categorii</h1>
+            <h1 className="text-3xl font-bold">{manageTitle}</h1>
             <p className="text-muted-foreground">
-              Administrează categoriile de servicii
+              {manageSubtitle}
             </p>
           </div>
         </div>
-        <Link href="/admin/categories/new">
+        <Link href={`/${locale}/admin/categories/new`}>
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Adaugă Categorie
+            {addCategory}
           </Button>
         </Link>
       </div>
@@ -73,10 +108,13 @@ export default function AdminCategoriesPage() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FolderPlus className="w-5 h-5" />
-            <span>Lista Categorii</span>
+            <span>{listTitle}</span>
           </CardTitle>
           <CardDescription>
-            {categories.length} categorii în total ({parentCategories.length} categorii principale, {childCategories.length} subcategorii)
+            {totalSummaryTemplate
+              .replace('{count}', String(categories.length))
+              .replace('{parents}', String(parentCategories.length))
+              .replace('{children}', String(childCategories.length))}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -99,26 +137,26 @@ export default function AdminCategoriesPage() {
                         </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="font-semibold text-lg">{category.name}</h3>
+                            <h3 className="font-semibold text-lg">{category.name[locale]}</h3>
                             <Badge variant="outline" className="text-xs">
                               {category.slug}
                             </Badge>
                             {!category.isActive && (
-                              <Badge variant="destructive" className="text-xs">Inactiv</Badge>
+                              <Badge variant="destructive" className="text-xs">{inactiveLabel}</Badge>
                             )}
                           </div>
                           {category.description && (
                             <p className="text-sm text-muted-foreground mb-2">
-                              {category.description}
+                              {category.description[locale]}
                             </p>
                           )}
                           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                            <span>Ordine: {category.sortOrder}</span>
+                            <span>{orderLabel}: {category.sortOrder}</span>
                             {children.length > 0 && (
-                              <span>{children.length} subcategorii</span>
+                              <span>{children.length} {subcategoriesLabel}</span>
                             )}
                             {category.icon && (
-                              <span>Iconiță: {category.icon}</span>
+                              <span>{iconLabel}: {category.icon}</span>
                             )}
                           </div>
                         </div>
@@ -133,14 +171,14 @@ export default function AdminCategoriesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => router.push(`/admin/categories/${category.id}`)}>
                             <Edit className="w-4 h-4 mr-2" />
-                            Editează
+                            {editLabel}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleCategoryAction(category.id, 'delete')}
                             className="text-red-600"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Șterge
+                            {deleteLabel}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -156,23 +194,23 @@ export default function AdminCategoriesPage() {
                               </div>
                               <div>
                                 <div className="flex items-center space-x-2 mb-1">
-                                  <h4 className="font-medium">{child.name}</h4>
+                                  <h4 className="font-medium">{child.name[locale]}</h4>
                                   <Badge variant="outline" className="text-xs">
                                     {child.slug}
                                   </Badge>
                                   {!child.isActive && (
-                                    <Badge variant="destructive" className="text-xs">Inactiv</Badge>
+                                    <Badge variant="destructive" className="text-xs">{inactiveLabel}</Badge>
                                   )}
                                 </div>
                                 {child.description && (
                                   <p className="text-sm text-muted-foreground mb-1">
-                                    {child.description}
+                                    {child.description[locale]}
                                   </p>
                                 )}
                                 <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                  <span>Ordine: {child.sortOrder}</span>
+                                  <span>{orderLabel}: {child.sortOrder}</span>
                                   {child.icon && (
-                                    <span>Iconiță: {child.icon}</span>
+                                    <span>{iconLabel}: {child.icon}</span>
                                   )}
                                 </div>
                               </div>
@@ -187,14 +225,14 @@ export default function AdminCategoriesPage() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => router.push(`/admin/categories/${child.id}`)}>
                                   <Edit className="w-4 h-4 mr-2" />
-                                  Editează
+                                  {editLabel}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleCategoryAction(child.id, 'delete')}
                                   className="text-red-600"
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
-                                  Șterge
+                                  {deleteLabel}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -209,14 +247,14 @@ export default function AdminCategoriesPage() {
               {categories.length === 0 && (
                 <div className="text-center py-12">
                   <FolderPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Nu există categorii</h3>
+                  <h3 className="text-lg font-medium mb-2">{noCategoriesTitle}</h3>
                   <p className="text-muted-foreground mb-4">
-                    Începe prin a crea prima categorie pentru servicii
+                    {noCategoriesDescription}
                   </p>
-                  <Link href="/admin/categories/new">
+                  <Link href={`/${locale}/admin/categories/new`}>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
-                      Adaugă Prima Categorie
+                      {addFirstCategory}
                     </Button>
                   </Link>
                 </div>

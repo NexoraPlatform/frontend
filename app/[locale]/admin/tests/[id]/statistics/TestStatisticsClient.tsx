@@ -21,6 +21,10 @@ import {
     Square
 } from 'lucide-react';
 import { useTestStatistics } from '@/hooks/use-api';
+import { usePathname } from 'next/navigation';
+import { Locale } from '@/types/locale';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import {useMemo} from "react";
 
 interface QuestionStat {
     id: string;
@@ -33,6 +37,34 @@ interface QuestionStat {
 
 export default function TestStatisticsPage({ id }: {  id: string; }) {
     const { data: stats, loading: statsLoading, error: statsError } = useTestStatistics(id);
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+    const subtitle = useAsyncTranslation(locale, 'admin.tests.statistics.subtitle');
+    const titleSuffix = useAsyncTranslation(locale, 'admin.tests.statistics.title_suffix');
+    const userLabel = useAsyncTranslation(locale, 'admin.tests.statistics.user_label');
+    const passedLabel = useAsyncTranslation(locale, 'admin.tests.statistics.passed_label');
+    const passedYes = useAsyncTranslation(locale, 'admin.tests.statistics.passed_yes');
+    const passedNo = useAsyncTranslation(locale, 'admin.tests.statistics.passed_no');
+    const scoreLabel = useAsyncTranslation(locale, 'admin.tests.statistics.score_label');
+    const timeSpentLabel = useAsyncTranslation(locale, 'admin.tests.statistics.time_spent_label');
+    const questionStatsTitle = useAsyncTranslation(locale, 'admin.tests.statistics.question_stats_title');
+    const questionStatsDescription = useAsyncTranslation(locale, 'admin.tests.statistics.question_stats_description');
+    const questionLabelTemplate = useAsyncTranslation(locale, 'admin.tests.statistics.question_label');
+    const correctAnswerLabel = useAsyncTranslation(locale, 'admin.tests.statistics.correct_answer');
+    const userAnswerLabel = useAsyncTranslation(locale, 'admin.tests.statistics.user_answer');
+    const errorLoading = useAsyncTranslation(locale, 'admin.tests.statistics.error_loading');
+    const answerCorrect = useAsyncTranslation(locale, 'admin.tests.statistics.answer_correct');
+    const answerIncorrect = useAsyncTranslation(locale, 'admin.tests.statistics.answer_incorrect');
+    const questionTypeSingle = useAsyncTranslation(locale, 'admin.tests.question_types.SINGLE_CHOICE');
+    const questionTypeMultiple = useAsyncTranslation(locale, 'admin.tests.question_types.MULTIPLE_CHOICE');
+    const questionTypeCode = useAsyncTranslation(locale, 'admin.tests.question_types.CODE_WRITING');
+    const questionTypeText = useAsyncTranslation(locale, 'admin.tests.question_types.TEXT_INPUT');
+    const pointsTemplate = useAsyncTranslation(locale, 'admin.tests.points_template');
+    const levelJunior = useAsyncTranslation(locale, 'admin.tests.levels.JUNIOR');
+    const levelMediu = useAsyncTranslation(locale, 'admin.tests.levels.MEDIU');
+    const levelSenior = useAsyncTranslation(locale, 'admin.tests.levels.SENIOR');
+    const levelExpert = useAsyncTranslation(locale, 'admin.tests.levels.EXPERT');
 
     const getQuestionTypeIcon = (type: string) => {
         switch (type) {
@@ -44,27 +76,29 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
         }
     };
 
+    const questionTypeLabelMap = useMemo(() => ({
+        SINGLE_CHOICE: questionTypeSingle,
+        MULTIPLE_CHOICE: questionTypeMultiple,
+        CODE_WRITING: questionTypeCode,
+        TEXT_INPUT: questionTypeText,
+    }), [questionTypeSingle, questionTypeMultiple, questionTypeCode, questionTypeText]);
+
     const getQuestionTypeLabel = (type: string) => {
-        switch (type) {
-            case 'SINGLE_CHOICE': return 'Alegere Unică';
-            case 'MULTIPLE_CHOICE': return 'Alegere Multiplă';
-            case 'CODE_WRITING': return 'Scriere Cod';
-            case 'TEXT_INPUT': return 'Răspuns Text';
-            default: return type;
-        }
+        return questionTypeLabelMap[type as keyof typeof questionTypeLabelMap] || type;
     };
 
     type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
 
-    const getLevelBadge = (level: Level) => {
-        const colors: Record<Level, string> = {
-            JUNIOR: 'bg-green-100 text-green-800',
-            MEDIU: 'bg-blue-100 text-blue-800',
-            SENIOR: 'bg-purple-100 text-purple-800',
-            EXPERT: 'bg-orange-100 text-orange-800',
-        };
+    const levelBadgeMap = useMemo(() => ({
+        JUNIOR: { label: levelJunior, color: 'bg-green-100 text-green-800' },
+        MEDIU: { label: levelMediu, color: 'bg-blue-100 text-blue-800' },
+        SENIOR: { label: levelSenior, color: 'bg-purple-100 text-purple-800' },
+        EXPERT: { label: levelExpert, color: 'bg-orange-100 text-orange-800' },
+    }), [levelJunior, levelMediu, levelSenior, levelExpert]);
 
-        return <Badge className={colors[level]}>{level}</Badge>;
+    const getLevelBadge = (level: Level) => {
+        const badge = levelBadgeMap[level];
+        return <Badge className={badge?.color || 'bg-gray-100 text-gray-800'}>{badge?.label || level}</Badge>;
     };
 
     if (statsLoading) {
@@ -83,7 +117,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                        {statsError || 'Nu s-au putut încărca datele'}
+                        {statsError || errorLoading}
                     </AlertDescription>
                 </Alert>
             </div>
@@ -108,15 +142,15 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
         <div className="container mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/tests">
+                <Link href={`/${locale}/admin/tests`}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                 </Link>
                 <div className="flex-1">
-                    <h1 className="text-3xl font-bold">{stats.title} - {stats.test_results.user.firstName} {stats.test_results.user.lastName} - Statistici</h1>
+                    <h1 className="text-3xl font-bold">{stats.title} - {stats.test_results.user.firstName} {stats.test_results.user.lastName} - {titleSuffix}</h1>
                     <p className="text-muted-foreground">
-                        Analiză detaliată a performanței testului
+                        {subtitle}
                     </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -134,7 +168,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                         <div className="text-center">
                             <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                             <div className="text-3xl font-bold">{stats.test_results.user.firstName} {stats.test_results.user.lastName}</div>
-                            <p className="text-sm text-muted-foreground">Utilizator</p>
+                            <p className="text-sm text-muted-foreground">{userLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -143,8 +177,8 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                     <CardContent className="pt-6">
                         <div className="text-center">
                             <CheckCircle className={`w-8 h-8 ${stats.test_results.passed === 'YES' ? 'text-green-500' : 'text-red-500'} mx-auto mb-2`} />
-                            <div className="text-3xl font-bold">{stats.test_results.passed === 'YES' ? 'Da' : 'Nu'}</div>
-                            <p className="text-sm text-muted-foreground">Test Trecut</p>
+                            <div className="text-3xl font-bold">{stats.test_results.passed === 'YES' ? passedYes : passedNo}</div>
+                            <p className="text-sm text-muted-foreground">{passedLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -154,7 +188,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                         <div className="text-center">
                             <Target className="w-8 h-8 text-purple-500 mx-auto mb-2" />
                             <div className="text-3xl font-bold">{Number(stats.test_results.score)}%</div>
-                            <p className="text-sm text-muted-foreground">Scor</p>
+                            <p className="text-sm text-muted-foreground">{scoreLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -164,7 +198,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                         <div className="text-center">
                             <Clock className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                             <div className="text-3xl font-bold">{formatTime(stats.test_results.timeSpent)}</div>
-                            <p className="text-sm text-muted-foreground">Timp petrecut</p>
+                            <p className="text-sm text-muted-foreground">{timeSpentLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -216,10 +250,10 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <Target className="w-5 h-5" />
-                        <span>Statistici per Întrebare</span>
+                        <span>{questionStatsTitle}</span>
                     </CardTitle>
                     <CardDescription>
-                        Performanța candidaților pentru fiecare întrebare
+                        {questionStatsDescription}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -247,11 +281,11 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                                                 {getQuestionTypeLabel(question.type)}
                                             </Badge>
                                             <Badge variant="secondary">
-                                                {question.points} puncte
+                                                {pointsTemplate.replace('{count}', String(question.points))}
                                             </Badge>
                                         </div>
                                         <div className="text-xl font-bold text-blue-500">
-                                            Întrebarea {index + 1}
+                                            {questionLabelTemplate.replace('{number}', String(index + 1))}
                                         </div>
                                     </div>
 
@@ -260,8 +294,8 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                                     <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                         <div>
                                             <div className="flex justify-between text-sm mb-1">
-                                                <span>Raspuns {questionStat.is_correct ? 'corect' : 'incorect' }</span>
-                                                <span>{questionStat.points_earned} puncte</span>
+                                                <span>{questionStat.is_correct ? answerCorrect : answerIncorrect}</span>
+                                                <span>{pointsTemplate.replace('{count}', String(questionStat.points_earned))}</span>
                                             </div>
                                             <Progress value={100} className="h-2" indicatorClassName={`${questionStat.is_correct ? 'bg-green-500' : 'bg-red-500'}`} />
                                         </div>
@@ -271,7 +305,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
                                     <div className="flex items-center space-x-2 text-sm mb-2">
                                         <CheckCircle className="w-4 h-4 text-green-500" />
-                                        <span>Raspuns corect</span>
+                                        <span>{correctAnswerLabel}</span>
                                         <span>
                                             {correctAnswers.map((ans, idx) => (
                                                 <span key={idx} className="font-bold text-green-500">{ans}{idx < correctAnswers.length - 1 ? ', ' : ''}</span>
@@ -282,7 +316,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
                                     <div className="flex items-center space-x-2 text-sm mb-2">
                                         <Users className="w-4 h-4 text-blue-500" />
-                                        <span>Raspuns utilizator</span>
+                                        <span>{userAnswerLabel}</span>
                                         <span>
                                             {userAnswers.map((ans, idx) => (
                                             <span key={idx} className={`font-bold ${questionStat.is_correct ? 'text-blue-500' : 'text-red-500'}`}>{ans}{idx < userAnswers.length - 1 ? ', ' : ''}</span>

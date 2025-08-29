@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { Locale } from '@/types/locale';
 
 export default function NewUserPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +26,28 @@ export default function NewUserPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+  const addTitle = useAsyncTranslation(locale, 'admin.users.new.title');
+  const addSubtitle = useAsyncTranslation(locale, 'admin.users.new.subtitle');
+  const infoTitle = useAsyncTranslation(locale, 'admin.users.new.info_title');
+  const infoDescription = useAsyncTranslation(locale, 'admin.users.new.info_description');
+  const errorOccurred = useAsyncTranslation(locale, 'admin.users.new.error_occurred');
+  const firstNameLabel = useAsyncTranslation(locale, 'admin.users.new.first_name_label');
+  const lastNameLabel = useAsyncTranslation(locale, 'admin.users.new.last_name_label');
+  const emailLabel = useAsyncTranslation(locale, 'admin.users.new.email_label');
+  const passwordLabel = useAsyncTranslation(locale, 'admin.users.new.password_label');
+  const passwordHint = useAsyncTranslation(locale, 'admin.users.new.password_hint');
+  const roleLabel = useAsyncTranslation(locale, 'admin.users.new.role_label');
+  const phoneLabel = useAsyncTranslation(locale, 'admin.users.new.phone_label');
+  const phonePlaceholder = useAsyncTranslation(locale, 'admin.users.new.phone_placeholder');
+  const creatingLabel = useAsyncTranslation(locale, 'admin.users.new.creating');
+  const createUserLabel = useAsyncTranslation(locale, 'admin.users.new.create_user');
+  const cancelLabel = useAsyncTranslation(locale, 'admin.users.new.cancel');
+  const roleClient = useAsyncTranslation(locale, 'admin.users.new.roles.CLIENT');
+  const roleProvider = useAsyncTranslation(locale, 'admin.users.new.roles.PROVIDER');
+  const roleAdmin = useAsyncTranslation(locale, 'admin.users.new.roles.ADMIN');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +58,7 @@ export default function NewUserPage() {
       await apiClient.createUser(formData);
       router.push('/admin/users');
     } catch (error: any) {
-      setError(error.message || 'A apărut o eroare');
+      setError(error.message || errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -50,9 +74,9 @@ export default function NewUserPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Adaugă Utilizator Nou</h1>
+          <h1 className="text-3xl font-bold">{addTitle}</h1>
           <p className="text-muted-foreground">
-            Creează un cont nou pentru un utilizator
+            {addSubtitle}
           </p>
         </div>
       </div>
@@ -62,10 +86,10 @@ export default function NewUserPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <UserPlus className="w-5 h-5" />
-              <span>Informații Utilizator</span>
+              <span>{infoTitle}</span>
             </CardTitle>
             <CardDescription>
-              Completează toate câmpurile pentru a crea contul
+              {infoDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,7 +103,7 @@ export default function NewUserPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">Prenume *</Label>
+                  <Label htmlFor="firstName">{firstNameLabel}</Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
@@ -88,7 +112,7 @@ export default function NewUserPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Nume *</Label>
+                  <Label htmlFor="lastName">{lastNameLabel}</Label>
                   <Input
                     id="lastName"
                     value={formData.lastName}
@@ -99,7 +123,7 @@ export default function NewUserPage() {
               </div>
 
               <div>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">{emailLabel}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -110,7 +134,7 @@ export default function NewUserPage() {
               </div>
 
               <div>
-                <Label htmlFor="password">Parola *</Label>
+                <Label htmlFor="password">{passwordLabel}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -120,31 +144,31 @@ export default function NewUserPage() {
                   minLength={6}
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Parola trebuie să aibă cel puțin 6 caractere
+                  {passwordHint}
                 </p>
               </div>
 
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="role">Rol *</Label>
+                  <Label htmlFor="role">{roleLabel}</Label>
                   <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CLIENT">Client</SelectItem>
-                      <SelectItem value="PROVIDER">Prestator</SelectItem>
-                      <SelectItem value="ADMIN">Administrator</SelectItem>
+                      <SelectItem value="CLIENT">{roleClient}</SelectItem>
+                      <SelectItem value="PROVIDER">{roleProvider}</SelectItem>
+                      <SelectItem value="ADMIN">{roleAdmin}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="phone">Telefon</Label>
+                  <Label htmlFor="phone">{phoneLabel}</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    placeholder="+40 123 456 789"
+                    placeholder={phonePlaceholder}
                   />
                 </div>
               </div>
@@ -154,18 +178,18 @@ export default function NewUserPage() {
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Se creează...
+                      {creatingLabel}
                     </>
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Creează Utilizator
+                      {createUserLabel}
                     </>
                   )}
                 </Button>
                 <Link href="/admin/users">
                   <Button type="button" variant="outline">
-                    Anulează
+                    {cancelLabel}
                   </Button>
                 </Link>
               </div>

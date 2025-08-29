@@ -32,6 +32,8 @@ import PlaylistAddCheckCircleIcon from '@mui/icons-material/PlaylistAddCheckCirc
 import {VisibilityOff} from "@mui/icons-material";
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+import {usePathname} from "next/navigation";
+import {Locale} from "@/types/locale";
 
 export default function CallsPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -48,6 +50,8 @@ export default function CallsPage() {
         },
     ]);
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
 
     const handleCallAction = async (callId: string, action: string, noteText: string | null) => {
         try {
@@ -79,8 +83,8 @@ export default function CallsPage() {
             call.attendees.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.attendees.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.attendees?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.service.category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            call.service.name[locale].toLowerCase().includes(searchTerm.toLowerCase()) ||
+            call.service.category.name[locale].toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.date_time.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesService = serviceFilter === 'all' || call.serviceId === serviceFilter;
         const matchesPassed = passedFilter === 'all' || call.passed === passedFilter;
@@ -238,7 +242,7 @@ export default function CallsPage() {
                                         <div className="flex items-center space-x-6 text-sm mb-3">
                                             <div className="flex items-center space-x-1">
                                                 <BookOpen className="w-4 h-4 text-blue-500" />
-                                                <span className="font-medium">{call.service?.name}</span>
+                                                <span className="font-medium">{call.service?.name?.[locale]}</span>
                                             </div>
                                             <div className="flex items-center space-x-1">
                                                 <ListTodo className="w-4 h-4 text-green-500" />
@@ -258,7 +262,7 @@ export default function CallsPage() {
                                         </div>
 
                                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                            <span>Categorie: {call.service?.category?.name}</span>
+                                            <span>Categorie: {call.service?.category?.name?.[locale]}</span>
                                             <span>Creat: {new Date(call.created_at).toLocaleString('ro-RO') }</span>
                                             {call.results && (
                                                 <span>{call.results.length} rezultate</span>

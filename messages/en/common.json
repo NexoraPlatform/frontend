@@ -36,6 +36,12 @@
   "all_rights_reserved": "All rights reserved",
   "explore": "Explore",
   "completed": "Completed",
-  "growth": "Growth"
+  "growth": "Growth",
+  "main_content": "Main content",
+  "service_categories_list": "Service categories list",
+  "nexora_benefits_list": "Nexora benefits list",
+  "category_label": "Category",
+  "benefit_label": "Benefit",
+  "statistic_label": "Statistic"
 
 }
