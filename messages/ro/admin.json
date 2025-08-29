@@ -157,6 +157,14 @@
     "empty_title": "Nu există dispute active",
     "empty_description": "Toate disputele au fost rezolvate cu succes"
   },
+  "analytics": {
+    "manage_title": "Analytics & Rapoarte",
+    "manage_subtitle": "Analizează performanța platformei",
+    "stats_title": "Statistici Detaliate",
+    "stats_description": "Rapoarte și analize pentru platforma Nexora",
+    "in_development_title": "Analytics în dezvoltare",
+    "in_development_description": "Rapoartele detaliate vor fi disponibile în curând"
+  },
   "orders": {
     "manage_title": "Gestionare Comenzi",
     "manage_subtitle": "Monitorizează și administrează comenzile",
