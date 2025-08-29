@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import {useState, useMemo, useCallback} from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ export default function NewServicePage() {
     }));
   };
 
-  const buildCategoryOptions = (categories: any[], parentId: number | null = null, level = 0): any[] => {
+  const buildCategoryOptions = useCallback((categories: any[], parentId: number | null = null, level = 0): any[] => {
     let result: any[] = [];
     categories
         .filter(cat => cat.parent_id === parentId)
@@ -167,10 +167,10 @@ export default function NewServicePage() {
           result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
         });
     return result;
-  };
+  }, [locale]);
 
 
-  const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [categoriesData]);
+  const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [buildCategoryOptions, categoriesData]);
 
   return (
     <div className="container mx-auto px-4 py-8">

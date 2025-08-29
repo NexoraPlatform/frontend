@@ -80,7 +80,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
         };
 
         loadCategory();
-    }, [id]);
+    }, [errorOccurred, id, locale]);
 
     const handleNameChange = (name: string) => {
         setFormData(prev => ({

@@ -88,7 +88,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
         } finally {
             setLoading(false);
         }
-    }, [id, serviceLoadError]);
+    }, [id, locale, serviceLoadError]);
 
     useEffect(() => {
         loadService();
@@ -106,7 +106,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                 result = result.concat(buildCategoryOptions(categories, cat.id, level + 1));
             });
         return result;
-    }, []);
+    }, [locale]);
 
 
     const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [buildCategoryOptions, categoriesData]);
