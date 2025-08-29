@@ -59,7 +59,7 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const categories = categoriesData?.categories || [];
+  const categories = useMemo(() => (categoriesData?.categories || []), [categoriesData?.categories]);
   const { parentCategories, childCategories, childrenMap } = useMemo(() => {
     const parents: any[] = [];
     const children: any[] = [];

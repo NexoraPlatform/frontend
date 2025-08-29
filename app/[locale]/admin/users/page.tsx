@@ -108,7 +108,7 @@ export default function AdminUsersPage() {
       const matchesFilter = userFilter === 'all' || user?.roles?.some((r: any) => r.slug?.toLowerCase() === filterRole);
       return matchesSearch && matchesFilter;
     });
-  }, [usersData, searchTerm, userFilter]);
+  }, [usersData?.users, searchTerm, userFilter, filterRole]);
 
   const STATUS_STYLES: Record<string, string> = {
     ACTIVE: 'bg-green-100 text-green-800',
