@@ -151,6 +151,61 @@
     "modify_button": "Update Category",
     "modifying": "Updating..."
   },
+  "calls": {
+    "manage_title": "Manage Verification Calls",
+    "manage_subtitle": "Administer verification calls for services",
+    "search_placeholder": "Search calls by participant, date...",
+    "filters": {
+      "passed": {
+        "label": "Level filter",
+        "all": "All results",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "status": {
+        "label": "Status filter",
+        "all": "All statuses",
+        "WAITING": "Waiting",
+        "ACCEPTED": "Accepted",
+        "FINISHED": "Finished",
+        "REFUSED": "Refused",
+        "NO_SHOW": "No show"
+      },
+      "date": {
+        "placeholder": "Select period"
+      }
+    },
+    "list_title": "Calls List",
+    "list_description": "{count} calls found",
+    "link_test_details": "View test details",
+    "scheduled_at_prefix": "Scheduled on",
+    "passing_score_prefix": "Passing score:",
+    "category_prefix": "Category:",
+    "created_prefix": "Created:",
+    "results_label": "{count} results",
+    "dropdown": {
+      "connect": "Join interview",
+      "move_waiting": "Move to Waiting",
+      "move_finished": "Move to Finished",
+      "move_accepted": "Move to Accepted",
+      "move_refused": "Move to Refused",
+      "move_no_show": "Move to No show",
+      "refuse_reason_label": "Refusal reason",
+      "refuse_reason_placeholder": "Write a reason...",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "statuses": {
+      "WAITING": "Waiting",
+      "ACCEPTED": "Accepted",
+      "FINISHED": "Finished",
+      "REFUSED": "Refused",
+      "NO_SHOW": "No show"
+    },
+    "no_calls_title": "No calls found",
+    "no_calls_description": "Try adjusting filters or search terms",
+    "error_prefix": "Error: "
+  },
   "disputes": {
     "manage_title": "Manage Disputes",
     "manage_subtitle": "Resolve user disputes",
@@ -158,6 +213,14 @@
     "list_description": "All platform disputes and claims",
     "empty_title": "No active disputes",
     "empty_description": "All disputes have been successfully resolved"
+  },
+  "analytics": {
+    "manage_title": "Analytics & Reports",
+    "manage_subtitle": "Analyze platform performance",
+    "stats_title": "Detailed Statistics",
+    "stats_description": "Reports and analytics for the Nexora platform",
+    "in_development_title": "Analytics in development",
+    "in_development_description": "Detailed reports will be available soon"
   },
   "orders": {
     "manage_title": "Manage Orders",

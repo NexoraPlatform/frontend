@@ -32,14 +32,24 @@ export const translations = {
     },
 };
 
+const namespaceCache: Record<Locale, Record<string, any>> = {
+    ro: {},
+    en: {},
+};
+
 export async function getTranslation(locale: Locale, key: string): Promise<string> {
     const keys = key.split('.'); // e.g. ['homepage', 'hero', 'title']
     const namespace = keys.shift(); // 'homepage'
 
-    const loadNamespace = translations[locale]?.[namespace as keyof typeof translations[typeof locale]];
-    if (!loadNamespace) return key;
+    if (!namespace) return key;
 
-    let value: any = await loadNamespace();
+    if (!namespaceCache[locale][namespace]) {
+        const loadNamespace = translations[locale]?.[namespace as keyof typeof translations[typeof locale]];
+        if (!loadNamespace) return key;
+        namespaceCache[locale][namespace] = await loadNamespace();
+    }
+
+    let value: any = namespaceCache[locale][namespace];
     for (const k of keys) {
         value = value?.[k];
     }

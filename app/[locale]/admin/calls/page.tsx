@@ -34,6 +34,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import {usePathname} from "next/navigation";
 import {Locale} from "@/types/locale";
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 export default function CallsPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +53,46 @@ export default function CallsPage() {
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
     const pathname = usePathname();
     const locale = (pathname.split('/')[1] as Locale) || 'ro';
+
+    const tCalls = (key: string) => useAsyncTranslation(locale, `admin.calls.${key}`);
+    const title = tCalls('manage_title');
+    const subtitle = tCalls('manage_subtitle');
+    const searchPlaceholder = tCalls('search_placeholder');
+    const passedFilterLabel = tCalls('filters.passed.label');
+    const passedFilterAll = tCalls('filters.passed.all');
+    const passedFilterYes = tCalls('filters.passed.yes');
+    const passedFilterNo = tCalls('filters.passed.no');
+    const statusFilterLabel = tCalls('filters.status.label');
+    const statusFilterAll = tCalls('filters.status.all');
+    const statuses = {
+        WAITING: tCalls('statuses.WAITING'),
+        ACCEPTED: tCalls('statuses.ACCEPTED'),
+        FINISHED: tCalls('statuses.FINISHED'),
+        REFUSED: tCalls('statuses.REFUSED'),
+        NO_SHOW: tCalls('statuses.NO_SHOW'),
+    };
+    const dateFilterPlaceholder = tCalls('filters.date.placeholder');
+    const listTitle = tCalls('list_title');
+    const listDescriptionTemplate = tCalls('list_description');
+    const viewTestDetails = tCalls('link_test_details');
+    const scheduledAtPrefix = tCalls('scheduled_at_prefix');
+    const passingScorePrefix = tCalls('passing_score_prefix');
+    const categoryPrefix = tCalls('category_prefix');
+    const createdPrefix = tCalls('created_prefix');
+    const resultsLabelTemplate = tCalls('results_label');
+    const connectToInterview = tCalls('dropdown.connect');
+    const moveWaiting = tCalls('dropdown.move_waiting');
+    const moveFinished = tCalls('dropdown.move_finished');
+    const moveAccepted = tCalls('dropdown.move_accepted');
+    const moveRefused = tCalls('dropdown.move_refused');
+    const moveNoShow = tCalls('dropdown.move_no_show');
+    const refuseReasonLabel = tCalls('dropdown.refuse_reason_label');
+    const refuseReasonPlaceholder = tCalls('dropdown.refuse_reason_placeholder');
+    const cancelLabel = tCalls('dropdown.cancel');
+    const confirmLabel = tCalls('dropdown.confirm');
+    const noCallsTitle = tCalls('no_calls_title');
+    const noCallsDescription = tCalls('no_calls_description');
+    const errorPrefix = tCalls('error_prefix');
 
     const handleCallAction = async (callId: string, action: string, noteText: string | null) => {
         try {
@@ -72,7 +113,7 @@ export default function CallsPage() {
                 refetchCalls();
             }
         } catch (error: any) {
-            alert('Eroare: ' + error.message);
+            alert(errorPrefix + error.message);
         }
     };
 
@@ -98,19 +139,20 @@ export default function CallsPage() {
     });
 
     const getStatusBadge = (status: string) => {
+        const text = statuses[status as keyof typeof statuses] || status;
         switch (status) {
             case 'WAITING':
-                return <Badge className="bg-green-100 text-yellow-500"><CheckCircle className="w-3 h-3 mr-1" />In asteptare</Badge>;
+                return <Badge className="bg-green-100 text-yellow-500"><CheckCircle className="w-3 h-3 mr-1" />{text}</Badge>;
             case 'ACCEPTED':
-                return <Badge className="bg-gray-100 text-green-500"><XCircle className="w-3 h-3 mr-1" />Acceptat</Badge>;
+                return <Badge className="bg-gray-100 text-green-500"><XCircle className="w-3 h-3 mr-1" />{text}</Badge>;
             case 'FINISHED':
-                return <Badge className="bg-yellow-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Finalizat</Badge>;
+                return <Badge className="bg-yellow-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{text}</Badge>;
             case 'REFUSED':
-                return <Badge className="bg-yellow-100 text-red-800"><AlertCircle className="w-3 h-3 mr-1" />Refuzat</Badge>;
+                return <Badge className="bg-yellow-100 text-red-800"><AlertCircle className="w-3 h-3 mr-1" />{text}</Badge>;
             case 'NO_SHOW':
-                return <Badge className="bg-yellow-100 text-red-400"><AlertCircle className="w-3 h-3 mr-1" />Nu a intrat</Badge>;
+                return <Badge className="bg-yellow-100 text-red-400"><AlertCircle className="w-3 h-3 mr-1" />{text}</Badge>;
             default:
-                return <Badge variant="secondary">{status}</Badge>;
+                return <Badge variant="secondary">{text}</Badge>;
         }
     };
 
@@ -124,10 +166,8 @@ export default function CallsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold">Gestionare Apeluri de verificare</h1>
-                        <p className="text-muted-foreground">
-                            Administrează apelurile de verificare pentru servicii
-                        </p>
+                        <h1 className="text-3xl font-bold">{title}</h1>
+                        <p className="text-muted-foreground">{subtitle}</p>
                     </div>
                 </div>
                 {/*<Link href="/admin/calls/new">*/}
@@ -146,7 +186,7 @@ export default function CallsPage() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                                 <Input
-                                    placeholder="Caută teste după participant, data..."
+                                    placeholder={searchPlaceholder}
                                     className="pl-10"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -155,26 +195,26 @@ export default function CallsPage() {
                         </div>
                         <Select value={passedFilter} onValueChange={setPassedFilter}>
                             <SelectTrigger className="w-full md:w-48">
-                                <SelectValue placeholder="Filtru nivel" />
+                                <SelectValue placeholder={passedFilterLabel} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Toate Rezultatele</SelectItem>
-                                <SelectItem value="1">Da</SelectItem>
-                                <SelectItem value="0">Nu</SelectItem>
+                                <SelectItem value="all">{passedFilterAll}</SelectItem>
+                                <SelectItem value="1">{passedFilterYes}</SelectItem>
+                                <SelectItem value="0">{passedFilterNo}</SelectItem>
                             </SelectContent>
                         </Select>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-full md:w-48">
                                 <Filter className="w-4 h-4 mr-2" />
-                                <SelectValue placeholder="Filtru status" />
+                                <SelectValue placeholder={statusFilterLabel} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Toate statusurile</SelectItem>
-                                <SelectItem value="WAITING">In asteptare</SelectItem>
-                                <SelectItem value="ACCEPTED">Acceptat</SelectItem>
-                                <SelectItem value="FINISED">Finalizat</SelectItem>
-                                <SelectItem value="REFUSED">Refuzat</SelectItem>
-                                <SelectItem value="NO_SHOW">Nu a intrat</SelectItem>
+                                <SelectItem value="all">{statusFilterAll}</SelectItem>
+                                <SelectItem value="WAITING">{statuses.WAITING}</SelectItem>
+                                <SelectItem value="ACCEPTED">{statuses.ACCEPTED}</SelectItem>
+                                <SelectItem value="FINISHED">{statuses.FINISHED}</SelectItem>
+                                <SelectItem value="REFUSED">{statuses.REFUSED}</SelectItem>
+                                <SelectItem value="NO_SHOW">{statuses.NO_SHOW}</SelectItem>
                             </SelectContent>
                         </Select>
                         <Popover>
@@ -185,8 +225,8 @@ export default function CallsPage() {
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {range[0].startDate && range[0].endDate
-                                        ? `${range[0].startDate.toLocaleDateString()} - ${range[0].endDate.toLocaleDateString()}`
-                                        : "Selectează perioada"}
+                                        ? `${range[0].startDate.toLocaleDateString(locale)} - ${range[0].endDate.toLocaleDateString(locale)}`
+                                        : dateFilterPlaceholder}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="p-0 w-auto" align="start">
@@ -214,10 +254,10 @@ export default function CallsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <BookOpen className="w-5 h-5" />
-                        <span>Lista Apeluri</span>
+                        <span>{listTitle}</span>
                     </CardTitle>
                     <CardDescription>
-                        {filteredCalls.length} apeluri găsite
+                        {listDescriptionTemplate.replace('{count}', filteredCalls.length.toString())}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -246,26 +286,26 @@ export default function CallsPage() {
                                             </div>
                                             <div className="flex items-center space-x-1">
                                                 <ListTodo className="w-4 h-4 text-green-500" />
-                                                <span><a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>Vezi detalii test</a></span>
+                                                <span><a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>{viewTestDetails}</a></span>
                                             </div>
                                             <div className="flex items-center space-x-1">
                                                 <Clock className="w-4 h-4 text-orange-500" />
-                                                <span>Programat la {' '}
+                                                <span>{scheduledAtPrefix} {' '}
                                                   {DateTime.fromISO(call.date_time, { setZone: true })
                                                       .toFormat('dd.MM.yyyy HH:mm')} {' '}
                                                 </span>
                                             </div>
                                             <div className="flex items-center space-x-1">
                                                 <BarChart3 className="w-4 h-4 text-purple-500" />
-                                                <span>Nota de trecere: {call.test_result.score}%</span>
+                                                <span>{passingScorePrefix} {call.test_result.score}%</span>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                            <span>Categorie: {call.service?.category?.name?.[locale]}</span>
-                                            <span>Creat: {new Date(call.created_at).toLocaleString('ro-RO') }</span>
+                                            <span>{categoryPrefix} {call.service?.category?.name?.[locale]}</span>
+                                            <span>{createdPrefix} {new Date(call.created_at).toLocaleString(locale)}</span>
                                             {call.results && (
-                                                <span>{call.results.length} rezultate</span>
+                                                <span>{resultsLabelTemplate.replace('{count}', call.results.length.toString())}</span>
                                             )}
                                         </div>
                                     </div>
@@ -280,45 +320,45 @@ export default function CallsPage() {
                                             <DropdownMenuItem asChild>
                                                 <Link target="_blank" href={call.call_url}>
                                                     <Eye className="w-4 h-4 mr-2" />
-                                                    Conecteaza-te la interviu
+                                                    {connectToInterview}
                                                 </Link>
                                             </DropdownMenuItem>
                                             {call.status !== 'WAITING' && (
                                                 <DropdownMenuItem onClick={() => handleCallAction(call.id, 'WAITING', null)}>
                                                     <PauseCircleOutlineIcon className="w-4 h-4 mr-2" />
-                                                    Muta In Asteptare
+                                                    {moveWaiting}
                                                 </DropdownMenuItem>
                                             )}
                                             {call.status !== 'FINISHED' && (
                                                 <DropdownMenuItem onClick={() => handleCallAction(call.id, 'FINISHED', null)}>
                                                     <PlaylistAddCheckCircleIcon className="!w-4 !h-4 mr-2" />
-                                                    Muta Finalizat
+                                                    {moveFinished}
                                                 </DropdownMenuItem>
                                             )}
                                             {call.status !== 'ACCEPTED' && (
                                                 <DropdownMenuItem onClick={() => handleCallAction(call.id, 'ACCEPTED', null)}>
                                                     <CheckCircleOutlineIcon className="!w-4 !h-4 mr-2" />
-                                                    Muta In Acceptat
+                                                    {moveAccepted}
                                                 </DropdownMenuItem>
                                             )}
                                             {call.status !== 'REFUSED' && (
                                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setNoteModalCallId(call.id)}>
                                                     <VisibilityOff className="!w-4 !h-4 mr-2" />
-                                                    Muta In Refuzat
+                                                    {moveRefused}
                                                 </DropdownMenuItem>
                                             )}
                                             {noteModalCallId === call.id && (
                                                 <div className="mt-2 p-4 border rounded bg-muted space-y-2 w-full max-w-md">
-                                                    <label className="text-sm font-medium">Motiv refuz</label>
+                                                    <label className="text-sm font-medium">{refuseReasonLabel}</label>
                                                     <textarea
                                                         value={noteText}
                                                         onChange={(e) => setNoteText(e.target.value)}
-                                                        placeholder="Scrie un motiv..."
+                                                        placeholder={refuseReasonPlaceholder}
                                                         className="w-full h-20 border rounded p-2 text-sm"
                                                     />
                                                     <div className="flex justify-end space-x-2">
                                                         <Button variant="secondary" onClick={() => setNoteModalCallId(null)}>
-                                                            Anulează
+                                                            {cancelLabel}
                                                         </Button>
                                                         <Button
                                                             onClick={() => {
@@ -327,7 +367,7 @@ export default function CallsPage() {
                                                                 setNoteText('');
                                                             }}
                                                         >
-                                                            Confirmă
+                                                            {confirmLabel}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -335,7 +375,7 @@ export default function CallsPage() {
                                             {call.status !== 'NO_SHOW' && (
                                                 <DropdownMenuItem onClick={() => handleCallAction(call.id, 'NO_SHOW', null)}>
                                                     <XCircle className="w-4 h-4 mr-2" />
-                                                    Muta In Nu s-a prezentat
+                                                    {moveNoShow}
                                                 </DropdownMenuItem>
                                             )}
                                         </DropdownMenuContent>
@@ -346,9 +386,9 @@ export default function CallsPage() {
                             {filteredCalls.length === 0 && (
                                 <div className="text-center py-12">
                                     <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">Nu s-au găsit call-uri</h3>
+                                    <h3 className="text-lg font-medium mb-2">{noCallsTitle}</h3>
                                     <p className="text-muted-foreground mb-4">
-                                        Încearcă să modifici filtrele sau termenii de căutare
+                                        {noCallsDescription}
                                     </p>
 
                                 </div>
