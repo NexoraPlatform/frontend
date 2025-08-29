@@ -321,6 +321,14 @@ class ApiClient {
     });
   }
 
+    async removeUserPermission(userId: number, slug: string) {
+        return this.request<any>(`/admin/access/${userId}/permissions`, {
+            method: 'DELETE',
+            body: JSON.stringify({permission: slug}),
+        });
+
+    }
+
   async getRole(roleId: number) {
     return this.request<any>(`/admin/access/${roleId}`);
   }

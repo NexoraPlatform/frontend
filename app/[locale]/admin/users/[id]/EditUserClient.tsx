@@ -44,6 +44,22 @@ type PermissionState = {
     [slug: string]: { id: number; name: string; allowed: boolean };
 };
 
+function normalizePermissions(input: any): PermissionState {
+    if (!input) return {};
+    if (!Array.isArray(input) && typeof input === "object") return input as PermissionState;
+
+    const out: PermissionState = {};
+    for (const p of input as any[]) {
+        if (!p?.slug) continue;
+        out[p.slug] = {
+            id: Number(p.id),
+            name: String(p.name ?? p.slug),
+            allowed: String(p?.pivot?.effect || "").toLowerCase() === "allow",
+        };
+    }
+    return out;
+}
+
 type RoleOption = { id: number | string; name: string; slug: string };
 
 export default function EditUserClient({ id }: { id: number }) {
@@ -93,7 +109,7 @@ export default function EditUserClient({ id }: { id: number }) {
         email: "",
         password: "",
         confirm_password: "",
-        roles: [] as string[], // doar SLUG-uri (ex: ["ADMIN", "PROVIDER"])
+        roles: [] as string[], // SLUG-uri (ex: ["ADMIN", "PROVIDER"])
         phone: "",
         is_superuser: false,
         testVerified: false,
@@ -106,7 +122,6 @@ export default function EditUserClient({ id }: { id: number }) {
     const [permissions, setPermissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>("");
-
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
@@ -114,17 +129,15 @@ export default function EditUserClient({ id }: { id: number }) {
     const hasInitializedPermissions = useRef(false);
     const [userRoles, setUserRoles] = useState<RoleOption[]>([]);
 
-    // ------- helpers pentru roluri (normalizare la slug) -------
+    // ------- helpers pentru roluri (normalizare la slug & mapping la IDs) -------
     const toSlug = (ref: string | number, options: RoleOption[]) => {
         if (ref == null) return "";
-        // dacă e numeric (id), mapează la slug
         const asNum = Number(ref);
         const isNumeric = !Number.isNaN(asNum) && String(asNum) === String(ref);
         if (isNumeric) {
             const found = options.find((o) => String(o.id) === String(ref));
             return (found?.slug || "").toUpperCase();
         }
-        // altfel presupunem string (slug/name)
         return String(ref).toUpperCase();
     };
 
@@ -152,11 +165,22 @@ export default function EditUserClient({ id }: { id: number }) {
             const next = current.includes(want)
                 ? current.filter((s) => s !== want)
                 : [...current, want];
-            return { ...prev, roles: next }; // păstrăm DOAR SLUG-uri
+            return { ...prev, roles: next }; // stocăm SLUG-uri
         });
     };
 
-    // ------- fetch roles list (id, name, slug) -------
+    // map slug selection -> role IDs (number[])
+    const roleIdsFromSelection = (sel: any[], options: RoleOption[]): number[] => {
+        const slugs = asSlugList(sel, options); // SLUG-uri UPPER
+        const ids = slugs
+            .map((s) => options.find((o) => String(o.slug).toUpperCase() === s)?.id)
+            .filter((id): id is number | string => id != null)
+            .map((id) => Number(id));
+        // dedupe
+        return Array.from(new Set(ids));
+    };
+
+    // ------- fetch roles list -------
     useEffect(() => {
         const getUserRoles = async () => {
             try {
@@ -169,37 +193,13 @@ export default function EditUserClient({ id }: { id: number }) {
         getUserRoles();
     }, []);
 
-    // inițializează selectedPermissions din formData.user_permissions
-    useEffect(() => {
-        if (hasInitializedPermissions.current) return;
-        if (!formData?.user_permissions) return;
-
-        const mapped: PermissionState = {};
-        if (Array.isArray(formData.user_permissions)) {
-            formData.user_permissions.forEach((perm: any) => {
-                const effect = perm?.pivot?.effect;
-                if (!effect) return;
-                mapped[perm.slug] = {
-                    id: perm.id,
-                    name: perm.name,
-                    allowed: effect === "allow",
-                };
-            });
-        } else if (typeof formData.user_permissions === "object") {
-            Object.assign(mapped, formData.user_permissions);
-        }
-
-        setSelectedPermissions(mapped);
-        hasInitializedPermissions.current = true;
-    }, [formData.user_permissions]);
-
     // fetch user + permissions
     useEffect(() => {
         const getUser = async () => {
             try {
                 const response = await apiClient.getUserById(id);
 
-                // normalizează roles din răspuns la SLUG-uri
+                // normalizează roles din răspuns la SLUG-uri UPPER
                 const rolesFromApi = Array.isArray((response as any).roles)
                     ? (response as any).roles.map((r: any) =>
                         String(r?.slug || r?.name || r).toUpperCase()
@@ -208,11 +208,17 @@ export default function EditUserClient({ id }: { id: number }) {
                         ? [String((response as any).role).toUpperCase()]
                         : [];
 
+                // normalizează permisiunile
+                const mappedPerms = normalizePermissions((response as any).user_permissions);
+
                 setFormData((prev: any) => ({
                     ...prev,
                     ...response,
-                    roles: rolesFromApi,
+                    roles: rolesFromApi,        // SLUG-uri pentru UI
+                    user_permissions: mappedPerms,
                 }));
+
+                setSelectedPermissions(mappedPerms);
             } catch (error: any) {
                 alert(fetchUserErrorPrefix + error.message);
             }
@@ -256,16 +262,18 @@ export default function EditUserClient({ id }: { id: number }) {
                 email,
                 phone,
                 password,
-                roles,
+                roles, // SLUG-uri din UI
             } = formData;
 
-            // roles deja e listă de SLUG-uri
+            // 🔹 trimitem ID-urile rolurilor
+            const roleIds = roleIdsFromSelection(roles, userRoles); // number[]
+
             const payload: any = {
                 firstName,
                 lastName,
                 email,
                 phone,
-                roles: Array.isArray(roles) ? roles : [],
+                roles: roleIds, // <-- acum ID-uri
             };
 
             if (password && password.length > 0) {
@@ -274,7 +282,7 @@ export default function EditUserClient({ id }: { id: number }) {
 
             await apiClient.updateUser(id, payload);
 
-            // golim parolele local după succes
+            // goliți parolele local după succes
             setFormData((prev: any) => ({
                 ...prev,
                 password: "",
@@ -287,41 +295,51 @@ export default function EditUserClient({ id }: { id: number }) {
         }
     };
 
-    // toggle adăugare/eliminare permisiune
+    // toggle adăugare/eliminare permisiune (checkbox)
     const togglePermission = async (perm: any) => {
         const userId = formData?.id ?? id;
         if (!userId) return;
 
-        const prevSelected = selectedPermissions;
         const exists = !!selectedPermissions[perm.slug];
-        const nextSelected: PermissionState = exists
-            ? (() => {
-                const copy = { ...selectedPermissions };
-                delete copy[perm.slug];
-                return copy;
-            })()
-            : {
+
+        if (exists) {
+            // Debifat -> ȘTERGEM override-ul
+            const prevSelected = selectedPermissions;
+            const nextSelected = { ...selectedPermissions };
+            delete nextSelected[perm.slug];
+
+            setSelectedPermissions(nextSelected);
+            setFormData((prev: any) => ({ ...prev, user_permissions: nextSelected }));
+
+            try {
+                await apiClient.removeUserPermission(userId, perm.slug);
+            } catch {
+                // rollback
+                setSelectedPermissions(prevSelected);
+                setFormData((prev: any) => ({ ...prev, user_permissions: prevSelected }));
+            }
+        } else {
+            // Bifat -> override allow
+            const prevSelected = selectedPermissions;
+            const nextSelected = {
                 ...selectedPermissions,
                 [perm.slug]: { id: perm.id, name: perm.name, allowed: true },
             };
 
-        setSelectedPermissions(nextSelected);
-        setFormData((prev: any) => ({ ...prev, user_permissions: nextSelected }));
+            setSelectedPermissions(nextSelected);
+            setFormData((prev: any) => ({ ...prev, user_permissions: nextSelected }));
 
-        try {
-            if (exists) {
-                await apiClient.denyUserPermission(userId, perm.slug);
-            } else {
+            try {
                 await apiClient.allowUserPermission(userId, perm.slug);
+            } catch {
+                // rollback
+                setSelectedPermissions(prevSelected);
+                setFormData((prev: any) => ({ ...prev, user_permissions: prevSelected }));
             }
-        } catch {
-            // rollback
-            setSelectedPermissions(prevSelected);
-            setFormData((prev: any) => ({ ...prev, user_permissions: prevSelected }));
         }
     };
 
-    // toggle allow/deny pe o permisiune
+    // toggle allow/deny pe o permisiune existentă (switch)
     const toggleAllowDeny = async (slug: string) => {
         const userId = formData?.id ?? id;
         if (!userId) return;
@@ -481,8 +499,8 @@ export default function EditUserClient({ id }: { id: number }) {
                                             >
                                                 <Checkbox
                                                     id={`role-${opt.id}`}
-                                                    checked={hasRole(opt.slug)}          // verific slug
-                                                    onCheckedChange={() => toggleRole(opt.slug)} // toggle pe slug
+                                                    checked={hasRole(opt.slug)}          // verificare pe SLUG
+                                                    onCheckedChange={() => toggleRole(opt.slug)} // toggle pe SLUG
                                                 />
                                                 <span>{opt.name}</span>
                                             </label>
