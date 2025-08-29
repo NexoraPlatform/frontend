@@ -1,124 +1,144 @@
 "use client";
 
-import {useState} from "react";
-import {useAdminCalls} from "@/hooks/use-api";
-import {Badge} from "@/components/ui/badge";
+import { useState } from "react";
+import { useAdminCalls } from "@/hooks/use-api";
+import { Badge } from "@/components/ui/badge";
 import {
     AlertCircle,
-    ArrowLeft, BarChart3,
+    ArrowLeft,
+    BarChart3,
     BookOpen,
     CalendarIcon,
-    CheckCircle, Clock, Eye,
-    Filter, ListTodo,
-    Loader2, MoreHorizontal,
+    CheckCircle,
+    Clock,
+    Eye,
+    Filter,
+    ListTodo,
+    Loader2,
+    MoreHorizontal,
     Search,
-    XCircle
+    XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
-import {Input} from "@/components/ui/input";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {DateRange, RangeKeyDict, Range, DefinedRange} from 'react-date-range';
-import {isWithinInterval, parseISO} from 'date-fns';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateRange, RangeKeyDict, Range, DefinedRange } from "react-date-range";
+import { isWithinInterval, parseISO } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { customStaticRanges } from '@/utils/dateShortcuts';
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
-import { DateTime } from 'luxon';
+import { customStaticRanges } from "@/utils/dateShortcuts";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DateTime } from "luxon";
 import apiClient from "@/lib/api";
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
-import PlaylistAddCheckCircleIcon from '@mui/icons-material/PlaylistAddCheckCircle';
-import {VisibilityOff} from "@mui/icons-material";
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-import {usePathname} from "next/navigation";
-import {Locale} from "@/types/locale";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
+import PlaylistAddCheckCircleIcon from "@mui/icons-material/PlaylistAddCheckCircle";
+import { VisibilityOff } from "@mui/icons-material";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
+import { usePathname } from "next/navigation";
+import { Locale } from "@/types/locale";
+import { useAsyncTranslation } from "@/hooks/use-async-translation";
+
+/** Custom hook care grupează toate traducerile pentru pagina de Calls */
+function useCallsT(locale: Locale) {
+    return {
+        title: useAsyncTranslation(locale, "admin.calls.manage_title"),
+        subtitle: useAsyncTranslation(locale, "admin.calls.manage_subtitle"),
+        searchPlaceholder: useAsyncTranslation(locale, "admin.calls.search_placeholder"),
+
+        passedFilterLabel: useAsyncTranslation(locale, "admin.calls.filters.passed.label"),
+        passedFilterAll: useAsyncTranslation(locale, "admin.calls.filters.passed.all"),
+        passedFilterYes: useAsyncTranslation(locale, "admin.calls.filters.passed.yes"),
+        passedFilterNo: useAsyncTranslation(locale, "admin.calls.filters.passed.no"),
+
+        statusFilterLabel: useAsyncTranslation(locale, "admin.calls.filters.status.label"),
+        statusFilterAll: useAsyncTranslation(locale, "admin.calls.filters.status.all"),
+
+        statuses: {
+            WAITING: useAsyncTranslation(locale, "admin.calls.statuses.WAITING"),
+            ACCEPTED: useAsyncTranslation(locale, "admin.calls.statuses.ACCEPTED"),
+            FINISHED: useAsyncTranslation(locale, "admin.calls.statuses.FINISHED"),
+            REFUSED: useAsyncTranslation(locale, "admin.calls.statuses.REFUSED"),
+            NO_SHOW: useAsyncTranslation(locale, "admin.calls.statuses.NO_SHOW"),
+        },
+
+        dateFilterPlaceholder: useAsyncTranslation(locale, "admin.calls.filters.date.placeholder"),
+        listTitle: useAsyncTranslation(locale, "admin.calls.list_title"),
+        listDescriptionTemplate: useAsyncTranslation(locale, "admin.calls.list_description"),
+        viewTestDetails: useAsyncTranslation(locale, "admin.calls.link_test_details"),
+        scheduledAtPrefix: useAsyncTranslation(locale, "admin.calls.scheduled_at_prefix"),
+        passingScorePrefix: useAsyncTranslation(locale, "admin.calls.passing_score_prefix"),
+        categoryPrefix: useAsyncTranslation(locale, "admin.calls.category_prefix"),
+        createdPrefix: useAsyncTranslation(locale, "admin.calls.created_prefix"),
+        resultsLabelTemplate: useAsyncTranslation(locale, "admin.calls.results_label"),
+
+        connectToInterview: useAsyncTranslation(locale, "admin.calls.dropdown.connect"),
+        moveWaiting: useAsyncTranslation(locale, "admin.calls.dropdown.move_waiting"),
+        moveFinished: useAsyncTranslation(locale, "admin.calls.dropdown.move_finished"),
+        moveAccepted: useAsyncTranslation(locale, "admin.calls.dropdown.move_accepted"),
+        moveRefused: useAsyncTranslation(locale, "admin.calls.dropdown.move_refused"),
+        moveNoShow: useAsyncTranslation(locale, "admin.calls.dropdown.move_no_show"),
+        refuseReasonLabel: useAsyncTranslation(locale, "admin.calls.dropdown.refuse_reason_label"),
+        refuseReasonPlaceholder: useAsyncTranslation(locale, "admin.calls.dropdown.refuse_reason_placeholder"),
+        cancelLabel: useAsyncTranslation(locale, "admin.calls.dropdown.cancel"),
+        confirmLabel: useAsyncTranslation(locale, "admin.calls.dropdown.confirm"),
+
+        noCallsTitle: useAsyncTranslation(locale, "admin.calls.no_calls_title"),
+        noCallsDescription: useAsyncTranslation(locale, "admin.calls.no_calls_description"),
+        errorPrefix: useAsyncTranslation(locale, "admin.calls.error_prefix"),
+    };
+}
 
 export default function CallsPage() {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [serviceFilter] = useState('all');
-    const [passedFilter, setPassedFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState("");
+    const [serviceFilter] = useState("all");
+    const [passedFilter, setPassedFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [noteModalCallId, setNoteModalCallId] = useState<number | null>(null);
-    const [noteText, setNoteText] = useState('');
+    const [noteText, setNoteText] = useState("");
     const [range, setRange] = useState<Range[]>([
         {
             startDate: new Date(2025, 0, 1),
             endDate: new Date(),
-            key: 'selection',
+            key: "selection",
         },
     ]);
+
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
     const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = (pathname.split("/")[1] as Locale) || "ro";
 
-    const tCalls = (key: string) => useAsyncTranslation(locale, `admin.calls.${key}`);
-    const title = tCalls('manage_title');
-    const subtitle = tCalls('manage_subtitle');
-    const searchPlaceholder = tCalls('search_placeholder');
-    const passedFilterLabel = tCalls('filters.passed.label');
-    const passedFilterAll = tCalls('filters.passed.all');
-    const passedFilterYes = tCalls('filters.passed.yes');
-    const passedFilterNo = tCalls('filters.passed.no');
-    const statusFilterLabel = tCalls('filters.status.label');
-    const statusFilterAll = tCalls('filters.status.all');
-    const statuses = {
-        WAITING: tCalls('statuses.WAITING'),
-        ACCEPTED: tCalls('statuses.ACCEPTED'),
-        FINISHED: tCalls('statuses.FINISHED'),
-        REFUSED: tCalls('statuses.REFUSED'),
-        NO_SHOW: tCalls('statuses.NO_SHOW'),
-    };
-    const dateFilterPlaceholder = tCalls('filters.date.placeholder');
-    const listTitle = tCalls('list_title');
-    const listDescriptionTemplate = tCalls('list_description');
-    const viewTestDetails = tCalls('link_test_details');
-    const scheduledAtPrefix = tCalls('scheduled_at_prefix');
-    const passingScorePrefix = tCalls('passing_score_prefix');
-    const categoryPrefix = tCalls('category_prefix');
-    const createdPrefix = tCalls('created_prefix');
-    const resultsLabelTemplate = tCalls('results_label');
-    const connectToInterview = tCalls('dropdown.connect');
-    const moveWaiting = tCalls('dropdown.move_waiting');
-    const moveFinished = tCalls('dropdown.move_finished');
-    const moveAccepted = tCalls('dropdown.move_accepted');
-    const moveRefused = tCalls('dropdown.move_refused');
-    const moveNoShow = tCalls('dropdown.move_no_show');
-    const refuseReasonLabel = tCalls('dropdown.refuse_reason_label');
-    const refuseReasonPlaceholder = tCalls('dropdown.refuse_reason_placeholder');
-    const cancelLabel = tCalls('dropdown.cancel');
-    const confirmLabel = tCalls('dropdown.confirm');
-    const noCallsTitle = tCalls('no_calls_title');
-    const noCallsDescription = tCalls('no_calls_description');
-    const errorPrefix = tCalls('error_prefix');
+    // Toate textele printr-un singur hook
+    const t = useCallsT(locale);
 
-    const handleCallAction = async (callId: string, action: string, noteText: string | null) => {
+    const handleCallAction = async (callId: string, action: string, noteTextParam: string | null) => {
         try {
-            if (action === 'WAITING') {
-                await apiClient.updateCallStatus(callId, 'WAITING', noteText);
+            if (action === "WAITING") {
+                await apiClient.updateCallStatus(callId, "WAITING", noteTextParam);
                 refetchCalls();
-            } else if (action === 'FINISHED') {
-                await apiClient.updateCallStatus(callId, 'FINISHED', noteText);
+            } else if (action === "FINISHED") {
+                await apiClient.updateCallStatus(callId, "FINISHED", noteTextParam);
                 refetchCalls();
-            } else if (action === 'ACCEPTED') {
-                await apiClient.updateCallStatus(callId, 'ACCEPTED', noteText);
+            } else if (action === "ACCEPTED") {
+                await apiClient.updateCallStatus(callId, "ACCEPTED", noteTextParam);
                 refetchCalls();
-            } else if (action === 'REFUSED') {
-                await apiClient.updateCallStatus(callId, 'REFUSED', noteText);
+            } else if (action === "REFUSED") {
+                await apiClient.updateCallStatus(callId, "REFUSED", noteTextParam);
                 refetchCalls();
-            } else if (action === 'NO_SHOW') {
-                await apiClient.updateCallStatus(callId, 'NO_SHOW', noteText);
+            } else if (action === "NO_SHOW") {
+                await apiClient.updateCallStatus(callId, "NO_SHOW", noteTextParam);
                 refetchCalls();
             }
         } catch (error: any) {
-            alert(errorPrefix + error.message);
+            alert(t.errorPrefix + error.message);
         }
     };
 
     const filteredCalls = (callsData?.calls || []).filter((call: any) => {
-        const matchesSearch = call.interviewer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch =
+            call.interviewer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.interviewer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.interviewer?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.attendees.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,30 +147,57 @@ export default function CallsPage() {
             call.service.name[locale].toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.service.category.name[locale].toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.date_time.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesService = serviceFilter === 'all' || call.serviceId === serviceFilter;
-        const matchesPassed = passedFilter === 'all' || call.passed === passedFilter;
+
+        const matchesService = serviceFilter === "all" || call.serviceId === serviceFilter;
+        const matchesPassed = passedFilter === "all" || call.passed === passedFilter; // atenție la tip (string vs number/bool)
         const callDate = parseISO(call.date_time);
         const matchesDate = isWithinInterval(callDate, {
             start: range[0].startDate ?? new Date(),
-            end: range[0].endDate ?? new Date()
+            end: range[0].endDate ?? new Date(),
         });
-        const matchesStatus = statusFilter === 'all' || call.status === statusFilter;
+        const matchesStatus = statusFilter === "all" || call.status === statusFilter;
+
         return matchesSearch && matchesService && matchesPassed && matchesDate && matchesStatus;
     });
 
     const getStatusBadge = (status: string) => {
-        const text = statuses[status as keyof typeof statuses] || status;
+        const text = t.statuses[status as keyof typeof t.statuses] || status;
         switch (status) {
-            case 'WAITING':
-                return <Badge className="bg-green-100 text-yellow-500"><CheckCircle className="w-3 h-3 mr-1" />{text}</Badge>;
-            case 'ACCEPTED':
-                return <Badge className="bg-gray-100 text-green-500"><XCircle className="w-3 h-3 mr-1" />{text}</Badge>;
-            case 'FINISHED':
-                return <Badge className="bg-yellow-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{text}</Badge>;
-            case 'REFUSED':
-                return <Badge className="bg-yellow-100 text-red-800"><AlertCircle className="w-3 h-3 mr-1" />{text}</Badge>;
-            case 'NO_SHOW':
-                return <Badge className="bg-yellow-100 text-red-400"><AlertCircle className="w-3 h-3 mr-1" />{text}</Badge>;
+            case "WAITING":
+                return (
+                    <Badge className="bg-green-100 text-yellow-500">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {text}
+                    </Badge>
+                );
+            case "ACCEPTED":
+                return (
+                    <Badge className="bg-gray-100 text-green-500">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {text}
+                    </Badge>
+                );
+            case "FINISHED":
+                return (
+                    <Badge className="bg-yellow-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {text}
+                    </Badge>
+                );
+            case "REFUSED":
+                return (
+                    <Badge className="bg-yellow-100 text-red-800">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {text}
+                    </Badge>
+                );
+            case "NO_SHOW":
+                return (
+                    <Badge className="bg-yellow-100 text-red-400">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {text}
+                    </Badge>
+                );
             default:
                 return <Badge variant="secondary">{text}</Badge>;
         }
@@ -166,16 +213,10 @@ export default function CallsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold">{title}</h1>
-                        <p className="text-muted-foreground">{subtitle}</p>
+                        <h1 className="text-3xl font-bold">{t.title}</h1>
+                        <p className="text-muted-foreground">{t.subtitle}</p>
                     </div>
                 </div>
-                {/*<Link href="/admin/calls/new">*/}
-                {/*    <Button>*/}
-                {/*        <Plus className="w-4 h-4 mr-2" />*/}
-                {/*        Adaugă Apel*/}
-                {/*    </Button>*/}
-                {/*</Link>*/}
             </div>
 
             {/* Filters */}
@@ -186,63 +227,63 @@ export default function CallsPage() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                                 <Input
-                                    placeholder={searchPlaceholder}
+                                    placeholder={t.searchPlaceholder}
                                     className="pl-10"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                         </div>
+
                         <Select value={passedFilter} onValueChange={setPassedFilter}>
                             <SelectTrigger className="w-full md:w-48">
-                                <SelectValue placeholder={passedFilterLabel} />
+                                <SelectValue placeholder={t.passedFilterLabel} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{passedFilterAll}</SelectItem>
-                                <SelectItem value="1">{passedFilterYes}</SelectItem>
-                                <SelectItem value="0">{passedFilterNo}</SelectItem>
+                                <SelectItem value="all">{t.passedFilterAll}</SelectItem>
+                                <SelectItem value="1">{t.passedFilterYes}</SelectItem>
+                                <SelectItem value="0">{t.passedFilterNo}</SelectItem>
                             </SelectContent>
                         </Select>
+
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-full md:w-48">
                                 <Filter className="w-4 h-4 mr-2" />
-                                <SelectValue placeholder={statusFilterLabel} />
+                                <SelectValue placeholder={t.statusFilterLabel} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{statusFilterAll}</SelectItem>
-                                <SelectItem value="WAITING">{statuses.WAITING}</SelectItem>
-                                <SelectItem value="ACCEPTED">{statuses.ACCEPTED}</SelectItem>
-                                <SelectItem value="FINISHED">{statuses.FINISHED}</SelectItem>
-                                <SelectItem value="REFUSED">{statuses.REFUSED}</SelectItem>
-                                <SelectItem value="NO_SHOW">{statuses.NO_SHOW}</SelectItem>
+                                <SelectItem value="all">{t.statusFilterAll}</SelectItem>
+                                <SelectItem value="WAITING">{t.statuses.WAITING}</SelectItem>
+                                <SelectItem value="ACCEPTED">{t.statuses.ACCEPTED}</SelectItem>
+                                <SelectItem value="FINISHED">{t.statuses.FINISHED}</SelectItem>
+                                <SelectItem value="REFUSED">{t.statuses.REFUSED}</SelectItem>
+                                <SelectItem value="NO_SHOW">{t.statuses.NO_SHOW}</SelectItem>
                             </SelectContent>
                         </Select>
+
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="w-full md:w-60 justify-start text-left font-normal"
-                                >
+                                <Button variant="outline" className="w-full md:w-60 justify-start text-left font-normal">
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {range[0].startDate && range[0].endDate
                                         ? `${range[0].startDate.toLocaleDateString(locale)} - ${range[0].endDate.toLocaleDateString(locale)}`
-                                        : dateFilterPlaceholder}
+                                        : t.dateFilterPlaceholder}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="p-0 w-auto" align="start">
                                 <div className="flex border rounded overflow-hidden">
-                                <DefinedRange
-                                    ranges={range}
-                                    onChange={(item: RangeKeyDict) => setRange([item.selection])}
-                                    staticRanges={customStaticRanges}
-                                    inputRanges={[]} // dacă vrei să ascunzi inputul cu număr de zile
-                                />
-                                <DateRange
-                                    editableDateInputs
-                                    onChange={(item: RangeKeyDict) => setRange([item.selection])}
-                                    moveRangeOnFirstSelection={false}
-                                    ranges={range}
-                                />
+                                    <DefinedRange
+                                        ranges={range}
+                                        onChange={(item: RangeKeyDict) => setRange([item.selection])}
+                                        staticRanges={customStaticRanges}
+                                        inputRanges={[]}
+                                    />
+                                    <DateRange
+                                        editableDateInputs
+                                        onChange={(item: RangeKeyDict) => setRange([item.selection])}
+                                        moveRangeOnFirstSelection={false}
+                                        ranges={range}
+                                    />
                                 </div>
                             </PopoverContent>
                         </Popover>
@@ -254,10 +295,10 @@ export default function CallsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <BookOpen className="w-5 h-5" />
-                        <span>{listTitle}</span>
+                        <span>{t.listTitle}</span>
                     </CardTitle>
                     <CardDescription>
-                        {listDescriptionTemplate.replace('{count}', filteredCalls.length.toString())}
+                        {t.listDescriptionTemplate.replace("{count}", filteredCalls.length.toString())}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -268,44 +309,60 @@ export default function CallsPage() {
                     ) : (
                         <div className="space-y-4">
                             {filteredCalls.map((call: any) => (
-                                <div key={call.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                <div
+                                    key={call.id}
+                                    className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                >
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-2 mb-2">
-                                            <h3 className="font-semibold text-lg">{call.attendees.firstName} {call.attendees.lastName}</h3>
+                                            <h3 className="font-semibold text-lg">
+                                                {call.attendees.firstName} {call.attendees.lastName}
+                                            </h3>
                                             {getStatusBadge(call.status)}
                                         </div>
-
-                                        {/*<p className="text-muted-foreground mb-3 line-clamp-2">*/}
-                                        {/*    {call.test_result.score} % scor trecere*/}
-                                        {/*</p>*/}
 
                                         <div className="flex items-center space-x-6 text-sm mb-3">
                                             <div className="flex items-center space-x-1">
                                                 <BookOpen className="w-4 h-4 text-blue-500" />
                                                 <span className="font-medium">{call.service?.name?.[locale]}</span>
                                             </div>
+
                                             <div className="flex items-center space-x-1">
                                                 <ListTodo className="w-4 h-4 text-green-500" />
-                                                <span><a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>{viewTestDetails}</a></span>
+                                                <span>
+                          <a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>
+                            {t.viewTestDetails}
+                          </a>
+                        </span>
                                             </div>
+
                                             <div className="flex items-center space-x-1">
                                                 <Clock className="w-4 h-4 text-orange-500" />
-                                                <span>{scheduledAtPrefix} {' '}
-                                                  {DateTime.fromISO(call.date_time, { setZone: true })
-                                                      .toFormat('dd.MM.yyyy HH:mm')} {' '}
-                                                </span>
+                                                <span>
+                          {t.scheduledAtPrefix}{" "}
+                                                    {DateTime.fromISO(call.date_time, { setZone: true }).toFormat("dd.MM.yyyy HH:mm")}{" "}
+                        </span>
                                             </div>
+
                                             <div className="flex items-center space-x-1">
                                                 <BarChart3 className="w-4 h-4 text-purple-500" />
-                                                <span>{passingScorePrefix} {call.test_result.score}%</span>
+                                                <span>
+                          {t.passingScorePrefix} {call.test_result.score}%
+                        </span>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                            <span>{categoryPrefix} {call.service?.category?.name?.[locale]}</span>
-                                            <span>{createdPrefix} {new Date(call.created_at).toLocaleString(locale)}</span>
+                      <span>
+                        {t.categoryPrefix} {call.service?.category?.name?.[locale]}
+                      </span>
+                                            <span>
+                        {t.createdPrefix} {new Date(call.created_at).toLocaleString(locale)}
+                      </span>
                                             {call.results && (
-                                                <span>{resultsLabelTemplate.replace('{count}', call.results.length.toString())}</span>
+                                                <span>
+                          {t.resultsLabelTemplate.replace("{count}", call.results.length.toString())}
+                        </span>
                                             )}
                                         </div>
                                     </div>
@@ -320,62 +377,71 @@ export default function CallsPage() {
                                             <DropdownMenuItem asChild>
                                                 <Link target="_blank" href={call.call_url}>
                                                     <Eye className="w-4 h-4 mr-2" />
-                                                    {connectToInterview}
+                                                    {t.connectToInterview}
                                                 </Link>
                                             </DropdownMenuItem>
-                                            {call.status !== 'WAITING' && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, 'WAITING', null)}>
+
+                                            {call.status !== "WAITING" && (
+                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "WAITING", null)}>
                                                     <PauseCircleOutlineIcon className="w-4 h-4 mr-2" />
-                                                    {moveWaiting}
+                                                    {t.moveWaiting}
                                                 </DropdownMenuItem>
                                             )}
-                                            {call.status !== 'FINISHED' && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, 'FINISHED', null)}>
+
+                                            {call.status !== "FINISHED" && (
+                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "FINISHED", null)}>
                                                     <PlaylistAddCheckCircleIcon className="!w-4 !h-4 mr-2" />
-                                                    {moveFinished}
+                                                    {t.moveFinished}
                                                 </DropdownMenuItem>
                                             )}
-                                            {call.status !== 'ACCEPTED' && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, 'ACCEPTED', null)}>
+
+                                            {call.status !== "ACCEPTED" && (
+                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "ACCEPTED", null)}>
                                                     <CheckCircleOutlineIcon className="!w-4 !h-4 mr-2" />
-                                                    {moveAccepted}
+                                                    {t.moveAccepted}
                                                 </DropdownMenuItem>
                                             )}
-                                            {call.status !== 'REFUSED' && (
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setNoteModalCallId(call.id)}>
+
+                                            {call.status !== "REFUSED" && (
+                                                <DropdownMenuItem
+                                                    onSelect={(e) => e.preventDefault()}
+                                                    onClick={() => setNoteModalCallId(call.id)}
+                                                >
                                                     <VisibilityOff className="!w-4 !h-4 mr-2" />
-                                                    {moveRefused}
+                                                    {t.moveRefused}
                                                 </DropdownMenuItem>
                                             )}
+
                                             {noteModalCallId === call.id && (
                                                 <div className="mt-2 p-4 border rounded bg-muted space-y-2 w-full max-w-md">
-                                                    <label className="text-sm font-medium">{refuseReasonLabel}</label>
+                                                    <label className="text-sm font-medium">{t.refuseReasonLabel}</label>
                                                     <textarea
                                                         value={noteText}
                                                         onChange={(e) => setNoteText(e.target.value)}
-                                                        placeholder={refuseReasonPlaceholder}
+                                                        placeholder={t.refuseReasonPlaceholder}
                                                         className="w-full h-20 border rounded p-2 text-sm"
                                                     />
                                                     <div className="flex justify-end space-x-2">
                                                         <Button variant="secondary" onClick={() => setNoteModalCallId(null)}>
-                                                            {cancelLabel}
+                                                            {t.cancelLabel}
                                                         </Button>
                                                         <Button
                                                             onClick={() => {
-                                                                handleCallAction(call.id, 'REFUSED', noteText);
+                                                                handleCallAction(call.id, "REFUSED", noteText);
                                                                 setNoteModalCallId(null);
-                                                                setNoteText('');
+                                                                setNoteText("");
                                                             }}
                                                         >
-                                                            {confirmLabel}
+                                                            {t.confirmLabel}
                                                         </Button>
                                                     </div>
                                                 </div>
                                             )}
-                                            {call.status !== 'NO_SHOW' && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, 'NO_SHOW', null)}>
+
+                                            {call.status !== "NO_SHOW" && (
+                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "NO_SHOW", null)}>
                                                     <XCircle className="w-4 h-4 mr-2" />
-                                                    {moveNoShow}
+                                                    {t.moveNoShow}
                                                 </DropdownMenuItem>
                                             )}
                                         </DropdownMenuContent>
@@ -386,11 +452,8 @@ export default function CallsPage() {
                             {filteredCalls.length === 0 && (
                                 <div className="text-center py-12">
                                     <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">{noCallsTitle}</h3>
-                                    <p className="text-muted-foreground mb-4">
-                                        {noCallsDescription}
-                                    </p>
-
+                                    <h3 className="text-lg font-medium mb-2">{t.noCallsTitle}</h3>
+                                    <p className="text-muted-foreground mb-4">{t.noCallsDescription}</p>
                                 </div>
                             )}
                         </div>
