@@ -10,18 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
-  Users,
-  Search,
-  Plus,
-  MoreHorizontal,
-  UserCheck,
-  Ban,
-  Trash2,
-  Star,
-  CheckCircle,
-  Loader2,
-  ArrowLeft,
-  Filter, Pencil, UserRound
+    Users,
+    Search,
+    Plus,
+    MoreHorizontal,
+    UserCheck,
+    Ban,
+    Trash2,
+    Star,
+    CheckCircle,
+    Loader2,
+    ArrowLeft,
+    Filter, Pencil, UserRound, Eye
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
@@ -52,6 +52,7 @@ export default function AdminUsersPage() {
   const confirmDeleteText = useAsyncTranslation(locale, 'admin.users.actions.confirm_delete');
   const errorPrefix = useAsyncTranslation(locale, 'admin.users.actions.error_prefix');
   const modifyProfile = useAsyncTranslation(locale, 'admin.users.actions.modify_profile');
+  const viewProfile = useAsyncTranslation(locale, 'admin.users.actions.view_profile');
   const verifyLabel = useAsyncTranslation(locale, 'admin.users.actions.verify');
   const suspendLabel = useAsyncTranslation(locale, 'admin.users.actions.suspend');
   const activateLabel = useAsyncTranslation(locale, 'admin.users.actions.activate');
@@ -268,11 +269,16 @@ export default function AdminUsersPage() {
                             </Can>
                         )}
 
-                        <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/${locale}/admin/users/${user.id}`)}>
                           <Pencil className="w-4 h-4 mr-2" />
                           {modifyProfile}
                         </DropdownMenuItem>
-
+                          {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') && (
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/${locale}/provider/${user.profile_url}`)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  {viewProfile}
+                              </DropdownMenuItem>
+                          )}
                         <DropdownMenuItem className="cursor-pointer" onClick={() => handleUserAction(user.id, 'verify')}>
                           <UserCheck className="w-4 h-4 mr-2" />
                           {verifyLabel}

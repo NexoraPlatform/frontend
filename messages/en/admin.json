@@ -678,6 +678,7 @@
     },
     "actions": {
       "modify_profile": "Edit profile",
+      "view_profile": "View Profile",
       "verify": "Verify",
       "suspend": "Suspend",
       "activate": "Activate",

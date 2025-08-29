@@ -676,6 +676,7 @@
     },
     "actions": {
       "modify_profile": "Modifică profil",
+      "view_profile": "Vezi Profil",
       "verify": "Verifică",
       "suspend": "Suspendă",
       "activate": "Activează",

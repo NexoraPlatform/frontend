@@ -608,7 +608,10 @@ export default function EditUserClient({ id }: { id: number }) {
                                                                         checked={!!selectedPermissions[perm.slug]}
                                                                         onChange={() => togglePermission(perm)}
                                                                     />
-                                                                    <span>{perm.name}</span>
+                                                                    <div className="flex flex-col">
+                                                                        <span>{perm.name}</span>
+                                                                        {perm.description && (<span className="text-xs">({perm.description})</span>)}
+                                                                    </div>
                                                                 </label>
                                                                 {selectedPermissions[perm.slug] && (
                                                                     <div className="flex items-center gap-2">
