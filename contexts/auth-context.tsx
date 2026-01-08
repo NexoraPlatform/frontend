@@ -39,6 +39,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_STATE_KEY = 'auth_state';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const localToken = localStorage.getItem('auth_token');
 
     const token = localToken || cookieToken;
+    const authState = localStorage.getItem(AUTH_STATE_KEY);
     const hasValidToken = (() => {
       if (!token || token.trim() === '' || token === 'null' || token === 'undefined') {
         return false;
@@ -88,13 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return true;
     })();
+    const isAuthenticated = authState === '1' && hasValidToken;
 
     // Sync from cookie to localStorage if missing
     if (cookieToken && !localToken) {
       localStorage.setItem('auth_token', cookieToken);
     }
 
-    if (hasValidToken) {
+    if (isAuthenticated) {
       apiClient.setToken(token);
 
       // Always refresh the cookie to ensure it's valid
@@ -103,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       apiClient.removeToken();
       localStorage.removeItem('auth_token');
+      localStorage.removeItem(AUTH_STATE_KEY);
       document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
       setLoading(false);
     }
@@ -115,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       apiClient.setToken(response.access_token);
       localStorage.setItem('auth_token', response.access_token);
+      localStorage.setItem(AUTH_STATE_KEY, '1');
       document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
     } catch (error: any) {
       throw new Error(error.message || 'Login failed');
@@ -128,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       apiClient.setToken(response.access_token);
       localStorage.setItem('auth_token', response.access_token);
+      localStorage.setItem(AUTH_STATE_KEY, '1');
       document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed');
@@ -137,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     apiClient.removeToken();
     localStorage.removeItem('auth_token');
+    localStorage.removeItem(AUTH_STATE_KEY);
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
     setUser(null);
   };
