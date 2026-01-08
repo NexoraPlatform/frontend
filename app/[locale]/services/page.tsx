@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -21,10 +22,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import apiClient from "@/lib/api";
 import { MuiIcon } from "@/components/MuiIcons";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
+import { Locale } from "@/types/locale";
+
+type LocalizedText = string | Record<string, string>;
 
 interface ServiceCategory {
   id: number;
-  name: string;
+  name: LocalizedText;
   slug: string;
   description: string | null;
   icon: string;
@@ -77,9 +81,9 @@ interface ServiceProvider {
 
 interface Service {
   id: number;
-  name: string;
+  name: LocalizedText;
   slug: string;
-  description: string;
+  description: LocalizedText;
   tags: string[];
   isActive: boolean;
   category_id: number;
@@ -108,7 +112,7 @@ interface ServicesResponse {
 
 type Category = {
     id: string | number;
-    name: string;
+    name: LocalizedText;
     icon?: string | null;
     parent_id: string | number | null;
 };
@@ -117,7 +121,19 @@ type CategoryNode = Category & { children: CategoryNode[] };
 
 const PER_PAGE = 12;
 
+function getLocalizedText(value: LocalizedText | null | undefined, locale: Locale) {
+    if (!value) {
+        return '';
+    }
+    if (typeof value === 'string') {
+        return value;
+    }
+    return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
+}
+
 export default function ServicesPage() {
+  const pathname = usePathname();
+  const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   // const [priceRange, setPriceRange] = useState([0, 5000]);
@@ -256,7 +272,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div className="w-full lg:w-72">
-                <CategorySelect categories={categories} selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+                <CategorySelect categories={categories} selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} locale={locale} />
               </div>
             </div>
 
@@ -339,7 +355,7 @@ export default function ServicesPage() {
                           onCheckedChange={() => handleSkillToggle(skill.id)}
                         />
                         <label htmlFor={skill.id} className="text-sm cursor-pointer">
-                          {skill.name}
+                          {getLocalizedText(skill.name, locale)}
                         </label>
                       </div>
                     ))}
@@ -396,7 +412,7 @@ export default function ServicesPage() {
                             </Badge>
                           )}
                           <Badge variant="secondary" className="bg-slate-100 text-slate-600 dark:bg-[#111B2D] dark:text-[#A3ADC2]">
-                            {service.category?.name}
+                            {getLocalizedText(service.category?.name, locale)}
                           </Badge>
                         </div>
                         <div className="flex space-x-2">
@@ -410,10 +426,10 @@ export default function ServicesPage() {
                       </div>
 
                       <CardTitle className="text-xl mb-2 group-hover:text-[#1BC47D] transition-colors">
-                        {service.name}
+                        {getLocalizedText(service.name, locale)}
                       </CardTitle>
                       <CardDescription className="text-sm line-clamp-2 text-slate-500 dark:text-[#A3ADC2]">
-                        {service.description}
+                        {getLocalizedText(service.description, locale)}
                       </CardDescription>
                     </CardHeader>
 
@@ -470,9 +486,9 @@ export default function ServicesPage() {
 
                       {/* Skills */}
                       <div className="flex flex-wrap gap-1 mb-4">
-                        {(service.skills || []).slice(0, 3).map((skill: string) => (
-                          <Badge key={skill} variant="outline" className="text-xs border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
-                            {skill}
+                        {(service.skills || []).slice(0, 3).map((skill: LocalizedText) => (
+                          <Badge key={getLocalizedText(skill, locale)} variant="outline" className="text-xs border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
+                            {getLocalizedText(skill, locale)}
                           </Badge>
                         ))}
                         {(service.skills || []).length > 3 && (
@@ -561,20 +577,20 @@ function buildCategoryTree(items: Category[]): CategoryNode[] {
     return roots;
 }
 
-function renderCategoryTree(nodes: CategoryNode[], depth = 0): React.ReactNode {
+function renderCategoryTree(nodes: CategoryNode[], locale: Locale, depth = 0): React.ReactNode {
     const pad = depth * 16; // indent px per nivel
     return nodes.flatMap((cat) => {
         const me = (
             <SelectItem key={`cat-${cat.id}`} value={String(cat.id)}>
                 <div className="flex items-center space-x-2" style={{ paddingLeft: pad }}>
                     {cat.icon ? <MuiIcon icon={cat.icon} size={18} className="opacity-80" /> : null}
-                    <span>{cat.name}</span>
+                    <span>{getLocalizedText(cat.name, locale)}</span>
                 </div>
             </SelectItem>
         );
 
         if (!cat.children.length) return [me];
-        return [me, renderCategoryTree(cat.children, depth + 1)];
+        return [me, renderCategoryTree(cat.children, locale, depth + 1)];
     });
 }
 
@@ -582,10 +598,12 @@ function CategorySelect({
                                    categories,
                                    selectedCategory,
                             onCategoryChange,
+                            locale,
                                }: {
     categories: Category[];
     selectedCategory: string;
     onCategoryChange: (val: string) => void;
+    locale: Locale;
 }) {
     const tree = useMemo(() => buildCategoryTree(categories), [categories]);
 
@@ -602,7 +620,7 @@ function CategorySelect({
                     </div>
                 </SelectItem>
 
-                {renderCategoryTree(tree)}
+                {renderCategoryTree(tree, locale)}
             </SelectContent>
         </Select>
     );
