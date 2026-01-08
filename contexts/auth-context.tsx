@@ -39,6 +39,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_STATE_KEY = 'auth_state';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -67,19 +68,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const localToken = localStorage.getItem('auth_token');
 
     const token = localToken || cookieToken;
+    const authState = localStorage.getItem(AUTH_STATE_KEY);
+    const hasValidToken = (() => {
+      if (!token || token.trim() === '' || token === 'null' || token === 'undefined') {
+        return false;
+      }
+
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        return true;
+      }
+
+      try {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (typeof payload.exp === 'number') {
+          return payload.exp * 1000 > Date.now();
+        }
+      } catch (error) {
+        console.warn('Unable to decode auth token payload:', error);
+      }
+
+      return true;
+    })();
+    const isAuthenticated = authState === '1' && hasValidToken;
 
     // Sync from cookie to localStorage if missing
     if (cookieToken && !localToken) {
       localStorage.setItem('auth_token', cookieToken);
     }
 
-    if (token) {
+    if (isAuthenticated) {
       apiClient.setToken(token);
 
       // Always refresh the cookie to ensure it's valid
       document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
       fetchProfile();
     } else {
+      apiClient.removeToken();
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem(AUTH_STATE_KEY);
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
       setLoading(false);
     }
   }, [fetchProfile]);
@@ -91,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       apiClient.setToken(response.access_token);
       localStorage.setItem('auth_token', response.access_token);
+      localStorage.setItem(AUTH_STATE_KEY, '1');
       document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
     } catch (error: any) {
       throw new Error(error.message || 'Login failed');
@@ -104,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       apiClient.setToken(response.access_token);
       localStorage.setItem('auth_token', response.access_token);
+      localStorage.setItem(AUTH_STATE_KEY, '1');
       document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed');
@@ -113,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     apiClient.removeToken();
     localStorage.removeItem('auth_token');
+    localStorage.removeItem(AUTH_STATE_KEY);
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
     setUser(null);
   };
