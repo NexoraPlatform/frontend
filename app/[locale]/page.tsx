@@ -1,363 +1,324 @@
-import { Suspense } from "react";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { HeroSectionStatic } from "@/components/hero-section-static";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Code, Smartphone, Palette, TrendingUp, Shield, Zap, Users, Globe, Award, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+
+export const revalidate = 86400; // 24h
 
 interface HomePageProps {
     params: Promise<{ locale: Locale }>;
 }
 
-const TestimonialsSection = dynamic(
-    () => import("@/components/testimonials-section").then((m) => ({ default: m.TestimonialsSection })),
-    {
-        loading: () => (
-            <div className="py-12 bg-gradient-to-b from-gray-50 to-purple-50/30 dark:from-gray-950/50 dark:to-purple-950/10">
-                <div className="container mx-auto px-4">
-                    <div className="h-96 bg-white/90 dark:bg-gray-900/90 rounded-3xl animate-pulse" />
-                </div>
-            </div>
-        ),
-    }
-);
-
-const TestimonialsLoading = () => (
-    <section className="py-12 bg-gradient-to-b from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950/50 dark:via-blue-950/10 dark:to-purple-950/10 lazy-section">
-        <div className="container mx-auto px-4">
-            <div className="text-center mb-20">
-                <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-8 animate-pulse" />
-                <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto max-w-2xl mb-8 animate-pulse" />
-            </div>
-            <div className="max-w-5xl mx-auto">
-                <div className="h-96 bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl animate-pulse" />
-            </div>
-        </div>
-    </section>
-);
-
-export const revalidate = 86400; // 24h
-
 export default async function Home(props: HomePageProps) {
     const { locale } = await props.params;
-    const [
-        // features section heading
-        featuresBadge,
-        featuresTitle,
-        featuresSubtitle,
-
-        // why section heading
-        whyBadge,
-        whyTitle,
-        whySubtitle,
-
-        // CTA
-        ctaTitle,
-        ctaSubtitle,
-        ctaStartNow,
-        ctaBecomeExpert,
-
-        // common labels
-        completedLabel,
-        growthLabel,
-        exploreLabel,
-        exploreServicesInCategory,
-
-        // accessibility labels
-        mainContentLabel,
-        serviceCategoriesListLabel,
-        categoryLabel,
-        nexoraBenefitsListLabel,
-        benefitLabel,
-        statisticLabel,
-
-        // FEATURES cards
-        securePlatform,
-        securePlatformDescription,
-        expertTeam,
-        expertTeamDescription,
-        globalReach,
-        globalReachDescription,
-        awardWinning,
-        awardWinningDescription,
-
-        learnMoreAbout,
-        findMore
-    ] = await Promise.all([
-        t(locale, "homepage.features.badge"),
-        t(locale, "homepage.features.title"),
-        t(locale, "homepage.features.subtitle"),
-
-        t(locale, "homepage.why_nexora.badge"),
-        t(locale, "homepage.why_nexora.title"),
-        t(locale, "homepage.why_nexora.subtitle"),
-
-        t(locale, "homepage.cta.title"),
-        t(locale, "homepage.cta.subtitle"),
-        t(locale, "homepage.cta.start_now"),
-        t(locale, "homepage.cta.become_expert"),
-
-        t(locale, "common.completed"),
-        t(locale, "common.growth"),
-        t(locale, "common.explore"),
-        t(locale, "homepage.explore_services_in_category"),
-
-        t(locale, "common.main_content"),
-        t(locale, "common.service_categories_list"),
-        t(locale, "common.category_label"),
-        t(locale, "common.nexora_benefits_list"),
-        t(locale, "common.benefit_label"),
-        t(locale, "common.statistic_label"),
-
-        t(locale, "homepage.why_nexora.secure_platform"),
-        t(locale, "homepage.why_nexora.secure_platform_description"),
-        t(locale, "homepage.why_nexora.expert_team"),
-        t(locale, "homepage.why_nexora.expert_team_description"),
-        t(locale, "homepage.why_nexora.global_reach"),
-        t(locale, "homepage.why_nexora.global_reach_description"),
-        t(locale, "homepage.why_nexora.award_winning"),
-        t(locale, "homepage.why_nexora.award_winning_description"),
-
-        t(locale, "common.learn_more_about"),
-        t(locale, "common.find_more"),
-    ]);
-
-    const CATEGORIES = [
-        {
-            title: await t(locale, "homepage.categories.web_development.title"),
-            description: await t(locale, "homepage.categories.web_development.description"),
-            icon: Code,
-            color: "from-blue-500 to-blue-700",
-            projects: "100",
-            trend: "+20%",
-            count: "50",
-            avgPrice: "$500",
-            slug: "web-development",
-        },
-        {
-            title: await t(locale, "homepage.categories.mobile_apps.title"),
-            description: await t(locale, "homepage.categories.mobile_apps.description"),
-            icon: Smartphone,
-            color: "from-green-500 to-green-700",
-            projects: "80",
-            trend: "+15%",
-            count: "40",
-            avgPrice: "$400",
-            slug: "mobile-apps",
-        },
-        {
-            title: await t(locale, "homepage.categories.ui_ux_design.title"),
-            description: await t(locale, "homepage.categories.ui_ux_design.description"),
-            icon: Palette,
-            color: "from-red-500 to-red-700",
-            projects: "120",
-            trend: "+25%",
-            count: "60",
-            avgPrice: "$600",
-            slug: "ui-ux-design",
-        },
-        {
-            title: await t(locale, "homepage.categories.data_analytics.title"),
-            description: await t(locale, "homepage.categories.data_analytics.description"),
-            icon: TrendingUp,
-            color: "from-yellow-500 to-yellow-700",
-            projects: "90",
-            trend: "+18%",
-            count: "55",
-            avgPrice: "$550",
-            slug: "data-analytics",
-        },
-    ];
-
-    const FEATURES = [
-        { title: securePlatform, description: securePlatformDescription, icon: Shield, gradient: "from-blue-500 to-blue-700", stats: "99.9%" },
-        { title: expertTeam, description: expertTeamDescription, icon: Users, gradient: "from-green-500 to-green-700", stats: "1000+" },
-        { title: globalReach, description: globalReachDescription, icon: Globe, gradient: "from-red-500 to-red-700", stats: "150 countries" },
-        { title: awardWinning, description: awardWinningDescription, icon: Award, gradient: "from-yellow-500 to-yellow-700", stats: "5 awards" },
-    ];
+    void locale;
 
     return (
-        <div className="bg-background font-sans">
-            <Header />
-
-            <main role="main" aria-label={mainContentLabel} id="main-content">
-                <HeroSectionStatic locale={locale} />
-
-                {/* CATEGORIES */}
-                <section
-                    className="py-12 bg-gradient-to-b from-white via-blue-50/30 to-purple-50/30 dark:from-background dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden font-sans lazy-section"
-                    aria-labelledby="categories-heading"
-                >
-                    <div className="container mx-auto px-4 relative">
-                        <div className="text-center mb-20">
-                            <Badge
-                                variant="secondary"
-                                className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 border border-blue-200 dark:border-blue-800"
-                            >
-                                <Globe className="w-5 h-5 mr-2" />
-                                {featuresBadge}
-                            </Badge>
-
-                            <h2 id="categories-heading" className="text-5xl lg:text-6xl font-black leading-tight mb-8">
-                                {featuresTitle}
-                            </h2>
-
-                            <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed font-medium mb-12">
-                                {featuresSubtitle}
-                            </p>
+        <div className="bg-white text-[#0F172A]">
+            <style
+                dangerouslySetInnerHTML={{
+                    __html: `
+                        :root {
+                            --midnight-blue: #0B1C2D;
+                            --emerald-green: #1BC47D;
+                            --success-green: #21D19F;
+                            --warning-amber: #F5A623;
+                            --error-red: #E5484D;
+                            --bg-light: #F5F7FA;
+                            --text-near-black: #0F172A;
+                        }
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            background-color: white;
+                            color: var(--text-near-black);
+                            scroll-behavior: smooth;
+                        }
+                        .mono { font-family: 'JetBrains Mono', monospace; }
+                        .btn-primary {
+                            background-color: var(--emerald-green);
+                            color: white;
+                            transition: all 0.2s ease;
+                        }
+                        .btn-primary:hover {
+                            filter: brightness(1.05);
+                            box-shadow: 0 0 0 4px rgba(27, 196, 125, 0.15);
+                        }
+                        .glass-card {
+                            background: white;
+                            border: 1px solid rgba(11, 28, 45, 0.08);
+                            border-radius: 12px;
+                        }
+                        .section-divider {
+                            border-bottom: 1px solid rgba(11, 28, 45, 0.05);
+                        }
+                        .pillar-icon {
+                            stroke-width: 1.5px;
+                            color: var(--emerald-green);
+                        }
+                    `,
+                }}
+            />
+            <nav className="fixed w-full z-50 bg-white border-b border-slate-100">
+                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#0B1C2D] flex items-center justify-center rounded-md">
+                            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#1BC47D]" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4h16v3H4zM10 7h4v13h-4z" />
+                                <rect x="10" y="7" width="4" height="4" fill="#21D19F" />
+                            </svg>
                         </div>
-
-                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label={serviceCategoriesListLabel}>
-                            {CATEGORIES.map((category) => (
-                                <Card
-                                    key={category.title}
-                                    className="group relative overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm will-change-transform"
-                                    role="listitem"
-                                    tabIndex={0}
-                                    aria-label={`${categoryLabel} ${category.title}: ${category.description}`}
-                                >
-                                    <div className={`h-3 bg-gradient-to-r ${category.color}`} />
-
-                                    <CardHeader className="text-center pb-4 relative z-10">
-                                        <div
-                                            className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${category.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-2xl relative`}
-                                            aria-hidden="true"
-                                        >
-                                            {category.icon && <category.icon className="w-12 h-12 text-white" />}
-                                            <div className="absolute inset-0 bg-white/20 rounded-3xl" />
-                                        </div>
-
-                                        <CardTitle className="text-2xl mb-4 group-hover:text-blue-600 transition-colors font-bold">
-                                            {category.title}
-                                        </CardTitle>
-
-                                        <CardDescription className="text-base leading-relaxed">{category.description}</CardDescription>
-                                    </CardHeader>
-
-                                    <CardContent className="text-center space-y-4 relative z-10">
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div className="bg-blue-50 dark:bg-blue-900/50 rounded-lg p-3">
-                                                <div className="font-bold text-blue-600">{category.projects}</div>
-                                                <div className="text-xs">{completedLabel}</div>
-                                            </div>
-                                            <div className="bg-green-100 dark:bg-green-900 rounded-lg p-3">
-                                                <div className="font-bold text-green-900 dark:text-green-300">{category.trend}</div>
-                                                <div className="text-xs">{growthLabel}</div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-between items-center">
-                                            <Badge variant="secondary" className="text-xs font-medium bg-blue-100 dark:bg-blue-900">
-                                                {category.count}
-                                            </Badge>
-                                            <span className="text-sm font-bold text-blue-600">{category.avgPrice}</span>
-                                        </div>
-
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full mt-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-950 font-semibold transition-colors"
-                                            aria-label={`${exploreServicesInCategory} ${category.title}`}
-                                            asChild
-                                        >
-                                            <Link href={`/services?category=${category.slug}`}>
-                                                {exploreLabel}
-                                                <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                        <span className="text-lg font-bold tracking-tight text-[#0B1C2D]">TRUSTORA</span>
                     </div>
-                </section>
 
-                {/* WHY / FEATURES */}
-                <section className="py-12 relative overflow-hidden lazy-section" aria-labelledby="features-heading">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-indigo-600/5" aria-hidden="true" />
-                    <div className="container mx-auto px-4 relative">
-                        <div className="text-center mb-20">
-                            <Badge
-                                variant="secondary"
-                                className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/50 dark:to-blue-900/50 border border-green-200 dark:border-green-800"
-                            >
-                                <Shield className="w-5 h-5 mr-2" />
-                                {whyBadge}
-                            </Badge>
+                    <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-500">
+                        <a href="#pillars" className="hover:text-[#1BC47D]">
+                            Piloni
+                        </a>
+                        <a href="#how" className="hover:text-[#1BC47D]">
+                            Infrastructură
+                        </a>
+                        <a href="#" className="px-4 py-2 rounded-md bg-[#0B1C2D] text-white hover:bg-slate-800 transition-all">
+                            Start Protected Project
+                        </a>
+                    </div>
+                </div>
+            </nav>
 
-                            <h2 id="features-heading" className="text-5xl lg:text-6xl font-black mb-8 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                                {whyTitle}
-                            </h2>
-
-                            <p className="text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">{whySubtitle}</p>
+            <main role="main" aria-label="Conținut principal" id="main-content">
+                <section className="pt-40 pb-24 px-6 bg-white overflow-hidden">
+                    <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold mb-8">
+                            <span className="text-[#1BC47D]">●</span> DIGITAL TRUST INFRASTRUCTURE
+                        </div>
+                        <h1 className="text-5xl lg:text-7xl font-bold text-[#0B1C2D] tracking-tight mb-6 max-w-4xl">
+                            Hire and get paid with <span className="text-[#1BC47D]">zero risk.</span>
+                        </h1>
+                        <p className="text-xl text-slate-500 mb-12 max-w-2xl">
+                            Verified professionals. Protected payments. Enforced delivery. <br className="hidden md:block" />
+                            The secure layer for global online work.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 mb-20">
+                            <button className="px-8 py-4 btn-primary font-bold rounded-lg text-lg">Start a protected project</button>
+                            <button className="px-8 py-4 bg-white border border-slate-200 text-[#0B1C2D] font-bold rounded-lg text-lg hover:bg-slate-50">
+                                Contact Sales
+                            </button>
                         </div>
 
-                        <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" role="list" aria-label={nexoraBenefitsListLabel}>
-                            {FEATURES.map((feature, i) => (
-                                <div key={i} className="text-center group relative" role="listitem" tabIndex={0} aria-label={`${benefitLabel} ${feature.title}: ${feature.description}`}>
-                                    <div className="relative mb-8">
-                                        <div className={`w-28 h-28 mx-auto bg-gradient-to-br ${feature.gradient} rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-2xl relative overflow-hidden`} aria-hidden="true">
-                                            {feature.icon && <feature.icon className="w-14 h-14 text-white relative z-10" />}
-                                            <div className="absolute inset-0 bg-white/20" />
-                                            <div className="absolute -inset-1 bg-gradient-to-r from-white/20 to-transparent rounded-3xl blur" />
+                        <div className="w-full max-w-5xl glass-card overflow-hidden shadow-2xl shadow-slate-200/50">
+                            <div className="bg-slate-50 border-b border-slate-100 px-6 py-3 flex items-center justify-between">
+                                <div className="flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                                </div>
+                                <div className="text-[10px] font-bold mono text-slate-400 uppercase tracking-widest">
+                                    Trustora Engine v2.4 — Escrow Secured
+                                </div>
+                                <div />
+                            </div>
+                            <div className="p-8 grid md:grid-cols-3 gap-8 text-left">
+                                <div className="space-y-6">
+                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Contracts</div>
+                                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm font-bold">API Integration</span>
+                                            <span className="mono text-[#1BC47D] text-sm">€ 2.450,00</span>
                                         </div>
-                                        <div className="absolute -top-2 -right-2 bg-white dark:bg-gray-900 rounded-full px-3 py-1 text-xs font-bold text-blue-600 shadow-lg border-2 border-blue-200 dark:border-blue-800" aria-label={`${statisticLabel}: ${feature.stats}`}>
-                                            {feature.stats}
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-[#1BC47D]" />
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Funds Locked</span>
                                         </div>
-                                    </div>
-
-                                    <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-600 transition-colors">{feature.title}</h3>
-                                    <p className="text-base text-muted-foreground mb-6 leading-relaxed">{feature.description}</p>
-
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                        <Button variant="ghost" className="text-blue-600 font-semibold" aria-label={`${learnMoreAbout} ${feature.title}`} asChild>
-                                            <Link href={`/${locale}/about`}>
-                                                {findMore}
-                                                <ChevronRight className="ml-2 w-4 h-4" />
-                                            </Link>
-                                        </Button>
                                     </div>
                                 </div>
-                            ))}
+                                <div className="md:col-span-2">
+                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Milestone Execution</div>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between p-4 border border-slate-100 rounded-lg bg-white">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center">
+                                                    <svg className="w-4 h-4 text-[#1BC47D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M5 13l4 4L19 7" strokeWidth="3" />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-sm font-medium">Architecture Design</span>
+                                            </div>
+                                            <span className="mono text-xs text-[#21D19F] font-bold">RELEASED</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 border-2 border-[#1BC47D]/20 rounded-lg bg-emerald-50/20">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded bg-[#1BC47D] flex items-center justify-center">
+                                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                                            strokeWidth="2"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-sm font-bold">Core Module Delivery</span>
+                                            </div>
+                                            <span className="mono text-xs text-[#0B1C2D] font-bold tracking-tighter">IN ESCROW</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <Suspense fallback={<TestimonialsLoading />}>
-                    <TestimonialsSection />
-                </Suspense>
-
-                {/* CTA */}
-                <section className="py-12 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden lazy-section" aria-labelledby="cta-heading">
-                    <div className="container mx-auto px-4 text-center relative">
-                        <div className="max-w-4xl mx-auto">
-                            <h2 id="cta-heading" className="text-5xl lg:text-6xl font-black mb-8">{ctaTitle}</h2>
-                            <p className="text-2xl opacity-90 mb-16 leading-relaxed">{ctaSubtitle}</p>
-                            <div className="flex flex-col sm:flex-row gap-8 justify-center">
-                                <Button size="lg" variant="secondary" className="px-16 py-8 text-2xl font-bold bg-white text-blue-600 hover:bg-gray-100 dark:text-black rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-200" asChild>
-                                    <Link href={`/${locale}/services`}>
-                                        <Zap className="mr-3 w-7 h-7" />
-                                        {ctaStartNow}
-                                    </Link>
-                                </Button>
-                                <Button size="lg" variant="outline" className="px-16 py-8 text-2xl font-bold border-2 border-white hover:bg-white/10 rounded-2xl shadow-lg transform hover:scale-105 transition-all duration-200 text-white hover:text-white bg-transparent" asChild>
-                                    <Link href={`/${locale}/auth/signup?type=provider`}>
-                                        <Users className="mr-3 w-7 h-7" />
-                                        {ctaBecomeExpert}
-                                    </Link>
-                                </Button>
+                <section className="py-24 px-6 bg-[#F5F7FA]" id="pillars">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="grid md:grid-cols-4 gap-8">
+                            <div className="space-y-4">
+                                <svg className="w-6 h-6 pillar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-[#0B1C2D]">Verified People</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">
+                                    Nimeni nu lucrează fără test tehnic și verificare video obligatorie.
+                                </p>
                             </div>
+                            <div className="space-y-4">
+                                <svg className="w-6 h-6 pillar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-[#0B1C2D]">Protected Money</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">
+                                    Fiecare euro este ținut în escrow până la confirmarea livrării.
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                <svg className="w-6 h-6 pillar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-[#0B1C2D]">Enforced Delivery</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">
+                                    Plata se eliberează doar pe baza milestone-urilor acceptate.
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                <svg className="w-6 h-6 pillar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-[#0B1C2D]">Legal-grade contracts</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">
+                                    Fiecare job este un contract digital cu valoare legală deplină.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="py-24 px-6 bg-white" id="how">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="grid md:grid-cols-2 gap-px bg-slate-100 border border-slate-100 rounded-3xl overflow-hidden shadow-xl">
+                            <div className="bg-white p-12 lg:p-20">
+                                <span className="text-[10px] font-bold text-[#0B1C2D] bg-slate-100 px-2 py-1 rounded mb-6 inline-block">
+                                    FOR CLIENTS
+                                </span>
+                                <h2 className="text-4xl font-bold text-[#0B1C2D] mb-6">„Plătesc doar când primesc livrarea.”</h2>
+                                <p className="text-slate-500 mb-8 leading-relaxed">
+                                    Banii tăi sunt protejați prin escrow. Nicio plată nu părăsește platforma fără confirmarea ta explicită a
+                                    calității muncii.
+                                </p>
+                                <ul className="space-y-4 mb-10">
+                                    <li className="flex items-center gap-3 text-sm font-medium">
+                                        <span className="text-[#1BC47D]">✅</span> Zero risc de pierdere financiară
+                                    </li>
+                                    <li className="flex items-center gap-3 text-sm font-medium">
+                                        <span className="text-[#1BC47D]">✅</span> Profesioniști pre-verificați video
+                                    </li>
+                                </ul>
+                                <a href="#" className="font-bold text-[#0B1C2D] border-b-2 border-[#1BC47D] pb-1">
+                                    Start hiring safely →
+                                </a>
+                            </div>
+                            <div className="bg-[#0B1C2D] p-12 lg:p-20 text-white">
+                                <span className="text-[10px] font-bold text-white bg-white/10 px-2 py-1 rounded mb-6 inline-block">
+                                    FOR PROFESSIONALS
+                                </span>
+                                <h2 className="text-4xl font-bold mb-6">„Banii sunt blocați înainte să încep.”</h2>
+                                <p className="text-slate-300 mb-8 leading-relaxed">
+                                    Nu mai lucrezi pe promisiuni. Plata pentru fiecare milestone este deja blocată în sistem înainte ca tu să scrii
+                                    prima linie de cod.
+                                </p>
+                                <ul className="space-y-4 mb-10">
+                                    <li className="flex items-center gap-3 text-sm font-medium">
+                                        <span className="text-[#1BC47D]">✅</span> Garanția plății 100%
+                                    </li>
+                                    <li className="flex items-center gap-3 text-sm font-medium">
+                                        <span className="text-[#1BC47D]">✅</span> Dispute rezolvate prin arbitraj tehnic
+                                    </li>
+                                </ul>
+                                <a href="#" className="font-bold text-white border-b-2 border-[#1BC47D] pb-1">
+                                    Join the infrastructure →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="py-24 px-6 bg-white overflow-hidden">
+                    <div className="max-w-7xl mx-auto text-center">
+                        <h2 className="text-3xl font-bold mb-16 text-[#0B1C2D]">Stripe + Notary + Marketplace</h2>
+                        <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 md:gap-20">
+                            <div className="w-48 h-48 glass-card flex flex-col items-center justify-center p-6 text-center">
+                                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4">💰</div>
+                                <span className="text-xs font-bold uppercase tracking-wider">Money</span>
+                                <span className="text-[10px] text-slate-400">Escrow Layer</span>
+                            </div>
+                            <div className="hidden md:block w-20 h-px bg-slate-200" />
+                            <div className="w-48 h-48 glass-card border-2 border-[#1BC47D] flex flex-col items-center justify-center p-6 text-center shadow-lg shadow-emerald-100">
+                                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4">📑</div>
+                                <span className="text-xs font-bold uppercase tracking-wider">Contracts</span>
+                                <span className="text-[10px] text-emerald-600">Digital Execution</span>
+                            </div>
+                            <div className="hidden md:block w-20 h-px bg-slate-200" />
+                            <div className="w-48 h-48 glass-card flex flex-col items-center justify-center p-6 text-center">
+                                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4">👤</div>
+                                <span className="text-xs font-bold uppercase tracking-wider">Verification</span>
+                                <span className="text-[10px] text-slate-400">Identity Layer</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="py-32 px-6 bg-[#0B1C2D] text-white text-center">
+                    <div className="max-w-3xl mx-auto">
+                        <h2 className="text-4xl lg:text-5xl font-bold mb-8">No trust. No deal.</h2>
+                        <p className="text-slate-400 mb-12 text-lg">Work without risk on the safest platform for online services.</p>
+                        <button className="px-10 py-5 btn-primary font-bold rounded-lg text-xl">Start a protected project</button>
+                        <div className="mt-16 pt-8 border-t border-white/5 flex flex-wrap justify-center gap-12 opacity-40 grayscale">
+                            <span className="font-bold mono uppercase tracking-widest text-sm">Escrow Secured</span>
+                            <span className="font-bold mono uppercase tracking-widest text-sm">Video Verified</span>
+                            <span className="font-bold mono uppercase tracking-widest text-sm">Legal Grade</span>
                         </div>
                     </div>
                 </section>
             </main>
 
-            <Footer />
+            <footer className="py-12 px-6 bg-white border-t border-slate-100">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-[#0B1C2D] flex items-center justify-center rounded">
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#1BC47D]" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4h16v3H4zM10 7h4v13h-4z" />
+                            </svg>
+                        </div>
+                        <span className="font-bold tracking-tight text-[#0B1C2D]">TRUSTORA</span>
+                    </div>
+                    <div className="text-[10px] font-bold mono text-slate-400 uppercase tracking-[0.2em]">
+                        © 2024 Trustora — Digital Trust Infrastructure
+                    </div>
+                    <div className="flex gap-6 text-xs font-bold text-slate-500">
+                        <a href="#" className="hover:text-[#1BC47D]">
+                            Terms
+                        </a>
+                        <a href="#" className="hover:text-[#1BC47D]">
+                            Privacy
+                        </a>
+                        <a href="#" className="hover:text-[#1BC47D]">
+                            API
+                        </a>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }
