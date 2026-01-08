@@ -91,13 +91,9 @@ export default function ServicesPage() {
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const [categoriesResponse, technologiesResponse] = await Promise.all([
-          apiClient.getCategories(),
-          apiClient.getTechnologies(),
-        ]);
+        const categoriesResponse = await apiClient.getCategories();
 
         setCategories(categoriesResponse || []);
-        setTechnologies(technologiesResponse || []);
 
         const uniqueTypes = new Set<string>();
         (categoriesResponse || []).forEach((category: Category) => {
@@ -132,9 +128,16 @@ export default function ServicesPage() {
         });
 
         const newServices = response?.services || [];
+        const techSet = new Set<string>();
         const tagSet = new Set<string>();
         newServices.forEach((service) => {
           (service.tags || []).forEach((tag) => tagSet.add(tag));
+          (service.skills || []).forEach((skill) => {
+            const name = getLocalizedText(skill, locale);
+            if (name) {
+              techSet.add(name);
+            }
+          });
         });
         if (tagSet.size > 0) {
           setServiceTypes((prev) => {
@@ -142,6 +145,15 @@ export default function ServicesPage() {
             tagSet.forEach((tag) => existing.add(tag));
             return ['All', ...Array.from(existing)];
           });
+        }
+        if (techSet.size > 0) {
+          setTechnologies(
+            Array.from(techSet).map((name) => ({
+              id: name,
+              name,
+              categoryId: selectedCategory !== 'All' ? selectedCategory : undefined,
+            }))
+          );
         }
 
         if (newServices.length < ITEMS_PER_PAGE) {
@@ -195,18 +207,25 @@ export default function ServicesPage() {
   const handleCategoryChange = async (category: string) => {
     setSelectedCategory(category);
     setSelectedTechnologies([]);
-
-    try {
-      const updatedTechnologies = await apiClient.getTechnologies();
-      setTechnologies(updatedTechnologies || []);
-    } catch (error) {
-      console.error('Failed to update technologies:', error);
-    }
   };
 
   const handleTechnologiesUpdate = async () => {
-    const updatedTechnologies = await apiClient.getTechnologies();
-    setTechnologies(updatedTechnologies || []);
+    const techSet = new Set<string>();
+    services.forEach((service) => {
+      (service.skills || []).forEach((skill) => {
+        const name = getLocalizedText(skill, locale);
+        if (name) {
+          techSet.add(name);
+        }
+      });
+    });
+    setTechnologies(
+      Array.from(techSet).map((name) => ({
+        id: name,
+        name,
+        categoryId: selectedCategory !== 'All' ? selectedCategory : undefined,
+      }))
+    );
   };
 
   const handleWishlistToggle = (serviceId: number) => {
