@@ -67,19 +67,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const localToken = localStorage.getItem('auth_token');
 
     const token = localToken || cookieToken;
+    const hasValidToken =
+      Boolean(token && token.trim() !== '' && token !== 'null' && token !== 'undefined');
 
     // Sync from cookie to localStorage if missing
     if (cookieToken && !localToken) {
       localStorage.setItem('auth_token', cookieToken);
     }
 
-    if (token) {
+    if (hasValidToken) {
       apiClient.setToken(token);
 
       // Always refresh the cookie to ensure it's valid
       document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
       fetchProfile();
     } else {
+      apiClient.removeToken();
+      localStorage.removeItem('auth_token');
       setLoading(false);
     }
   }, [fetchProfile]);
