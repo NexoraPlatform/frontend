@@ -67,8 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const localToken = localStorage.getItem('auth_token');
 
     const token = localToken || cookieToken;
-    const hasValidToken =
-      Boolean(token && token.trim() !== '' && token !== 'null' && token !== 'undefined');
+    const hasValidToken = (() => {
+      if (!token || token.trim() === '' || token === 'null' || token === 'undefined') {
+        return false;
+      }
+
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        return true;
+      }
+
+      try {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (typeof payload.exp === 'number') {
+          return payload.exp * 1000 > Date.now();
+        }
+      } catch (error) {
+        console.warn('Unable to decode auth token payload:', error);
+      }
+
+      return true;
+    })();
 
     // Sync from cookie to localStorage if missing
     if (cookieToken && !localToken) {
@@ -84,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       apiClient.removeToken();
       localStorage.removeItem('auth_token');
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
       setLoading(false);
     }
   }, [fetchProfile]);
