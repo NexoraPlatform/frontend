@@ -72,10 +72,8 @@ export default function ServicesPage() {
   const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<string[]>(['All']);
   const [technologies, setTechnologies] = useState<Technology[]>([]);
 
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedServiceType, setSelectedServiceType] = useState('All');
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
 
@@ -95,14 +93,6 @@ export default function ServicesPage() {
 
         setCategories(categoriesResponse || []);
 
-        const uniqueTypes = new Set<string>();
-        (categoriesResponse || []).forEach((category: Category) => {
-          const name = getLocalizedText(category.name, locale);
-          if (name) {
-            uniqueTypes.add(name);
-          }
-        });
-        setServiceTypes(['All', ...Array.from(uniqueTypes)]);
       } catch (error) {
         console.error('Failed to load filters:', error);
       } finally {
@@ -121,40 +111,13 @@ export default function ServicesPage() {
 
       try {
         const response: ServicesResponse = await apiClient.getServices({
-          categoryId: selectedCategory !== 'All' ? selectedCategory : undefined,
+          categoryId: selectedServiceType !== 'All' ? selectedServiceType : undefined,
           skills: selectedTechnologies.length > 0 ? selectedTechnologies : undefined,
           page: pageNum + 1,
           limit: ITEMS_PER_PAGE,
         });
 
         const newServices = response?.services || [];
-        const techSet = new Set<string>();
-        const tagSet = new Set<string>();
-        newServices.forEach((service) => {
-          (service.tags || []).forEach((tag) => tagSet.add(tag));
-          (service.skills || []).forEach((skill) => {
-            const name = getLocalizedText(skill, locale);
-            if (name) {
-              techSet.add(name);
-            }
-          });
-        });
-        if (tagSet.size > 0) {
-          setServiceTypes((prev) => {
-            const existing = new Set(prev.filter((type) => type !== 'All'));
-            tagSet.forEach((tag) => existing.add(tag));
-            return ['All', ...Array.from(existing)];
-          });
-        }
-        if (techSet.size > 0) {
-          setTechnologies(
-            Array.from(techSet).map((name) => ({
-              id: name,
-              name,
-              categoryId: selectedCategory !== 'All' ? selectedCategory : undefined,
-            }))
-          );
-        }
 
         if (newServices.length < ITEMS_PER_PAGE) {
           setHasMore(false);
@@ -172,7 +135,7 @@ export default function ServicesPage() {
         isLoadingRef.current = false;
       }
     },
-    [selectedCategory, selectedTechnologies]
+    [selectedServiceType, selectedTechnologies]
   );
 
   useEffect(() => {
@@ -196,7 +159,7 @@ export default function ServicesPage() {
     setPage(0);
     setHasMore(true);
     loadServices(0, true);
-  }, [selectedCategory, selectedServiceType, selectedTechnologies, loadServices]);
+  }, [selectedServiceType, selectedTechnologies, loadServices]);
 
   useEffect(() => {
     if (page > 0) {
@@ -204,28 +167,31 @@ export default function ServicesPage() {
     }
   }, [page, loadServices]);
 
-  const handleCategoryChange = async (category: string) => {
-    setSelectedCategory(category);
+  const handleServiceTypeChange = async (serviceType: string) => {
+    setSelectedServiceType(serviceType);
     setSelectedTechnologies([]);
+
+    if (serviceType === 'All') {
+      setTechnologies([]);
+      return;
+    }
+
+    try {
+      const updatedTechnologies = await apiClient.getTechnologiesByCategory(serviceType);
+      setTechnologies(updatedTechnologies || []);
+    } catch (error) {
+      console.error('Failed to update technologies:', error);
+    }
   };
 
   const handleTechnologiesUpdate = async () => {
-    const techSet = new Set<string>();
-    services.forEach((service) => {
-      (service.skills || []).forEach((skill) => {
-        const name = getLocalizedText(skill, locale);
-        if (name) {
-          techSet.add(name);
-        }
-      });
-    });
-    setTechnologies(
-      Array.from(techSet).map((name) => ({
-        id: name,
-        name,
-        categoryId: selectedCategory !== 'All' ? selectedCategory : undefined,
-      }))
-    );
+    if (selectedServiceType === 'All') {
+      setTechnologies([]);
+      return;
+    }
+
+    const updatedTechnologies = await apiClient.getTechnologiesByCategory(selectedServiceType);
+    setTechnologies(updatedTechnologies || []);
   };
 
   const handleWishlistToggle = (serviceId: number) => {
@@ -240,22 +206,10 @@ export default function ServicesPage() {
     });
   };
 
-  const filteredTechnologies = useMemo(() => {
-    if (selectedCategory === 'All') {
-      return technologies;
-    }
-    return technologies.filter((tech) => {
-      const categoryId = tech.category_id ?? tech.categoryId;
-      return categoryId ? String(categoryId) === selectedCategory : true;
-    });
-  }, [selectedCategory, technologies]);
-
-  const visibleServices = useMemo(() => {
-    if (selectedServiceType === 'All') {
-      return services;
-    }
-    return services.filter((service) => service.tags?.includes(selectedServiceType));
-  }, [selectedServiceType, services]);
+  const serviceTypeOptions = useMemo(
+    () => [{ id: 'All', name: 'All' }, ...categories],
+    [categories]
+  );
 
   if (isInitializing) {
     return (
@@ -290,14 +244,11 @@ export default function ServicesPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <FilterSidebar
-              categories={[{ id: 'All', name: 'All' }, ...categories]}
-              serviceTypes={serviceTypes}
-              technologies={filteredTechnologies}
-              selectedCategory={selectedCategory}
+              serviceTypes={serviceTypeOptions}
+              technologies={technologies}
               selectedServiceType={selectedServiceType}
               selectedTechnologies={selectedTechnologies}
-              onCategoryChange={handleCategoryChange}
-              onServiceTypeChange={setSelectedServiceType}
+              onServiceTypeChange={handleServiceTypeChange}
               onTechnologiesChange={setSelectedTechnologies}
               onTechnologiesUpdate={handleTechnologiesUpdate}
               locale={locale}
@@ -305,7 +256,7 @@ export default function ServicesPage() {
 
             <div className="lg:col-span-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                {visibleServices.map((service) => (
+                {services.map((service) => (
                   <ServiceCard
                     key={service.id}
                     service={service}
@@ -322,7 +273,7 @@ export default function ServicesPage() {
                 </div>
               )}
 
-              {!isLoading && visibleServices.length === 0 && (
+              {!isLoading && services.length === 0 && (
                 <div className="text-center py-16">
                   <p className="text-lg text-slate-500">
                     No services found matching your filters
@@ -342,25 +293,19 @@ export default function ServicesPage() {
 }
 
 function FilterSidebar({
-  categories,
   serviceTypes,
   technologies,
-  selectedCategory,
   selectedServiceType,
   selectedTechnologies,
-  onCategoryChange,
   onServiceTypeChange,
   onTechnologiesChange,
   onTechnologiesUpdate,
   locale,
 }: {
-  categories: Category[];
-  serviceTypes: string[];
+  serviceTypes: Category[];
   technologies: Technology[];
-  selectedCategory: string;
   selectedServiceType: string;
   selectedTechnologies: string[];
-  onCategoryChange: (category: string) => void;
   onServiceTypeChange: (type: string) => void;
   onTechnologiesChange: (techs: string[]) => void;
   onTechnologiesUpdate: () => Promise<void>;
@@ -399,23 +344,6 @@ function FilterSidebar({
       <div className="space-y-6">
         <div>
           <label className="block text-sm font-bold text-[#0B1C2D] mb-3">
-            Backend / Frontend
-          </label>
-          <select
-            value={selectedCategory}
-            onChange={(event) => onCategoryChange(event.target.value)}
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 bg-white"
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={String(category.id)}>
-                {getLocalizedText(category.name, locale)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-bold text-[#0B1C2D] mb-3">
             Service Type
           </label>
           <select
@@ -424,8 +352,8 @@ function FilterSidebar({
             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 bg-white"
           >
             {serviceTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
+              <option key={type.id} value={String(type.id)}>
+                {getLocalizedText(type.name, locale)}
               </option>
             ))}
           </select>
