@@ -1,103 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Search,
-  Filter,
-  Star,
-  Clock,
-  Heart,
-  Share2,
-} from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import apiClient from "@/lib/api";
-import { MuiIcon } from "@/components/MuiIcons";
-import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { Locale } from "@/types/locale";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import apiClient from '@/lib/api';
+import { Locale } from '@/types/locale';
 
 type LocalizedText = string | Record<string, string>;
 
 interface ServiceCategory {
   id: number;
   name: LocalizedText;
-  slug: string;
-  description: string | null;
-  icon: string;
-  image: string | null;
-  sortOrder: number;
-  isActive: boolean;
-  parent_id: number | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-}
-
-interface ServiceProviderPivot {
-  service_id: number;
-  user_id: number;
-  created_at: string | null;
-  updated_at: string | null;
 }
 
 interface ServiceProvider {
   id: number;
-  email: string;
-  email_verified_at: string | null;
   firstName: string;
   lastName: string;
   avatar: string;
-  phone: string | null;
-  company: string | null;
-  website: string | null;
-  role: string;
   rating: string;
-  reviewCount: number;
-  callVerified: boolean;
-  status: string;
-  last_login_at: string | null;
-  last_active_at: string | null;
-  timezone: string | null;
-  language: string;
-  created_at: string;
-  updated_at: string;
-  testVerified: boolean;
-  profile_url: string | null;
-  stripe_account_id: string | null;
-  is_online: boolean;
-  last_seen: string | null;
-  oldest_work_experience: string | null;
-  next_available_job: string | null;
-  pivot: ServiceProviderPivot;
 }
 
 interface Service {
   id: number;
   name: LocalizedText;
-  slug: string;
   description: LocalizedText;
-  tags: string[];
-  isActive: boolean;
-  category_id: number;
-  status: string;
+  tags?: string[];
+  skills?: LocalizedText[];
   isFeatured: boolean;
-  orderCount: number;
-  rating: string;
-  reviewCount: number;
-  viewCount: number;
-  favoriteCount: number;
-  price: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
   category: ServiceCategory;
   providers: ServiceProvider[];
 }
@@ -111,15 +44,18 @@ interface ServicesResponse {
 }
 
 type Category = {
-    id: string | number;
-    name: LocalizedText;
-    icon?: string | null;
-    parent_id: string | number | null;
+  id: string | number;
+  name: LocalizedText;
 };
 
-type CategoryNode = Category & { children: CategoryNode[] };
+type Technology = {
+  id?: number | string;
+  name?: LocalizedText;
+  category_id?: number | string;
+  categoryId?: number | string;
+};
 
-const PER_PAGE = 12;
+const ITEMS_PER_PAGE = 12;
 
 function getLocalizedText(value: LocalizedText | null | undefined, locale: Locale) {
     if (!value) {
@@ -134,423 +70,248 @@ function getLocalizedText(value: LocalizedText | null | undefined, locale: Local
 export default function ServicesPage() {
   const pathname = usePathname();
   const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  // const [priceRange, setPriceRange] = useState([0, 5000]);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('relevance');
-  // const [pricingTypeFilter, setPricingTypeFilter] = useState('all');
-  const [servicesData, setServicesData] = useState<ServicesResponse | null>(null);
-  const [categoriesData, setCategoriesData] = useState<any[]>([]);
-  const [allServices, setAllServices] = useState<ServicesResponse | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<string[]>(['All']);
+  const [technologies, setTechnologies] = useState<Technology[]>([]);
+
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedServiceType, setSelectedServiceType] = useState('All');
+  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
+
+  const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [wishlist, setWishlist] = useState<Set<number>>(new Set());
+
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchServices = async () => {
-      const response = await apiClient.getServices({
-        search: searchTerm || undefined,
-        categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
-        // minPrice: priceRange[0],
-        // maxPrice: priceRange[1],
-        skills: selectedSkills.length > 0 ? selectedSkills : undefined,
-        sortBy,
-        page: 1,
-        limit: PER_PAGE
-      });
-        const getAllServices = await apiClient.getServices();
-        setAllServices(getAllServices)
-      setServicesData(response);
+    const initializeFilters = async () => {
+      try {
+        const [categoriesResponse, technologiesResponse] = await Promise.all([
+          apiClient.getCategories(),
+          apiClient.getTechnologies(),
+        ]);
+
+        setCategories(categoriesResponse || []);
+        setTechnologies(technologiesResponse || []);
+
+        const uniqueTypes = new Set<string>();
+        (categoriesResponse || []).forEach((category: Category) => {
+          const name = getLocalizedText(category.name, locale);
+          if (name) {
+            uniqueTypes.add(name);
+          }
+        });
+        setServiceTypes(['All', ...Array.from(uniqueTypes)]);
+      } catch (error) {
+        console.error('Failed to load filters:', error);
+      } finally {
+        setIsInitializing(false);
+      }
     };
 
-    fetchServices();
-  }, [searchTerm, selectedCategory, selectedSkills, sortBy]);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const response = await apiClient.getCategories();
-      setCategoriesData(response);
-    };
-
-    fetchCategories();
+    initializeFilters();
   }, []);
 
-  const categories = categoriesData || [];
-  const services = servicesData?.services || [];
+  const loadServices = useCallback(
+    async (pageNum: number, isReset = false) => {
+      if (isLoading) return;
+      setIsLoading(true);
 
-  // const pricingTypes = [
-  //   { value: 'all', label: 'Toate tipurile' },
-  //   { value: 'FIXED', label: 'Preț Fix' },
-  //   { value: 'HOURLY', label: 'Pe Oră' },
-  //   { value: 'DAILY', label: 'Pe Zi' },
-  //   { value: 'WEEKLY', label: 'Pe Săptămână' },
-  //   { value: 'MONTHLY', label: 'Pe Lună' },
-  //   { value: 'CUSTOM', label: 'Negociabil' }
-  // ];
+      try {
+        const response: ServicesResponse = await apiClient.getServices({
+          categoryId: selectedCategory !== 'All' ? selectedCategory : undefined,
+          skills: selectedTechnologies.length > 0 ? selectedTechnologies : undefined,
+          page: pageNum + 1,
+          limit: ITEMS_PER_PAGE,
+        });
 
-  const handleSkillToggle = (skill: string) => {
+        const newServices = response?.services || [];
+        const tagSet = new Set<string>();
+        newServices.forEach((service) => {
+          (service.tags || []).forEach((tag) => tagSet.add(tag));
+        });
+        if (tagSet.size > 0) {
+          setServiceTypes((prev) => {
+            const existing = new Set(prev.filter((type) => type !== 'All'));
+            tagSet.forEach((tag) => existing.add(tag));
+            return ['All', ...Array.from(existing)];
+          });
+        }
 
-    setSelectedSkills(prev =>
-      prev.includes(skill)
-        ? prev.filter(s => s !== skill)
-        : [...prev, skill]
+        if (newServices.length < ITEMS_PER_PAGE) {
+          setHasMore(false);
+        }
+
+        if (isReset) {
+          setServices(newServices);
+        } else {
+          setServices((prev) => [...prev, ...newServices]);
+        }
+      } catch (error) {
+        console.error('Failed to load services:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, selectedCategory, selectedTechnologies]
+  );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !isLoading) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
     );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoading]);
+
+  useEffect(() => {
+    setPage(0);
+    setHasMore(true);
+    loadServices(0, true);
+  }, [selectedCategory, selectedServiceType, selectedTechnologies, loadServices]);
+
+  useEffect(() => {
+    if (page > 0) {
+      loadServices(page);
+    }
+  }, [page, loadServices]);
+
+  const handleCategoryChange = async (category: string) => {
+    setSelectedCategory(category);
+    setSelectedTechnologies([]);
+
+    try {
+      const updatedTechnologies = await apiClient.getTechnologies();
+      setTechnologies(updatedTechnologies || []);
+    } catch (error) {
+      console.error('Failed to update technologies:', error);
+    }
   };
 
-  // const getPricingDisplay = (provider: any) => {
-  //   switch (provider.pricingType) {
-  //     case 'HOURLY':
-  //       return `${provider.hourlyRate || provider.basePrice} RON/oră`;
-  //     case 'DAILY':
-  //       return `${provider.dailyRate || provider.basePrice} RON/zi`;
-  //     case 'WEEKLY':
-  //       return `${provider.weeklyRate || provider.basePrice} RON/săptămână`;
-  //     case 'MONTHLY':
-  //       return `${provider.monthlyRate || provider.basePrice} RON/lună`;
-  //     case 'CUSTOM':
-  //       return provider.negotiable ? 'Preț negociabil' : `de la ${provider.basePrice} RON`;
-  //     default:
-  //       return `${provider.basePrice} RON`;
-  //   }
-  // };
-
-  // type PricingType = 'FIXED' | 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM';
-
-  // const getPricingTypeBadge = (pricingType: string) => {
-  //   const types: Record<PricingType, { label: string; color: string }> = {
-  //     FIXED: { label: 'Fix', color: 'bg-blue-100 text-blue-800' },
-  //     HOURLY: { label: 'Pe Oră', color: 'bg-green-100 text-green-800' },
-  //     DAILY: { label: 'Pe Zi', color: 'bg-purple-100 text-purple-800' },
-  //     WEEKLY: { label: 'Pe Săptămână', color: 'bg-orange-100 text-orange-800' },
-  //     MONTHLY: { label: 'Pe Lună', color: 'bg-red-100 text-red-800' },
-  //     CUSTOM: { label: 'Negociabil', color: 'bg-gray-100 text-gray-800' },
-  //   };
-  //
-  //   // Asigură-te că pricingType e de tip PricingType (type guard)
-  //   if (!Object.keys(types).includes(pricingType)) {
-  //     pricingType = 'FIXED'; // fallback
-  //   }
-  //
-  //   const type = types[pricingType as PricingType];
-  //   return <Badge className={type.color}>{type.label}</Badge>;
-  // };
-  //
-  // const getLowestPrice = (providers: any[]) => {
-  //   if (!providers || providers.length === 0) return 0;
-  //   return Math.min(...providers.map(p => p.basePrice));
-  // };
-
-  const getHighestRating = (providers: any[]) => {
-    if (!providers || providers.length === 0) return 0;
-    return Math.max(...providers.map(p => p.rating || 0));
+  const handleTechnologiesUpdate = async () => {
+    const updatedTechnologies = await apiClient.getTechnologies();
+    setTechnologies(updatedTechnologies || []);
   };
+
+  const handleWishlistToggle = (serviceId: number) => {
+    setWishlist((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(serviceId)) {
+        updated.delete(serviceId);
+      } else {
+        updated.add(serviceId);
+      }
+      return updated;
+    });
+  };
+
+  const filteredTechnologies = useMemo(() => {
+    if (selectedCategory === 'All') {
+      return technologies;
+    }
+    return technologies.filter((tech) => {
+      const categoryId = tech.category_id ?? tech.categoryId;
+      return categoryId ? String(categoryId) === selectedCategory : true;
+    });
+  }, [selectedCategory, technologies]);
+
+  const visibleServices = useMemo(() => {
+    if (selectedServiceType === 'All') {
+      return services;
+    }
+    return services.filter((service) => service.tags?.includes(selectedServiceType));
+  }, [selectedServiceType, services]);
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <TrustoraThemeStyles />
+        <Header />
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-[#1BC47D] animate-spin" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
       <TrustoraThemeStyles />
       <Header />
 
-      <main role="main" aria-label="Servicii disponibile">
-        <section className="pt-32 pb-16 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold mb-6 dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-              <span className="text-[#1BC47D]">●</span> SERVICII VERIFICATE
-            </div>
-            <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-4">
-              Servicii IT cu tarife personalizate și livrare garantată.
+      <main className="pt-24 pb-16 px-6 bg-slate-50 min-h-screen" role="main" aria-label="Servicii disponibile">
+        <div className="max-w-7xl mx-auto mb-12">
+          <div className="mb-8">
+            <h1 className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] mb-3">
+              Services Marketplace
             </h1>
-            <p className="text-lg lg:text-xl text-slate-500 dark:text-[#A3ADC2] max-w-3xl">
-              Descoperă experți verificați, plăți protejate și comunicare transparentă pentru fiecare serviciu.
+            <p className="text-lg text-slate-600">
+              Find expert developers across technologies and services
             </p>
-
-            <div className="mt-10 grid gap-4 lg:grid-cols-[1fr_auto] items-center">
-              <div className="glass-card flex items-center px-4 py-3 gap-3 shadow-sm">
-                <Search className="text-slate-400 w-5 h-5" />
-                <Input
-                  placeholder="Caută servicii, tehnologii sau experți..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base bg-transparent px-0"
-                />
-              </div>
-              <div className="w-full lg:w-72">
-                <CategorySelect categories={categories} selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} locale={locale} />
-              </div>
-            </div>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              {[
-                { label: "Experți activi", value: `${servicesData?.total ?? 0}+` },
-                { label: "Plăți protejate", value: "100%" },
-                { label: "Verificare KYC", value: "24h" },
-              ].map((stat) => (
-                <div key={stat.label} className="glass-card px-5 py-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-[#6B7285]">
-                    {stat.label}
-                  </div>
-                  <div className="text-2xl font-semibold mt-2">{stat.value}</div>
-                </div>
-              ))}
-            </div>
           </div>
-        </section>
+        </div>
 
-        <section className="px-6 pb-20">
-          <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-80 space-y-6">
-            <Card className="glass-card shadow-sm">
-              <CardHeader className="section-divider pb-4">
-                <CardTitle className="flex items-center space-x-2 text-base">
-                  <Filter className="w-4 h-4 text-[#1BC47D]" />
-                  <span>Filtrează rezultatele</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-6">
-                {/* Pricing Type Filter */}
-                {/*<div>*/}
-                {/*  <h3 className="font-semibold mb-3">Tip Tarif</h3>*/}
-                {/*  <Select value={pricingTypeFilter} onValueChange={setPricingTypeFilter}>*/}
-                {/*    <SelectTrigger>*/}
-                {/*      <SelectValue />*/}
-                {/*    </SelectTrigger>*/}
-                {/*    <SelectContent>*/}
-                {/*      {pricingTypes.map(type => (*/}
-                {/*        <SelectItem key={type.value} value={type.value}>*/}
-                {/*          {type.label}*/}
-                {/*        </SelectItem>*/}
-                {/*      ))}*/}
-                {/*    </SelectContent>*/}
-                {/*  </Select>*/}
-                {/*</div>*/}
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <FilterSidebar
+              categories={[{ id: 'All', name: 'All' }, ...categories]}
+              serviceTypes={serviceTypes}
+              technologies={filteredTechnologies}
+              selectedCategory={selectedCategory}
+              selectedServiceType={selectedServiceType}
+              selectedTechnologies={selectedTechnologies}
+              onCategoryChange={handleCategoryChange}
+              onServiceTypeChange={setSelectedServiceType}
+              onTechnologiesChange={setSelectedTechnologies}
+              onTechnologiesUpdate={handleTechnologiesUpdate}
+              locale={locale}
+            />
 
-                {/* Price Range */}
-                {/*<div>*/}
-                {/*  <h3 className="font-semibold mb-3">Buget (RON)</h3>*/}
-                {/*  <div className="space-y-3">*/}
-                {/*    <Slider*/}
-                {/*      value={priceRange}*/}
-                {/*      onValueChange={setPriceRange}*/}
-                {/*      max={5000}*/}
-                {/*      min={0}*/}
-                {/*      step={100}*/}
-                {/*      className="w-full"*/}
-                {/*    />*/}
-                {/*    <div className="flex justify-between text-sm text-muted-foreground">*/}
-                {/*      <span>{priceRange[0]} RON</span>*/}
-                {/*      <span>{priceRange[1]} RON</span>*/}
-                {/*    </div>*/}
-                {/*  </div>*/}
-                {/*</div>*/}
-
-                {/* Skills Filter */}
-                <div>
-                  <h3 className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-[#6B7285] mb-4">
-                    Tehnologii & Skills
-                  </h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {allServices?.services.map((skill: any) => (
-                      <div key={skill.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={skill.id}
-                          checked={selectedSkills.includes(skill.id)}
-                          onCheckedChange={() => handleSkillToggle(skill.id)}
-                        />
-                        <label htmlFor={skill.id} className="text-sm cursor-pointer">
-                          {getLocalizedText(skill.name, locale)}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Clear Filters */}
-                <Button
-                  variant="outline"
-                  className="w-full border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    // setPriceRange([0, 5000]);
-                    setSelectedSkills([]);
-                    setSearchTerm('');
-                    // setPricingTypeFilter('all');
-                  }}
-                >
-                  Resetează Filtrele
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Services Grid */}
-          <div className="flex-1">
-            {/*<div className="flex justify-between items-center mb-6">*/}
-            {/*  <p className="text-muted-foreground">*/}
-            {/*    {`${services?.length} servicii găsite`}*/}
-            {/*  </p>*/}
-            {/*  <Select value={sortBy} onValueChange={setSortBy}>*/}
-            {/*    <SelectTrigger className="w-48">*/}
-            {/*      <SelectValue />*/}
-            {/*    </SelectTrigger>*/}
-            {/*    <SelectContent>*/}
-            {/*      <SelectItem value="relevance">Recomandate</SelectItem>*/}
-            {/*      <SelectItem value="price_low">Preț: Mic → Mare</SelectItem>*/}
-            {/*      <SelectItem value="price_high">Preț: Mare → Mic</SelectItem>*/}
-            {/*      <SelectItem value="rating">Rating Cel Mai Mare</SelectItem>*/}
-            {/*      <SelectItem value="newest">Cele Mai Noi</SelectItem>*/}
-            {/*    </SelectContent>*/}
-            {/*  </Select>*/}
-            {/*</div>*/}
-
-              <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                {services.map((service: any) => (
-                  <Card key={service.id} className="glass-card group hover:shadow-xl transition-all duration-300 border border-transparent hover:border-[#1BC47D]/30">
-                    <CardHeader className="pb-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-2">
-                          {service.isFeatured && (
-                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
-                              ⭐ Recomandat
-                            </Badge>
-                          )}
-                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 dark:bg-[#111B2D] dark:text-[#A3ADC2]">
-                            {getLocalizedText(service.category?.name, locale)}
-                          </Badge>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Heart className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Share2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <CardTitle className="text-xl mb-2 group-hover:text-[#1BC47D] transition-colors">
-                        {getLocalizedText(service.name, locale)}
-                      </CardTitle>
-                      <CardDescription className="text-sm line-clamp-2 text-slate-500 dark:text-[#A3ADC2]">
-                        {getLocalizedText(service.description, locale)}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent>
-                      {/* Providers Preview */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
-                            {service.providers?.length || 0} prestatori disponibili
-                          </span>
-                          <div className="flex items-center space-x-1">
-                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">
-                              {getHighestRating(service.providers)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Top 3 providers preview */}
-                        <div className="space-y-2">
-                          {(service.providers || []).slice(0, 3).map((provider: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg dark:bg-[#0B1220]">
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarImage src={provider?.avatar} />
-                                  <AvatarFallback className="text-xs">
-                                    {provider?.firstName?.[0]}{provider?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm font-medium">
-                                  {provider?.firstName} {provider?.lastName}
-                                </span>
-                                {/*{getPricingTypeBadge(provider?.pricingType)}*/}
-                              </div>
-                              <div className="text-right">
-
-                                <div className="flex items-center space-x-1">
-                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                  <span className="text-xs">{provider.rating || 0}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {service.providers?.length > 3 && (
-                          <div className="text-center mt-2">
-                            <span className="text-xs text-slate-400 dark:text-[#6B7285]">
-                              +{service.providers.length - 3} prestatori în plus
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Skills */}
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {(service.skills || []).slice(0, 3).map((skill: LocalizedText) => (
-                          <Badge key={getLocalizedText(skill, locale)} variant="outline" className="text-xs border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
-                            {getLocalizedText(skill, locale)}
-                          </Badge>
-                        ))}
-                        {(service.skills || []).length > 3 && (
-                          <Badge variant="outline" className="text-xs border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
-                            +{(service.skills || []).length - 3}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Service Details */}
-                      <div className="flex items-center justify-between text-sm text-slate-500 dark:text-[#A3ADC2] mb-4">
-                        {/*<div className="flex items-center space-x-1">*/}
-                        {/*  <Users className="w-4 h-4" />*/}
-                        {/*  <span>{service.orderCount || 0} comenzi</span>*/}
-                        {/*</div>*/}
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span>Livrare flexibilă</span>
-                        </div>
-                          <div className="text-xs text-slate-400 dark:text-[#6B7285]">
-                              {service.providers?.length || 0} prestatori
-                          </div>
-                      </div>
-
-                      {/* Price and CTA */}
-                      {/*<div className="flex items-center justify-between">*/}
-                      {/*  <div>*/}
-                      {/*    <div className="text-xs text-muted-foreground">*/}
-                      {/*      {service.providers?.length || 0} prestatori*/}
-                      {/*    </div>*/}
-                      {/*  </div>*/}
-                      {/*  <Button className="px-6">*/}
-                      {/*    Vezi Oferte*/}
-                      {/*  </Button>*/}
-                      {/*</div>*/}
-                    </CardContent>
-                  </Card>
+            <div className="lg:col-span-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                {visibleServices.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    locale={locale}
+                    onWishlistToggle={handleWishlistToggle}
+                    isWishlisted={wishlist.has(service.id)}
+                  />
                 ))}
               </div>
 
-            {/* Load More */}
-            {services.length > PER_PAGE && (
-              <div className="text-center mt-12">
-                <Button variant="outline" size="lg" className="px-8 border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
-                  Încarcă Mai Multe Servicii
-                </Button>
-              </div>
-            )}
+              {isLoading && (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-[#1BC47D] animate-spin" />
+                </div>
+              )}
 
-            {/* No Results */}
-            {services.length === 0 && (
-              <div className="text-center py-20">
-                <Search className="w-16 h-16 text-slate-300 dark:text-[#1E2A3D] mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Nu am găsit servicii</h3>
-                <p className="text-slate-500 dark:text-[#A3ADC2]">
-                  Încearcă să modifici filtrele sau termenii de căutare
-                </p>
-              </div>
-            )}
+              {!isLoading && visibleServices.length === 0 && (
+                <div className="text-center py-16">
+                  <p className="text-lg text-slate-500">
+                    No services found matching your filters
+                  </p>
+                </div>
+              )}
+
+              <div ref={observerTarget} className="h-4" />
+            </div>
           </div>
         </div>
-        </section>
       </main>
 
       <Footer />
@@ -558,70 +319,197 @@ export default function ServicesPage() {
   );
 }
 
-function buildCategoryTree(items: Category[]): CategoryNode[] {
-    // 1) normalizăm nodurile (ignorăm orice `children` venit din API ca să evităm dublurile)
-    const map = new Map<string | number, CategoryNode>();
-    for (const it of items) {
-        map.set(it.id, { ...it, children: [] });
-    }
-
-    // 2) legăm copiii de părinți după parent_id
-    const roots: CategoryNode[] = [];
-    for (const node of map.values()) {
-        if (node.parent_id != null && map.has(node.parent_id)) {
-            map.get(node.parent_id)!.children.push(node);
-        } else {
-            roots.push(node);
-        }
-    }
-    return roots;
-}
-
-function renderCategoryTree(nodes: CategoryNode[], locale: Locale, depth = 0): React.ReactNode {
-    const pad = depth * 16; // indent px per nivel
-    return nodes.flatMap((cat) => {
-        const me = (
-            <SelectItem key={`cat-${cat.id}`} value={String(cat.id)}>
-                <div className="flex items-center space-x-2" style={{ paddingLeft: pad }}>
-                    {cat.icon ? <MuiIcon icon={cat.icon} size={18} className="opacity-80" /> : null}
-                    <span>{getLocalizedText(cat.name, locale)}</span>
-                </div>
-            </SelectItem>
-        );
-
-        if (!cat.children.length) return [me];
-        return [me, renderCategoryTree(cat.children, locale, depth + 1)];
-    });
-}
-
-function CategorySelect({
-                                   categories,
-                                   selectedCategory,
-                            onCategoryChange,
-                            locale,
-                               }: {
-    categories: Category[];
-    selectedCategory: string;
-    onCategoryChange: (val: string) => void;
-    locale: Locale;
+function FilterSidebar({
+  categories,
+  serviceTypes,
+  technologies,
+  selectedCategory,
+  selectedServiceType,
+  selectedTechnologies,
+  onCategoryChange,
+  onServiceTypeChange,
+  onTechnologiesChange,
+  onTechnologiesUpdate,
+  locale,
+}: {
+  categories: Category[];
+  serviceTypes: string[];
+  technologies: Technology[];
+  selectedCategory: string;
+  selectedServiceType: string;
+  selectedTechnologies: string[];
+  onCategoryChange: (category: string) => void;
+  onServiceTypeChange: (type: string) => void;
+  onTechnologiesChange: (techs: string[]) => void;
+  onTechnologiesUpdate: () => Promise<void>;
+  locale: Locale;
 }) {
-    const tree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const [expandedTechs, setExpandedTechs] = useState(false);
+  const [isUpdatingTechs, setIsUpdatingTechs] = useState(false);
 
-    return (
-        <Select value={selectedCategory} onValueChange={onCategoryChange}>
-            <SelectTrigger className="w-full lg:w-64 py-6">
-                <SelectValue placeholder="Selectează categoria" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">
-                    <div className="flex items-center space-x-2">
-                        <Filter className="w-4 h-4" />
-                        <span>Toate Categoriile</span>
-                    </div>
-                </SelectItem>
+  const INITIAL_TECH_DISPLAY = 6;
+  const visibleTechs = expandedTechs ? technologies : technologies.slice(0, INITIAL_TECH_DISPLAY);
+  const hasMoreTechs = technologies.length > INITIAL_TECH_DISPLAY;
 
-                {renderCategoryTree(tree, locale)}
-            </SelectContent>
-        </Select>
-    );
+  const handleTechToggle = (tech: string) => {
+    const updated = selectedTechnologies.includes(tech)
+      ? selectedTechnologies.filter((t) => t !== tech)
+      : [...selectedTechnologies, tech];
+    onTechnologiesChange(updated);
+  };
+
+  const handleShowMore = async () => {
+    if (!expandedTechs) {
+      setIsUpdatingTechs(true);
+      try {
+        await onTechnologiesUpdate();
+      } finally {
+        setIsUpdatingTechs(false);
+      }
+    }
+    setExpandedTechs(!expandedTechs);
+  };
+
+  return (
+    <div className="w-full lg:w-80 bg-white rounded-xl border border-slate-200 p-6 h-fit lg:sticky lg:top-24">
+      <h3 className="text-lg font-bold text-[#0B1C2D] mb-6">Filters</h3>
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-bold text-[#0B1C2D] mb-3">
+            Backend / Frontend
+          </label>
+          <select
+            value={selectedCategory}
+            onChange={(event) => onCategoryChange(event.target.value)}
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 bg-white"
+          >
+            {categories.map((category) => (
+              <option key={category.id} value={String(category.id)}>
+                {getLocalizedText(category.name, locale)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-[#0B1C2D] mb-3">
+            Service Type
+          </label>
+          <select
+            value={selectedServiceType}
+            onChange={(event) => onServiceTypeChange(event.target.value)}
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 bg-white"
+          >
+            {serviceTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-[#0B1C2D] mb-4">
+            Technologies
+          </label>
+          <div className="space-y-2 mb-4">
+            {visibleTechs.map((tech) => {
+              const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
+              return (
+                <label key={name} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedTechnologies.includes(name)}
+                    onChange={() => handleTechToggle(name)}
+                    className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-700">{name}</span>
+                </label>
+              );
+            })}
+          </div>
+
+          {hasMoreTechs && (
+            <button
+              onClick={handleShowMore}
+              disabled={isUpdatingTechs}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-[#1BC47D] border border-[#1BC47D]/30 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            >
+              {expandedTechs ? 'Show Less' : 'Show More'}
+              <ChevronDown
+                size={16}
+                className={`transition-transform ${expandedTechs ? 'rotate-180' : ''}`}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceCard({
+  service,
+  locale,
+  onWishlistToggle,
+  isWishlisted,
+}: {
+  service: Service;
+  locale: Locale;
+  onWishlistToggle: (serviceId: number) => void;
+  isWishlisted: boolean;
+}) {
+  const providerCount = service.providers?.length || 0;
+  const tags = service.skills?.length ? service.skills : service.tags || [];
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          {service.isFeatured && (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold text-white bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-2">
+              ⭐ Recomandat
+            </span>
+          )}
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            {getLocalizedText(service.category?.name, locale)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onWishlistToggle(service.id)}
+          className={`w-9 h-9 flex items-center justify-center rounded-full border ${
+            isWishlisted ? 'border-[#1BC47D] text-[#1BC47D]' : 'border-slate-200 text-slate-500'
+          } hover:border-[#1BC47D] hover:text-[#1BC47D] transition-colors`}
+          aria-label="Toggle wishlist"
+        >
+          ♥
+        </button>
+      </div>
+
+      <h3 className="text-lg font-bold text-[#0B1C2D] mb-2">
+        {getLocalizedText(service.name, locale)}
+      </h3>
+      <p className="text-sm text-slate-600 line-clamp-3 mb-4">
+        {getLocalizedText(service.description, locale)}
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {tags.slice(0, 4).map((tag) => (
+          <span
+            key={getLocalizedText(tag, locale)}
+            className="px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded-full"
+          >
+            {getLocalizedText(tag, locale)}
+          </span>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-slate-500">
+        <span>{providerCount} prestatori disponibili</span>
+        <span className="text-[#1BC47D] font-semibold">Verified</span>
+      </div>
+    </div>
+  );
 }
