@@ -86,6 +86,7 @@ export default function ServicesPage() {
   const [wishlist, setWishlist] = useState<Set<number>>(new Set());
 
   const observerTarget = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
 
   useEffect(() => {
     const initializeFilters = async () => {
@@ -118,7 +119,8 @@ export default function ServicesPage() {
 
   const loadServices = useCallback(
     async (pageNum: number, isReset = false) => {
-      if (isLoading) return;
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
       setIsLoading(true);
 
       try {
@@ -155,9 +157,10 @@ export default function ServicesPage() {
         console.error('Failed to load services:', error);
       } finally {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
-    [isLoading, selectedCategory, selectedTechnologies]
+    [selectedCategory, selectedTechnologies]
   );
 
   useEffect(() => {
