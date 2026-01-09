@@ -28,6 +28,7 @@ export default function ProjectsPage() {
   const [isInitializing, setIsInitializing] = useState(true);
 
   const observerTarget = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
 
   useEffect(() => {
     const initializeFilters = async () => {
@@ -50,7 +51,8 @@ export default function ProjectsPage() {
 
   const loadProjects = useCallback(
     async (pageNum: number, isReset: boolean = false) => {
-      if (isLoading) return;
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
       setIsLoading(true);
 
       try {
@@ -77,16 +79,10 @@ export default function ProjectsPage() {
         console.error('Failed to load projects:', error);
       } finally {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
-    [
-      searchQuery,
-      selectedCategory,
-      selectedTechnologies,
-      selectedBudgetMin,
-      selectedBudgetMax,
-      isLoading,
-    ]
+    [searchQuery, selectedCategory, selectedTechnologies, selectedBudgetMin, selectedBudgetMax]
   );
 
   useEffect(() => {
