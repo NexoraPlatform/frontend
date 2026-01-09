@@ -1,8 +1,6 @@
 import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
-import dynamic from "next/dynamic";
-
-const TrustFlowNetwork = dynamic(() => import("./trust-flow-network"), { ssr: false });
+import TrustFlowNetworkClient from "./trust-flow-network.client";
 
 export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     const [
@@ -45,7 +43,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
         <section className="relative overflow-hidden bg-[#0B1C2D] pt-40 pb-20 px-6 text-white">
             <div className="absolute inset-0">
                 <div className="absolute inset-0 hidden md:block">
-                    <TrustFlowNetwork className="absolute inset-0" />
+                    <TrustFlowNetworkClient className="absolute inset-0" />
                 </div>
                 <div className="absolute inset-0 md:hidden bg-gradient-to-b from-[#0B1C2D] via-[#0B1C2D] to-[#081321]" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(27,196,125,0.18),_transparent_55%)]" />
