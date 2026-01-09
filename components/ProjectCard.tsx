@@ -123,7 +123,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                     key={i}
                     size={14}
                     className={
-                      i < Math.floor(project.client!.rating)
+                      i < Math.round(project.client!.rating)
                         ? 'fill-warning-amber text-warning-amber'
                         : 'text-slate-300 dark:text-[#2B3548]'
                     }
