@@ -9,15 +9,16 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
         subtitle,
         primaryCta,
         secondaryCta,
-        systemLabel,
-        activeContractsLabel,
+        trustedLabel,
+        dashboardLabel,
+        securedLabel,
         contractName,
-        fundsLockedLabel,
-        milestoneLabel,
-        milestoneCompleted,
-        milestoneCompletedStatus,
-        milestoneInEscrow,
-        milestoneInEscrowStatus,
+        contractValue,
+        milestoneProgress,
+        milestoneEta,
+        nextMilestoneLabel,
+        payoutLabel,
+        payoutValue,
     ] = await Promise.all([
         t(locale, "trustora.hero.badge"),
         t(locale, "trustora.hero.title"),
@@ -25,93 +26,86 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
         t(locale, "trustora.hero.subtitle"),
         t(locale, "trustora.hero.primary_cta"),
         t(locale, "trustora.hero.secondary_cta"),
-        t(locale, "trustora.hero.system_label"),
-        t(locale, "trustora.hero.active_contracts"),
+        t(locale, "trustora.hero.trusted_label"),
+        t(locale, "trustora.hero.dashboard_label"),
+        t(locale, "trustora.hero.secured_label"),
         t(locale, "trustora.hero.contract_name"),
-        t(locale, "trustora.hero.funds_locked"),
-        t(locale, "trustora.hero.milestone_label"),
-        t(locale, "trustora.hero.milestone_completed"),
-        t(locale, "trustora.hero.milestone_completed_status"),
-        t(locale, "trustora.hero.milestone_in_escrow"),
-        t(locale, "trustora.hero.milestone_in_escrow_status"),
+        t(locale, "trustora.hero.contract_value"),
+        t(locale, "trustora.hero.milestone_progress"),
+        t(locale, "trustora.hero.milestone_eta"),
+        t(locale, "trustora.hero.next_milestone"),
+        t(locale, "trustora.hero.payout_label"),
+        t(locale, "trustora.hero.payout_value"),
     ]);
 
     return (
-        <section className="pt-40 pb-24 px-6 bg-white dark:bg-[#070C14] overflow-hidden">
-            <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold mb-8 dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                    <span className="text-[#1BC47D]">●</span> {badgeText}
-                </div>
-                <h1 className="text-5xl lg:text-7xl font-bold text-[#0B1C2D] tracking-tight mb-6 max-w-4xl dark:text-[#E6EDF3]">
-                    {title} <span className="text-[#1BC47D]">{titleHighlight}</span>
-                </h1>
-                <p className="text-xl text-slate-500 mb-12 max-w-2xl dark:text-[#A3ADC2]">
-                    {subtitle}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 mb-20">
-                    <button className="px-8 py-4 btn-primary font-bold rounded-lg text-lg">{primaryCta}</button>
-                    <button className="px-8 py-4 bg-white border border-slate-200 text-[#0B1C2D] font-bold rounded-lg text-lg hover:bg-slate-50 dark:bg-transparent dark:border-[#1BC47D] dark:text-[#1BC47D] dark:hover:bg-[rgba(27,196,125,0.1)]">
-                        {secondaryCta}
-                    </button>
+        <section className="pt-40 pb-20 px-6 hero-gradient">
+            <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold mb-6">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        </span>
+                        {badgeText}
+                    </div>
+                    <h1 className="text-5xl lg:text-7xl font-bold text-[#0B1C2D] leading-[1.1] mb-6">
+                        {title} <span className="text-[#1BC47D]">{titleHighlight}</span>
+                    </h1>
+                    <p className="text-lg text-slate-600 mb-10 max-w-lg leading-relaxed">{subtitle}</p>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button className="px-8 py-4 btn-primary text-white font-semibold rounded-xl text-lg shadow-lg shadow-emerald-200/50">
+                            {primaryCta}
+                        </button>
+                        <button className="px-8 py-4 bg-white border border-slate-200 text-[#0B1C2D] font-semibold rounded-xl text-lg hover:bg-slate-50">
+                            {secondaryCta}
+                        </button>
+                    </div>
+                    <div className="mt-10 flex items-center gap-4 text-sm text-slate-500">
+                        <div className="flex -space-x-2">
+                            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200" />
+                            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-300" />
+                            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-400" />
+                        </div>
+                        <span>{trustedLabel}</span>
+                    </div>
                 </div>
 
-                <div className="w-full max-w-5xl glass-card overflow-hidden shadow-2xl shadow-slate-200/50">
-                    <div className="bg-slate-50 border-b border-slate-100 px-6 py-3 flex items-center justify-between">
-                        <div className="flex gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                <div className="relative">
+                    <div className="glass-card rounded-2xl p-6 relative z-10">
+                        <div className="flex justify-between items-center mb-6">
+                            <span className="text-xs font-bold mono uppercase tracking-wider text-slate-400">{dashboardLabel}</span>
+                            <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                                {securedLabel}
+                            </span>
                         </div>
-                        <div className="text-[10px] font-bold mono text-slate-400 uppercase tracking-widest dark:text-[#6B7285]">
-                            {systemLabel}
-                        </div>
-                        <div />
-                    </div>
-                    <div className="p-8 grid md:grid-cols-3 gap-8 text-left">
-                        <div className="space-y-6">
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest dark:text-[#6B7285]">{activeContractsLabel}</div>
-                            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm font-bold dark:text-[#E6EDF3]">{contractName}</span>
-                                    <span className="mono text-[#1BC47D] text-sm">€ 2.450,00</span>
+                                    <span className="text-sm font-semibold">{contractName}</span>
+                                    <span className="mono text-sm font-bold">{contractValue}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-[#1BC47D]" />
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase dark:text-[#6B7285]">{fundsLockedLabel}</span>
+                                <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-[#1BC47D] w-3/4 h-full" />
+                                </div>
+                                <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-medium">
+                                    <span>{milestoneProgress}</span>
+                                    <span>{milestoneEta}</span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="md:col-span-2">
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 dark:text-[#6B7285]">{milestoneLabel}</div>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-4 border border-slate-100 rounded-lg bg-white dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center dark:bg-[rgba(27,196,125,0.1)]">
-                                            <svg className="w-4 h-4 text-[#1BC47D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path d="M5 13l4 4L19 7" strokeWidth="3" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-sm font-medium dark:text-[#E6EDF3]">{milestoneCompleted}</span>
-                                    </div>
-                                    <span className="mono text-xs text-[#21D19F] font-bold">{milestoneCompletedStatus}</span>
+                            <div className="flex gap-3">
+                                <div className="flex-1 p-3 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 italic text-xs">
+                                    <span>{nextMilestoneLabel}</span>
                                 </div>
-                                <div className="flex items-center justify-between p-4 border-2 border-[#1BC47D]/20 rounded-lg bg-emerald-50/20 dark:border-[#1BC47D]/30 dark:bg-[rgba(27,196,125,0.08)]">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded bg-[#1BC47D] flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                                    strokeWidth="2"
-                                                />
-                                            </svg>
-                                        </div>
-                                        <span className="text-sm font-bold dark:text-[#E6EDF3]">{milestoneInEscrow}</span>
-                                    </div>
-                                    <span className="mono text-xs text-[#0B1C2D] font-bold tracking-tighter dark:text-[#E6EDF3]">{milestoneInEscrowStatus}</span>
+                                <div className="w-24 p-3 rounded-xl bg-[#0B1C2D] text-white flex flex-col items-center justify-center">
+                                    <span className="text-[10px] opacity-70">{payoutLabel}</span>
+                                    <span className="font-bold">{payoutValue}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-50 -z-0" />
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-50 -z-0" />
                 </div>
             </div>
         </section>

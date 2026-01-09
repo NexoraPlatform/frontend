@@ -43,6 +43,10 @@ export function TrustoraThemeStyles() {
                         border: 1px solid rgba(11, 28, 45, 0.08);
                         border-radius: 12px;
                     }
+                    .hero-gradient {
+                        background: radial-gradient(circle at top right, rgba(27, 196, 125, 0.05), transparent 40%),
+                            radial-gradient(circle at bottom left, rgba(11, 28, 45, 0.03), transparent 40%);
+                    }
                     .dark .glass-card {
                         background: #0B1220;
                         border: 1px solid #1E2A3D;
