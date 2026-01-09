@@ -127,7 +127,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                         className="absolute inset-0 overflow-hidden"
                         style={{ width: `${fillPercent}%` }}
                       >
-                        <Star size={14} className="fill-warning-amber text-warning-amber" />
+                        <Star size={14} className="text-warning-amber" fill="currentColor" />
                       </span>
                     </span>
                   );
