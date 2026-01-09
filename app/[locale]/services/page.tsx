@@ -96,9 +96,10 @@ export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [technologies, setTechnologies] = useState<Technology[]>([]);
+  const [allTechnologies, setAllTechnologies] = useState<Technology[]>([]);
 
   const [selectedServiceType, setSelectedServiceType] = useState('All');
-  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
+  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>(['All']);
 
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,9 +113,15 @@ export default function ServicesPage() {
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const categoriesResponse = await apiClient.getCategories();
+        const [categoriesResponse, technologiesResponse] = await Promise.all([
+          apiClient.getCategories(),
+          apiClient.getTechnologies(),
+        ]);
 
         setCategories(categoriesResponse || []);
+        const normalizedTechnologies = normalizeTechnologiesResponse(technologiesResponse);
+        setAllTechnologies(normalizedTechnologies);
+        setTechnologies(normalizedTechnologies);
 
       } catch (error) {
         console.error('Failed to load filters:', error);
@@ -135,7 +142,10 @@ export default function ServicesPage() {
       try {
         const response: ServicesResponse = await apiClient.getServices({
           categoryId: selectedServiceType !== 'All' ? selectedServiceType : undefined,
-          skills: selectedTechnologies.length > 0 ? selectedTechnologies : undefined,
+          skills:
+            selectedTechnologies.length > 0 && !selectedTechnologies.includes('All')
+              ? selectedTechnologies
+              : undefined,
           page: pageNum + 1,
           limit: ITEMS_PER_PAGE,
         });
@@ -192,10 +202,10 @@ export default function ServicesPage() {
 
   const handleServiceTypeChange = async (serviceType: string) => {
     setSelectedServiceType(serviceType);
-    setSelectedTechnologies([]);
+    setSelectedTechnologies(['All']);
 
     if (serviceType === 'All') {
-      setTechnologies([]);
+      setTechnologies(allTechnologies);
       return;
     }
 
@@ -209,7 +219,10 @@ export default function ServicesPage() {
 
   const handleTechnologiesUpdate = async () => {
     if (selectedServiceType === 'All') {
-      setTechnologies([]);
+      const updatedTechnologies = await apiClient.getTechnologies();
+      const normalized = normalizeTechnologiesResponse(updatedTechnologies);
+      setAllTechnologies(normalized);
+      setTechnologies(normalized);
       return;
     }
 
@@ -341,11 +354,20 @@ function FilterSidebar({
   const visibleTechs = expandedTechs ? technologies : technologies.slice(0, INITIAL_TECH_DISPLAY);
   const hasMoreTechs = technologies.length > INITIAL_TECH_DISPLAY;
 
+  const techListRef = useRef<HTMLDivElement>(null);
+  const showMoreButtonRef = useRef<HTMLButtonElement>(null);
+
   const handleTechToggle = (tech: string) => {
+    if (tech === 'All') {
+      onTechnologiesChange(['All']);
+      return;
+    }
+
     const updated = selectedTechnologies.includes(tech)
       ? selectedTechnologies.filter((t) => t !== tech)
-      : [...selectedTechnologies, tech];
-    onTechnologiesChange(updated);
+      : [...selectedTechnologies.filter((t) => t !== 'All'), tech];
+
+    onTechnologiesChange(updated.length > 0 ? updated : ['All']);
   };
 
   const handleShowMore = async () => {
@@ -356,9 +378,21 @@ function FilterSidebar({
       } finally {
         setIsUpdatingTechs(false);
       }
+      setExpandedTechs(true);
+      return;
     }
-    setExpandedTechs(!expandedTechs);
+    setExpandedTechs(false);
   };
+
+  useEffect(() => {
+    if (!expandedTechs || !techListRef.current) return;
+    const lastItem = techListRef.current.querySelector('label:last-of-type');
+    if (lastItem) {
+      lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+    showMoreButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [expandedTechs]);
 
   return (
     <div className="w-full lg:w-80 bg-white rounded-xl border border-slate-200 p-6 h-fit lg:sticky lg:top-24">
@@ -386,7 +420,16 @@ function FilterSidebar({
           <label className="block text-sm font-bold text-[#0B1C2D] mb-4">
             Technologies
           </label>
-          <div className="space-y-2 mb-4">
+          <div ref={techListRef} className="space-y-2 mb-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedTechnologies.includes('All')}
+                onChange={() => handleTechToggle('All')}
+                className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
+              />
+              <span className="text-sm text-slate-700">All</span>
+            </label>
             {visibleTechs.map((tech) => {
               const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
               return (
@@ -405,6 +448,7 @@ function FilterSidebar({
 
           {hasMoreTechs && (
             <button
+              ref={showMoreButtonRef}
               onClick={handleShowMore}
               disabled={isUpdatingTechs}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-[#1BC47D] border border-[#1BC47D]/30 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
