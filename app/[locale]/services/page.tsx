@@ -509,8 +509,8 @@ function FilterSidebar({
             </label>
             {groupedTechs.map(([category, techs]) => (
               <div key={category} className="space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Categorie: {category}
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">
+                  {category}
                 </p>
                 {techs.map((tech) => {
                   const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
