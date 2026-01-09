@@ -130,7 +130,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                         <Star
                           size={14}
                           className="text-warning-amber drop-shadow-[0_0_4px_rgba(245,166,35,0.45)]"
-                          fill="#F5A623"
+                          fill="#F5A623" stroke="#F5A623"
                         />
                       </span>
                     </span>
