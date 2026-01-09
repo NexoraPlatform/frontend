@@ -38,5 +38,65 @@
     "start_now": "Începe Acum",
     "become_expert": "Devino Expert"
   },
+  "trustora": {
+    "hero": {
+      "badge": "INFRASTRUCTURĂ DE ÎNCREDERE DIGITALĂ",
+      "title": "Angajează și fii plătit cu",
+      "title_highlight": "risc zero.",
+      "subtitle": "Profesioniști verificați. Plăți protejate. Livrare garantată. Stratul sigur pentru munca online globală.",
+      "primary_cta": "Pornește un proiect protejat",
+      "secondary_cta": "Contactează vânzările",
+      "system_label": "Trustora Engine v2.4 — Escrow securizat",
+      "active_contracts": "Contracte active",
+      "contract_name": "Integrare API",
+      "funds_locked": "Fonduri blocate",
+      "milestone_label": "Execuție milestone",
+      "milestone_completed": "Arhitectură și design",
+      "milestone_completed_status": "ELIBERAT",
+      "milestone_in_escrow": "Livrare modul de bază",
+      "milestone_in_escrow_status": "ÎN ESCROW"
+    },
+    "pillars": {
+      "verified_title": "Oameni verificați",
+      "verified_description": "Nimeni nu lucrează fără test tehnic și verificare video obligatorie.",
+      "protected_title": "Bani protejați",
+      "protected_description": "Fiecare euro este ținut în escrow până la confirmarea livrării.",
+      "delivery_title": "Livrare garantată",
+      "delivery_description": "Plata se eliberează doar pe baza milestone-urilor acceptate.",
+      "legal_title": "Contracte cu valoare legală",
+      "legal_description": "Fiecare job este un contract digital cu valoare legală deplină."
+    },
+    "messaging": {
+      "clients_badge": "PENTRU CLIENȚI",
+      "clients_title": "„Plătesc doar când primesc livrarea.”",
+      "clients_body": "Banii tăi sunt protejați prin escrow. Nicio plată nu părăsește platforma fără confirmarea ta explicită a calității muncii.",
+      "clients_benefit_one": "Zero risc de pierdere financiară",
+      "clients_benefit_two": "Profesioniști pre-verificați video",
+      "clients_link": "Începe să angajezi în siguranță →",
+      "pros_badge": "PENTRU PROFESIONIȘTI",
+      "pros_title": "„Banii sunt blocați înainte să încep.”",
+      "pros_body": "Nu mai lucrezi pe promisiuni. Plata pentru fiecare milestone este deja blocată în sistem înainte ca tu să scrii prima linie de cod.",
+      "pros_benefit_one": "Garanția plății 100%",
+      "pros_benefit_two": "Dispute rezolvate prin arbitraj tehnic",
+      "pros_link": "Intră în infrastructură →"
+    },
+    "visual": {
+      "title": "Stripe + Notar + Marketplace",
+      "money_label": "Bani",
+      "money_subtitle": "Strat escrow",
+      "contracts_label": "Contracte",
+      "contracts_subtitle": "Execuție digitală",
+      "verification_label": "Verificare",
+      "verification_subtitle": "Strat de identitate"
+    },
+    "final_cta": {
+      "title": "Fără încredere. Fără deal.",
+      "subtitle": "Lucrează fără risc pe cea mai sigură platformă pentru servicii online.",
+      "cta_label": "Pornește un proiect protejat",
+      "escrow_label": "Escrow securizat",
+      "verified_label": "Verificat video",
+      "legal_label": "Valoare legală"
+    }
+  },
   "explore_services_in_category": "Explorează servicii din categoria"
 }
