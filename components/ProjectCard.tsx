@@ -122,7 +122,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                   const fillPercent = Math.min(Math.max(project.client!.rating - i, 0), 1) * 100;
                   return (
                     <span key={i} className="relative w-[14px] h-[14px]">
-                      <Star size={14} className="text-warning-amber/30" fill="currentColor" />
+                      <Star size={14} className="text-warning-amber" fill="none" />
                       <span
                         className="absolute inset-0 overflow-hidden"
                         style={{ width: `${fillPercent}%` }}
