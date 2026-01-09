@@ -96,6 +96,7 @@ export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [technologies, setTechnologies] = useState<Technology[]>([]);
+  const [allTechnologies, setAllTechnologies] = useState<Technology[]>([]);
 
   const [selectedServiceType, setSelectedServiceType] = useState('All');
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>(['All']);
@@ -112,9 +113,15 @@ export default function ServicesPage() {
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const categoriesResponse = await apiClient.getCategories();
+        const [categoriesResponse, technologiesResponse] = await Promise.all([
+          apiClient.getCategories(),
+          apiClient.getTechnologies(),
+        ]);
 
         setCategories(categoriesResponse || []);
+        const normalizedTechnologies = normalizeTechnologiesResponse(technologiesResponse);
+        setAllTechnologies(normalizedTechnologies);
+        setTechnologies(normalizedTechnologies);
 
       } catch (error) {
         console.error('Failed to load filters:', error);
@@ -198,7 +205,7 @@ export default function ServicesPage() {
     setSelectedTechnologies(['All']);
 
     if (serviceType === 'All') {
-      setTechnologies([]);
+      setTechnologies(allTechnologies);
       return;
     }
 
@@ -212,7 +219,10 @@ export default function ServicesPage() {
 
   const handleTechnologiesUpdate = async () => {
     if (selectedServiceType === 'All') {
-      setTechnologies([]);
+      const updatedTechnologies = await apiClient.getTechnologies();
+      const normalized = normalizeTechnologiesResponse(updatedTechnologies);
+      setAllTechnologies(normalized);
+      setTechnologies(normalized);
       return;
     }
 
