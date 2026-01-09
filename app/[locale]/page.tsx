@@ -1,7 +1,7 @@
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { TrustoraFinalCtaSection } from "@/components/trustora/final-cta-section";
-import { TrustoraHeroSection } from "@/components/trustora/hero-section";
+import Hero from "@/components/hero/Hero";
 import { TrustoraMessagingSection } from "@/components/trustora/messaging-section";
 import { TrustoraPillarsSection } from "@/components/trustora/pillars-section";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
@@ -24,7 +24,7 @@ export default async function Home(props: HomePageProps) {
             <TrustoraThemeStyles />
             <Header />
             <main role="main" aria-label={mainContentLabel} id="main-content">
-                <TrustoraHeroSection locale={locale} />
+                <Hero />
                 <TrustoraPillarsSection locale={locale} />
                 <TrustoraMessagingSection locale={locale} />
                 <TrustoraVisualLanguageSection locale={locale} />
