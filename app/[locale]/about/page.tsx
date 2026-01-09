@@ -1,7 +1,6 @@
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Target,
@@ -15,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export const metadata: Metadata = generateSEO({
   title: 'Despre noi',
@@ -109,163 +109,180 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white dark:bg-[#070C14]">
       <Header />
+      <TrustoraThemeStyles />
 
       {/* Hero Section */}
-      <section className="py-20 lg:py-32 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-6">
-              🚀 Despre Nexora
-            </Badge>
-            <h1 className="text-4xl lg:text-6xl font-bold mb-6">
-              Construim viitorul digital al României
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+      <section className="pt-32 pb-20 px-6 bg-white dark:bg-[#070C14] overflow-hidden">
+        <div className="max-w-6xl mx-auto text-center">
+          <Badge className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+            <span className="text-[#1BC47D]">●</span> 🚀 Despre Nexora
+          </Badge>
+          <h1 className="text-4xl lg:text-6xl font-bold mb-6 text-[#0B1C2D] tracking-tight dark:text-[#E6EDF3]">
+            Construim viitorul digital al <span className="text-[#1BC47D]">României</span>
+          </h1>
+          <p className="text-xl text-slate-500 mb-10 max-w-3xl mx-auto dark:text-[#A3ADC2]">
               Nexora este platforma românească care conectează antreprenorii cu cei mai buni experți IT.
               Misiunea noastră este să democratizăm accesul la servicii IT de calitate și să susținem
               creșterea ecosistemului tehnologic local.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="px-8 py-6 text-lg" asChild>
-                <Link href="/services">Explorează Serviciile</Link>
-              </Button>
-              <Button variant="outline" size="lg" className="px-8 py-6 text-lg">
-                Alătură-te Echipei
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" className="px-8 py-6 text-lg btn-primary" asChild>
+              <Link href="/services">Explorează Serviciile</Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="px-8 py-6 text-lg border border-slate-200 text-[#0B1C2D] hover:bg-slate-50 dark:border-[#1BC47D] dark:text-[#1BC47D] dark:hover:bg-[rgba(27,196,125,0.1)]"
+            >
+              Alătură-te Echipei
+            </Button>
           </div>
+          <div className="mt-12 border-b border-slate-100 dark:border-[#1E2A3D]" />
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((stat, index) => (
-              <div key={index} className="space-y-2">
-                <div className="text-4xl lg:text-5xl font-bold text-primary">
-                  {stat.number}
-                </div>
-                <div className="text-muted-foreground font-medium">
-                  {stat.label}
-                </div>
+      <section className="py-16 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+        <div className="max-w-6xl mx-auto grid xs:grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {stats.map((stat, index) => (
+            <div key={index} className="glass-card px-6 py-8 shadow-sm">
+              <div className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] mb-2 dark:text-white">
+                {stat.number}
               </div>
-            ))}
-          </div>
+              <div className="text-sm uppercase tracking-[0.2em] text-slate-400 font-semibold dark:text-[#6B7285]">
+                {stat.label}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
+
+      <section className="section-divider" />
 
       {/* Mission & Vision */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-                Misiunea Noastră
-              </h2>
-              <p className="text-lg text-muted-foreground mb-6">
-                Credem că fiecare idee merită să devină realitate. De aceea, am construit Nexora -
-                o platformă care elimină barierele dintre viziune și execuție, conectând antreprenorii
-                cu experții IT potriviți.
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Accesibilitate</h3>
-                    <p className="text-muted-foreground">Servicii IT de calitate la prețuri corecte pentru toate businessurile</p>
-                  </div>
+      <section className="py-20 px-6">
+        <div className="max-w-6xl mx-auto grid xs:grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-4 dark:text-[#6B7285]">
+              Misiunea noastră
+            </p>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-6 text-[#0B1C2D] dark:text-[#E6EDF3]">
+              Eliminăm barierele dintre viziune și execuție
+            </h2>
+            <p className="text-lg text-slate-500 mb-8 dark:text-[#A3ADC2]">
+              Credem că fiecare idee merită să devină realitate. De aceea, am construit Nexora -
+              o platformă care elimină barierele dintre viziune și execuție, conectând antreprenorii
+              cu experții IT potriviți.
+            </p>
+            <div className="space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center dark:bg-[rgba(27,196,125,0.1)]">
+                  <CheckCircle className="w-5 h-5 text-[#1BC47D]" />
                 </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Transparență</h3>
-                    <p className="text-muted-foreground">Proces clar, prețuri transparente și comunicare deschisă</p>
-                  </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-[#0B1C2D] dark:text-[#E6EDF3]">Accesibilitate</h3>
+                  <p className="text-slate-500 dark:text-[#A3ADC2]">Servicii IT de calitate la prețuri corecte pentru toate businessurile</p>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Excelență</h3>
-                    <p className="text-muted-foreground">Standarde înalte de calitate și satisfacția garantată</p>
-                  </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center dark:bg-[rgba(27,196,125,0.1)]">
+                  <CheckCircle className="w-5 h-5 text-[#1BC47D]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-[#0B1C2D] dark:text-[#E6EDF3]">Transparență</h3>
+                  <p className="text-slate-500 dark:text-[#A3ADC2]">Proces clar, prețuri transparente și comunicare deschisă</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center dark:bg-[rgba(27,196,125,0.1)]">
+                  <CheckCircle className="w-5 h-5 text-[#1BC47D]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-[#0B1C2D] dark:text-[#E6EDF3]">Excelență</h3>
+                  <p className="text-slate-500 dark:text-[#A3ADC2]">Standarde înalte de calitate și satisfacția garantată</p>
                 </div>
               </div>
             </div>
-            <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <Target className="w-16 h-16 text-primary mx-auto" />
-                  <h3 className="text-2xl font-bold">Viziunea 2030</h3>
-                  <p className="text-muted-foreground max-w-xs">
-                    Să devenim platforma de referință pentru servicii IT în Europa de Est
-                  </p>
-                </div>
+          </div>
+          <div className="glass-card p-10 shadow-xl shadow-slate-200/40 dark:shadow-none">
+            <div className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-[#6B7285]">
+              Viziunea 2030
+            </div>
+            <div className="mt-8 space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center dark:bg-[rgba(27,196,125,0.1)]">
+                <Target className="w-8 h-8 text-[#1BC47D]" />
               </div>
+              <h3 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                Să devenim platforma de referință
+              </h3>
+              <p className="text-slate-500 dark:text-[#A3ADC2] max-w-sm">
+                pentru servicii IT în Europa de Est, cu focus pe încredere, transparență și
+                colaborare sustenabilă.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
+      <section className="section-divider" />
+
       {/* Values Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
+      <section className="py-20 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Valorile Noastre
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-4 dark:text-[#6B7285]">
+              Valorile noastre
+            </p>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
+              Principii care construiesc încredere
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto dark:text-[#A3ADC2]">
               Principiile care ne ghidează în tot ceea ce facem și ne ajută să construim
-              relații de încredere cu clienții și partenerii noștri
+              relații de încredere cu clienții și partenerii noștri.
             </p>
           </div>
 
-          <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((value, index) => (
-              <Card key={index} className="text-center border-2 hover:border-primary/20 transition-colors">
-                <CardHeader>
-                  <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <value.icon className="w-8 h-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-xl">{value.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">
-                    {value.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
+              <div key={index} className="glass-card p-6 text-left hover:-translate-y-1 transition-transform">
+                <div className="w-12 h-12 mb-4 bg-emerald-50 rounded-2xl flex items-center justify-center dark:bg-[rgba(27,196,125,0.1)]">
+                  <value.icon className="w-6 h-6 text-[#1BC47D]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[#0B1C2D] mb-2 dark:text-[#E6EDF3]">{value.title}</h3>
+                <p className="text-sm text-slate-500 dark:text-[#A3ADC2]">{value.description}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Timeline */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
+      <section className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
               Povestea Noastră
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              De la o idee simplă la platforma de încredere pentru mii de antreprenori români
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto dark:text-[#A3ADC2]">
+              De la o idee simplă la platforma de încredere pentru mii de antreprenori români.
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="space-y-8">
+            <div className="relative pl-8 space-y-10 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-px before:bg-slate-200 dark:before:bg-[#1E2A3D]">
               {milestones.map((milestone, index) => (
-                <div key={index} className="flex items-start space-x-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold">
+                <div key={index} className="relative flex gap-6">
+                  <div className="absolute left-[-6px] top-2 w-4 h-4 rounded-full bg-[#1BC47D]" />
+                  <div className="w-20">
+                    <span className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
                       {milestone.year}
-                    </div>
+                    </span>
                   </div>
-                  <div className="flex-1 pb-8">
-                    <h3 className="text-xl font-bold mb-2">{milestone.title}</h3>
-                    <p className="text-muted-foreground">{milestone.description}</p>
+                  <div className="glass-card p-6 flex-1">
+                    <h3 className="text-xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">{milestone.title}</h3>
+                    <p className="text-slate-500 dark:text-[#A3ADC2]">{milestone.description}</p>
                   </div>
                 </div>
               ))}
@@ -275,56 +292,61 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
+      <section className="py-20 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-4 dark:text-[#6B7285]">
               Echipa Nexora
+            </p>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
+              Oameni care susțin transformarea digitală
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Oamenii pasionați care fac posibilă transformarea digitală a României
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto dark:text-[#A3ADC2]">
+              Oamenii pasionați care fac posibilă transformarea digitală a României.
             </p>
           </div>
 
-          <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {team.map((member, index) => (
-              <Card key={index} className="text-center border-2 hover:border-primary/20 transition-colors">
-                <CardHeader>
-                  <Avatar className="w-24 h-24 mx-auto mb-4">
+              <div key={index} className="glass-card p-6 text-left">
+                <div className="flex items-center gap-4 mb-4">
+                  <Avatar className="w-14 h-14">
                     <AvatarImage src={member.avatar} />
                     <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
-                  <CardTitle className="text-xl">{member.name}</CardTitle>
-                  <CardDescription className="text-primary font-medium">
-                    {member.role}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {member.description}
-                  </p>
-                </CardContent>
-              </Card>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{member.name}</h3>
+                    <p className="text-sm font-medium text-[#1BC47D]">{member.role}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                  {member.description}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-6">
+      <section className="py-24 px-6 bg-[#0B1C2D] text-white text-center dark:bg-[#0B1220]">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl lg:text-5xl font-bold mb-6">
             Alătură-te Comunității Nexora
           </h2>
-          <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-400 mb-10 dark:text-[#A3ADC2]">
             Fie că ești antreprenor în căutarea expertului potrivit sau specialist IT care vrea să își
             dezvolte cariera, Nexora este locul unde visurile devin realitate.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="px-8 py-6 text-lg" asChild>
+            <Button size="lg" className="px-8 py-6 text-lg btn-primary" asChild>
               <Link href="/services">Găsește Experți</Link>
             </Button>
-            <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-white text-white hover:bg-white hover:text-primary">
+            <Button
+              size="lg"
+              variant="outline"
+              className="px-8 py-6 text-lg border-white text-white hover:bg-white hover:text-[#0B1C2D]"
+            >
               Devino Furnizor
             </Button>
           </div>
