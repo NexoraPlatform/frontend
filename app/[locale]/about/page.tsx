@@ -139,6 +139,7 @@ export default function AboutPage() {
               Alătură-te Echipei
             </Button>
           </div>
+          <div className="mt-12 border-b border-slate-100 dark:border-[#1E2A3D]" />
         </div>
       </section>
 
@@ -261,9 +262,6 @@ export default function AboutPage() {
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-4 dark:text-[#6B7285]">
-              Cronologia Nexora
-            </p>
             <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
               Povestea Noastră
             </h2>
@@ -277,8 +275,10 @@ export default function AboutPage() {
               {milestones.map((milestone, index) => (
                 <div key={index} className="relative flex gap-6">
                   <div className="absolute left-[-6px] top-2 w-4 h-4 rounded-full bg-[#1BC47D]" />
-                  <div className="w-20 text-sm font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                    {milestone.year}
+                  <div className="w-20">
+                    <span className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:border-[#1E2A3D] dark:text-[#A3ADC2]">
+                      {milestone.year}
+                    </span>
                   </div>
                   <div className="glass-card p-6 flex-1">
                     <h3 className="text-xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">{milestone.title}</h3>
