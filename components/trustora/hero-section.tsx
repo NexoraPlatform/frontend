@@ -41,10 +41,10 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
 
     return (
         <section className="relative overflow-hidden pt-40 pb-20 px-6 bg-[#0B1C2D]">
-                <div className="absolute inset-0">
-                    <div className="absolute inset-0 pointer-events-none">
-                        <TrustFlowNetworkLayer />
-                    </div>
+            <div className="absolute inset-0">
+                <div className="absolute inset-0 pointer-events-none">
+                    <TrustFlowNetworkLayer />
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-b from-[#0B1C2D]/70 via-[#0B1C2D]/60 to-[#0B1C2D]/90" />
             </div>
             <div className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
