@@ -1,6 +1,5 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -64,24 +63,12 @@ function createConnections(clientIndices: number[], proIndices: number[]) {
     });
 }
 
-function NetworkScene({ reducedMotion }: { reducedMotion: boolean }) {
-    const nodeMeshRef = useRef<THREE.InstancedMesh>(null);
-    const contractMeshRef = useRef<THREE.InstancedMesh>(null);
-    const lockBodyMeshRef = useRef<THREE.InstancedMesh>(null);
-    const lockShackleMeshRef = useRef<THREE.InstancedMesh>(null);
-    const particleMeshRef = useRef<THREE.InstancedMesh>(null);
-    const lineRef = useRef<THREE.LineSegments>(null);
-    const { camera } = useThree();
+export default function TrustFlowNetwork({ className = "" }: { className?: string }) {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [reducedMotion, setReducedMotion] = useState(false);
 
-    const tempObject = useMemo(() => new THREE.Object3D(), []);
-    const tempColor = useMemo(() => new THREE.Color(), []);
-    const tempVecA = useMemo(() => new THREE.Vector3(), []);
-    const tempVecB = useMemo(() => new THREE.Vector3(), []);
-
-    const { nodes, clientIndices, proIndices } = useMemo(() => {
+    const nodes = useMemo(() => {
         const entries: NodeData[] = [];
-        const clients: number[] = [];
-        const pros: number[] = [];
         for (let i = 0; i < NODE_COUNT; i += 1) {
             const isClient = i < Math.floor(NODE_COUNT * CLIENT_RATIO);
             const position = new THREE.Vector3(
@@ -95,371 +82,18 @@ function NetworkScene({ reducedMotion }: { reducedMotion: boolean }) {
                 randomInRange(-1, 1),
             ).normalize();
             entries.push({ position, velocity, isClient });
-            if (isClient) {
-                clients.push(i);
-            } else {
-                pros.push(i);
-            }
         }
-        return { nodes: entries, clientIndices: clients, proIndices: pros };
+        return entries;
     }, []);
 
-    const connectionsRef = useRef<Connection[]>(createConnections(clientIndices, proIndices));
-    const particlesRef = useRef<Particle[]>(
-        Array.from({ length: PARTICLE_COUNT }, (_, index) => ({
-            connectionIndex: index % ACTIVE_CONNECTIONS,
-            progress: Math.random(),
-            speed: PARTICLE_SPEED * randomInRange(0.7, 1.2),
-            jitter: randomInRange(-0.08, 0.08),
-        })),
+    const clientIndices = useMemo(
+        () => nodes.map((node, index) => (node.isClient ? index : -1)).filter((value) => value !== -1),
+        [nodes],
     );
-
-    const lineGeometry = useMemo(() => {
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(ACTIVE_CONNECTIONS * 2 * 3);
-        const colors = new Float32Array(ACTIVE_CONNECTIONS * 2 * 3);
-        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-        return geometry;
-    }, []);
-
-    useEffect(() => {
-        if (!nodeMeshRef.current) return;
-        nodes.forEach((node, index) => {
-            tempObject.position.copy(node.position);
-            tempObject.scale.setScalar(NODE_SIZE);
-            tempObject.updateMatrix();
-            nodeMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            tempColor.copy(node.isClient ? CLIENT_COLOR : PRO_COLOR);
-            nodeMeshRef.current?.setColorAt(index, tempColor);
-        });
-        nodeMeshRef.current.instanceMatrix.needsUpdate = true;
-        if (nodeMeshRef.current.instanceColor) {
-            nodeMeshRef.current.instanceColor.needsUpdate = true;
-        }
-
-        const linePositions = lineGeometry.attributes.position.array as Float32Array;
-        const lineColors = lineGeometry.attributes.color.array as Float32Array;
-
-        connectionsRef.current.forEach((connection, index) => {
-            const nodeA = nodes[connection.a].position;
-            const nodeB = nodes[connection.b].position;
-            connection.midpoint.copy(nodeA).add(nodeB).multiplyScalar(0.5);
-            connection.intensity = 1;
-
-            const lineOffset = index * 6;
-            linePositions[lineOffset] = nodeA.x;
-            linePositions[lineOffset + 1] = nodeA.y;
-            linePositions[lineOffset + 2] = nodeA.z;
-            linePositions[lineOffset + 3] = nodeB.x;
-            linePositions[lineOffset + 4] = nodeB.y;
-            linePositions[lineOffset + 5] = nodeB.z;
-
-            tempColor.copy(LINE_COLOR).multiplyScalar(0.9);
-            lineColors[lineOffset] = tempColor.r;
-            lineColors[lineOffset + 1] = tempColor.g;
-            lineColors[lineOffset + 2] = tempColor.b;
-            lineColors[lineOffset + 3] = tempColor.r;
-            lineColors[lineOffset + 4] = tempColor.g;
-            lineColors[lineOffset + 5] = tempColor.b;
-
-            tempObject.position.copy(connection.midpoint);
-            tempObject.scale.setScalar(CONTRACT_SIZE);
-            tempObject.updateMatrix();
-            contractMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            contractMeshRef.current?.setColorAt(index, CONTRACT_COLOR);
-
-            tempObject.position.copy(connection.midpoint);
-            tempObject.position.y += 0.1;
-            tempObject.scale.setScalar(0.9);
-            tempObject.updateMatrix();
-            lockBodyMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            lockBodyMeshRef.current?.setColorAt(index, CONTRACT_COLOR);
-
-            tempObject.position.copy(connection.midpoint);
-            tempObject.position.y += 0.2;
-            tempObject.scale.setScalar(0.8);
-            tempObject.updateMatrix();
-            lockShackleMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            lockShackleMeshRef.current?.setColorAt(index, CONTRACT_COLOR);
-        });
-
-        lineGeometry.attributes.position.needsUpdate = true;
-        lineGeometry.attributes.color.needsUpdate = true;
-        if (contractMeshRef.current?.instanceMatrix) {
-            contractMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (contractMeshRef.current.instanceColor) {
-                contractMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-        if (lockBodyMeshRef.current?.instanceMatrix) {
-            lockBodyMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (lockBodyMeshRef.current.instanceColor) {
-                lockBodyMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-        if (lockShackleMeshRef.current?.instanceMatrix) {
-            lockShackleMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (lockShackleMeshRef.current.instanceColor) {
-                lockShackleMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-
-        particlesRef.current.forEach((particle, index) => {
-            const connection = connectionsRef.current[particle.connectionIndex];
-            const start = nodes[connection.a].position;
-            const end = nodes[connection.b].position;
-            const midpoint = connection.midpoint;
-
-            if (particle.progress < 0.5) {
-                tempVecA.copy(start);
-                tempVecB.copy(midpoint);
-                tempVecA.lerp(tempVecB, particle.progress / 0.5);
-            } else {
-                tempVecA.copy(midpoint);
-                tempVecB.copy(end);
-                tempVecA.lerp(tempVecB, (particle.progress - 0.5) / 0.5);
-            }
-
-            tempObject.position.copy(tempVecA);
-            tempObject.scale.setScalar(PARTICLE_SIZE);
-            tempObject.updateMatrix();
-            particleMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            particleMeshRef.current?.setColorAt(index, PARTICLE_COLOR);
-        });
-
-        if (particleMeshRef.current?.instanceMatrix) {
-            particleMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (particleMeshRef.current.instanceColor) {
-                particleMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-    }, [lineGeometry, nodes, tempColor, tempObject, tempVecA, tempVecB]);
-
-    useFrame((state, delta) => {
-        const time = state.clock.elapsedTime;
-
-        if (!reducedMotion) {
-            camera.position.x = Math.sin(time * CAMERA_SPEED) * 0.35;
-            camera.position.y = 0.1 + Math.cos(time * CAMERA_SPEED) * 0.2;
-            camera.lookAt(0, 0, 0);
-        }
-
-        if (reducedMotion) {
-            return;
-        }
-
-        nodes.forEach((node, index) => {
-            node.position.x += node.velocity.x * delta * DRIFT_SPEED;
-            node.position.y += node.velocity.y * delta * DRIFT_SPEED;
-            node.position.z += node.velocity.z * delta * DRIFT_SPEED;
-
-            if (Math.abs(node.position.x) > BOUNDS.x) {
-                node.velocity.x *= -1;
-            }
-            if (Math.abs(node.position.y) > BOUNDS.y) {
-                node.velocity.y *= -1;
-            }
-            if (Math.abs(node.position.z) > BOUNDS.z) {
-                node.velocity.z *= -1;
-            }
-
-            tempObject.position.copy(node.position);
-            tempObject.scale.setScalar(NODE_SIZE);
-            tempObject.updateMatrix();
-            nodeMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-        });
-        if (nodeMeshRef.current) {
-            nodeMeshRef.current.instanceMatrix.needsUpdate = true;
-        }
-
-        const linePositions = lineGeometry.attributes.position.array as Float32Array;
-        const lineColors = lineGeometry.attributes.color.array as Float32Array;
-
-        connectionsRef.current.forEach((connection, index) => {
-            const elapsed = time - connection.start;
-            if (elapsed > connection.duration) {
-                const a = clientIndices[Math.floor(Math.random() * clientIndices.length)];
-                const b = proIndices[Math.floor(Math.random() * proIndices.length)];
-                connection.a = a;
-                connection.b = b;
-                connection.start = time;
-                connection.duration = randomInRange(CONNECTION_MIN_DURATION, CONNECTION_MAX_DURATION);
-            }
-
-            const life = (time - connection.start) / connection.duration;
-            const fade =
-                life < FADE_TIME
-                    ? life / FADE_TIME
-                    : life > 1 - FADE_TIME
-                    ? (1 - life) / FADE_TIME
-                    : 1;
-
-            const intensity = THREE.MathUtils.clamp(fade, 0, 1);
-            connection.intensity = intensity;
-
-            const nodeA = nodes[connection.a].position;
-            const nodeB = nodes[connection.b].position;
-            connection.midpoint.copy(nodeA).add(nodeB).multiplyScalar(0.5);
-
-            const lineOffset = index * 6;
-            linePositions[lineOffset] = nodeA.x;
-            linePositions[lineOffset + 1] = nodeA.y;
-            linePositions[lineOffset + 2] = nodeA.z;
-            linePositions[lineOffset + 3] = nodeB.x;
-            linePositions[lineOffset + 4] = nodeB.y;
-            linePositions[lineOffset + 5] = nodeB.z;
-
-            const colorIntensity = 0.35 + intensity * 0.75;
-            tempColor.copy(LINE_COLOR).multiplyScalar(colorIntensity);
-            lineColors[lineOffset] = tempColor.r;
-            lineColors[lineOffset + 1] = tempColor.g;
-            lineColors[lineOffset + 2] = tempColor.b;
-            lineColors[lineOffset + 3] = tempColor.r;
-            lineColors[lineOffset + 4] = tempColor.g;
-            lineColors[lineOffset + 5] = tempColor.b;
-        });
-
-        lineGeometry.attributes.position.needsUpdate = true;
-        lineGeometry.attributes.color.needsUpdate = true;
-
-        connectionsRef.current.forEach((connection, index) => {
-            const pulseWindow = Math.min(0.2, connection.duration * 0.2);
-            const pulse =
-                time - connection.start < pulseWindow
-                    ? 1 + Math.sin(((time - connection.start) / pulseWindow) * Math.PI) * 0.3
-                    : 1;
-
-            tempObject.position.copy(connection.midpoint);
-            tempObject.scale.setScalar(CONTRACT_SIZE * pulse);
-            tempObject.updateMatrix();
-            contractMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            tempColor.copy(CONTRACT_COLOR).multiplyScalar(0.7 + connection.intensity * 0.6);
-            contractMeshRef.current?.setColorAt(index, tempColor);
-
-            tempObject.position.copy(connection.midpoint);
-            tempObject.position.y += 0.1;
-            tempObject.scale.setScalar(0.9 + connection.intensity * 0.2);
-            tempObject.updateMatrix();
-            lockBodyMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-
-            tempObject.position.copy(connection.midpoint);
-            tempObject.position.y += 0.2;
-            tempObject.scale.setScalar(0.8 + connection.intensity * 0.2);
-            tempObject.updateMatrix();
-            lockShackleMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            tempColor.copy(CONTRACT_COLOR).multiplyScalar(0.5 + connection.intensity * 0.6);
-            lockBodyMeshRef.current?.setColorAt(index, tempColor);
-            lockShackleMeshRef.current?.setColorAt(index, tempColor);
-        });
-
-        if (contractMeshRef.current?.instanceMatrix) {
-            contractMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (contractMeshRef.current.instanceColor) {
-                contractMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-        if (lockBodyMeshRef.current?.instanceMatrix) {
-            lockBodyMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (lockBodyMeshRef.current.instanceColor) {
-                lockBodyMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-        if (lockShackleMeshRef.current?.instanceMatrix) {
-            lockShackleMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (lockShackleMeshRef.current.instanceColor) {
-                lockShackleMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-
-        particlesRef.current.forEach((particle, index) => {
-            particle.progress += delta * particle.speed;
-            if (particle.progress > 1) {
-                particle.progress = Math.random() * 0.2;
-            }
-
-            const connection = connectionsRef.current[particle.connectionIndex];
-            const start = nodes[connection.a].position;
-            const end = nodes[connection.b].position;
-            const midpoint = connection.midpoint;
-
-            if (particle.progress < 0.5) {
-                tempVecA.copy(start);
-                tempVecB.copy(midpoint).addScalar(particle.jitter);
-                tempVecA.lerp(tempVecB, particle.progress / 0.5);
-            } else {
-                tempVecA.copy(midpoint).addScalar(particle.jitter);
-                tempVecB.copy(end);
-                tempVecA.lerp(tempVecB, (particle.progress - 0.5) / 0.5);
-            }
-
-            tempObject.position.copy(tempVecA);
-            tempObject.scale.setScalar(PARTICLE_SIZE * (0.7 + connection.intensity * 0.6));
-            tempObject.updateMatrix();
-            particleMeshRef.current?.setMatrixAt(index, tempObject.matrix);
-            tempColor.copy(PARTICLE_COLOR).multiplyScalar(0.4 + connection.intensity * 0.8);
-            particleMeshRef.current?.setColorAt(index, tempColor);
-        });
-
-        if (particleMeshRef.current?.instanceMatrix) {
-            particleMeshRef.current.instanceMatrix.needsUpdate = true;
-            if (particleMeshRef.current.instanceColor) {
-                particleMeshRef.current.instanceColor.needsUpdate = true;
-            }
-        }
-    });
-
-    return (
-        <group>
-            <lineSegments ref={lineRef} geometry={lineGeometry}>
-                <lineBasicMaterial vertexColors transparent opacity={0.6} />
-            </lineSegments>
-            <instancedMesh ref={nodeMeshRef} args={[undefined, undefined, NODE_COUNT]}>
-                <sphereGeometry args={[1, 16, 16]} />
-                <meshStandardMaterial
-                    transparent
-                    opacity={0.9}
-                    emissiveIntensity={0.4}
-                    vertexColors
-                />
-            </instancedMesh>
-            <instancedMesh ref={contractMeshRef} args={[undefined, undefined, ACTIVE_CONNECTIONS]}>
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial
-                    transparent
-                    opacity={0.95}
-                    emissiveIntensity={0.7}
-                    vertexColors
-                />
-            </instancedMesh>
-            <instancedMesh ref={lockBodyMeshRef} args={[undefined, undefined, ACTIVE_CONNECTIONS]}>
-                <boxGeometry args={[0.5, 0.6, 0.25]} />
-                <meshStandardMaterial
-                    transparent
-                    opacity={0.7}
-                    emissiveIntensity={0.5}
-                    vertexColors
-                />
-            </instancedMesh>
-            <instancedMesh ref={lockShackleMeshRef} args={[undefined, undefined, ACTIVE_CONNECTIONS]}>
-                <torusGeometry args={[0.35, 0.12, 8, 20, Math.PI]} />
-                <meshStandardMaterial
-                    transparent
-                    opacity={0.7}
-                    emissiveIntensity={0.5}
-                    vertexColors
-                />
-            </instancedMesh>
-            <instancedMesh ref={particleMeshRef} args={[undefined, undefined, PARTICLE_COUNT]}>
-                <sphereGeometry args={[1, 8, 8]} />
-                <meshBasicMaterial transparent opacity={0.85} vertexColors />
-            </instancedMesh>
-        </group>
+    const proIndices = useMemo(
+        () => nodes.map((node, index) => (!node.isClient ? index : -1)).filter((value) => value !== -1),
+        [nodes],
     );
-}
-
-export default function TrustFlowNetwork({ className = "" }: { className?: string }) {
-    const [reducedMotion, setReducedMotion] = useState(false);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -476,18 +110,402 @@ export default function TrustFlowNetwork({ className = "" }: { className?: strin
         return () => mediaQuery.removeListener(updatePreference);
     }, []);
 
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 50);
+        camera.position.set(0, 0, 5);
+
+        const ambientLight = new THREE.AmbientLight(0x9cc8ff, 0.55);
+        const keyLight = new THREE.PointLight(0x1bc47d, 1.2, 0, 1.3);
+        keyLight.position.set(2.5, 2.5, 2.5);
+        const fillLight = new THREE.PointLight(0x5fa9ff, 0.6, 0, 1.1);
+        fillLight.position.set(-2.5, -1.5, 3);
+        scene.add(ambientLight, keyLight, fillLight);
+
+        const tempObject = new THREE.Object3D();
+        const tempColor = new THREE.Color();
+        const tempVecA = new THREE.Vector3();
+        const tempVecB = new THREE.Vector3();
+
+        const nodeGeometry = new THREE.SphereGeometry(1, 16, 16);
+        const nodeMaterial = new THREE.MeshStandardMaterial({
+            transparent: true,
+            opacity: 0.9,
+            emissiveIntensity: 0.4,
+            vertexColors: true,
+        });
+        const nodeMesh = new THREE.InstancedMesh(nodeGeometry, nodeMaterial, NODE_COUNT);
+        nodeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        nodeMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(NODE_COUNT * 3), 3);
+
+        nodes.forEach((node, index) => {
+            tempObject.position.copy(node.position);
+            tempObject.scale.setScalar(NODE_SIZE);
+            tempObject.updateMatrix();
+            nodeMesh.setMatrixAt(index, tempObject.matrix);
+            tempColor.copy(node.isClient ? CLIENT_COLOR : PRO_COLOR);
+            nodeMesh.setColorAt(index, tempColor);
+        });
+        nodeMesh.instanceMatrix.needsUpdate = true;
+        if (nodeMesh.instanceColor) {
+            nodeMesh.instanceColor.needsUpdate = true;
+        }
+        scene.add(nodeMesh);
+
+        const lineGeometry = new THREE.BufferGeometry();
+        const linePositions = new Float32Array(ACTIVE_CONNECTIONS * 2 * 3);
+        const lineColors = new Float32Array(ACTIVE_CONNECTIONS * 2 * 3);
+        lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3));
+        lineGeometry.setAttribute("color", new THREE.BufferAttribute(lineColors, 3));
+        const lineMaterial = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.6, vertexColors: true });
+        const lineSegments = new THREE.LineSegments(lineGeometry, lineMaterial);
+        scene.add(lineSegments);
+
+        const contractGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const contractMaterial = new THREE.MeshStandardMaterial({
+            transparent: true,
+            opacity: 0.95,
+            emissiveIntensity: 0.7,
+            vertexColors: true,
+        });
+        const contractMesh = new THREE.InstancedMesh(contractGeometry, contractMaterial, ACTIVE_CONNECTIONS);
+        contractMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        contractMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(ACTIVE_CONNECTIONS * 3), 3);
+        scene.add(contractMesh);
+
+        const lockBodyGeometry = new THREE.BoxGeometry(0.5, 0.6, 0.25);
+        const lockShackleGeometry = new THREE.TorusGeometry(0.35, 0.12, 8, 20, Math.PI);
+        const lockMaterial = new THREE.MeshStandardMaterial({
+            transparent: true,
+            opacity: 0.7,
+            emissiveIntensity: 0.5,
+            vertexColors: true,
+        });
+        const lockBodyMesh = new THREE.InstancedMesh(lockBodyGeometry, lockMaterial, ACTIVE_CONNECTIONS);
+        const lockShackleMesh = new THREE.InstancedMesh(lockShackleGeometry, lockMaterial, ACTIVE_CONNECTIONS);
+        lockBodyMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        lockShackleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        lockBodyMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(ACTIVE_CONNECTIONS * 3), 3);
+        lockShackleMesh.instanceColor = new THREE.InstancedBufferAttribute(
+            new Float32Array(ACTIVE_CONNECTIONS * 3),
+            3,
+        );
+        scene.add(lockBodyMesh, lockShackleMesh);
+
+        const particleGeometry = new THREE.SphereGeometry(1, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, vertexColors: true });
+        const particleMesh = new THREE.InstancedMesh(particleGeometry, particleMaterial, PARTICLE_COUNT);
+        particleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        particleMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(PARTICLE_COUNT * 3), 3);
+        scene.add(particleMesh);
+
+        const connections = createConnections(clientIndices, proIndices);
+        const particles: Particle[] = Array.from({ length: PARTICLE_COUNT }, (_, index) => ({
+            connectionIndex: index % ACTIVE_CONNECTIONS,
+            progress: Math.random(),
+            speed: PARTICLE_SPEED * randomInRange(0.7, 1.2),
+            jitter: randomInRange(-0.08, 0.08),
+        }));
+
+        const updateStaticLayout = () => {
+            connections.forEach((connection, index) => {
+                const nodeA = nodes[connection.a].position;
+                const nodeB = nodes[connection.b].position;
+                connection.midpoint.copy(nodeA).add(nodeB).multiplyScalar(0.5);
+                connection.intensity = 1;
+
+                const lineOffset = index * 6;
+                linePositions[lineOffset] = nodeA.x;
+                linePositions[lineOffset + 1] = nodeA.y;
+                linePositions[lineOffset + 2] = nodeA.z;
+                linePositions[lineOffset + 3] = nodeB.x;
+                linePositions[lineOffset + 4] = nodeB.y;
+                linePositions[lineOffset + 5] = nodeB.z;
+
+                tempColor.copy(LINE_COLOR).multiplyScalar(0.9);
+                lineColors[lineOffset] = tempColor.r;
+                lineColors[lineOffset + 1] = tempColor.g;
+                lineColors[lineOffset + 2] = tempColor.b;
+                lineColors[lineOffset + 3] = tempColor.r;
+                lineColors[lineOffset + 4] = tempColor.g;
+                lineColors[lineOffset + 5] = tempColor.b;
+
+                tempObject.position.copy(connection.midpoint);
+                tempObject.scale.setScalar(CONTRACT_SIZE);
+                tempObject.updateMatrix();
+                contractMesh.setMatrixAt(index, tempObject.matrix);
+                contractMesh.setColorAt(index, CONTRACT_COLOR);
+
+                tempObject.position.copy(connection.midpoint);
+                tempObject.position.y += 0.1;
+                tempObject.scale.setScalar(0.9);
+                tempObject.updateMatrix();
+                lockBodyMesh.setMatrixAt(index, tempObject.matrix);
+                lockBodyMesh.setColorAt(index, CONTRACT_COLOR);
+
+                tempObject.position.copy(connection.midpoint);
+                tempObject.position.y += 0.2;
+                tempObject.scale.setScalar(0.8);
+                tempObject.updateMatrix();
+                lockShackleMesh.setMatrixAt(index, tempObject.matrix);
+                lockShackleMesh.setColorAt(index, CONTRACT_COLOR);
+            });
+
+            lineGeometry.attributes.position.needsUpdate = true;
+            lineGeometry.attributes.color.needsUpdate = true;
+            contractMesh.instanceMatrix.needsUpdate = true;
+            if (contractMesh.instanceColor) {
+                contractMesh.instanceColor.needsUpdate = true;
+            }
+            lockBodyMesh.instanceMatrix.needsUpdate = true;
+            lockShackleMesh.instanceMatrix.needsUpdate = true;
+            if (lockBodyMesh.instanceColor) {
+                lockBodyMesh.instanceColor.needsUpdate = true;
+            }
+            if (lockShackleMesh.instanceColor) {
+                lockShackleMesh.instanceColor.needsUpdate = true;
+            }
+
+            particles.forEach((particle, index) => {
+                const connection = connections[particle.connectionIndex];
+                const start = nodes[connection.a].position;
+                const end = nodes[connection.b].position;
+                const midpoint = connection.midpoint;
+
+                if (particle.progress < 0.5) {
+                    tempVecA.copy(start);
+                    tempVecB.copy(midpoint);
+                    tempVecA.lerp(tempVecB, particle.progress / 0.5);
+                } else {
+                    tempVecA.copy(midpoint);
+                    tempVecB.copy(end);
+                    tempVecA.lerp(tempVecB, (particle.progress - 0.5) / 0.5);
+                }
+
+                tempObject.position.copy(tempVecA);
+                tempObject.scale.setScalar(PARTICLE_SIZE);
+                tempObject.updateMatrix();
+                particleMesh.setMatrixAt(index, tempObject.matrix);
+                particleMesh.setColorAt(index, PARTICLE_COLOR);
+            });
+
+            particleMesh.instanceMatrix.needsUpdate = true;
+            if (particleMesh.instanceColor) {
+                particleMesh.instanceColor.needsUpdate = true;
+            }
+        };
+
+        updateStaticLayout();
+
+        let frameId = 0;
+        const clock = new THREE.Clock();
+
+        const animate = () => {
+            const time = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            if (!reducedMotion) {
+                camera.position.x = Math.sin(time * CAMERA_SPEED) * 0.35;
+                camera.position.y = 0.1 + Math.cos(time * CAMERA_SPEED) * 0.2;
+                camera.lookAt(0, 0, 0);
+
+                nodes.forEach((node, index) => {
+                    node.position.x += node.velocity.x * delta * DRIFT_SPEED;
+                    node.position.y += node.velocity.y * delta * DRIFT_SPEED;
+                    node.position.z += node.velocity.z * delta * DRIFT_SPEED;
+
+                    if (Math.abs(node.position.x) > BOUNDS.x) {
+                        node.velocity.x *= -1;
+                    }
+                    if (Math.abs(node.position.y) > BOUNDS.y) {
+                        node.velocity.y *= -1;
+                    }
+                    if (Math.abs(node.position.z) > BOUNDS.z) {
+                        node.velocity.z *= -1;
+                    }
+
+                    tempObject.position.copy(node.position);
+                    tempObject.scale.setScalar(NODE_SIZE);
+                    tempObject.updateMatrix();
+                    nodeMesh.setMatrixAt(index, tempObject.matrix);
+                });
+                nodeMesh.instanceMatrix.needsUpdate = true;
+
+                connections.forEach((connection, index) => {
+                    const elapsed = time - connection.start;
+                    if (elapsed > connection.duration) {
+                        const a = clientIndices[Math.floor(Math.random() * clientIndices.length)];
+                        const b = proIndices[Math.floor(Math.random() * proIndices.length)];
+                        connection.a = a;
+                        connection.b = b;
+                        connection.start = time;
+                        connection.duration = randomInRange(CONNECTION_MIN_DURATION, CONNECTION_MAX_DURATION);
+                    }
+
+                    const life = (time - connection.start) / connection.duration;
+                    const fade =
+                        life < FADE_TIME
+                            ? life / FADE_TIME
+                            : life > 1 - FADE_TIME
+                            ? (1 - life) / FADE_TIME
+                            : 1;
+
+                    const intensity = THREE.MathUtils.clamp(fade, 0, 1);
+                    connection.intensity = intensity;
+
+                    const nodeA = nodes[connection.a].position;
+                    const nodeB = nodes[connection.b].position;
+                    connection.midpoint.copy(nodeA).add(nodeB).multiplyScalar(0.5);
+
+                    const lineOffset = index * 6;
+                    linePositions[lineOffset] = nodeA.x;
+                    linePositions[lineOffset + 1] = nodeA.y;
+                    linePositions[lineOffset + 2] = nodeA.z;
+                    linePositions[lineOffset + 3] = nodeB.x;
+                    linePositions[lineOffset + 4] = nodeB.y;
+                    linePositions[lineOffset + 5] = nodeB.z;
+
+                    const colorIntensity = 0.35 + intensity * 0.75;
+                    tempColor.copy(LINE_COLOR).multiplyScalar(colorIntensity);
+                    lineColors[lineOffset] = tempColor.r;
+                    lineColors[lineOffset + 1] = tempColor.g;
+                    lineColors[lineOffset + 2] = tempColor.b;
+                    lineColors[lineOffset + 3] = tempColor.r;
+                    lineColors[lineOffset + 4] = tempColor.g;
+                    lineColors[lineOffset + 5] = tempColor.b;
+                });
+
+                lineGeometry.attributes.position.needsUpdate = true;
+                lineGeometry.attributes.color.needsUpdate = true;
+
+                connections.forEach((connection, index) => {
+                    const pulseWindow = Math.min(0.2, connection.duration * 0.2);
+                    const pulse =
+                        time - connection.start < pulseWindow
+                            ? 1 + Math.sin(((time - connection.start) / pulseWindow) * Math.PI) * 0.3
+                            : 1;
+
+                    tempObject.position.copy(connection.midpoint);
+                    tempObject.scale.setScalar(CONTRACT_SIZE * pulse);
+                    tempObject.updateMatrix();
+                    contractMesh.setMatrixAt(index, tempObject.matrix);
+                    tempColor.copy(CONTRACT_COLOR).multiplyScalar(0.7 + connection.intensity * 0.6);
+                    contractMesh.setColorAt(index, tempColor);
+
+                    tempObject.position.copy(connection.midpoint);
+                    tempObject.position.y += 0.1;
+                    tempObject.scale.setScalar(0.9 + connection.intensity * 0.2);
+                    tempObject.updateMatrix();
+                    lockBodyMesh.setMatrixAt(index, tempObject.matrix);
+
+                    tempObject.position.copy(connection.midpoint);
+                    tempObject.position.y += 0.2;
+                    tempObject.scale.setScalar(0.8 + connection.intensity * 0.2);
+                    tempObject.updateMatrix();
+                    lockShackleMesh.setMatrixAt(index, tempObject.matrix);
+                    tempColor.copy(CONTRACT_COLOR).multiplyScalar(0.5 + connection.intensity * 0.6);
+                    lockBodyMesh.setColorAt(index, tempColor);
+                    lockShackleMesh.setColorAt(index, tempColor);
+                });
+
+                contractMesh.instanceMatrix.needsUpdate = true;
+                if (contractMesh.instanceColor) {
+                    contractMesh.instanceColor.needsUpdate = true;
+                }
+                lockBodyMesh.instanceMatrix.needsUpdate = true;
+                lockShackleMesh.instanceMatrix.needsUpdate = true;
+                if (lockBodyMesh.instanceColor) {
+                    lockBodyMesh.instanceColor.needsUpdate = true;
+                }
+                if (lockShackleMesh.instanceColor) {
+                    lockShackleMesh.instanceColor.needsUpdate = true;
+                }
+
+                particles.forEach((particle, index) => {
+                    particle.progress += delta * particle.speed;
+                    if (particle.progress > 1) {
+                        particle.progress = Math.random() * 0.2;
+                    }
+
+                    const connection = connections[particle.connectionIndex];
+                    const start = nodes[connection.a].position;
+                    const end = nodes[connection.b].position;
+                    const midpoint = connection.midpoint;
+
+                    if (particle.progress < 0.5) {
+                        tempVecA.copy(start);
+                        tempVecB.copy(midpoint).addScalar(particle.jitter);
+                        tempVecA.lerp(tempVecB, particle.progress / 0.5);
+                    } else {
+                        tempVecA.copy(midpoint).addScalar(particle.jitter);
+                        tempVecB.copy(end);
+                        tempVecA.lerp(tempVecB, (particle.progress - 0.5) / 0.5);
+                    }
+
+                    tempObject.position.copy(tempVecA);
+                    tempObject.scale.setScalar(PARTICLE_SIZE * (0.7 + connection.intensity * 0.6));
+                    tempObject.updateMatrix();
+                    particleMesh.setMatrixAt(index, tempObject.matrix);
+                    tempColor.copy(PARTICLE_COLOR).multiplyScalar(0.4 + connection.intensity * 0.8);
+                    particleMesh.setColorAt(index, tempColor);
+                });
+
+                particleMesh.instanceMatrix.needsUpdate = true;
+                if (particleMesh.instanceColor) {
+                    particleMesh.instanceColor.needsUpdate = true;
+                }
+            }
+
+            renderer.render(scene, camera);
+            frameId = window.requestAnimationFrame(animate);
+        };
+
+        const resize = () => {
+            const { clientWidth, clientHeight } = canvas.parentElement ?? canvas;
+            const width = clientWidth || 1;
+            const height = clientHeight || 1;
+            const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            renderer.setPixelRatio(dpr);
+            renderer.setSize(width, height, false);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        };
+
+        resize();
+        const resizeObserver = new ResizeObserver(resize);
+        if (canvas.parentElement) {
+            resizeObserver.observe(canvas.parentElement);
+        }
+
+        frameId = window.requestAnimationFrame(animate);
+
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            resizeObserver.disconnect();
+            renderer.dispose();
+            nodeGeometry.dispose();
+            nodeMaterial.dispose();
+            lineGeometry.dispose();
+            lineMaterial.dispose();
+            contractGeometry.dispose();
+            contractMaterial.dispose();
+            lockBodyGeometry.dispose();
+            lockShackleGeometry.dispose();
+            lockMaterial.dispose();
+            particleGeometry.dispose();
+            particleMaterial.dispose();
+        };
+    }, [clientIndices, nodes, proIndices, reducedMotion]);
+
     return (
         <div className={`pointer-events-none ${className}`}>
-            <Canvas
-                dpr={[1, 1.5]}
-                gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-                camera={{ position: [0, 0, 5], fov: 50 }}
-            >
-                <ambientLight intensity={0.55} color={"#9cc8ff"} />
-                <pointLight position={[2.5, 2.5, 2.5]} intensity={1.2} color={"#1BC47D"} />
-                <pointLight position={[-2.5, -1.5, 3]} intensity={0.6} color={"#5fa9ff"} />
-                <NetworkScene reducedMotion={reducedMotion} />
-            </Canvas>
+            <canvas ref={canvasRef} className="h-full w-full" />
         </div>
     );
 }

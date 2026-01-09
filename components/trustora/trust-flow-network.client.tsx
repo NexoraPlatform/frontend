@@ -1,8 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const TrustFlowNetwork = dynamic(() => import("./trust-flow-network"), { ssr: false });
+import TrustFlowNetwork from "./trust-flow-network";
 
 export default function TrustFlowNetworkClient({ className = "" }: { className?: string }) {
     return <TrustFlowNetwork className={className} />;
