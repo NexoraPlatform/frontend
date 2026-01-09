@@ -148,38 +148,26 @@ export default function ServicesPage() {
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
-  const mainAriaLabel = useAsyncTranslation(locale, 'services.page.aria_label', 'Servicii disponibile');
-  const pageTitle = useAsyncTranslation(locale, 'services.page.title', 'Services Marketplace');
-  const pageSubtitle = useAsyncTranslation(locale, 'services.page.subtitle', 'Find expert developers across technologies and services');
-  const noServicesText = useAsyncTranslation(
-    locale,
-    'services.results.no_services',
-    'No services found matching your filters'
-  );
-  const filterTitle = useAsyncTranslation(locale, 'services.filters.title', 'Filters');
-  const serviceTypeLabel = useAsyncTranslation(locale, 'services.filters.service_type', 'Service Type');
-  const technologiesLabel = useAsyncTranslation(locale, 'services.filters.technologies', 'Technologies');
-  const allLabel = useAsyncTranslation(locale, 'services.filters.all', 'All');
-  const showMoreLabel = useAsyncTranslation(locale, 'services.filters.show_more', 'Show More');
-  const showLessLabel = useAsyncTranslation(locale, 'services.filters.show_less', 'Show Less');
-  const otherCategoryLabel = useAsyncTranslation(locale, 'services.filters.other', 'Other');
-  const recommendedLabel = useAsyncTranslation(locale, 'services.results.recommended', 'Recommended');
-  const standardLabel = useAsyncTranslation(locale, 'services.results.standard', 'Standard');
-  const moreLabelTemplate = useAsyncTranslation(locale, 'services.results.more_label', '+{count} more');
-  const providersAvailableTemplate = useAsyncTranslation(
-    locale,
-    'services.results.providers_available',
-    '{count} providers available'
-  );
-  const providersMoreLabelTemplate = useAsyncTranslation(
-    locale,
-    'services.results.providers_more_label',
-    '+{count} more'
-  );
-  const noProvidersLabel = useAsyncTranslation(locale, 'services.results.no_providers', 'No providers yet');
-  const wishlistedLabel = useAsyncTranslation(locale, 'services.actions.wishlisted', 'Wishlisted');
-  const addLabel = useAsyncTranslation(locale, 'services.actions.add', 'Add');
-  const shareLabel = useAsyncTranslation(locale, 'services.actions.share', 'Share');
+  const mainAriaLabel = useAsyncTranslation(locale, 'services.page.aria_label');
+  const pageTitle = useAsyncTranslation(locale, 'services.page.title');
+  const pageSubtitle = useAsyncTranslation(locale, 'services.page.subtitle');
+  const noServicesText = useAsyncTranslation(locale, 'services.results.no_services');
+  const filterTitle = useAsyncTranslation(locale, 'services.filters.title');
+  const serviceTypeLabel = useAsyncTranslation(locale, 'services.filters.service_type');
+  const technologiesLabel = useAsyncTranslation(locale, 'services.filters.technologies');
+  const allLabel = useAsyncTranslation(locale, 'services.filters.all');
+  const showMoreLabel = useAsyncTranslation(locale, 'services.filters.show_more');
+  const showLessLabel = useAsyncTranslation(locale, 'services.filters.show_less');
+  const otherCategoryLabel = useAsyncTranslation(locale, 'services.filters.other');
+  const recommendedLabel = useAsyncTranslation(locale, 'services.results.recommended');
+  const standardLabel = useAsyncTranslation(locale, 'services.results.standard');
+  const moreLabelTemplate = useAsyncTranslation(locale, 'services.results.more_label');
+  const providersAvailableTemplate = useAsyncTranslation(locale, 'services.results.providers_available');
+  const providersMoreLabelTemplate = useAsyncTranslation(locale, 'services.results.providers_more_label');
+  const noProvidersLabel = useAsyncTranslation(locale, 'services.results.no_providers');
+  const wishlistedLabel = useAsyncTranslation(locale, 'services.actions.wishlisted');
+  const addLabel = useAsyncTranslation(locale, 'services.actions.add');
+  const shareLabel = useAsyncTranslation(locale, 'services.actions.share');
 
   const fetchAllServices = useCallback(async () => {
     const firstResponse: ServicesResponse = await apiClient.getServices({
