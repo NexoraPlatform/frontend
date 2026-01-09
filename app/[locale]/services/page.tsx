@@ -76,14 +76,21 @@ function extractTechnologiesFromServices(services: Service[], locale: Locale): T
     const serviceName = getLocalizedText(service.name, locale);
     const skills = service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? [];
     const tags = service.tags ?? [];
+    const categoryName =
+      typeof service.category === 'string'
+        ? service.category
+        : service.category
+          ? getLocalizedText(service.category.name, locale) || String(service.category?.name ?? '')
+          : '';
 
     [serviceName, ...skills, ...tags].forEach((name) => {
       const normalized = name?.trim();
       if (!normalized) {
         return;
       }
-      if (!uniqueTechs.has(normalized)) {
-        uniqueTechs.set(normalized, { name: normalized });
+      const key = `${categoryName}::${normalized}`;
+      if (!uniqueTechs.has(key)) {
+        uniqueTechs.set(key, { name: normalized, category: categoryName || undefined });
       }
     });
   });
@@ -411,6 +418,18 @@ function FilterSidebar({
   const INITIAL_TECH_DISPLAY = 6;
   const visibleTechs = expandedTechs ? technologies : technologies.slice(0, INITIAL_TECH_DISPLAY);
   const hasMoreTechs = technologies.length > INITIAL_TECH_DISPLAY;
+  const groupedTechs = useMemo(() => {
+    const grouped = new Map<string, Technology[]>();
+
+    visibleTechs.forEach((tech) => {
+      const category = tech.category ?? 'Other';
+      const items = grouped.get(category) ?? [];
+      items.push(tech);
+      grouped.set(category, items);
+    });
+
+    return Array.from(grouped.entries());
+  }, [visibleTechs]);
 
   const techListRef = useRef<HTMLDivElement>(null);
   const showMoreButtonRef = useRef<HTMLButtonElement>(null);
@@ -488,20 +507,27 @@ function FilterSidebar({
               />
               <span className="text-sm text-slate-700">All</span>
             </label>
-            {visibleTechs.map((tech) => {
-              const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
-              return (
-                <label key={name} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedTechnologies.includes(name)}
-                    onChange={() => handleTechToggle(name)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-700">{name}</span>
-                </label>
-              );
-            })}
+            {groupedTechs.map(([category, techs]) => (
+              <div key={category} className="space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Categorie: {category}
+                </p>
+                {techs.map((tech) => {
+                  const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
+                  return (
+                    <label key={name} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTechnologies.includes(name)}
+                        onChange={() => handleTechToggle(name)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700">{name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {hasMoreTechs && (
