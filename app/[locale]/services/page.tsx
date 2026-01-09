@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useMemo} from 'react';
+import {useState, useEffect, useMemo, useRef} from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -126,6 +126,8 @@ export default function ServicesPage() {
   const [servicesData, setServicesData] = useState<ServicesResponse | null>(null);
   const [categoriesData, setCategoriesData] = useState<any[]>([]);
   const [allServices, setAllServices] = useState<ServicesResponse | null>(null);
+  const [expandedSkills, setExpandedSkills] = useState(false);
+  const skillsListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -146,6 +148,12 @@ export default function ServicesPage() {
 
     fetchServices();
   }, [searchTerm, selectedCategory, selectedSkills, sortBy]);
+
+  useEffect(() => {
+    if (expandedSkills && skillsListRef.current) {
+      skillsListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [expandedSkills]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -308,8 +316,8 @@ export default function ServicesPage() {
                 {/* Skills Filter */}
                 <div>
                   <h3 className="font-semibold mb-3">Tehnologii & Skills</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {allServices?.services.map((skill: any) => (
+                  <div ref={skillsListRef} className="space-y-2 max-h-48 overflow-y-auto">
+                    {(expandedSkills ? allServices?.services : allServices?.services.slice(0, 6))?.map((skill: any) => (
                       <div key={skill.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={skill.id}
@@ -322,6 +330,15 @@ export default function ServicesPage() {
                       </div>
                     ))}
                   </div>
+                  {allServices?.services && allServices.services.length > 6 && (
+                    <Button
+                      variant="outline"
+                      className="mt-3 w-full"
+                      onClick={() => setExpandedSkills((prev) => !prev)}
+                    >
+                      {expandedSkills ? 'Show Less' : 'Show More'}
+                    </Button>
+                  )}
                 </div>
 
                 {/* Clear Filters */}
