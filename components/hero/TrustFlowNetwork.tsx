@@ -10,9 +10,15 @@ const BOUNDS = 6;
 
 const CLIENT_COLOR = new THREE.Color("#3B82F6");
 const PRO_COLOR = new THREE.Color("#1BC47D");
-const CONTRACT_COLOR = new THREE.Color("#FFFFFF");
-const LINE_BASE_COLOR = new THREE.Color("#FFFFFF");
 const PARTICLE_COLOR = new THREE.Color("#1BC47D");
+
+const getThemePalette = (isDark: boolean) => ({
+    lineBase: new THREE.Color(isDark ? "#FFFFFF" : "#0B1C2D"),
+    contract: new THREE.Color(isDark ? "#FFFFFF" : "#0B1C2D"),
+    nodeEmissive: new THREE.Color(isDark ? "#0B1C2D" : "#E2E8F0"),
+    lineOpacity: isDark ? 0.55 : 0.42,
+    particleOpacity: isDark ? 0.75 : 0.65,
+});
 
 const createLockTexture = () => {
     const size = 128;
@@ -58,6 +64,7 @@ export default function TrustFlowNetwork() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [reducedMotion, setReducedMotion] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isDark, setIsDark] = useState(false);
 
     const nodes = useMemo(() => {
         const positions = Array.from({ length: MAX_NODES }, () =>
@@ -109,13 +116,18 @@ export default function TrustFlowNetwork() {
         const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
         const updateMotion = () => setReducedMotion(motionQuery.matches);
         const updateSize = () => setIsMobile(window.innerWidth < 768);
+        const updateTheme = () => setIsDark(document.documentElement.classList.contains("dark"));
         updateMotion();
         updateSize();
+        updateTheme();
         motionQuery.addEventListener("change", updateMotion);
         window.addEventListener("resize", updateSize);
+        const themeObserver = new MutationObserver(updateTheme);
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
         return () => {
             motionQuery.removeEventListener("change", updateMotion);
             window.removeEventListener("resize", updateSize);
+            themeObserver.disconnect();
         };
     }, []);
 
@@ -140,10 +152,12 @@ export default function TrustFlowNetwork() {
         scene.add(pointLight);
 
         const nodeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const palette = getThemePalette(isDark);
+
         const nodeMaterial = new THREE.MeshStandardMaterial({
             roughness: 0.2,
             metalness: 0.3,
-            emissive: new THREE.Color("#0B1C2D"),
+            emissive: palette.nodeEmissive,
         });
         const nodeMesh = new THREE.InstancedMesh(nodeGeometry, nodeMaterial, MAX_NODES);
         nodeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -165,7 +179,7 @@ export default function TrustFlowNetwork() {
 
         const contractGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
         const contractMaterial = new THREE.MeshStandardMaterial({
-            color: CONTRACT_COLOR,
+            color: palette.contract,
             roughness: 0.1,
             metalness: 0.2,
             emissive: new THREE.Color("#1BC47D"),
@@ -187,14 +201,24 @@ export default function TrustFlowNetwork() {
         const lineGeometry = new THREE.BufferGeometry();
         lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3));
         lineGeometry.setAttribute("color", new THREE.BufferAttribute(lineColors, 3));
-        const lineMaterial = new THREE.LineBasicMaterial({ color: LINE_BASE_COLOR, transparent: true, opacity: 0.55, vertexColors: true });
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: palette.lineBase,
+            transparent: true,
+            opacity: palette.lineOpacity,
+            vertexColors: true,
+        });
         const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
         scene.add(lines);
 
         const particlePositions = new Float32Array(MAX_CONNECTIONS * PARTICLES_PER_CONNECTION * 3);
         const particleGeometry = new THREE.BufferGeometry();
         particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-        const particleMaterial = new THREE.PointsMaterial({ size: 0.08, color: PARTICLE_COLOR, transparent: true, opacity: 0.75 });
+        const particleMaterial = new THREE.PointsMaterial({
+            size: 0.08,
+            color: PARTICLE_COLOR,
+            transparent: true,
+            opacity: palette.particleOpacity,
+        });
         const particlePoints = new THREE.Points(particleGeometry, particleMaterial);
         scene.add(particlePoints);
 
@@ -309,9 +333,9 @@ export default function TrustFlowNetwork() {
 
                 for (let i = 0; i < 2; i += 1) {
                     const colorIndex = lineIndex + i * 3;
-                    lineColors[colorIndex] = LINE_BASE_COLOR.r * intensity;
-                    lineColors[colorIndex + 1] = LINE_BASE_COLOR.g * intensity;
-                    lineColors[colorIndex + 2] = LINE_BASE_COLOR.b * intensity;
+                    lineColors[colorIndex] = palette.lineBase.r * intensity;
+                    lineColors[colorIndex + 1] = palette.lineBase.g * intensity;
+                    lineColors[colorIndex + 2] = palette.lineBase.b * intensity;
                 }
 
                 const pulse = age < 1.2 ? 1 + Math.sin(age * Math.PI) * 0.25 : 1;
@@ -391,12 +415,12 @@ export default function TrustFlowNetwork() {
             lockMaterials.forEach((material) => material.dispose());
             container.removeChild(renderer.domElement);
         };
-    }, [isMobile, nodes, particles, reducedMotion, midpoints]);
+    }, [isDark, isMobile, nodes, particles, reducedMotion, midpoints]);
 
     if (reducedMotion || isMobile) {
         return (
             <div
-                className="w-full h-full bg-[radial-gradient(circle_at_top,_rgba(27,196,125,0.14),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.18),_transparent_55%)]"
+                className="w-full h-full bg-[radial-gradient(circle_at_top,_rgba(27,196,125,0.2),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(11,28,45,0.2),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(27,196,125,0.14),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.18),_transparent_55%)]"
                 aria-hidden="true"
             />
         );
