@@ -91,14 +91,33 @@ function extractTechnologiesFromServices(services: Service[], locale: Locale): T
   return Array.from(uniqueTechs.values());
 }
 
-function getServicesFromResponse(response: ServicesResponse | Service[] | null | undefined): Service[] {
+function normalizeServicesByCategoryResponse(response: Record<string, Technology[]>): Service[] {
+  return Object.entries(response).flatMap(([category, services]) =>
+    (services || []).map((service) => ({
+      ...service,
+      category: service.category ?? category,
+    }))
+  ) as Service[];
+}
+
+function getServicesFromResponse(
+  response:
+    | ServicesResponse
+    | Service[]
+    | Record<string, Technology[]>
+    | null
+    | undefined
+): Service[] {
   if (!response) {
     return [];
   }
   if (Array.isArray(response)) {
     return response;
   }
-  return response.services || [];
+  if ('services' in response) {
+    return response.services || [];
+  }
+  return normalizeServicesByCategoryResponse(response);
 }
 
 export default function ServicesPage() {
