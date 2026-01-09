@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Heart, Loader2, Share2 } from 'lucide-react';
+import Image from 'next/image';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
@@ -561,55 +562,113 @@ function ServiceCard({
   onWishlistToggle: (serviceId: number) => void;
   isWishlisted: boolean;
 }) {
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const providerCount = service.providers?.length || 0;
-  const tags = service.skills?.length ? service.skills : service.tags || [];
+  const technologies = [
+    ...(service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? []),
+    ...(service.tags ?? []),
+  ].filter(Boolean);
+  const uniqueTechnologies = Array.from(new Set(technologies));
+  const remainingProviders = Math.max(0, providerCount - 3);
+  const serviceType = service.isFeatured ? 'Recomandat' : 'Standard';
+
+  const handleWishlist = async () => {
+    setIsWishlistLoading(true);
+    try {
+      onWishlistToggle(service.id);
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          {service.isFeatured && (
-            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold text-white bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-2">
-              ⭐ Recomandat
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full">
+            {getLocalizedText(service.category?.name, locale)}
+          </span>
+          <span className="text-slate-400 text-sm font-medium">{serviceType}</span>
+        </div>
+
+        <h3 className="text-lg font-bold text-midnight-blue mb-2 line-clamp-2">
+          {getLocalizedText(service.name, locale)}
+        </h3>
+
+        <p className="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
+          {getLocalizedText(service.description, locale)}
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {uniqueTechnologies.slice(0, 3).map((tech) => (
+            <span key={tech} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">
+              {tech}
+            </span>
+          ))}
+          {uniqueTechnologies.length > 3 && (
+            <span className="text-xs text-slate-500">
+              +{uniqueTechnologies.length - 3} more
             </span>
           )}
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            {getLocalizedText(service.category?.name, locale)}
-          </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onWishlistToggle(service.id)}
-          className={`w-9 h-9 flex items-center justify-center rounded-full border ${
-            isWishlisted ? 'border-[#1BC47D] text-[#1BC47D]' : 'border-slate-200 text-slate-500'
-          } hover:border-[#1BC47D] hover:text-[#1BC47D] transition-colors`}
-          aria-label="Toggle wishlist"
-        >
-          ♥
-        </button>
-      </div>
 
-      <h3 className="text-lg font-bold text-[#0B1C2D] mb-2">
-        {getLocalizedText(service.name, locale)}
-      </h3>
-      <p className="text-sm text-slate-600 line-clamp-3 mb-4">
-        {getLocalizedText(service.description, locale)}
-      </p>
+        <div className="mb-6 pb-6 border-b border-slate-200">
+          <p className="text-sm text-slate-500 mb-3">
+            <span className="font-bold text-midnight-blue">{providerCount}</span> providers
+            available
+          </p>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        {tags.slice(0, 4).map((tag) => (
-          <span
-            key={getLocalizedText(tag, locale)}
-            className="px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded-full"
+          <div className="flex items-center gap-2">
+            {service.providers && service.providers.length > 0 ? (
+              <>
+                <div className="flex -space-x-2">
+                  {service.providers.slice(0, 3).map((provider) => (
+                    <div key={provider.id} className="relative">
+                      <Image
+                        src={provider.avatar || '/placeholder-avatar.png'}
+                        alt={`${provider.firstName} ${provider.lastName}`}
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+                {remainingProviders > 0 && (
+                  <span className="text-xs text-slate-600 font-medium">
+                    +{remainingProviders} more
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-sm text-slate-500">No providers yet</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleWishlist}
+            disabled={isWishlistLoading}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all duration-200 ${
+              isWishlisted
+                ? 'bg-red-50 text-error-red border border-error-red'
+                : 'bg-slate-50 text-slate-600 border border-slate-200 hover:border-error-red hover:bg-red-50'
+            } ${isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {getLocalizedText(tag, locale)}
-          </span>
-        ))}
-      </div>
+            <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
+            <span className="text-sm font-medium">{isWishlisted ? 'Wishlisted' : 'Add'}</span>
+          </button>
 
-      <div className="flex items-center justify-between text-sm text-slate-500">
-        <span>{providerCount} prestatori disponibili</span>
-        <span className="text-[#1BC47D] font-semibold">Verified</span>
+          <button
+            type="button"
+            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:border-emerald-green hover:bg-emerald-50 hover:text-emerald-green transition-all duration-200"
+          >
+            <Share2 size={16} />
+            <span className="text-sm font-medium">Share</span>
+          </button>
+        </div>
       </div>
     </div>
   );
