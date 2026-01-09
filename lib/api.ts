@@ -805,7 +805,7 @@ class ApiClient {
   }
 
   async getTechnologiesByCategory(categoryId: string) {
-    return this.request<any>(`/category/${categoryId}`);
+    return this.request<any>(`/services/category/${categoryId}`);
   }
 
   async generateProjectInformation(projectData: any) {
