@@ -1,5 +1,11 @@
+import dynamic from "next/dynamic";
+
 import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+
+const TrustFlowNetwork = dynamic(() => import("@/components/trustora/trust-flow-network"), {
+    ssr: false,
+});
 
 export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     const [
@@ -39,40 +45,42 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     ]);
 
     return (
-        <section className="pt-40 pb-20 px-6 hero-gradient">
-            <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        <section className="relative overflow-hidden bg-[#0B1C2D] pt-40 pb-20 px-6">
+            <TrustFlowNetwork />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0B1C2D]/50 via-[#0B1C2D]/80 to-[#0B1C2D]" />
+            <div className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
                 <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold mb-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-xs font-bold mb-6">
                         <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                         </span>
                         {badgeText}
                     </div>
-                    <h1 className="text-5xl lg:text-7xl font-bold text-[#0B1C2D] leading-[1.1] mb-6">
+                    <h1 className="text-5xl lg:text-7xl font-bold text-white leading-[1.1] mb-6">
                         {title} <span className="text-[#1BC47D]">{titleHighlight}</span>
                     </h1>
-                    <p className="text-lg text-slate-600 mb-10 max-w-lg leading-relaxed">{subtitle}</p>
+                    <p className="text-lg text-slate-200/80 mb-10 max-w-lg leading-relaxed">{subtitle}</p>
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button className="px-8 py-4 btn-primary text-white font-semibold rounded-xl text-lg shadow-lg shadow-emerald-200/50">
                             {primaryCta}
                         </button>
-                        <button className="px-8 py-4 bg-white border border-slate-200 text-[#0B1C2D] font-semibold rounded-xl text-lg hover:bg-slate-50">
+                        <button className="px-8 py-4 bg-white/10 border border-white/20 text-white font-semibold rounded-xl text-lg hover:bg-white/20">
                             {secondaryCta}
                         </button>
                     </div>
-                    <div className="mt-10 flex items-center gap-4 text-sm text-slate-500">
+                    <div className="mt-10 flex items-center gap-4 text-sm text-slate-300">
                         <div className="flex -space-x-2">
-                            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200" />
-                            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-300" />
-                            <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-400" />
+                            <div className="w-8 h-8 rounded-full border-2 border-[#0B1C2D] bg-slate-200" />
+                            <div className="w-8 h-8 rounded-full border-2 border-[#0B1C2D] bg-slate-300" />
+                            <div className="w-8 h-8 rounded-full border-2 border-[#0B1C2D] bg-slate-400" />
                         </div>
                         <span>{trustedLabel}</span>
                     </div>
                 </div>
 
                 <div className="relative">
-                    <div className="glass-card rounded-2xl p-6 relative z-10">
+                    <div className="glass-card rounded-2xl p-6 relative z-10 backdrop-blur-lg bg-white/80">
                         <div className="flex justify-between items-center mb-6">
                             <span className="text-xs font-bold mono uppercase tracking-wider text-slate-400">{dashboardLabel}</span>
                             <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-bold">
