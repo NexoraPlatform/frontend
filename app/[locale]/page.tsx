@@ -6,6 +6,7 @@ import { TrustoraMessagingSection } from "@/components/trustora/messaging-sectio
 import { TrustoraPillarsSection } from "@/components/trustora/pillars-section";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { TrustoraVisualLanguageSection } from "@/components/trustora/visual-language-section";
+import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
 
 export const revalidate = 86400; // 24h
@@ -16,18 +17,18 @@ interface HomePageProps {
 
 export default async function Home(props: HomePageProps) {
     const { locale } = await props.params;
-    void locale;
+    const mainContentLabel = await t(locale, "common.main_content");
 
     return (
         <div className="bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
             <TrustoraThemeStyles />
             <Header />
-            <main role="main" aria-label="Conținut principal" id="main-content">
-                <TrustoraHeroSection />
-                <TrustoraPillarsSection />
-                <TrustoraMessagingSection />
-                <TrustoraVisualLanguageSection />
-                <TrustoraFinalCtaSection />
+            <main role="main" aria-label={mainContentLabel} id="main-content">
+                <TrustoraHeroSection locale={locale} />
+                <TrustoraPillarsSection locale={locale} />
+                <TrustoraMessagingSection locale={locale} />
+                <TrustoraVisualLanguageSection locale={locale} />
+                <TrustoraFinalCtaSection locale={locale} />
             </main>
             <Footer />
         </div>

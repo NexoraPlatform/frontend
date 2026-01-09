@@ -1,0 +1,60 @@
+{
+  "hero": {
+    "badge": "DIGITAL TRUST INFRASTRUCTURE",
+    "title": "Hire and get paid with",
+    "title_highlight": "zero risk.",
+    "subtitle": "Verified professionals. Protected payments. Enforced delivery. The secure layer for global online work.",
+    "primary_cta": "Start a protected project",
+    "secondary_cta": "Contact sales",
+    "system_label": "Trustora Engine v2.4 — Escrow Secured",
+    "active_contracts": "Active Contracts",
+    "contract_name": "API Integration",
+    "funds_locked": "Funds Locked",
+    "milestone_label": "Milestone Execution",
+    "milestone_completed": "Architecture Design",
+    "milestone_completed_status": "RELEASED",
+    "milestone_in_escrow": "Core Module Delivery",
+    "milestone_in_escrow_status": "IN ESCROW"
+  },
+  "pillars": {
+    "verified_title": "Verified People",
+    "verified_description": "No one works without a technical test and mandatory video verification.",
+    "protected_title": "Protected Money",
+    "protected_description": "Every euro is held in escrow until delivery is confirmed.",
+    "delivery_title": "Enforced Delivery",
+    "delivery_description": "Payment is released only on accepted milestones.",
+    "legal_title": "Legal-grade contracts",
+    "legal_description": "Every job is a digital contract with full legal value."
+  },
+  "messaging": {
+    "clients_badge": "FOR CLIENTS",
+    "clients_title": "“I pay only when I receive the delivery.”",
+    "clients_body": "Your money is protected through escrow. No payment leaves the platform without your explicit confirmation of the work quality.",
+    "clients_benefit_one": "Zero financial loss risk",
+    "clients_benefit_two": "Video pre-verified professionals",
+    "clients_link": "Start hiring safely →",
+    "pros_badge": "FOR PROFESSIONALS",
+    "pros_title": "“Funds are locked before I start.”",
+    "pros_body": "No more working on promises. Payment for each milestone is already locked in the system before you write the first line of code.",
+    "pros_benefit_one": "100% payment guarantee",
+    "pros_benefit_two": "Disputes resolved through technical arbitration",
+    "pros_link": "Join the infrastructure →"
+  },
+  "visual": {
+    "title": "Stripe + Notary + Marketplace",
+    "money_label": "Money",
+    "money_subtitle": "Escrow layer",
+    "contracts_label": "Contracts",
+    "contracts_subtitle": "Digital execution",
+    "verification_label": "Verification",
+    "verification_subtitle": "Identity layer"
+  },
+  "final_cta": {
+    "title": "No trust. No deal.",
+    "subtitle": "Work without risk on the safest platform for online services.",
+    "cta_label": "Start a protected project",
+    "escrow_label": "Escrow Secured",
+    "verified_label": "Video Verified",
+    "legal_label": "Legal Grade"
+  }
+}

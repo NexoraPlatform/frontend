@@ -8,6 +8,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import apiClient from '@/lib/api';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
 
 type LocalizedText = string | Record<string, string>;
@@ -147,6 +148,26 @@ export default function ServicesPage() {
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
+  const mainAriaLabel = useAsyncTranslation(locale, 'services.page.aria_label');
+  const pageTitle = useAsyncTranslation(locale, 'services.page.title');
+  const pageSubtitle = useAsyncTranslation(locale, 'services.page.subtitle');
+  const noServicesText = useAsyncTranslation(locale, 'services.results.no_services');
+  const filterTitle = useAsyncTranslation(locale, 'services.filters.title');
+  const serviceTypeLabel = useAsyncTranslation(locale, 'services.filters.service_type');
+  const technologiesLabel = useAsyncTranslation(locale, 'services.filters.technologies');
+  const allLabel = useAsyncTranslation(locale, 'services.filters.all');
+  const showMoreLabel = useAsyncTranslation(locale, 'services.filters.show_more');
+  const showLessLabel = useAsyncTranslation(locale, 'services.filters.show_less');
+  const otherCategoryLabel = useAsyncTranslation(locale, 'services.filters.other');
+  const recommendedLabel = useAsyncTranslation(locale, 'services.results.recommended');
+  const standardLabel = useAsyncTranslation(locale, 'services.results.standard');
+  const moreLabelTemplate = useAsyncTranslation(locale, 'services.results.more_label');
+  const providersAvailableTemplate = useAsyncTranslation(locale, 'services.results.providers_available');
+  const providersMoreLabelTemplate = useAsyncTranslation(locale, 'services.results.providers_more_label');
+  const noProvidersLabel = useAsyncTranslation(locale, 'services.results.no_providers');
+  const wishlistedLabel = useAsyncTranslation(locale, 'services.actions.wishlisted');
+  const addLabel = useAsyncTranslation(locale, 'services.actions.add');
+  const shareLabel = useAsyncTranslation(locale, 'services.actions.share');
 
   const fetchAllServices = useCallback(async () => {
     const firstResponse: ServicesResponse = await apiClient.getServices({
@@ -309,8 +330,8 @@ export default function ServicesPage() {
   };
 
   const serviceTypeOptions = useMemo(
-    () => [{ id: 'All', name: 'All' }, ...categories],
-    [categories]
+    () => [{ id: 'All', name: allLabel }, ...categories],
+    [allLabel, categories]
   );
 
   if (isInitializing) {
@@ -331,14 +352,14 @@ export default function ServicesPage() {
       <TrustoraThemeStyles />
       <Header />
 
-      <main className="pt-24 pb-16 px-6 bg-slate-50 min-h-screen" role="main" aria-label="Servicii disponibile">
+      <main className="pt-24 pb-16 px-6 bg-slate-50 dark:bg-[#070C14] min-h-screen" role="main" aria-label={mainAriaLabel}>
         <div className="max-w-7xl mx-auto mb-12">
           <div className="mb-8">
-            <h1 className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] mb-3">
-              Services Marketplace
+            <h1 className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
+              {pageTitle}
             </h1>
-            <p className="text-lg text-slate-600">
-              Find expert developers across technologies and services
+            <p className="text-lg text-slate-600 dark:text-[#A3ADC2]">
+              {pageSubtitle}
             </p>
           </div>
         </div>
@@ -353,6 +374,15 @@ export default function ServicesPage() {
               onServiceTypeChange={handleServiceTypeChange}
               onTechnologiesChange={setSelectedTechnologies}
               onTechnologiesUpdate={handleTechnologiesUpdate}
+              labels={{
+                filterTitle,
+                serviceTypeLabel,
+                technologiesLabel,
+                allLabel,
+                showMoreLabel,
+                showLessLabel,
+                otherCategoryLabel,
+              }}
               locale={locale}
             />
 
@@ -365,6 +395,17 @@ export default function ServicesPage() {
                     locale={locale}
                     onWishlistToggle={handleWishlistToggle}
                     isWishlisted={wishlist.has(service.id)}
+                    labels={{
+                      recommendedLabel,
+                      standardLabel,
+                      moreLabelTemplate,
+                      providersAvailableTemplate,
+                      providersMoreLabelTemplate,
+                      noProvidersLabel,
+                      wishlistedLabel,
+                      addLabel,
+                      shareLabel,
+                    }}
                   />
                 ))}
               </div>
@@ -377,8 +418,8 @@ export default function ServicesPage() {
 
               {!isLoading && services.length === 0 && (
                 <div className="text-center py-16">
-                  <p className="text-lg text-slate-500">
-                    No services found matching your filters
+                  <p className="text-lg text-slate-500 dark:text-[#A3ADC2]">
+                    {noServicesText}
                   </p>
                 </div>
               )}
@@ -402,6 +443,7 @@ function FilterSidebar({
   onServiceTypeChange,
   onTechnologiesChange,
   onTechnologiesUpdate,
+  labels,
   locale,
 }: {
   serviceTypes: Category[];
@@ -411,6 +453,15 @@ function FilterSidebar({
   onServiceTypeChange: (type: string) => void;
   onTechnologiesChange: (techs: string[]) => void;
   onTechnologiesUpdate: () => Promise<void>;
+  labels: {
+    filterTitle: string;
+    serviceTypeLabel: string;
+    technologiesLabel: string;
+    allLabel: string;
+    showMoreLabel: string;
+    showLessLabel: string;
+    otherCategoryLabel: string;
+  };
   locale: Locale;
 }) {
   const [expandedTechs, setExpandedTechs] = useState(false);
@@ -423,14 +474,14 @@ function FilterSidebar({
     const grouped = new Map<string, Technology[]>();
 
     visibleTechs.forEach((tech) => {
-      const category = tech.category ?? 'Other';
+      const category = tech.category ?? labels.otherCategoryLabel;
       const items = grouped.get(category) ?? [];
       items.push(tech);
       grouped.set(category, items);
     });
 
     return Array.from(grouped.entries());
-  }, [visibleTechs]);
+  }, [labels.otherCategoryLabel, visibleTechs]);
 
   const techListRef = useRef<HTMLDivElement>(null);
   const showMoreButtonRef = useRef<HTMLButtonElement>(null);
@@ -473,18 +524,18 @@ function FilterSidebar({
   }, [expandedTechs]);
 
   return (
-    <div className="w-full lg:w-80 bg-white rounded-xl border border-slate-200 p-6 h-fit lg:sticky lg:top-24">
-      <h3 className="text-lg font-bold text-[#0B1C2D] mb-6">Filters</h3>
+    <div className="w-full lg:w-80 bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] p-6 h-fit lg:sticky lg:top-24">
+      <h3 className="text-lg font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-6">{labels.filterTitle}</h3>
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-bold text-[#0B1C2D] mb-3">
-            Service Type
+          <label className="block text-sm font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
+            {labels.serviceTypeLabel}
           </label>
           <select
             value={selectedServiceType}
             onChange={(event) => onServiceTypeChange(event.target.value)}
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 bg-white"
+            className="w-full px-4 py-2 border border-slate-200 dark:border-[#1E2A3D] rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 dark:text-[#E6EDF3] bg-white dark:bg-[#0B1220]"
           >
             {serviceTypes.map((type) => (
               <option key={type.id} value={String(type.id)}>
@@ -495,8 +546,8 @@ function FilterSidebar({
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-[#0B1C2D] mb-4">
-            Technologies
+          <label className="block text-sm font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-4">
+            {labels.technologiesLabel}
           </label>
           <div ref={techListRef} className="space-y-2 mb-4">
             <label className="flex items-center gap-3 cursor-pointer">
@@ -506,11 +557,11 @@ function FilterSidebar({
                 onChange={() => handleTechToggle('All')}
                 className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
               />
-              <span className="text-sm text-slate-700">All</span>
+              <span className="text-sm text-slate-700 dark:text-[#E6EDF3]">{labels.allLabel}</span>
             </label>
             {groupedTechs.map(([category, techs]) => (
               <div key={category} className="space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">
+                <p className="text-xs font-semibold text-slate-500 dark:text-[#6B7285] uppercase tracking-wide mt-4">
                   {category}
                 </p>
                 {techs.map((tech) => {
@@ -523,7 +574,7 @@ function FilterSidebar({
                         onChange={() => handleTechToggle(name)}
                         className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
                       />
-                      <span className="text-sm text-slate-700">{name}</span>
+                      <span className="text-sm text-slate-700 dark:text-[#E6EDF3]">{name}</span>
                     </label>
                   );
                 })}
@@ -536,9 +587,9 @@ function FilterSidebar({
               ref={showMoreButtonRef}
               onClick={handleShowMore}
               disabled={isUpdatingTechs}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-[#1BC47D] border border-[#1BC47D]/30 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-[#1BC47D] border border-[#1BC47D]/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-[rgba(27,196,125,0.1)] transition-colors disabled:opacity-50"
             >
-              {expandedTechs ? 'Show Less' : 'Show More'}
+              {expandedTechs ? labels.showLessLabel : labels.showMoreLabel}
               <ChevronDown
                 size={16}
                 className={`transition-transform ${expandedTechs ? 'rotate-180' : ''}`}
@@ -556,11 +607,23 @@ function ServiceCard({
   locale,
   onWishlistToggle,
   isWishlisted,
+  labels,
 }: {
   service: Service;
   locale: Locale;
   onWishlistToggle: (serviceId: number) => void;
   isWishlisted: boolean;
+  labels: {
+    recommendedLabel: string;
+    standardLabel: string;
+    moreLabelTemplate: string;
+    providersAvailableTemplate: string;
+    providersMoreLabelTemplate: string;
+    noProvidersLabel: string;
+    wishlistedLabel: string;
+    addLabel: string;
+    shareLabel: string;
+  };
 }) {
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const providerCount = service.providers?.length || 0;
@@ -570,7 +633,10 @@ function ServiceCard({
   ].filter(Boolean);
   const uniqueTechnologies = Array.from(new Set(technologies));
   const remainingProviders = Math.max(0, providerCount - 3);
-  const serviceType = service.isFeatured ? 'Recomandat' : 'Standard';
+  const serviceType = service.isFeatured ? labels.recommendedLabel : labels.standardLabel;
+  const moreLabel = labels.moreLabelTemplate.replace('{count}', String(uniqueTechnologies.length - 3));
+  const providersAvailableParts = labels.providersAvailableTemplate.split('{count}');
+  const providersMoreLabel = labels.providersMoreLabelTemplate.replace('{count}', String(remainingProviders));
 
   const handleWishlist = async () => {
     setIsWishlistLoading(true);
@@ -582,40 +648,41 @@ function ServiceCard({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+    <div className="bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] overflow-hidden hover:shadow-lg transition-all duration-300">
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
-          <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full">
+          <span className="inline-block px-3 py-1 bg-slate-100 dark:bg-[#111B2D] text-slate-700 dark:text-[#E6EDF3] text-xs font-bold rounded-full">
             {getLocalizedText(service.category?.name, locale)}
           </span>
-          <span className="text-slate-400 text-sm font-medium">{serviceType}</span>
+          <span className="text-slate-400 dark:text-[#6B7285] text-sm font-medium">{serviceType}</span>
         </div>
 
-        <h3 className="text-lg font-bold text-midnight-blue mb-2 line-clamp-2">
+        <h3 className="text-lg font-bold text-midnight-blue dark:text-[#E6EDF3] mb-2 line-clamp-2">
           {getLocalizedText(service.name, locale)}
         </h3>
 
-        <p className="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
+        <p className="text-sm text-slate-600 dark:text-[#A3ADC2] mb-4 line-clamp-2 leading-relaxed">
           {getLocalizedText(service.description, locale)}
         </p>
 
         <div className="flex flex-wrap gap-2 mb-6">
           {uniqueTechnologies.slice(0, 3).map((tech) => (
-            <span key={tech} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded">
+            <span key={tech} className="text-xs bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] text-emerald-700 dark:text-[#1BC47D] px-2 py-1 rounded">
               {tech}
             </span>
           ))}
           {uniqueTechnologies.length > 3 && (
-            <span className="text-xs text-slate-500">
-              +{uniqueTechnologies.length - 3} more
+            <span className="text-xs text-slate-500 dark:text-[#A3ADC2]">
+              {moreLabel}
             </span>
           )}
         </div>
 
-        <div className="mb-6 pb-6 border-b border-slate-200">
-          <p className="text-sm text-slate-500 mb-3">
-            <span className="font-bold text-midnight-blue">{providerCount}</span> providers
-            available
+        <div className="mb-6 pb-6 border-b border-slate-200 dark:border-[#1E2A3D]">
+          <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-3">
+            {providersAvailableParts[0]}
+            <span className="font-bold text-midnight-blue dark:text-[#E6EDF3]">{providerCount}</span>
+            {providersAvailableParts[1] ?? ''}
           </p>
 
           <div className="flex items-center gap-2">
@@ -635,13 +702,13 @@ function ServiceCard({
                   ))}
                 </div>
                 {remainingProviders > 0 && (
-                  <span className="text-xs text-slate-600 font-medium">
-                    +{remainingProviders} more
+                  <span className="text-xs text-slate-600 dark:text-[#A3ADC2] font-medium">
+                    {providersMoreLabel}
                   </span>
                 )}
               </>
             ) : (
-              <span className="text-sm text-slate-500">No providers yet</span>
+              <span className="text-sm text-slate-500 dark:text-[#A3ADC2]">{labels.noProvidersLabel}</span>
             )}
           </div>
         </div>
@@ -654,19 +721,21 @@ function ServiceCard({
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all duration-200 ${
               isWishlisted
                 ? 'bg-red-50 text-error-red border border-error-red'
-                : 'bg-slate-50 text-slate-600 border border-slate-200 hover:border-error-red hover:bg-red-50'
+                : 'bg-slate-50 dark:bg-[#111B2D] text-slate-600 dark:text-[#A3ADC2] border border-slate-200 dark:border-[#1E2A3D] hover:border-error-red hover:bg-red-50'
             } ${isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
-            <span className="text-sm font-medium">{isWishlisted ? 'Wishlisted' : 'Add'}</span>
+            <span className="text-sm font-medium">
+              {isWishlisted ? labels.wishlistedLabel : labels.addLabel}
+            </span>
           </button>
 
           <button
             type="button"
-            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:border-emerald-green hover:bg-emerald-50 hover:text-emerald-green transition-all duration-200"
+            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-slate-50 dark:bg-[#111B2D] text-slate-600 dark:text-[#A3ADC2] border border-slate-200 dark:border-[#1E2A3D] hover:border-emerald-green hover:bg-emerald-50 hover:text-emerald-green transition-all duration-200"
           >
             <Share2 size={16} />
-            <span className="text-sm font-medium">Share</span>
+            <span className="text-sm font-medium">{labels.shareLabel}</span>
           </button>
         </div>
       </div>
