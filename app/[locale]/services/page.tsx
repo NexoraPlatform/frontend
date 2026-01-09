@@ -73,10 +73,11 @@ function extractTechnologiesFromServices(services: Service[], locale: Locale): T
   const uniqueTechs = new Map<string, Technology>();
 
   services.forEach((service) => {
+    const serviceName = getLocalizedText(service.name, locale);
     const skills = service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? [];
     const tags = service.tags ?? [];
 
-    [...skills, ...tags].forEach((name) => {
+    [serviceName, ...skills, ...tags].forEach((name) => {
       const normalized = name?.trim();
       if (!normalized) {
         return;
@@ -88,6 +89,16 @@ function extractTechnologiesFromServices(services: Service[], locale: Locale): T
   });
 
   return Array.from(uniqueTechs.values());
+}
+
+function getServicesFromResponse(response: ServicesResponse | Service[] | null | undefined): Service[] {
+  if (!response) {
+    return [];
+  }
+  if (Array.isArray(response)) {
+    return response;
+  }
+  return response.services || [];
 }
 
 export default function ServicesPage() {
@@ -110,16 +121,40 @@ export default function ServicesPage() {
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
 
+  const fetchAllServices = useCallback(async () => {
+    const firstResponse: ServicesResponse = await apiClient.getServices({
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+    });
+    const firstPageServices = getServicesFromResponse(firstResponse);
+    const totalPages = firstResponse?.totalPages ?? 1;
+
+    if (totalPages <= 1) {
+      return firstPageServices;
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        apiClient.getServices({ page: index + 2, limit: ITEMS_PER_PAGE })
+      )
+    );
+
+    const remainingServices = remainingPages.flatMap((pageResponse) =>
+      getServicesFromResponse(pageResponse)
+    );
+
+    return [...firstPageServices, ...remainingServices];
+  }, []);
+
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const [categoriesResponse, servicesResponse] = await Promise.all([
+        const [categoriesResponse, servicesList] = await Promise.all([
           apiClient.getCategories(),
-          apiClient.getServices({ page: 1, limit: ITEMS_PER_PAGE }),
+          fetchAllServices(),
         ]);
 
         setCategories(categoriesResponse || []);
-        const servicesList = servicesResponse?.services || [];
         const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
         setAllTechnologies(extractedTechnologies);
         setTechnologies(extractedTechnologies);
@@ -132,7 +167,7 @@ export default function ServicesPage() {
     };
 
     initializeFilters();
-  }, []);
+  }, [fetchAllServices, locale]);
 
   const loadServices = useCallback(
     async (pageNum: number, isReset = false) => {
@@ -211,12 +246,8 @@ export default function ServicesPage() {
     }
 
     try {
-      const servicesResponse = await apiClient.getServices({
-        categoryId: serviceType,
-        page: 1,
-        limit: ITEMS_PER_PAGE,
-      });
-      const servicesList = servicesResponse?.services || [];
+      const servicesResponse = await apiClient.getServicesByCategoryId(serviceType);
+      const servicesList = getServicesFromResponse(servicesResponse);
       setTechnologies(extractTechnologiesFromServices(servicesList, locale));
     } catch (error) {
       console.error('Failed to update technologies:', error);
@@ -224,12 +255,13 @@ export default function ServicesPage() {
   };
 
   const handleTechnologiesUpdate = async () => {
-    const servicesResponse = await apiClient.getServices({
-      categoryId: selectedServiceType !== 'All' ? selectedServiceType : undefined,
-      page: 1,
-      limit: ITEMS_PER_PAGE,
-    });
-    const servicesList = servicesResponse?.services || [];
+    const servicesList =
+      selectedServiceType === 'All'
+        ? await fetchAllServices()
+        : getServicesFromResponse(
+            await apiClient.getServicesByCategoryId(selectedServiceType)
+          );
+
     const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
     setTechnologies(extractedTechnologies);
     if (selectedServiceType === 'All') {
