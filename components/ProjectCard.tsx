@@ -20,8 +20,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <div className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-bold text-midnight-blue flex-1 dark:text-[#E6EDF3]">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h3 className="text-lg font-bold text-midnight-blue dark:text-[#E6EDF3]">
                 {project.title}
               </h3>
               {project.is_recommended && (
