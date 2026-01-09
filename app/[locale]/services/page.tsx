@@ -69,25 +69,25 @@ function getLocalizedText(value: LocalizedText | null | undefined, locale: Local
     return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
 }
 
-function normalizeTechnologiesResponse(response: any): Technology[] {
-  if (!response) {
-    return [];
-  }
-  if (Array.isArray(response)) {
-    return response;
-  }
-  if (typeof response === 'object') {
-    return Object.entries(response).flatMap(([category, items]) => {
-      if (!Array.isArray(items)) {
-        return [];
+function extractTechnologiesFromServices(services: Service[], locale: Locale): Technology[] {
+  const uniqueTechs = new Map<string, Technology>();
+
+  services.forEach((service) => {
+    const skills = service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? [];
+    const tags = service.tags ?? [];
+
+    [...skills, ...tags].forEach((name) => {
+      const normalized = name?.trim();
+      if (!normalized) {
+        return;
       }
-      return items.map((item) => ({
-        ...item,
-        category,
-      }));
+      if (!uniqueTechs.has(normalized)) {
+        uniqueTechs.set(normalized, { name: normalized });
+      }
     });
-  }
-  return [];
+  });
+
+  return Array.from(uniqueTechs.values());
 }
 
 export default function ServicesPage() {
@@ -113,15 +113,16 @@ export default function ServicesPage() {
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const [categoriesResponse, technologiesResponse] = await Promise.all([
+        const [categoriesResponse, servicesResponse] = await Promise.all([
           apiClient.getCategories(),
-          apiClient.getTechnologies(),
+          apiClient.getServices({ page: 1, limit: ITEMS_PER_PAGE }),
         ]);
 
         setCategories(categoriesResponse || []);
-        const normalizedTechnologies = normalizeTechnologiesResponse(technologiesResponse);
-        setAllTechnologies(normalizedTechnologies);
-        setTechnologies(normalizedTechnologies);
+        const servicesList = servicesResponse?.services || [];
+        const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
+        setAllTechnologies(extractedTechnologies);
+        setTechnologies(extractedTechnologies);
 
       } catch (error) {
         console.error('Failed to load filters:', error);
@@ -210,24 +211,30 @@ export default function ServicesPage() {
     }
 
     try {
-      const updatedTechnologies = await apiClient.getTechnologiesByCategory(serviceType);
-      setTechnologies(normalizeTechnologiesResponse(updatedTechnologies));
+      const servicesResponse = await apiClient.getServices({
+        categoryId: serviceType,
+        page: 1,
+        limit: ITEMS_PER_PAGE,
+      });
+      const servicesList = servicesResponse?.services || [];
+      setTechnologies(extractTechnologiesFromServices(servicesList, locale));
     } catch (error) {
       console.error('Failed to update technologies:', error);
     }
   };
 
   const handleTechnologiesUpdate = async () => {
+    const servicesResponse = await apiClient.getServices({
+      categoryId: selectedServiceType !== 'All' ? selectedServiceType : undefined,
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+    });
+    const servicesList = servicesResponse?.services || [];
+    const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
+    setTechnologies(extractedTechnologies);
     if (selectedServiceType === 'All') {
-      const updatedTechnologies = await apiClient.getTechnologies();
-      const normalized = normalizeTechnologiesResponse(updatedTechnologies);
-      setAllTechnologies(normalized);
-      setTechnologies(normalized);
-      return;
+      setAllTechnologies(extractedTechnologies);
     }
-
-    const updatedTechnologies = await apiClient.getTechnologiesByCategory(selectedServiceType);
-    setTechnologies(normalizeTechnologiesResponse(updatedTechnologies));
   };
 
   const handleWishlistToggle = (serviceId: number) => {
