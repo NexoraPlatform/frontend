@@ -11,13 +11,13 @@ export async function TrustoraVisualLanguageSection({ locale }: { locale: Locale
         verificationLabel,
         verificationSub,
     ] = await Promise.all([
-        t(locale, "homepage.trustora.visual.title"),
-        t(locale, "homepage.trustora.visual.money_label"),
-        t(locale, "homepage.trustora.visual.money_subtitle"),
-        t(locale, "homepage.trustora.visual.contracts_label"),
-        t(locale, "homepage.trustora.visual.contracts_subtitle"),
-        t(locale, "homepage.trustora.visual.verification_label"),
-        t(locale, "homepage.trustora.visual.verification_subtitle"),
+        t(locale, "trustora.visual.title"),
+        t(locale, "trustora.visual.money_label"),
+        t(locale, "trustora.visual.money_subtitle"),
+        t(locale, "trustora.visual.contracts_label"),
+        t(locale, "trustora.visual.contracts_subtitle"),
+        t(locale, "trustora.visual.verification_label"),
+        t(locale, "trustora.visual.verification_subtitle"),
     ]);
 
     return (

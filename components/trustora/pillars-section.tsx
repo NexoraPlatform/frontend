@@ -12,14 +12,14 @@ export async function TrustoraPillarsSection({ locale }: { locale: Locale }) {
         legalTitle,
         legalDescription,
     ] = await Promise.all([
-        t(locale, "homepage.trustora.pillars.verified_title"),
-        t(locale, "homepage.trustora.pillars.verified_description"),
-        t(locale, "homepage.trustora.pillars.protected_title"),
-        t(locale, "homepage.trustora.pillars.protected_description"),
-        t(locale, "homepage.trustora.pillars.delivery_title"),
-        t(locale, "homepage.trustora.pillars.delivery_description"),
-        t(locale, "homepage.trustora.pillars.legal_title"),
-        t(locale, "homepage.trustora.pillars.legal_description"),
+        t(locale, "trustora.pillars.verified_title"),
+        t(locale, "trustora.pillars.verified_description"),
+        t(locale, "trustora.pillars.protected_title"),
+        t(locale, "trustora.pillars.protected_description"),
+        t(locale, "trustora.pillars.delivery_title"),
+        t(locale, "trustora.pillars.delivery_description"),
+        t(locale, "trustora.pillars.legal_title"),
+        t(locale, "trustora.pillars.legal_description"),
     ]);
 
     return (

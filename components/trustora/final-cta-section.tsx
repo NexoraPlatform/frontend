@@ -10,12 +10,12 @@ export async function TrustoraFinalCtaSection({ locale }: { locale: Locale }) {
         verifiedLabel,
         legalLabel,
     ] = await Promise.all([
-        t(locale, "homepage.trustora.final_cta.title"),
-        t(locale, "homepage.trustora.final_cta.subtitle"),
-        t(locale, "homepage.trustora.final_cta.cta_label"),
-        t(locale, "homepage.trustora.final_cta.escrow_label"),
-        t(locale, "homepage.trustora.final_cta.verified_label"),
-        t(locale, "homepage.trustora.final_cta.legal_label"),
+        t(locale, "trustora.final_cta.title"),
+        t(locale, "trustora.final_cta.subtitle"),
+        t(locale, "trustora.final_cta.cta_label"),
+        t(locale, "trustora.final_cta.escrow_label"),
+        t(locale, "trustora.final_cta.verified_label"),
+        t(locale, "trustora.final_cta.legal_label"),
     ]);
 
     return (
