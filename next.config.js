@@ -47,6 +47,10 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: '127.0.0.1',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
       }
     ],
     formats: ['image/avif', 'image/webp'],
