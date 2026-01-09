@@ -69,25 +69,62 @@ function getLocalizedText(value: LocalizedText | null | undefined, locale: Local
     return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
 }
 
-function normalizeTechnologiesResponse(response: any): Technology[] {
+function extractTechnologiesFromServices(services: Service[], locale: Locale): Technology[] {
+  const uniqueTechs = new Map<string, Technology>();
+
+  services.forEach((service) => {
+    const serviceName = getLocalizedText(service.name, locale);
+    const skills = service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? [];
+    const tags = service.tags ?? [];
+    const categoryName =
+      typeof service.category === 'string'
+        ? service.category
+        : service.category
+          ? getLocalizedText(service.category.name, locale) || String(service.category?.name ?? '')
+          : '';
+
+    [serviceName, ...skills, ...tags].forEach((name) => {
+      const normalized = name?.trim();
+      if (!normalized) {
+        return;
+      }
+      const key = `${categoryName}::${normalized}`;
+      if (!uniqueTechs.has(key)) {
+        uniqueTechs.set(key, { name: normalized, category: categoryName || undefined });
+      }
+    });
+  });
+
+  return Array.from(uniqueTechs.values());
+}
+
+function normalizeServicesByCategoryResponse(response: Record<string, Technology[]>): Service[] {
+  return Object.entries(response).flatMap(([category, services]) =>
+    (services || []).map((service) => ({
+      ...service,
+      category: service.category ?? category,
+    }))
+  ) as Service[];
+}
+
+function getServicesFromResponse(
+  response:
+    | ServicesResponse
+    | Service[]
+    | Record<string, Technology[]>
+    | null
+    | undefined
+): Service[] {
   if (!response) {
     return [];
   }
   if (Array.isArray(response)) {
     return response;
   }
-  if (typeof response === 'object') {
-    return Object.entries(response).flatMap(([category, items]) => {
-      if (!Array.isArray(items)) {
-        return [];
-      }
-      return items.map((item) => ({
-        ...item,
-        category,
-      }));
-    });
+  if ('services' in response) {
+    return response.services || [];
   }
-  return [];
+  return normalizeServicesByCategoryResponse(response);
 }
 
 export default function ServicesPage() {
@@ -110,18 +147,43 @@ export default function ServicesPage() {
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
 
+  const fetchAllServices = useCallback(async () => {
+    const firstResponse: ServicesResponse = await apiClient.getServices({
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+    });
+    const firstPageServices = getServicesFromResponse(firstResponse);
+    const totalPages = firstResponse?.totalPages ?? 1;
+
+    if (totalPages <= 1) {
+      return firstPageServices;
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        apiClient.getServices({ page: index + 2, limit: ITEMS_PER_PAGE })
+      )
+    );
+
+    const remainingServices = remainingPages.flatMap((pageResponse) =>
+      getServicesFromResponse(pageResponse)
+    );
+
+    return [...firstPageServices, ...remainingServices];
+  }, []);
+
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const [categoriesResponse, technologiesResponse] = await Promise.all([
+        const [categoriesResponse, servicesList] = await Promise.all([
           apiClient.getCategories(),
-          apiClient.getTechnologies(),
+          fetchAllServices(),
         ]);
 
         setCategories(categoriesResponse || []);
-        const normalizedTechnologies = normalizeTechnologiesResponse(technologiesResponse);
-        setAllTechnologies(normalizedTechnologies);
-        setTechnologies(normalizedTechnologies);
+        const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
+        setAllTechnologies(extractedTechnologies);
+        setTechnologies(extractedTechnologies);
 
       } catch (error) {
         console.error('Failed to load filters:', error);
@@ -131,7 +193,7 @@ export default function ServicesPage() {
     };
 
     initializeFilters();
-  }, []);
+  }, [fetchAllServices, locale]);
 
   const loadServices = useCallback(
     async (pageNum: number, isReset = false) => {
@@ -210,24 +272,27 @@ export default function ServicesPage() {
     }
 
     try {
-      const updatedTechnologies = await apiClient.getTechnologiesByCategory(serviceType);
-      setTechnologies(normalizeTechnologiesResponse(updatedTechnologies));
+      const servicesResponse = await apiClient.getServicesByCategoryId(serviceType);
+      const servicesList = getServicesFromResponse(servicesResponse);
+      setTechnologies(extractTechnologiesFromServices(servicesList, locale));
     } catch (error) {
       console.error('Failed to update technologies:', error);
     }
   };
 
   const handleTechnologiesUpdate = async () => {
-    if (selectedServiceType === 'All') {
-      const updatedTechnologies = await apiClient.getTechnologies();
-      const normalized = normalizeTechnologiesResponse(updatedTechnologies);
-      setAllTechnologies(normalized);
-      setTechnologies(normalized);
-      return;
-    }
+    const servicesList =
+      selectedServiceType === 'All'
+        ? await fetchAllServices()
+        : getServicesFromResponse(
+            await apiClient.getServicesByCategoryId(selectedServiceType)
+          );
 
-    const updatedTechnologies = await apiClient.getTechnologiesByCategory(selectedServiceType);
-    setTechnologies(normalizeTechnologiesResponse(updatedTechnologies));
+    const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
+    setTechnologies(extractedTechnologies);
+    if (selectedServiceType === 'All') {
+      setAllTechnologies(extractedTechnologies);
+    }
   };
 
   const handleWishlistToggle = (serviceId: number) => {
@@ -353,6 +418,18 @@ function FilterSidebar({
   const INITIAL_TECH_DISPLAY = 6;
   const visibleTechs = expandedTechs ? technologies : technologies.slice(0, INITIAL_TECH_DISPLAY);
   const hasMoreTechs = technologies.length > INITIAL_TECH_DISPLAY;
+  const groupedTechs = useMemo(() => {
+    const grouped = new Map<string, Technology[]>();
+
+    visibleTechs.forEach((tech) => {
+      const category = tech.category ?? 'Other';
+      const items = grouped.get(category) ?? [];
+      items.push(tech);
+      grouped.set(category, items);
+    });
+
+    return Array.from(grouped.entries());
+  }, [visibleTechs]);
 
   const techListRef = useRef<HTMLDivElement>(null);
   const showMoreButtonRef = useRef<HTMLButtonElement>(null);
@@ -430,20 +507,27 @@ function FilterSidebar({
               />
               <span className="text-sm text-slate-700">All</span>
             </label>
-            {visibleTechs.map((tech) => {
-              const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
-              return (
-                <label key={name} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedTechnologies.includes(name)}
-                    onChange={() => handleTechToggle(name)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-700">{name}</span>
-                </label>
-              );
-            })}
+            {groupedTechs.map(([category, techs]) => (
+              <div key={category} className="space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-4">
+                  {category}
+                </p>
+                {techs.map((tech) => {
+                  const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
+                  return (
+                    <label key={name} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTechnologies.includes(name)}
+                        onChange={() => handleTechToggle(name)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700">{name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {hasMoreTechs && (
