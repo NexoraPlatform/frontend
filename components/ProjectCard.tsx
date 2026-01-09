@@ -115,7 +115,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
 
         {project.client && (
-          <div className="flex items-center justify-between">
+          <div className="flex items-end gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => {
@@ -144,7 +144,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 ({project.client.total_reviews})
               </span>
             </div>
-            <button className="px-4 py-2 bg-emerald-green text-white font-bold rounded-lg hover:brightness-105 transition-all">
+            <button className="ml-auto px-4 py-2 bg-emerald-green text-white font-bold rounded-lg hover:brightness-105 transition-all">
               Detalii
             </button>
           </div>
