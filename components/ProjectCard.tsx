@@ -118,17 +118,21 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={14}
-                    className={
-                      i < Math.round(project.client!.rating)
-                        ? 'fill-warning-amber text-warning-amber'
-                        : 'text-slate-300 dark:text-[#2B3548]'
-                    }
-                  />
-                ))}
+                {[...Array(5)].map((_, i) => {
+                  const fillPercent = Math.min(Math.max(project.client!.rating - i, 0), 1) * 100;
+
+                  return (
+                    <span key={i} className="relative w-[14px] h-[14px]">
+                      <Star size={14} className="text-slate-300 dark:text-[#2B3548]" />
+                      <span
+                        className="absolute inset-0 overflow-hidden"
+                        style={{ width: `${fillPercent}%` }}
+                      >
+                        <Star size={14} className="fill-warning-amber text-warning-amber" />
+                      </span>
+                    </span>
+                  );
+                })}
               </div>
               <span className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
                 {project.client.rating.toFixed(1)}
