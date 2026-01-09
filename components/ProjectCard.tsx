@@ -120,10 +120,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => {
                   const fillPercent = Math.min(Math.max(project.client!.rating - i, 0), 1) * 100;
+                  const baseStarClass =
+                    fillPercent === 100
+                      ? 'text-warning-amber'
+                      : 'text-slate-300 dark:text-[#2B3548]';
 
                   return (
                     <span key={i} className="relative w-[14px] h-[14px]">
-                      <Star size={14} className="text-slate-300 dark:text-[#2B3548]" />
+                      <Star size={14} className={baseStarClass} />
                       <span
                         className="absolute inset-0 overflow-hidden"
                         style={{ width: `${fillPercent}%` }}
