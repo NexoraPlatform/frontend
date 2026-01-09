@@ -53,6 +53,8 @@ type Technology = {
   name?: LocalizedText;
   category_id?: number | string;
   categoryId?: number | string;
+  category?: string;
+  parent_category?: string;
 };
 
 const ITEMS_PER_PAGE = 12;
@@ -65,6 +67,27 @@ function getLocalizedText(value: LocalizedText | null | undefined, locale: Local
         return value;
     }
     return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
+}
+
+function normalizeTechnologiesResponse(response: any): Technology[] {
+  if (!response) {
+    return [];
+  }
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (typeof response === 'object') {
+    return Object.entries(response).flatMap(([category, items]) => {
+      if (!Array.isArray(items)) {
+        return [];
+      }
+      return items.map((item) => ({
+        ...item,
+        category,
+      }));
+    });
+  }
+  return [];
 }
 
 export default function ServicesPage() {
@@ -178,7 +201,7 @@ export default function ServicesPage() {
 
     try {
       const updatedTechnologies = await apiClient.getTechnologiesByCategory(serviceType);
-      setTechnologies(updatedTechnologies || []);
+      setTechnologies(normalizeTechnologiesResponse(updatedTechnologies));
     } catch (error) {
       console.error('Failed to update technologies:', error);
     }
@@ -191,7 +214,7 @@ export default function ServicesPage() {
     }
 
     const updatedTechnologies = await apiClient.getTechnologiesByCategory(selectedServiceType);
-    setTechnologies(updatedTechnologies || []);
+    setTechnologies(normalizeTechnologiesResponse(updatedTechnologies));
   };
 
   const handleWishlistToggle = (serviceId: number) => {
