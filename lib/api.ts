@@ -804,6 +804,10 @@ class ApiClient {
     return this.request<any>('/technologies');
   }
 
+  async getTechnologiesByCategory(categoryId: string) {
+    return this.request<any>(`/services/category/${categoryId}`);
+  }
+
   async generateProjectInformation(projectData: any) {
     return this.request<any>('/projects/generate-information-by-ai', {
       method: 'POST',
