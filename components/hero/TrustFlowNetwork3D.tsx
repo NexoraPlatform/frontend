@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type TrustFlowComponent = React.ComponentType;
 
@@ -21,6 +21,16 @@ export default function TrustFlowNetwork3D() {
 
     useEffect(() => {
         let isMounted = true;
+        const reactInternals = (React as {
+            __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: { ReactCurrentOwner?: unknown };
+        }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+
+        if (!reactInternals?.ReactCurrentOwner) {
+            setHasError(true);
+            return () => {
+                isMounted = false;
+            };
+        }
 
         import("@/components/hero/TrustFlowNetwork")
             .then((mod) => {
