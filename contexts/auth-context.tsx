@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('auth_token', cookieToken);
     }
 
-    if (isAuthenticated) {
+    if (isAuthenticated && token) {
       apiClient.setToken(token);
 
       // Always refresh the cookie to ensure it's valid

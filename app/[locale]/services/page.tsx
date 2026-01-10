@@ -102,11 +102,58 @@ function extractTechnologiesFromServices(services: Service[], locale: Locale): T
 
 function normalizeServicesByCategoryResponse(response: Record<string, Technology[]>): Service[] {
   return Object.entries(response).flatMap(([category, services]) =>
-    (services || []).map((service) => ({
-      ...service,
-      category: service.category ?? category,
-    }))
-  ) as Service[];
+    (services || []).map((service, index) => {
+      const categoryName = service.category ?? category;
+      const categoryIdRaw = service.category_id ?? service.categoryId ?? category;
+      const categoryId =
+        typeof categoryIdRaw === 'number'
+          ? categoryIdRaw
+          : Number.isFinite(Number(categoryIdRaw))
+            ? Number(categoryIdRaw)
+            : 0;
+      const fallbackCategory: ServiceCategory = {
+        id: categoryId,
+        name: categoryName ?? category,
+      };
+
+      const numericId =
+        typeof service.id === 'number'
+          ? service.id
+          : Number.isFinite(Number(service.id))
+            ? Number(service.id)
+            : index;
+
+      return {
+        id: numericId,
+        name: service.name ?? categoryName ?? category,
+        description: '',
+        isFeatured: false,
+        providers: [],
+        category:
+          typeof service.category === 'string' || !service.category
+            ? fallbackCategory
+            : service.category,
+        tags: [],
+        skills: [],
+      };
+    })
+  );
+}
+
+function isServicesResponse(
+  response: ServicesResponse | Service[] | Record<string, Technology[]> | null | undefined
+): response is ServicesResponse {
+  if (!response || typeof response !== 'object') {
+    return false;
+  }
+  if (!('services' in response)) {
+    return false;
+  }
+  const services = (response as ServicesResponse).services;
+  return (
+    Array.isArray(services) &&
+    services.every((service) => service && typeof service === 'object' && 'description' in service)
+  );
 }
 
 function getServicesFromResponse(
@@ -123,7 +170,7 @@ function getServicesFromResponse(
   if (Array.isArray(response)) {
     return response;
   }
-  if ('services' in response) {
+  if (isServicesResponse(response)) {
     return response.services || [];
   }
   return normalizeServicesByCategoryResponse(response);

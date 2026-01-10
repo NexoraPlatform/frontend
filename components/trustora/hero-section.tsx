@@ -38,7 +38,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     ]);
 
     return (
-        <section className="relative overflow-hidden pt-40 pb-20 px-6 bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <section className="relative overflow-hidden pt-40 pb-20 px-6 bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
             <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-gradient-to-b from-[#F5F7FA]/85 via-[#F5F7FA]/65 to-white dark:from-[#0B1C2D]/70 dark:via-[#0B1C2D]/60 dark:to-[#070C14]/90" />
             </div>

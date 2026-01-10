@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import { Inter, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/contexts/auth-context"
@@ -19,6 +19,14 @@ const inter = Inter({
     adjustFontFallback: true,
     fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Arial", "sans-serif"],
     weight: ["400", "500", "600", "700", "900"],
+})
+
+const jetbrainsMono = JetBrains_Mono({
+    subsets: ["latin"],
+    display: "swap",
+    preload: true,
+    variable: "--font-jetbrains-mono",
+    weight: ["500"],
 })
 
 // Separate viewport export for Next.js 15
@@ -41,6 +49,8 @@ const criticalCSS = `
     --font-inter: ${inter.style.fontFamily}, system-ui, sans-serif;
     --color-background: light-dark(#ffffff, #0f172a);
     --color-foreground: light-dark(#0f172a, #f8fafc);
+    --font-jetbrains-mono: ${jetbrainsMono.style.fontFamily}, ui-monospace, SFMono-Regular, SFMono-Regular, Menlo,
+        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 html {
@@ -158,11 +168,10 @@ export default function RootLayout({
     })
 
     return (
-        <html lang="ro" suppressHydrationWarning className={inter.variable}>
+        <html lang="ro" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
         <head>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap" />
             <link rel="preconnect" href="https://images.pexels.com" crossOrigin="" />
             <link rel="dns-prefetch" href="//api.nexora.ro" />
             <link rel="dns-prefetch" href="//vercel.app" />
