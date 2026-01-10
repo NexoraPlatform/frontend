@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-
-type TrustFlowComponent = React.ComponentType;
+import React from "react";
+import dynamic from "next/dynamic";
 
 function TrustFlowFallback() {
     return (
@@ -15,43 +14,37 @@ function TrustFlowFallback() {
     );
 }
 
-export default function TrustFlowNetwork3D() {
-    const [NetworkComponent, setNetworkComponent] = useState<TrustFlowComponent | null>(null);
-    const [hasError, setHasError] = useState(false);
+const TrustFlowNetwork = dynamic(() => import("@/components/hero/TrustFlowNetwork"), {
+    ssr: false,
+    loading: () => <TrustFlowFallback />,
+});
 
-    useEffect(() => {
-        let isMounted = true;
-        const reactInternals = (React as {
-            __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: { ReactCurrentOwner?: unknown };
-        }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+class TrustFlowErrorBoundary extends React.Component<
+    { children: React.ReactNode },
+    { hasError: boolean }
+> {
+    state = { hasError: false };
 
-        if (!reactInternals?.ReactCurrentOwner) {
-            setHasError(true);
-            return () => {
-                isMounted = false;
-            };
-        }
-
-        import("@/components/hero/TrustFlowNetwork")
-            .then((mod) => {
-                if (!isMounted) return;
-                setNetworkComponent(() => mod.default);
-            })
-            .catch((error) => {
-                console.error("Failed to load TrustFlowNetwork 3D scene:", error);
-                if (isMounted) {
-                    setHasError(true);
-                }
-            });
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    if (hasError || !NetworkComponent) {
-        return <TrustFlowFallback />;
+    static getDerivedStateFromError() {
+        return { hasError: true };
     }
 
-    return <NetworkComponent />;
+    componentDidCatch(error: unknown) {
+        console.error("Failed to render TrustFlowNetwork 3D scene:", error);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return <TrustFlowFallback />;
+        }
+        return this.props.children;
+    }
+}
+
+export default function TrustFlowNetwork3D() {
+    return (
+        <TrustFlowErrorBoundary>
+            <TrustFlowNetwork />
+        </TrustFlowErrorBoundary>
+    );
 }
