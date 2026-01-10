@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TrustFlowNetworkLayer } from "@/components/hero/TrustFlowNetworkLayer";
+import TrustFlowNetwork3D from "@/components/hero/TrustFlowNetwork3D";
 import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
 
@@ -42,7 +42,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
 
     return (
         <section className="relative min-h-screen overflow-hidden bg-[#0B1C2D] text-white">
-            <TrustFlowNetworkLayer />
+            <TrustFlowNetwork3D />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0B1C2D]/50 to-[#0B1C2D] pointer-events-none" />
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-32">
                 <div className="grid lg:grid-cols-2 gap-16 items-center">

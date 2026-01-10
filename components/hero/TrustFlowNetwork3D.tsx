@@ -4,6 +4,6 @@ import dynamic from "next/dynamic";
 
 const TrustFlowNetwork = dynamic(() => import("@/components/hero/TrustFlowNetwork"), { ssr: false });
 
-export function TrustFlowNetworkLayer() {
+export default function TrustFlowNetwork3D() {
     return <TrustFlowNetwork />;
 }
