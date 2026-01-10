@@ -14,7 +14,7 @@ import { Locale } from '@/types/locale';
 type LocalizedText = string | Record<string, string>;
 
 interface ServiceCategory {
-  id: number;
+  id: string | number;
   name: LocalizedText;
 }
 
@@ -102,11 +102,20 @@ function extractTechnologiesFromServices(services: Service[], locale: Locale): T
 
 function normalizeServicesByCategoryResponse(response: Record<string, Technology[]>): Service[] {
   return Object.entries(response).flatMap(([category, services]) =>
-    (services || []).map((service) => ({
-      ...service,
-      category: service.category ?? category,
+    (services || []).map((service, index) => ({
+      id: typeof service.id === 'number' ? service.id : Number(service.id) || index,
+      name: service.name ?? '',
+      description: '',
+      tags: [],
+      skills: [],
+      isFeatured: false,
+      category: {
+        id: service.categoryId ?? service.category_id ?? category,
+        name: service.category ?? category,
+      },
+      providers: [],
     }))
-  ) as Service[];
+  );
 }
 
 function getServicesFromResponse(
@@ -124,7 +133,7 @@ function getServicesFromResponse(
     return response;
   }
   if ('services' in response) {
-    return response.services || [];
+    return (response as ServicesResponse).services || [];
   }
   return normalizeServicesByCategoryResponse(response);
 }
