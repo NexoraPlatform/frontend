@@ -1,7 +1,5 @@
 import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
-import { TrustFlowNetworkLayer } from "@/components/hero/TrustFlowNetworkLayer";
-
 export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     const [
         badgeText,
@@ -40,18 +38,14 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     ]);
 
     return (
-        <section className="relative overflow-hidden pt-40 pb-20 px-6 bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <section className="relative overflow-hidden pt-8 pb-20 px-6 bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
             <div className="absolute inset-0">
-                <div className="absolute inset-0 pointer-events-none">
-                    <TrustFlowNetworkLayer />
-                </div>
                 <div className="absolute inset-0 bg-gradient-to-b from-[#F5F7FA]/85 via-[#F5F7FA]/65 to-white dark:from-[#0B1C2D]/70 dark:via-[#0B1C2D]/60 dark:to-[#070C14]/90" />
             </div>
             <div className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
                 <div>
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/40 text-emerald-700 text-xs font-bold mb-6 dark:text-emerald-200">
                         <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70" />
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                         </span>
                         {badgeText}
