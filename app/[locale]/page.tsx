@@ -24,7 +24,7 @@ export default async function Home(props: HomePageProps) {
             <TrustoraThemeStyles />
             <Header />
             <main role="main" aria-label={mainContentLabel} id="main-content">
-                <TrustoraHeroSection locale={locale} />
+                <TrustoraHeroSection />
                 <TrustoraPillarsSection locale={locale} />
                 <TrustoraMessagingSection locale={locale} />
                 <TrustoraVisualLanguageSection locale={locale} />
