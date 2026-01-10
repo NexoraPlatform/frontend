@@ -108,6 +108,7 @@
     "typescript": "5.2.2",
     "vaul": "^0.9.9",
     "web-push": "^3.6.7",
+    "zustand": "^4.5.2",
     "zod": "^3.25.56"
   },
   "devDependencies": {
