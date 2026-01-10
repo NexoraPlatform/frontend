@@ -1,430 +1,505 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Bloom, DepthOfField, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 
-const MAX_NODES = 120;
-const MAX_CONNECTIONS = 12;
-const PARTICLES_PER_CONNECTION = 10;
-const BOUNDS = 6;
-
-const CLIENT_COLOR = new THREE.Color("#3B82F6");
-const PRO_COLOR = new THREE.Color("#1BC47D");
-const PARTICLE_COLOR = new THREE.Color("#1BC47D");
-
-const getThemePalette = (isDark: boolean) => ({
-    lineBase: new THREE.Color(isDark ? "#FFFFFF" : "#0B1C2D"),
-    contract: new THREE.Color(isDark ? "#FFFFFF" : "#0B1C2D"),
-    nodeEmissive: new THREE.Color(isDark ? "#0B1C2D" : "#E2E8F0"),
-    lineOpacity: isDark ? 0.55 : 0.42,
-    particleOpacity: isDark ? 0.75 : 0.65,
-});
-
-const createLockTexture = () => {
-    const size = 128;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-        return new THREE.CanvasTexture(canvas);
-    }
-    ctx.clearRect(0, 0, size, size);
-    ctx.strokeStyle = "rgba(27, 196, 125, 0.95)";
-    ctx.lineWidth = 10;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2 - 12, 28, Math.PI, 0);
-    ctx.stroke();
-    ctx.fillStyle = "rgba(27, 196, 125, 0.95)";
-    ctx.fillRect(size / 2 - 28, size / 2 - 6, 56, 46);
-    ctx.clearRect(size / 2 - 16, size / 2 + 10, 32, 22);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    return texture;
+const COLORS = {
+    background: 0x0b1c2d,
+    emerald: 0x1bc47d,
+    clientBlue: 0x3b82f6,
+    contractWhite: 0xe6edf3,
 };
 
-type Connection = {
+interface NodeData {
+    position: THREE.Vector3;
+    velocity: THREE.Vector3;
+    type: "client" | "professional" | "contract";
+    mesh?: THREE.Mesh;
+    baseScale: number;
+}
+
+interface Connection {
+    from: number;
+    to: number;
+    curve: THREE.CatmullRomCurve3;
+    tube?: THREE.Mesh;
     active: boolean;
-    clientIndex: number;
-    proIndex: number;
-    startTime: number;
-    duration: number;
-    lockDelay: number;
-};
+    progress: number;
+    contractMesh?: THREE.Mesh;
+    lockMesh?: THREE.Group;
+    payloads: PayloadData[];
+}
 
-type Particle = {
-    connectionIndex: number;
-    offset: number;
+interface PayloadData {
+    mesh: THREE.Mesh;
+    progress: number;
     speed: number;
-};
+}
+
+function TrustFlowScene() {
+    const { camera } = useThree();
+    const nodesRef = useRef<NodeData[]>([]);
+    const connectionsRef = useRef<Connection[]>([]);
+    const payloadPoolRef = useRef<THREE.Mesh[]>([]);
+    const sceneGroupRef = useRef<THREE.Group>(null);
+    const timeRef = useRef(0);
+    const nextConnectionChangeRef = useRef(12);
+
+    const prefersReducedMotion = useMemo(() => {
+        if (typeof window !== "undefined") {
+            return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        }
+        return false;
+    }, []);
+
+    useMemo(() => {
+        const nodes: NodeData[] = [];
+        const spreadX = 25;
+        const spreadY = 15;
+        const spreadZ = 20;
+
+        for (let i = 0; i < 150; i += 1) {
+            const type = i < 60 ? "client" : i < 120 ? "professional" : "contract";
+            nodes.push({
+                position: new THREE.Vector3(
+                    (Math.random() - 0.5) * spreadX,
+                    (Math.random() - 0.5) * spreadY,
+                    (Math.random() - 0.5) * spreadZ
+                ),
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.02,
+                    (Math.random() - 0.5) * 0.02,
+                    (Math.random() - 0.5) * 0.02
+                ),
+                type,
+                baseScale: 0.15 + Math.random() * 0.1,
+            });
+        }
+        nodesRef.current = nodes;
+        return nodes;
+    }, []);
+
+    useMemo(() => {
+        const pool: THREE.Mesh[] = [];
+        const geometry = new THREE.SphereGeometry(0.08, 8, 8);
+        const material = new THREE.MeshStandardMaterial({
+            color: COLORS.emerald,
+            emissive: COLORS.emerald,
+            emissiveIntensity: 0.8,
+            metalness: 0.3,
+            roughness: 0.2,
+        });
+
+        for (let i = 0; i < 80; i += 1) {
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.visible = false;
+            pool.push(mesh);
+        }
+        payloadPoolRef.current = pool;
+        return pool;
+    }, []);
+
+    useEffect(() => {
+        if (!sceneGroupRef.current) return undefined;
+
+        const nodes = nodesRef.current;
+        const group = sceneGroupRef.current;
+
+        nodes.forEach((node) => {
+            let geometry: THREE.BufferGeometry;
+            let material: THREE.MeshStandardMaterial;
+
+            if (node.type === "client") {
+                geometry = new THREE.IcosahedronGeometry(node.baseScale, 0);
+                material = new THREE.MeshStandardMaterial({
+                    color: COLORS.clientBlue,
+                    emissive: COLORS.clientBlue,
+                    emissiveIntensity: 0.2,
+                    metalness: 0.6,
+                    roughness: 0.3,
+                });
+            } else if (node.type === "professional") {
+                geometry = new THREE.CapsuleGeometry(node.baseScale * 0.6, node.baseScale * 1.2, 4, 8);
+                material = new THREE.MeshStandardMaterial({
+                    color: COLORS.emerald,
+                    emissive: COLORS.emerald,
+                    emissiveIntensity: 0.3,
+                    metalness: 0.5,
+                    roughness: 0.2,
+                });
+            } else {
+                geometry = new THREE.BoxGeometry(
+                    node.baseScale * 1.5,
+                    node.baseScale * 1.5,
+                    node.baseScale * 1.5
+                );
+                material = new THREE.MeshStandardMaterial({
+                    color: COLORS.contractWhite,
+                    emissive: COLORS.contractWhite,
+                    emissiveIntensity: 0.15,
+                    metalness: 0.8,
+                    roughness: 0.1,
+                });
+            }
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.copy(node.position);
+            node.mesh = mesh;
+            group.add(mesh);
+        });
+
+        payloadPoolRef.current.forEach((mesh) => group.add(mesh));
+
+        createConnections();
+
+        return () => {
+            nodes.forEach((node) => {
+                if (node.mesh) {
+                    node.mesh.geometry.dispose();
+                    (node.mesh.material as THREE.Material).dispose();
+                }
+            });
+            connectionsRef.current.forEach((conn) => {
+                if (conn.tube) {
+                    conn.tube.geometry.dispose();
+                    (conn.tube.material as THREE.Material).dispose();
+                    group.remove(conn.tube);
+                }
+                if (conn.contractMesh) {
+                    group.remove(conn.contractMesh);
+                }
+                if (conn.lockMesh) {
+                    group.remove(conn.lockMesh);
+                }
+            });
+        };
+    }, []);
+
+    function createConnections() {
+        const nodes = nodesRef.current;
+        const connections: Connection[] = [];
+        const numConnections = 20;
+
+        for (let i = 0; i < numConnections; i += 1) {
+            const clientIdx = Math.floor(Math.random() * 60);
+            const proIdx = 60 + Math.floor(Math.random() * 60);
+
+            const from = nodes[clientIdx].position;
+            const to = nodes[proIdx].position;
+            const mid = from.clone().lerp(to, 0.5);
+            mid.y += (Math.random() - 0.5) * 2;
+
+            const curve = new THREE.CatmullRomCurve3([from.clone(), mid, to.clone()]);
+
+            connections.push({
+                from: clientIdx,
+                to: proIdx,
+                curve,
+                active: i < 12,
+                progress: 0,
+                payloads: [],
+            });
+        }
+
+        connectionsRef.current = connections;
+
+        connections.forEach((conn) => {
+            if (conn.active) {
+                createTube(conn);
+                activateConnection(conn);
+            }
+        });
+    }
+
+    function createTube(conn: Connection) {
+        if (!sceneGroupRef.current) return;
+
+        const geometry = new THREE.TubeGeometry(conn.curve, 32, 0.02, 8, false);
+        const material = new THREE.MeshStandardMaterial({
+            color: COLORS.clientBlue,
+            emissive: COLORS.emerald,
+            emissiveIntensity: 0.3,
+            metalness: 0.7,
+            roughness: 0.2,
+            transparent: true,
+            opacity: 0,
+        });
+
+        conn.tube = new THREE.Mesh(geometry, material);
+        sceneGroupRef.current.add(conn.tube);
+    }
+
+    function activateConnection(conn: Connection) {
+        if (!sceneGroupRef.current) return;
+
+        const mid = conn.curve.getPoint(0.5);
+
+        const contractGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3, 2, 2, 2);
+        const contractMaterial = new THREE.MeshStandardMaterial({
+            color: COLORS.contractWhite,
+            emissive: COLORS.contractWhite,
+            emissiveIntensity: 0.5,
+            metalness: 0.9,
+            roughness: 0.1,
+        });
+        conn.contractMesh = new THREE.Mesh(contractGeometry, contractMaterial);
+        conn.contractMesh.position.copy(mid);
+        conn.contractMesh.scale.setScalar(0.01);
+        sceneGroupRef.current.add(conn.contractMesh);
+
+        const lockGroup = new THREE.Group();
+        const lockBodyGeometry = new THREE.BoxGeometry(0.15, 0.2, 0.1, 1, 1, 1);
+        const lockBodyMaterial = new THREE.MeshStandardMaterial({
+            color: COLORS.emerald,
+            emissive: COLORS.emerald,
+            emissiveIntensity: 0.6,
+            metalness: 0.8,
+            roughness: 0.2,
+        });
+        const lockBody = new THREE.Mesh(lockBodyGeometry, lockBodyMaterial);
+        lockGroup.add(lockBody);
+
+        const shackleGeometry = new THREE.TorusGeometry(0.08, 0.025, 8, 12, Math.PI);
+        const shackle = new THREE.Mesh(shackleGeometry, lockBodyMaterial);
+        shackle.position.y = 0.15;
+        shackle.rotation.x = Math.PI;
+        lockGroup.add(shackle);
+
+        lockGroup.position.copy(mid);
+        lockGroup.position.y += 0.5;
+        lockGroup.scale.setScalar(0.01);
+        conn.lockMesh = lockGroup;
+        sceneGroupRef.current.add(lockGroup);
+
+        const numPayloads = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numPayloads; i += 1) {
+            const availableMesh = payloadPoolRef.current.find((mesh) => !mesh.visible);
+            if (availableMesh) {
+                availableMesh.visible = true;
+                conn.payloads.push({
+                    mesh: availableMesh,
+                    progress: i / numPayloads,
+                    speed: 0.003 + Math.random() * 0.002,
+                });
+            }
+        }
+    }
+
+    function deactivateConnection(conn: Connection) {
+        if (!sceneGroupRef.current) return;
+
+        conn.active = false;
+
+        if (conn.tube) {
+            sceneGroupRef.current.remove(conn.tube);
+            conn.tube.geometry.dispose();
+            (conn.tube.material as THREE.Material).dispose();
+            conn.tube = undefined;
+        }
+
+        if (conn.contractMesh) {
+            sceneGroupRef.current.remove(conn.contractMesh);
+            conn.contractMesh.geometry.dispose();
+            (conn.contractMesh.material as THREE.Material).dispose();
+            conn.contractMesh = undefined;
+        }
+
+        if (conn.lockMesh) {
+            sceneGroupRef.current.remove(conn.lockMesh);
+            conn.lockMesh.children.forEach((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.geometry.dispose();
+                    (child.material as THREE.Material).dispose();
+                }
+            });
+            conn.lockMesh = undefined;
+        }
+
+        conn.payloads.forEach((payload) => {
+            payload.mesh.visible = false;
+        });
+        conn.payloads = [];
+        conn.progress = 0;
+    }
+
+    useFrame((_, delta) => {
+        timeRef.current += delta;
+
+        const nodes = nodesRef.current;
+        const connections = connectionsRef.current;
+
+        if (!prefersReducedMotion) {
+            nodes.forEach((node) => {
+                if (!node.mesh) return;
+
+                node.position.add(node.velocity);
+
+                if (Math.abs(node.position.x) > 15) node.velocity.x *= -1;
+                if (Math.abs(node.position.y) > 10) node.velocity.y *= -1;
+                if (Math.abs(node.position.z) > 12) node.velocity.z *= -1;
+
+                node.mesh.position.copy(node.position);
+                node.mesh.rotation.x += delta * 0.2;
+                node.mesh.rotation.y += delta * 0.3;
+            });
+        }
+
+        connections.forEach((conn) => {
+            if (!conn.active) return;
+
+            const from = nodes[conn.from].position;
+            const to = nodes[conn.to].position;
+            const mid = from.clone().lerp(to, 0.5);
+            mid.y += Math.sin(timeRef.current * 0.5 + conn.from) * 0.5;
+            conn.curve.points[0].copy(from);
+            conn.curve.points[1].copy(mid);
+            conn.curve.points[2].copy(to);
+
+            if (conn.tube) {
+                conn.tube.geometry.dispose();
+                conn.tube.geometry = new THREE.TubeGeometry(conn.curve, 32, 0.02, 8, false);
+
+                const material = conn.tube.material as THREE.MeshStandardMaterial;
+                if (material.opacity < 0.8) {
+                    material.opacity = Math.min(0.8, material.opacity + delta * 0.5);
+                }
+            }
+
+            if (conn.contractMesh) {
+                conn.progress += delta * 2;
+                if (conn.progress < 1) {
+                    const scale = 0.01 + Math.sin(conn.progress * Math.PI) * 0.99;
+                    conn.contractMesh.scale.setScalar(scale);
+                    const material = conn.contractMesh.material as THREE.MeshStandardMaterial;
+                    material.emissiveIntensity = 0.5 + Math.sin(conn.progress * Math.PI) * 0.5;
+                } else {
+                    conn.contractMesh.scale.setScalar(1);
+                }
+                conn.contractMesh.position.copy(conn.curve.getPoint(0.5));
+                conn.contractMesh.rotation.x += delta;
+                conn.contractMesh.rotation.y += delta * 0.7;
+            }
+
+            if (conn.lockMesh) {
+                if (conn.progress < 1.2 && conn.progress > 0.3) {
+                    const scale = Math.min(1, (conn.progress - 0.3) / 0.5);
+                    conn.lockMesh.scale.setScalar(scale);
+                }
+                const lockPos = conn.curve.getPoint(0.5).clone();
+                lockPos.y += 0.5;
+                conn.lockMesh.position.copy(lockPos);
+                conn.lockMesh.rotation.y += delta * 0.5;
+            }
+
+            conn.payloads.forEach((payload) => {
+                const speedMultiplier = conn.progress > 1 ? 1.5 : 1;
+                payload.progress += payload.speed * speedMultiplier * delta * 60;
+
+                if (payload.progress > 1) {
+                    payload.progress = 0;
+                }
+
+                const pos = conn.curve.getPoint(payload.progress);
+                payload.mesh.position.copy(pos);
+                payload.mesh.scale.setScalar(0.8 + Math.sin(timeRef.current * 3 + payload.progress * 10) * 0.2);
+            });
+        });
+
+        if (timeRef.current > nextConnectionChangeRef.current) {
+            nextConnectionChangeRef.current = timeRef.current + 12 + Math.random() * 6;
+
+            const activeConnections = connections.filter((connection) => connection.active);
+            const toDeactivate = activeConnections.slice(0, 2 + Math.floor(Math.random() * 2));
+            toDeactivate.forEach((conn) => deactivateConnection(conn));
+
+            const inactiveConnections = connections.filter((connection) => !connection.active);
+            const toActivate = inactiveConnections.slice(0, toDeactivate.length);
+            toActivate.forEach((conn) => {
+                conn.active = true;
+                conn.progress = 0;
+                createTube(conn);
+                activateConnection(conn);
+            });
+        }
+
+        if (!prefersReducedMotion) {
+            camera.position.x = Math.sin(timeRef.current * 0.05) * 2;
+            camera.position.y = Math.cos(timeRef.current * 0.07) * 1;
+            camera.lookAt(0, 0, 0);
+        }
+    });
+
+    return (
+        <>
+            <fog attach="fog" args={[COLORS.background, 10, 40]} />
+            <ambientLight intensity={0.3} />
+            <directionalLight position={[10, 10, 5]} intensity={0.8} />
+            <directionalLight position={[-10, -5, -5]} intensity={0.3} color="#1BC47D" />
+            <group ref={sceneGroupRef} />
+        </>
+    );
+}
 
 export default function TrustFlowNetwork() {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [reducedMotion, setReducedMotion] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [isDark, setIsDark] = useState(false);
-
-    const nodes = useMemo(() => {
-        const positions = Array.from({ length: MAX_NODES }, () =>
-            new THREE.Vector3(
-                THREE.MathUtils.randFloatSpread(BOUNDS * 2),
-                THREE.MathUtils.randFloatSpread(BOUNDS * 1.6),
-                THREE.MathUtils.randFloatSpread(BOUNDS * 1.2)
-            )
-        );
-        const velocities = positions.map(
-            () =>
-                new THREE.Vector3(
-                    THREE.MathUtils.randFloatSpread(0.02),
-                    THREE.MathUtils.randFloatSpread(0.02),
-                    THREE.MathUtils.randFloatSpread(0.02)
-                )
-        );
-        const types = positions.map((_, index) => (index < MAX_NODES / 2 ? "client" : "pro"));
-        return { positions, velocities, types };
-    }, []);
-
-    const connections = useRef<Connection[]>(
-        Array.from({ length: MAX_CONNECTIONS }, () => ({
-            active: false,
-            clientIndex: 0,
-            proIndex: 0,
-            startTime: 0,
-            duration: 0,
-            lockDelay: 0,
-        }))
-    );
-
-    const particles = useMemo<Particle[]>(
-        () =>
-            Array.from({ length: MAX_CONNECTIONS * PARTICLES_PER_CONNECTION }, (_, index) => ({
-                connectionIndex: Math.floor(index / PARTICLES_PER_CONNECTION),
-                offset: Math.random(),
-                speed: THREE.MathUtils.randFloat(0.08, 0.14),
-            })),
-        []
-    );
-
-    const midpoints = useMemo(
-        () => Array.from({ length: MAX_CONNECTIONS }, () => new THREE.Vector3()),
-        []
-    );
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-        const updateMotion = () => setReducedMotion(motionQuery.matches);
-        const updateSize = () => setIsMobile(window.innerWidth < 768);
-        const updateTheme = () => setIsDark(document.documentElement.classList.contains("dark"));
-        updateMotion();
-        updateSize();
-        updateTheme();
-        motionQuery.addEventListener("change", updateMotion);
-        window.addEventListener("resize", updateSize);
-        const themeObserver = new MutationObserver(updateTheme);
-        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-        return () => {
-            motionQuery.removeEventListener("change", updateMotion);
-            window.removeEventListener("resize", updateSize);
-            themeObserver.disconnect();
+        setIsClient(true);
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
         };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-    useEffect(() => {
-        if (reducedMotion || isMobile) return;
-        const container = containerRef.current;
-        if (!container) return;
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(0, 0, 12);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-        container.appendChild(renderer.domElement);
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-        const pointLight = new THREE.PointLight(0x1bc47d, 0.8);
-        pointLight.position.set(6, 6, 6);
-        scene.add(pointLight);
-
-        const nodeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-        const palette = getThemePalette(isDark);
-
-        const nodeMaterial = new THREE.MeshStandardMaterial({
-            roughness: 0.2,
-            metalness: 0.3,
-            emissive: palette.nodeEmissive,
-        });
-        const nodeMesh = new THREE.InstancedMesh(nodeGeometry, nodeMaterial, MAX_NODES);
-        nodeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        nodeMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX_NODES * 3), 3);
-
-        const tempObject = new THREE.Object3D();
-        nodes.positions.forEach((position, index) => {
-            tempObject.position.copy(position);
-            tempObject.scale.setScalar(nodes.types[index] === "client" ? 0.18 : 0.22);
-            tempObject.updateMatrix();
-            nodeMesh.setMatrixAt(index, tempObject.matrix);
-            nodeMesh.setColorAt(index, nodes.types[index] === "client" ? CLIENT_COLOR : PRO_COLOR);
-        });
-        nodeMesh.instanceMatrix.needsUpdate = true;
-        if (nodeMesh.instanceColor) {
-            nodeMesh.instanceColor.needsUpdate = true;
+    const prefersReducedMotion = useMemo(() => {
+        if (typeof window !== "undefined") {
+            return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         }
-        scene.add(nodeMesh);
+        return false;
+    }, []);
 
-        const contractGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-        const contractMaterial = new THREE.MeshStandardMaterial({
-            color: palette.contract,
-            roughness: 0.1,
-            metalness: 0.2,
-            emissive: new THREE.Color("#1BC47D"),
-            emissiveIntensity: 0.2,
-        });
-        const contractMesh = new THREE.InstancedMesh(contractGeometry, contractMaterial, MAX_CONNECTIONS);
-        contractMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        for (let i = 0; i < MAX_CONNECTIONS; i += 1) {
-            tempObject.position.set(0, 0, 0);
-            tempObject.scale.setScalar(0.0001);
-            tempObject.updateMatrix();
-            contractMesh.setMatrixAt(i, tempObject.matrix);
-        }
-        contractMesh.instanceMatrix.needsUpdate = true;
-        scene.add(contractMesh);
-
-        const linePositions = new Float32Array(MAX_CONNECTIONS * 2 * 3);
-        const lineColors = new Float32Array(MAX_CONNECTIONS * 2 * 3);
-        const lineGeometry = new THREE.BufferGeometry();
-        lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePositions, 3));
-        lineGeometry.setAttribute("color", new THREE.BufferAttribute(lineColors, 3));
-        const lineMaterial = new THREE.LineBasicMaterial({
-            color: palette.lineBase,
-            transparent: true,
-            opacity: palette.lineOpacity,
-            vertexColors: true,
-        });
-        const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-        scene.add(lines);
-
-        const particlePositions = new Float32Array(MAX_CONNECTIONS * PARTICLES_PER_CONNECTION * 3);
-        const particleGeometry = new THREE.BufferGeometry();
-        particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-        const particleMaterial = new THREE.PointsMaterial({
-            size: 0.08,
-            color: PARTICLE_COLOR,
-            transparent: true,
-            opacity: palette.particleOpacity,
-        });
-        const particlePoints = new THREE.Points(particleGeometry, particleMaterial);
-        scene.add(particlePoints);
-
-        const lockTexture = createLockTexture();
-        const lockMaterials = Array.from(
-            { length: MAX_CONNECTIONS },
-            () =>
-                new THREE.SpriteMaterial({
-                    map: lockTexture,
-                    color: "#1BC47D",
-                    transparent: true,
-                    opacity: 0,
-                })
-        );
-        const lockSprites = lockMaterials.map((material) => {
-            const sprite = new THREE.Sprite(material);
-            sprite.scale.set(0.5, 0.5, 0.5);
-            scene.add(sprite);
-            return sprite;
-        });
-
-        const clock = new THREE.Clock();
-        const spawnTimer = { current: 0 };
-        const tempVec = new THREE.Vector3();
-
-        let rafId = 0;
-        const animate = () => {
-            rafId = requestAnimationFrame(animate);
-            const elapsed = clock.getElapsedTime();
-
-            camera.position.x = Math.sin(elapsed * 0.08) * 1.8;
-            camera.position.y = Math.sin(elapsed * 0.05) * 1.2;
-            camera.position.z = 12;
-            camera.lookAt(0, 0, 0);
-
-            nodes.positions.forEach((position, index) => {
-                position.add(nodes.velocities[index]);
-                ["x", "y", "z"].forEach((axis) => {
-                    const limit = axis === "y" ? BOUNDS * 0.75 : BOUNDS;
-                    const value = position[axis as "x" | "y" | "z"];
-                    if (value > limit || value < -limit) {
-                        nodes.velocities[index][axis as "x" | "y" | "z"] *= -1;
-                        position[axis as "x" | "y" | "z"] = THREE.MathUtils.clamp(value, -limit, limit);
-                    }
-                });
-            });
-
-            nodes.positions.forEach((position, index) => {
-                tempObject.position.copy(position);
-                tempObject.scale.setScalar(nodes.types[index] === "client" ? 0.18 : 0.22);
-                tempObject.updateMatrix();
-                nodeMesh.setMatrixAt(index, tempObject.matrix);
-            });
-            nodeMesh.instanceMatrix.needsUpdate = true;
-
-            if (elapsed > spawnTimer.current) {
-                const available = connections.current.find((connection) => !connection.active);
-                if (available) {
-                    const clientIndex = THREE.MathUtils.randInt(0, MAX_NODES / 2 - 1);
-                    const proIndex = THREE.MathUtils.randInt(MAX_NODES / 2, MAX_NODES - 1);
-                    available.active = true;
-                    available.clientIndex = clientIndex;
-                    available.proIndex = proIndex;
-                    available.startTime = elapsed;
-                    available.duration = THREE.MathUtils.randFloat(10, 15);
-                    available.lockDelay = THREE.MathUtils.randFloat(1.2, 2.4);
-                }
-                spawnTimer.current = elapsed + THREE.MathUtils.randFloat(1.5, 2.8);
-            }
-
-            const activeConnections = connections.current;
-            for (let index = 0; index < MAX_CONNECTIONS; index += 1) {
-                const connection = activeConnections[index];
-                const lineIndex = index * 6;
-                if (!connection.active) {
-                    linePositions.fill(0, lineIndex, lineIndex + 6);
-                    lineColors.fill(0, lineIndex, lineIndex + 6);
-                    tempObject.position.set(0, 0, 0);
-                    tempObject.scale.setScalar(0.0001);
-                    tempObject.updateMatrix();
-                    contractMesh.setMatrixAt(index, tempObject.matrix);
-                    lockSprites[index].material.opacity = 0;
-                    continue;
-                }
-
-                const age = elapsed - connection.startTime;
-                if (age > connection.duration) {
-                    connection.active = false;
-                    linePositions.fill(0, lineIndex, lineIndex + 6);
-                    lineColors.fill(0, lineIndex, lineIndex + 6);
-                    tempObject.position.set(0, 0, 0);
-                    tempObject.scale.setScalar(0.0001);
-                    tempObject.updateMatrix();
-                    contractMesh.setMatrixAt(index, tempObject.matrix);
-                    lockSprites[index].material.opacity = 0;
-                    continue;
-                }
-
-                const fadeIn = THREE.MathUtils.smoothstep(age, 0, 1.2);
-                const fadeOut = THREE.MathUtils.smoothstep(connection.duration - age, 0, 1.6);
-                const intensity = fadeIn * fadeOut;
-                const clientPos = nodes.positions[connection.clientIndex];
-                const proPos = nodes.positions[connection.proIndex];
-                midpoints[index].copy(clientPos).add(proPos).multiplyScalar(0.5);
-
-                linePositions[lineIndex] = clientPos.x;
-                linePositions[lineIndex + 1] = clientPos.y;
-                linePositions[lineIndex + 2] = clientPos.z;
-                linePositions[lineIndex + 3] = proPos.x;
-                linePositions[lineIndex + 4] = proPos.y;
-                linePositions[lineIndex + 5] = proPos.z;
-
-                for (let i = 0; i < 2; i += 1) {
-                    const colorIndex = lineIndex + i * 3;
-                    lineColors[colorIndex] = palette.lineBase.r * intensity;
-                    lineColors[colorIndex + 1] = palette.lineBase.g * intensity;
-                    lineColors[colorIndex + 2] = palette.lineBase.b * intensity;
-                }
-
-                const pulse = age < 1.2 ? 1 + Math.sin(age * Math.PI) * 0.25 : 1;
-                tempObject.position.copy(midpoints[index]);
-                tempObject.scale.setScalar(0.32 * pulse * intensity);
-                tempObject.updateMatrix();
-                contractMesh.setMatrixAt(index, tempObject.matrix);
-
-                const lockVisible = age > connection.lockDelay;
-                const lockOpacity = lockVisible ? THREE.MathUtils.smoothstep(age - connection.lockDelay, 0, 1) : 0;
-                lockSprites[index].position.copy(midpoints[index]).add(tempVec.set(0.3, 0.3, 0));
-                lockSprites[index].material.opacity = lockOpacity * intensity;
-            }
-
-            const particleCount = MAX_CONNECTIONS * PARTICLES_PER_CONNECTION;
-            for (let i = 0; i < particleCount; i += 1) {
-                const particle = particles[i];
-                const connection = activeConnections[particle.connectionIndex];
-                const baseIndex = i * 3;
-                if (!connection.active) {
-                    particlePositions[baseIndex] = 1000;
-                    particlePositions[baseIndex + 1] = 1000;
-                    particlePositions[baseIndex + 2] = 1000;
-                    continue;
-                }
-                const age = elapsed - connection.startTime;
-                const clientPos = nodes.positions[connection.clientIndex];
-                const proPos = nodes.positions[connection.proIndex];
-                const midpoint = midpoints[particle.connectionIndex];
-                const lockVisible = age > connection.lockDelay;
-                const speedMultiplier = lockVisible ? 1.25 : 0.75;
-                const progress = (elapsed * particle.speed * speedMultiplier + particle.offset) % 1;
-                const segmentProgress = progress < 0.5 ? progress * 2 : (progress - 0.5) * 2;
-                if (progress < 0.5) {
-                    particlePositions[baseIndex] = THREE.MathUtils.lerp(clientPos.x, midpoint.x, segmentProgress);
-                    particlePositions[baseIndex + 1] = THREE.MathUtils.lerp(clientPos.y, midpoint.y, segmentProgress);
-                    particlePositions[baseIndex + 2] = THREE.MathUtils.lerp(clientPos.z, midpoint.z, segmentProgress);
-                } else {
-                    particlePositions[baseIndex] = THREE.MathUtils.lerp(midpoint.x, proPos.x, segmentProgress);
-                    particlePositions[baseIndex + 1] = THREE.MathUtils.lerp(midpoint.y, proPos.y, segmentProgress);
-                    particlePositions[baseIndex + 2] = THREE.MathUtils.lerp(midpoint.z, proPos.z, segmentProgress);
-                }
-            }
-
-            contractMesh.instanceMatrix.needsUpdate = true;
-            lineGeometry.attributes.position.needsUpdate = true;
-            lineGeometry.attributes.color.needsUpdate = true;
-            particleGeometry.attributes.position.needsUpdate = true;
-
-            renderer.render(scene, camera);
-        };
-        animate();
-
-        const handleResize = () => {
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-        };
-        window.addEventListener("resize", handleResize);
-
-        return () => {
-            cancelAnimationFrame(rafId);
-            window.removeEventListener("resize", handleResize);
-            renderer.dispose();
-            nodeGeometry.dispose();
-            nodeMaterial.dispose();
-            contractGeometry.dispose();
-            contractMaterial.dispose();
-            lineGeometry.dispose();
-            lineMaterial.dispose();
-            particleGeometry.dispose();
-            particleMaterial.dispose();
-            lockTexture.dispose();
-            lockMaterials.forEach((material) => material.dispose());
-            container.removeChild(renderer.domElement);
-        };
-    }, [isDark, isMobile, nodes, particles, reducedMotion, midpoints]);
-
-    if (reducedMotion || isMobile) {
+    if (!isClient) {
         return (
-            <div
-                className="w-full h-full bg-[radial-gradient(circle_at_top,_rgba(27,196,125,0.2),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(11,28,45,0.2),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(27,196,125,0.14),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.18),_transparent_55%)]"
-                aria-hidden="true"
-            />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0B1C2D] via-[#0F2438] to-[#0B1C2D]" />
         );
     }
 
-    return <div ref={containerRef} className="w-full h-full" aria-hidden="true" />;
+    if (isMobile) {
+        return (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0B1C2D] via-[#0F2438] to-[#0B1C2D]">
+                <div className="absolute inset-0 opacity-30">
+                    <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#1BC47D] rounded-full blur-[100px]" />
+                    <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#3B82F6] rounded-full blur-[100px]" />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
+            <Canvas
+                camera={{ position: [0, 0, 20], fov: 50 }}
+                dpr={[1, 1.5]}
+                gl={{
+                    antialias: true,
+                    alpha: true,
+                    powerPreference: "high-performance",
+                }}
+            >
+                <color attach="background" args={[COLORS.background]} />
+                <TrustFlowScene />
+                {!prefersReducedMotion && (
+                    <EffectComposer>
+                        <Bloom intensity={0.3} luminanceThreshold={0.6} luminanceSmoothing={0.9} />
+                        <DepthOfField focusDistance={0.01} focalLength={0.05} bokehScale={1.5} />
+                    </EffectComposer>
+                )}
+            </Canvas>
+        </div>
+    );
 }
