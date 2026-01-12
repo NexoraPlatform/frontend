@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/api';
 import {InputAdornment, TextField} from "@mui/material";
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function ServiceDetailClient({ id }: { id: string;}) {
     const [formData, setFormData] = useState({
@@ -192,42 +193,54 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex justify-center items-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
+            <>
+                <TrustoraThemeStyles />
+                <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                    <div className="container mx-auto px-4 py-10">
+                        <div className="flex justify-center items-center py-20">
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/services">
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-bold">{pageTitle}</h1>
-                    <p className="text-muted-foreground">
-                        {pageSubtitle}
-                    </p>
-                </div>
-            </div>
+        <>
+            <TrustoraThemeStyles />
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                <div className="container mx-auto px-4 py-10">
+                    {/* Header */}
+                    <div className="flex items-center space-x-4 mb-8">
+                        <Link href="/admin/services">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{pageTitle}</h1>
+                            <p className="text-sm text-muted-foreground">
+                                {pageSubtitle}
+                            </p>
+                        </div>
+                    </div>
 
-            <div className="max-w-4xl">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+                    <div className="max-w-4xl">
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            {error && (
+                                <Alert variant="destructive">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
+                            )}
 
                     {/* Informații de bază */}
-                    <Card>
+                    <Card className="glass-card shadow-sm">
                         <CardHeader>
                             <CardTitle>{infoTitle}</CardTitle>
                         </CardHeader>
@@ -239,6 +252,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                     value={formData.name}
                                     onChange={(e) => handleNameChange(e.target.value)}
                                     required
+                                    className="bg-white/80 dark:bg-slate-900/60"
                                 />
                             </div>
 
@@ -273,6 +287,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                     rows={4}
                                     required
+                                    className="bg-white/80 dark:bg-slate-900/60"
                                 />
                             </div>
 
@@ -283,6 +298,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                     value={formData.requirements}
                                     onChange={(e) => setFormData({...formData, requirements: e.target.value})}
                                     rows={3}
+                                    className="bg-white/80 dark:bg-slate-900/60"
                                 />
                             </div>
 
@@ -296,7 +312,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                             handleCategoryChange(value);
                                         }}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
                                             <SelectValue placeholder={categoryPlaceholder} />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -314,7 +330,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                 <div>
                                     <Label htmlFor="status">{statusLabel}</Label>
                                     <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -329,7 +345,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                     </Card>
 
                     {/* Skills și Tags */}
-                    <Card>
+                    <Card className="glass-card shadow-sm">
                         <CardHeader>
                             <CardTitle>{skillsTagsTitle}</CardTitle>
                         </CardHeader>
@@ -347,6 +363,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                                 addSkill();
                                             }
                                         }}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                     <Button type="button" onClick={addSkill} variant="outline">
                                         <Plus className="w-4 h-4" />
@@ -354,7 +371,11 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {formData.skills.map((skill, index) => (
-                                        <Badge key={index} variant="secondary" className="flex items-center space-x-1">
+                                        <Badge
+                                            key={index}
+                                            variant="secondary"
+                                            className="flex items-center space-x-1 border border-slate-200/70 bg-slate-100 text-slate-700 dark:border-slate-700/60 dark:bg-slate-800 dark:text-slate-200"
+                                        >
                                             <span>{skill}</span>
                                             <button
                                                 type="button"
@@ -381,6 +402,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                                 addTag();
                                             }
                                         }}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                     <Button type="button" onClick={addTag} variant="outline">
                                         <Plus className="w-4 h-4" />
@@ -388,7 +410,11 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {formData.tags.map((tag, index) => (
-                                        <Badge key={index} variant="outline" className="flex items-center space-x-1">
+                                        <Badge
+                                            key={index}
+                                            variant="outline"
+                                            className="flex items-center space-x-1 border-slate-200/70 text-slate-700 dark:border-slate-700/60 dark:text-slate-200"
+                                        >
                                             <span>{tag}</span>
                                             <button
                                                 type="button"
@@ -405,17 +431,17 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                     </Card>
 
                     {/* Notă despre tarife */}
-                    <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                    <Card className="border-emerald-200/70 bg-emerald-50/60 dark:border-emerald-500/40 dark:bg-emerald-500/10">
                         <CardContent className="p-6">
                             <div className="flex items-start space-x-3">
-                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
                                     <Save className="w-4 h-4 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                                    <h3 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">
                                         {pricingNoteTitle}
                                     </h3>
-                                    <p className="text-blue-800 dark:text-blue-200 text-sm">
+                                    <p className="text-emerald-800 dark:text-emerald-200 text-sm">
                                         {pricingNoteDescription}
                                     </p>
                                 </div>
@@ -425,7 +451,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
 
                     {/* Actions */}
                     <div className="flex space-x-4 pt-6">
-                        <Button type="submit" disabled={saving} className="flex-1">
+                        <Button type="submit" disabled={saving} className="flex-1 btn-primary">
                             {saving ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -439,13 +465,15 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                             )}
                         </Button>
                         <Link href="/admin/services">
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="outline" className="border-slate-200/70 dark:border-slate-700/60">
                                 {cancelLabel}
                             </Button>
                         </Link>
                     </div>
-                </form>
+                        </form>
+                    </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
