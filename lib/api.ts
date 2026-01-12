@@ -711,6 +711,40 @@ class ApiClient {
     return this.request<any>(`/projects/slug/${slug}`);
   }
 
+  async getPublicProjects(params?: {
+    page?: number;
+    search?: string;
+    category?: string;
+    technologies?: string[];
+    budget_min?: number;
+    budget_max?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (params.page !== undefined && params.page !== null) {
+        searchParams.append('page', params.page.toString());
+      }
+      if (params.search) {
+        searchParams.append('search', params.search);
+      }
+      if (params.category) {
+        searchParams.append('category', params.category);
+      }
+      if (params.technologies && params.technologies.length > 0) {
+        params.technologies.forEach((tech) => searchParams.append('technologies', tech));
+      }
+      if (params.budget_min !== undefined && params.budget_min !== null) {
+        searchParams.append('budget_min', params.budget_min.toString());
+      }
+      if (params.budget_max !== undefined && params.budget_max !== null) {
+        searchParams.append('budget_max', params.budget_max.toString());
+      }
+    }
+
+    const query = searchParams.toString();
+    return this.request<any>(`/projects${query ? `?${query}` : ''}`);
+  }
+
   async getProviderProjectRequests() {
     return this.request<any>('/projects/requests', {
       method: 'GET',

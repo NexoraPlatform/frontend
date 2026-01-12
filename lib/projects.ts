@@ -1,3 +1,6 @@
+import { apiClient } from './api';
+import { Locale } from '@/types/locale';
+
 export type ProjectClient = {
   name: string;
   avatar_url?: string;
@@ -12,8 +15,7 @@ export type ProjectWithClient = {
   description: string;
   category: string;
   technologies: string[];
-  budget_min: number;
-  budget_max: number;
+  budget: number;
   budget_type: 'fixed' | 'hourly';
   deadline: string;
   offers_count: number;
@@ -30,8 +32,7 @@ const PROJECTS: ProjectWithClient[] = [
       'Dezvoltare platformă e-commerce cu React și Node.js pentru vânzarea de produse handmade.',
     category: 'Dezvoltare Web',
     technologies: ['React', 'Node.js', 'MongoDB', 'Stripe', 'TypeScript'],
-    budget_min: 4000,
-    budget_max: 7000,
+    budget: 5500,
     budget_type: 'fixed',
     deadline: '2024-03-15',
     offers_count: 12,
@@ -51,8 +52,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'App nativ iOS și Android pentru tracking antrenamente și nutriție.',
     category: 'Mobile Development',
     technologies: ['React Native', 'Firebase', 'Redux', 'TypeScript'],
-    budget_min: 7000,
-    budget_max: 12000,
+    budget: 9500,
     budget_type: 'fixed',
     deadline: '2024-04-20',
     offers_count: 8,
@@ -72,8 +72,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Logo nou, brand guidelines și materiale de marketing pentru startup tech.',
     category: 'Design UI/UX',
     technologies: ['Figma', 'Adobe Illustrator', 'Photoshop'],
-    budget_min: 2000,
-    budget_max: 4500,
+    budget: 3200,
     budget_type: 'fixed',
     deadline: '2024-02-28',
     offers_count: 15,
@@ -93,8 +92,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Construire dashboard analytics cu grafice interactive și exporturi.',
     category: 'Dezvoltare Web',
     technologies: ['Next.js', 'Tailwind CSS', 'Chart.js'],
-    budget_min: 5000,
-    budget_max: 9000,
+    budget: 7000,
     budget_type: 'fixed',
     deadline: '2024-05-10',
     offers_count: 6,
@@ -114,8 +112,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Strategie completă de promovare online pentru magazin de fashion.',
     category: 'Marketing Digital',
     technologies: ['Meta Ads', 'Google Ads', 'TikTok'],
-    budget_min: 3000,
-    budget_max: 6000,
+    budget: 4200,
     budget_type: 'fixed',
     deadline: '2024-03-30',
     offers_count: 9,
@@ -135,8 +132,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'CRM complet pentru echipe de vânzări, cu integrare email și rapoarte.',
     category: 'Dezvoltare Software',
     technologies: ['Laravel', 'MySQL', 'Vue.js'],
-    budget_min: 10000,
-    budget_max: 18000,
+    budget: 14000,
     budget_type: 'fixed',
     deadline: '2024-06-01',
     offers_count: 4,
@@ -156,8 +152,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Workflow digital pentru recrutare și onboarding, cu notificări automate.',
     category: 'Productivitate',
     technologies: ['Notion', 'Zapier', 'Make'],
-    budget_min: 1500,
-    budget_max: 3000,
+    budget: 2200,
     budget_type: 'fixed',
     deadline: '2024-03-12',
     offers_count: 11,
@@ -177,8 +172,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Set complet de componente UI și prototipuri pentru aplicație fintech.',
     category: 'Design UI/UX',
     technologies: ['Figma', 'Storybook'],
-    budget_min: 3500,
-    budget_max: 5500,
+    budget: 4500,
     budget_type: 'fixed',
     deadline: '2024-04-05',
     offers_count: 7,
@@ -198,8 +192,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Landing page optimizat pentru conversii, cu secțiuni dinamice.',
     category: 'Dezvoltare Web',
     technologies: ['Astro', 'Tailwind CSS', 'GSAP'],
-    budget_min: 1200,
-    budget_max: 2500,
+    budget: 1800,
     budget_type: 'fixed',
     deadline: '2024-03-05',
     offers_count: 14,
@@ -219,8 +212,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Implementare chatbot bazat pe AI pentru suport clienți și FAQs.',
     category: 'AI & Automatizări',
     technologies: ['OpenAI', 'Node.js', 'Pinecone'],
-    budget_min: 6000,
-    budget_max: 11000,
+    budget: 8500,
     budget_type: 'fixed',
     deadline: '2024-05-22',
     offers_count: 5,
@@ -240,8 +232,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Monitorizare și control dispozitive smart home cu dashboard web.',
     category: 'IoT',
     technologies: ['Python', 'MQTT', 'React'],
-    budget_min: 8000,
-    budget_max: 15000,
+    budget: 11000,
     budget_type: 'fixed',
     deadline: '2024-06-15',
     offers_count: 3,
@@ -261,8 +252,7 @@ const PROJECTS: ProjectWithClient[] = [
     description: 'Audit SEO complet și plan de optimizare tehnică pentru trafic organic.',
     category: 'Marketing Digital',
     technologies: ['SEO', 'Google Analytics', 'Ahrefs'],
-    budget_min: 1000,
-    budget_max: 2000,
+    budget: 1500,
     budget_type: 'fixed',
     deadline: '2024-03-18',
     offers_count: 10,
@@ -290,30 +280,14 @@ export async function getProjects(
     budget_max?: number;
   }
 ): Promise<ProjectWithClient[]> {
-  const search = filters?.search?.trim().toLowerCase() ?? '';
-  const category = filters?.category ?? 'Toate';
-  const selectedTechs = (filters?.technologies ?? []).map((tech) => tech.toLowerCase());
-  const minBudget = filters?.budget_min ?? 0;
-  const maxBudget = filters?.budget_max ?? Number.MAX_SAFE_INTEGER;
-
-  const filtered = PROJECTS.filter((project) => {
-    const matchesSearch =
-      !search ||
-      project.title.toLowerCase().includes(search) ||
-      project.description.toLowerCase().includes(search);
-    const matchesCategory = category === 'Toate' || project.category === category;
-    const matchesTechs =
-      selectedTechs.length === 0 ||
-      selectedTechs.every((tech) => project.technologies.some((item) => item.toLowerCase() === tech));
-    const matchesBudget = project.budget_min <= maxBudget && project.budget_max >= minBudget;
-
-    return matchesSearch && matchesCategory && matchesTechs && matchesBudget;
+  return apiClient.getPublicProjects({
+    page,
+    search: filters?.search,
+    category: filters?.category,
+    technologies: filters?.technologies,
+    budget_min: filters?.budget_min,
+    budget_max: filters?.budget_max,
   });
-
-  const start = page * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-
-  return filtered.slice(start, end);
 }
 
 export async function getProjectCategories(): Promise<string[]> {
@@ -337,12 +311,33 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function formatDeadline(value: string) {
-  return new Date(value).toLocaleDateString('ro-RO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+export function formatDeadline(value: string, locale: Locale = 'ro') {
+  const labels: Record<Locale, Record<string, string>> = {
+    ro: {
+      '1day': '1 zi',
+      '1week': 'O săptămână',
+      '2weeks': '2 săptămâni',
+      '3weeks': '3 săptămâni',
+      '1month': '1 lună',
+      '3months': '3 luni',
+      '6months': '6 luni',
+      '1year': '1 an',
+      '1plusyear': '1+ ani',
+    },
+    en: {
+      '1day': '1 day',
+      '1week': '1 week',
+      '2weeks': '2 weeks',
+      '3weeks': '3 weeks',
+      '1month': '1 month',
+      '3months': '3 months',
+      '6months': '6 months',
+      '1year': '1 year',
+      '1plusyear': '1+ years',
+    },
+  };
+
+  return labels[locale]?.[value] ?? labels.ro[value] ?? value;
 }
 
 export function formatDate(value: string) {

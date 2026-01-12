@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useMemo, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,8 @@ import TitleIcon from '@mui/icons-material/Title';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
+import { formatDeadline } from '@/lib/projects';
+import type { Locale } from '@/types/locale';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
@@ -154,7 +156,13 @@ type SelectedProvider = {
 };
 
 export default function NewProjectPage() {
-    setDayjsLocale('ro');
+    const pathname = usePathname();
+    const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
+
+    useEffect(() => {
+        setDayjsLocale(locale);
+    }, [locale]);
+
     const { user, loading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
@@ -394,22 +402,6 @@ export default function NewProjectPage() {
             setSuggestedProviders([]);
         }
     }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
-
-    const formatDeadline = (value: string): string => {
-        const map: Record<string, string> = {
-            '1day': '1 zi',
-            '1week': 'O săptămână',
-            '2weeks': '2 săptămâni',
-            '3weeks': '3 săptămâni',
-            '1month': '1 lună',
-            '3months': '3 luni',
-            '6months': '6 luni',
-            '1year': '1 an',
-            '1plusyear': '1+ ani',
-        };
-
-        return map[value] || value;
-    };
 
     const handleTechnologyToggle = (techName: string, techId: string) => {
         setFormData(prev => {
@@ -1124,7 +1116,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput.deadline.trim() && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Durata proiect: </span> {formatDeadline(generatedAiOutput?.deadline)}
+                                                        <span className="text-sm text-black font-bold">Durata proiect: </span> {formatDeadline(generatedAiOutput?.deadline, locale)}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
                                                         <AccessTimeFilledIcon />
@@ -1733,7 +1725,7 @@ export default function NewProjectPage() {
                                                     <div><strong>Categorie:</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
                                                     <div><strong>Buget:</strong> {formData.budget} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
                                                     {formData.deadline && (
-                                                        <div><strong>Deadline:</strong> {formatDeadline(formData.deadline)}</div>
+                                                        <div><strong>Deadline:</strong> {formatDeadline(formData.deadline, locale)}</div>
                                                     )}
                                                     {/*<div>*/}
                                                     {/*    <strong>Tip proiect:</strong>*/}
