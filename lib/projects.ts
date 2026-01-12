@@ -1,3 +1,5 @@
+import { apiClient } from './api';
+
 export type ProjectClient = {
   name: string;
   avatar_url?: string;
@@ -290,30 +292,14 @@ export async function getProjects(
     budget_max?: number;
   }
 ): Promise<ProjectWithClient[]> {
-  const search = filters?.search?.trim().toLowerCase() ?? '';
-  const category = filters?.category ?? 'Toate';
-  const selectedTechs = (filters?.technologies ?? []).map((tech) => tech.toLowerCase());
-  const minBudget = filters?.budget_min ?? 0;
-  const maxBudget = filters?.budget_max ?? Number.MAX_SAFE_INTEGER;
-
-  const filtered = PROJECTS.filter((project) => {
-    const matchesSearch =
-      !search ||
-      project.title.toLowerCase().includes(search) ||
-      project.description.toLowerCase().includes(search);
-    const matchesCategory = category === 'Toate' || project.category === category;
-    const matchesTechs =
-      selectedTechs.length === 0 ||
-      selectedTechs.every((tech) => project.technologies.some((item) => item.toLowerCase() === tech));
-    const matchesBudget = project.budget_min <= maxBudget && project.budget_max >= minBudget;
-
-    return matchesSearch && matchesCategory && matchesTechs && matchesBudget;
+  return apiClient.getPublicProjects({
+    page,
+    search: filters?.search,
+    category: filters?.category,
+    technologies: filters?.technologies,
+    budget_min: filters?.budget_min,
+    budget_max: filters?.budget_max,
   });
-
-  const start = page * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-
-  return filtered.slice(start, end);
 }
 
 export async function getProjectCategories(): Promise<string[]> {

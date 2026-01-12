@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
-import { getProjects, getProjectCategories, getProjectTechnologies, ProjectWithClient } from '@/lib/projects';
+import { getProjectCategories, getProjectTechnologies, ProjectWithClient } from '@/lib/projects';
+import { apiClient } from '@/lib/api';
 import { ProjectFilters } from '@/components/ProjectFilters';
 import { ProjectCard } from '@/components/ProjectCard';
 import { Header } from '@/components/header';
@@ -57,7 +58,8 @@ export default function ProjectsPage() {
       setIsLoading(true);
 
       try {
-        const newProjects = await getProjects(pageNum, {
+        const newProjects = await apiClient.getPublicProjects({
+          page: pageNum,
           search: searchQuery,
           category: selectedCategory,
           technologies: selectedTechnologies,
