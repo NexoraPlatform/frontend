@@ -379,43 +379,53 @@ export default function AdminDashboard() {
   ]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{dashboardTitle}</h1>
-        <p className="text-muted-foreground">
-          {dashboardSubtitle}
-        </p>
+      <div className="relative mb-10 overflow-hidden rounded-3xl border border-slate-800/70 bg-slate-900/60 p-8 shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] backdrop-blur">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
+        <div className="relative flex flex-col gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Trustora Admin
+          </span>
+          <h1 className="text-3xl font-semibold text-white sm:text-4xl">{dashboardTitle}</h1>
+          <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
+            {dashboardSubtitle}
+          </p>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {stats.map((stat, index) => (
           <Link key={index} href={`/${locale}${stat.href}`}>
-            <Card className="border-2 hover:shadow-lg transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+            <Card className="group h-full border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-900">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold flex">{stat.value}
-                      <span className={`ms-2 ${stat?.current <= 0 ? 'text-red-500' : 'text-green-500'} text-xs flex items-center`}>
-                        <span className="text-muted-foreground">(</span>
+                    <p className="text-2xl font-semibold text-white flex flex-wrap items-center gap-2">
+                      {stat.value}
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${stat?.current <= 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                        <span className="text-slate-400">(</span>
                         {stat?.current} &nbsp;{stat?.current <= 0
                           ? <TrendingDown className="text-red-500 w-5 h-5" />
                           : <TrendingUp className="text-green-500 w-5 h-5" />}
-                        <span className="text-muted-foreground">)</span>
+                        <span className="text-slate-400">)</span>
                       </span>
                     </p>
-                    {stat?.change && (<p className="text-xs text-muted-foreground mt-1">
-                      <span className={`${stat?.change < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    {stat?.change && (<p className="text-xs text-slate-400 mt-2">
+                      <span className={`font-semibold ${stat?.change < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
                         {changeTemplate.replace('{percent}', String(stat?.change))}
                       </span>
                     </p>)}
                   </div>
-                  <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform`}>
-                    <stat.icon className="w-6 h-6" />
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-2xl bg-sky-500/20 blur-xl transition-opacity group-hover:opacity-100 opacity-0" />
+                    <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-800/70 bg-slate-950/70 ${stat.color}`}>
+                      <stat.icon className="w-6 h-6" />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -424,16 +434,16 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid xs:grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8">
+      <div className="grid xs:grid-cols-1 lg:grid-cols-[2.6fr_1fr] gap-8">
         {/* Quick Actions */}
         <div>
-          <Card>
+          <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <Plus className="w-5 h-5" />
                 <span>{quickActionsTitle}</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 {quickActionsDescription}
               </CardDescription>
             </CardHeader>
@@ -441,17 +451,17 @@ export default function AdminDashboard() {
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
                   <Link key={index} href={`/${locale}${action.href}`}>
-                    <Card className="border-2 hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+                    <Card className="group h-full border border-slate-800/70 bg-slate-950/60 text-slate-100 transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-950">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
-                          <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                          <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                             <action.icon className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold mb-1">{action.title}</h3>
-                            <p className="text-sm text-muted-foreground">{action.description}</p>
+                            <h3 className="font-semibold mb-1 text-white">{action.title}</h3>
+                            <p className="text-sm text-slate-400">{action.description}</p>
                           </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-sky-300 transition-colors" />
                         </div>
                       </CardContent>
                     </Card>
@@ -462,13 +472,13 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Admin Sections */}
-          <Card className="mt-6">
+          <Card className="mt-6 border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <Settings className="w-5 h-5" />
                 <span>{sectionsTitle}</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 {sectionsDescription}
               </CardDescription>
             </CardHeader>
@@ -485,17 +495,17 @@ export default function AdminDashboard() {
                     allPerms={section.permissions || []}
                   >
                     <Link href={`/${locale}${section.href}`}>
-                      <Card className="border hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+                      <Card className="group h-full border border-slate-800/70 bg-slate-950/60 text-slate-100 transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-950">
                         <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start space-x-3">
-                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                <section.icon className="w-5 h-5 text-primary" />
+                              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
+                                <section.icon className="w-5 h-5 text-sky-300" />
                               </div>
                               <div>
-                                <h3 className="font-semibold mb-1">{section.title}</h3>
-                                <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
-                                <p className="text-xs text-muted-foreground">{section.stats}</p>
+                                <h3 className="font-semibold mb-1 text-white">{section.title}</h3>
+                                <p className="text-sm text-slate-400 mb-2">{section.description}</p>
+                                <p className="text-xs text-slate-500">{section.stats}</p>
                               </div>
                             </div>
                             <div className="flex flex-col items-end space-y-1">
@@ -504,7 +514,7 @@ export default function AdminDashboard() {
                                   {pendingTemplate.replace('{count}', String(section.pending))}
                                 </Badge>
                               )}
-                              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-sky-300 transition-colors" />
                             </div>
                           </div>
                         </CardContent>
@@ -519,9 +529,9 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <div>
-          <Card>
+          <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <Activity className="w-5 h-5" />
                 <span>{activityTitle}</span>
               </CardTitle>
@@ -529,20 +539,20 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className={`w-8 h-8 rounded-full bg-muted flex items-center justify-center ${activity.color}`}>
+                  <div key={index} className="flex items-center space-x-3 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-3 transition-colors hover:border-sky-500/30 hover:bg-slate-950">
+                    <div className={`w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center ${activity.color}`}>
                       <activity.icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                      <p className="text-sm font-medium text-white">{activity.message}</p>
+                      <p className="text-xs text-slate-400">{activity.time}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t">
+              <div className="mt-4 pt-4 border-t border-slate-800/70">
                 <Link href="/admin/activity">
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full border-slate-700 text-slate-200 hover:border-sky-500/60 hover:text-sky-200">
                     <Eye className="w-4 h-4 mr-2" />
                     {viewAllActivity}
                   </Button>
@@ -552,9 +562,9 @@ export default function AdminDashboard() {
           </Card>
 
           {/* System Status */}
-          <Card className="mt-6">
+          <Card className="mt-6 border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-white">
                 <Bell className="w-5 h-5" />
                 <span>{systemStatusTitle}</span>
               </CardTitle>
@@ -563,8 +573,8 @@ export default function AdminDashboard() {
               <div className="space-y-3">
                 {systemStatus.map((status, index) => (
                   <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm">{status.label}</span>
-                    <Badge className="bg-green-100 text-green-800">{status.value}</Badge>
+                    <span className="text-sm text-slate-300">{status.label}</span>
+                    <Badge className="bg-emerald-500/10 text-emerald-200 border border-emerald-500/40">{status.value}</Badge>
                   </div>
                 ))}
               </div>
@@ -575,4 +585,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

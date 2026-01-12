@@ -44,10 +44,15 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      {children}
-      <Footer />
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900">
+        <Header />
+        <main className="relative">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_rgba(15,23,42,0)_55%)]" />
+          <div className="relative">{children}</div>
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }
