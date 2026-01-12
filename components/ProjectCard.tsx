@@ -11,10 +11,10 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <div
-      className={`rounded-xl border overflow-hidden hover:shadow-lg transition-all duration-300 dark:border-[#1E2A3D] ${
+      className={`rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-[#1E2A3D] ${
         project.is_recommended
           ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/50 border-emerald-200 shadow-md dark:from-[#0F2E25] dark:to-[#0F2E25]/60'
-          : 'bg-white border-slate-200 dark:bg-[#0B1220]'
+          : 'glass-card border-slate-200'
       }`}
     >
       <div className="p-6">
@@ -144,7 +144,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 ({project.client.total_reviews})
               </span>
             </div>
-            <button className="ml-auto px-4 py-2 bg-emerald-green text-white font-bold rounded-lg hover:brightness-105 transition-all">
+            <button className="ml-auto btn-primary px-4 py-2 font-bold rounded-lg">
               Detalii
             </button>
           </div>

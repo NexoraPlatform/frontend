@@ -75,7 +75,7 @@ export function ProjectFilters({
   };
 
   return (
-    <div className="bg-white border-b border-slate-200 sticky top-16 z-40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+    <div className="bg-white/90 border-b border-slate-200 sticky top-16 z-40 shadow-sm backdrop-blur dark:bg-[#0B1220]/90 dark:border-[#1E2A3D]">
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex flex-col lg:flex-row gap-4 mb-4">
           <div className="flex-1 relative">

@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import {
     Plus,
     X,
@@ -744,42 +745,64 @@ export default function NewProjectPage() {
 
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+            <TrustoraThemeStyles />
             <Header />
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Adaugă Proiect Nou</h1>
-                    <p className="text-muted-foreground">
-                        Descrie proiectul tău și primește oferte de la cei mai buni prestatori
-                    </p>
-                </div>
+            <main className="pt-24">
+                <section className="px-6 pb-10 hero-gradient">
+                    <div className="max-w-5xl mx-auto text-center">
+                        <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                            <span className="text-[#1BC47D]">●</span> Proiect nou
+                        </Badge>
+                        <h1 className="text-3xl lg:text-4xl font-bold mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            Adaugă Proiect Nou
+                        </h1>
+                        <p className="text-base text-slate-600 max-w-3xl mx-auto dark:text-[#A3ADC2]">
+                            Descrie proiectul tău și primește oferte de la cei mai buni prestatori.
+                        </p>
+                    </div>
+                </section>
 
-                {error && (
-                    <Alert variant="destructive" className="mb-6">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
+                <section className="py-12 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+                    <div className="max-w-6xl mx-auto">
+                        {error && (
+                            <Alert variant="destructive" className="mb-6">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="details">Detalii Proiect</TabsTrigger>
-                            <TabsTrigger value="providers" disabled={!formData.serviceId || formData.technologies.length === 0}>
-                                Prestatori Sugerați
-                            </TabsTrigger>
-                            <TabsTrigger value="review" disabled={selectedProviders.length === 0}>
-                                Revizuire & Trimitere
-                            </TabsTrigger>
-                        </TabsList>
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <TabsList className="grid w-full grid-cols-3 rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                    <TabsTrigger
+                                        value="details"
+                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
+                                    >
+                                        Detalii Proiect
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="providers"
+                                        disabled={!formData.serviceId || formData.technologies.length === 0}
+                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
+                                    >
+                                        Prestatori Sugerați
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="review"
+                                        disabled={selectedProviders.length === 0}
+                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
+                                    >
+                                        Revizuire & Trimitere
+                                    </TabsTrigger>
+                                </TabsList>
 
                         {/* Detalii Proiect */}
                         <TabsContent value="details" className="space-y-6">
                             <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
                                 <div>
-                                    <Card className="mb-6">
+                                    <Card className="mb-6 glass-card shadow-sm">
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <FileText className="w-5 h-5" />
@@ -859,7 +882,7 @@ export default function NewProjectPage() {
                                         </CardContent>
                                     </Card>
 
-                                    <Card className="mb-6">
+                                    <Card className="mb-6 glass-card shadow-sm">
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <Code className="w-5 h-5" />
@@ -945,7 +968,7 @@ export default function NewProjectPage() {
                                         </CardContent>
                                     </Card>
 
-                                    <Card>
+                                    <Card className="glass-card shadow-sm">
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <DollarSign className="w-5 h-5" />
@@ -1011,7 +1034,7 @@ export default function NewProjectPage() {
                                     </Card>
                                 </div>
                                 <div>
-                                    <Card>
+                                    <Card className="glass-card shadow-sm">
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <AutoAwesomeIcon className="w-5 h-5" />
@@ -1161,7 +1184,7 @@ export default function NewProjectPage() {
 
                         {/* Prestatori Sugerați */}
                         <TabsContent value="providers" className="space-y-6">
-                            <Card id="suggested-providers">
+                            <Card id="suggested-providers" className="glass-card shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Users className="w-5 h-5" />
@@ -1679,7 +1702,7 @@ export default function NewProjectPage() {
                                     type="button"
                                     onClick={() => setActiveTab('review')}
                                     disabled={selectedProviders.length === 0}
-                                    className="px-8"
+                                    className="btn-primary px-8"
                                 >
                                     Revizuire Finală
                                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -1689,7 +1712,7 @@ export default function NewProjectPage() {
 
                         {/* Revizuire și Trimitere */}
                         <TabsContent value="review" className="space-y-6">
-                            <Card>
+                            <Card className="glass-card shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Target className="w-5 h-5" />
@@ -1892,7 +1915,7 @@ export default function NewProjectPage() {
                                 <Button
                                     type="submit"
                                     disabled={submitting || getRemainingBudget() !== 0}
-                                    className="px-8"
+                                    className="btn-primary px-8"
                                 >
                                     {submitting ? (
                                         <>
@@ -1909,8 +1932,10 @@ export default function NewProjectPage() {
                             </div>
                         </TabsContent>
                     </Tabs>
-                </form>
-            </div>
+                        </form>
+                    </div>
+                </section>
+            </main>
 
             <Footer />
         </div>
