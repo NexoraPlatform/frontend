@@ -1,13 +1,14 @@
 "use client";
 
-import {Header} from "@/components/header";
-import {Loader2} from "lucide-react";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import {useRouter} from "next/navigation";
-import {useEffect, useState} from "react";
-import {useAuth} from "@/contexts/auth-context";
+import { Header } from "@/components/header";
+import { Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
 import Cal, { getCalApi } from "@calcom/embed-react";
 import apiClient from "@/lib/api";
+import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 
 export default function ScheduleCallClient({ id }: {  id: string; }) {
     const router = useRouter();
@@ -42,7 +43,8 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
+                <TrustoraThemeStyles />
                 <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
                     <p>Se încarcă...</p>
@@ -61,13 +63,14 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
     const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider');
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
             <Header />
 
             <div className="container mx-auto px-4 py-8">
                 {/* Welcome Section */}
                 <div className="mb-8">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between section-divider pb-6">
                         <div>
                             <h1 className="text-3xl font-bold mb-2">
                                 Bun venit, {user.firstName}!
@@ -90,14 +93,16 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
                     </div>
                 </div>
 
-                <Cal namespace="verificare-identitate"
-                     calLink={`nexora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&service_id=${service.service.name}`}
-                     style={{width:"100%",height:"100%",overflow:"scroll"}}
-                     config={{
-                         "layout":"month_view",
-                         "theme":"auto",
-                     }}
-                />
+                <div className="glass-card border-emerald-100/70 p-6">
+                    <Cal namespace="verificare-identitate"
+                         calLink={`nexora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&service_id=${service.service.name}`}
+                         style={{width:"100%",height:"100%",overflow:"scroll"}}
+                         config={{
+                             "layout":"month_view",
+                             "theme":"auto",
+                         }}
+                    />
+                </div>
 
             </div>
         </div>
