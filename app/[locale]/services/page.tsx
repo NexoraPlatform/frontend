@@ -399,7 +399,7 @@ export default function ServicesPage() {
       <TrustoraThemeStyles />
       <Header />
 
-      <main className="pt-24 pb-16 px-6 bg-slate-50 dark:bg-[#070C14] min-h-screen" role="main" aria-label={mainAriaLabel}>
+      <main className="pt-8 pb-16 px-6 bg-slate-50 dark:bg-[#070C14] min-h-screen" role="main" aria-label={mainAriaLabel}>
         <div className="max-w-7xl mx-auto mb-12">
           <div className="mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">

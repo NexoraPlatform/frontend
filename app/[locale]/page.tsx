@@ -23,7 +23,7 @@ export default async function Home(props: HomePageProps) {
         <div className="bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
             <TrustoraThemeStyles />
             <Header />
-            <main role="main" aria-label={mainContentLabel} id="main-content">
+            <main role="main" aria-label={mainContentLabel} id="main-content" className="pt-8">
                 <TrustoraHeroSection locale={locale} />
                 <TrustoraPillarsSection locale={locale} />
                 <TrustoraMessagingSection locale={locale} />
