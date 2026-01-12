@@ -39,6 +39,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 
 type PermissionState = {
     [slug: string]: { id: number; name: string; allowed: boolean };
@@ -370,311 +371,331 @@ export default function EditUserClient({ id }: { id: number }) {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/users">
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-bold">
-                        {editAdminTitleTemplate.replace(
-                            "{name}",
-                            `${formData.firstName ?? ""} ${formData.lastName ?? ""}`.trim()
-                        )}
-                    </h1>
-                    <p className="text-muted-foreground">{editAdminSubtitle}</p>
-                </div>
-            </div>
-
-            <form onSubmit={submitAction} className="space-y-6">
-                <div className="grid xs:grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8">
-                    {/* Left Side */}
-                    <div>
-                        <div className="relative mb-5">
-                            <Avatar className="w-28 h-28 border-4 border-white shadow-lg">
-                                <AvatarImage src={formData.avatar} />
-                                <AvatarFallback className="text-2xl">
-                                    {(formData.firstName?.[0] ?? "?")}{formData.lastName?.[0] ?? ""}
-                                </AvatarFallback>
-                            </Avatar>
-
-                            {(formData.callVerified && formData.testVerified) && (
-                                <div className="absolute left-[9%] top-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white">
-                                    <Verified className="w-5 h-5 text-white" />
-                                </div>
-                            )}
-                        </div>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center space-x-2">
-                                    <UserPlus className="w-5 h-5" />
-                                    <span>{adminInfoTitle}</span>
-                                </CardTitle>
-                                <CardDescription>{adminInfoDescription}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {error && (
-                                    <Alert variant="destructive" className="mb-6">
-                                        <AlertCircle className="h-4 w-4" />
-                                        <AlertDescription>{error}</AlertDescription>
-                                    </Alert>
+        <>
+            <TrustoraThemeStyles />
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                <div className="container mx-auto px-4 py-10">
+                    {/* Header */}
+                    <div className="flex items-center space-x-4 mb-8">
+                        <Link href="/admin/users">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
+                                {editAdminTitleTemplate.replace(
+                                    "{name}",
+                                    `${formData.firstName ?? ""} ${formData.lastName ?? ""}`.trim()
                                 )}
-
-                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                                    <div>
-                                        <Label htmlFor="firstName">{firstNameLabel}</Label>
-                                        <Input
-                                            id="firstName"
-                                            value={formData.firstName ?? ""}
-                                            onChange={(e) =>
-                                                setFormData((prev: any) => ({
-                                                    ...prev,
-                                                    firstName: e.target.value,
-                                                }))
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="lastName">{lastNameLabel}</Label>
-                                        <Input
-                                            id="lastName"
-                                            value={formData.lastName ?? ""}
-                                            onChange={(e) =>
-                                                setFormData((prev: any) => ({
-                                                    ...prev,
-                                                    lastName: e.target.value,
-                                                }))
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="mb-2">
-                                    <Label htmlFor="email">{emailLabel}</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={formData.email ?? ""}
-                                        onChange={(e) =>
-                                            setFormData((prev: any) => ({
-                                                ...prev,
-                                                email: e.target.value,
-                                            }))
-                                        }
-                                        required
-                                    />
-                                </div>
-
-                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                                    <div>
-                                        <Label htmlFor="phone">{phoneLabel}</Label>
-                                        <Input
-                                            id="phone"
-                                            value={formData.phone ?? ""}
-                                            onChange={(e) =>
-                                                setFormData((prev: any) => ({
-                                                    ...prev,
-                                                    phone: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="+40 123 456 789"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* MULTI-ROLES */}
-                                <div className="mb-5">
-                                    <Label>{roleLabel}</Label>
-                                    <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-                                        {userRoles.map((opt) => (
-                                            <label
-                                                key={opt.id}
-                                                className="flex items-center justify-center gap-2 rounded-md border p-2"
-                                            >
-                                                <Checkbox
-                                                    id={`role-${opt.id}`}
-                                                    checked={hasRole(opt.slug)}          // verificare pe SLUG
-                                                    onCheckedChange={() => toggleRole(opt.slug)} // toggle pe SLUG
-                                                />
-                                                <span>{opt.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Change password */}
-                                <Accordion type="single" collapsible>
-                                    <AccordionItem value="password">
-                                        <Card>
-                                            <CardHeader className="p-4">
-                                                <AccordionTrigger className="w-full">
-                                                    <CardTitle className="flex items-center space-x-2">
-                                                        <Eye className="w-5 h-5" />
-                                                        <span>{changePassword}</span>
-                                                    </CardTitle>
-                                                </AccordionTrigger>
-                                                <CardDescription className="mt-1">
-                                                    {passwordOptional}
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <AccordionContent>
-                                                <CardContent className="space-y-4">
-                                                    <div className="relative">
-                                                        <Label htmlFor="password">{passwordLabel}</Label>
-                                                        <Input
-                                                            id="password"
-                                                            type={showPassword ? "text" : "password"}
-                                                            value={formData.password}
-                                                            onChange={(e) =>
-                                                                setFormData((prev: any) => ({ ...prev, password: e.target.value }))
-                                                            }
-                                                            minLength={6}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowPassword((prev) => !prev)}
-                                                            className="absolute right-3 top-9 text-muted-foreground"
-                                                            tabIndex={-1}
-                                                        >
-                                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative">
-                                                        <Label htmlFor="confirm_password">{confirmPasswordLabel}</Label>
-                                                        <Input
-                                                            id="confirm_password"
-                                                            type={showConfirmPassword ? "text" : "password"}
-                                                            value={formData.confirm_password ?? ""}
-                                                            onChange={(e) =>
-                                                                setFormData((prev: any) => ({ ...prev, confirm_password: e.target.value }))
-                                                            }
-                                                            minLength={6}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowConfirmPassword((prev) => !prev)}
-                                                            className="absolute right-3 top-9 text-muted-foreground"
-                                                            tabIndex={-1}
-                                                        >
-                                                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                                        </button>
-                                                    </div>
-                                                </CardContent>
-                                            </AccordionContent>
-                                        </Card>
-                                    </AccordionItem>
-                                </Accordion>
-                            </CardContent>
-                        </Card>
+                            </h1>
+                            <p className="text-sm text-muted-foreground">{editAdminSubtitle}</p>
+                        </div>
                     </div>
 
-                    {/* Right Side */}
-                    <div className="space-y-8">
-                        <Card>
-                            <CardContent>
-                                <div className="pt-6">
-                                    <Button type="submit" disabled={loading} className="w-full">
-                                        {loading ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                {savingLabel}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <UserPlus className="w-4 h-4 mr-2" />
-                                                {saveAdminLabel}
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                    <form onSubmit={submitAction} className="space-y-6">
+                        <div className="grid xs:grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8">
+                            {/* Left Side */}
+                            <div>
+                                <div className="relative mb-5">
+                                    <Avatar className="w-28 h-28 border-4 border-white shadow-lg">
+                                        <AvatarImage src={formData.avatar} />
+                                        <AvatarFallback className="text-2xl">
+                                            {(formData.firstName?.[0] ?? "?")}{formData.lastName?.[0] ?? ""}
+                                        </AvatarFallback>
+                                    </Avatar>
 
-                        {/* Permissions Card */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center space-x-2">
-                                    <Icon icon="mdi:identification-card-outline" className="w-5 h-5" />
-                                    <span>{permissionsLabel}</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <Dialog open={permissionModalOpen} onOpenChange={setPermissionModalOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline">{editPermissionsLabel}</Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-2xl">
-                                        <DialogHeader>
-                                            <DialogTitle>{selectPermissionsLabel}</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                                            {permissions.map((group: any) => (
-                                                <div key={group.id}>
-                                                    <h4 className="font-semibold mb-2">{group.name}</h4>
-                                                    <div className="grid gap-3 border p-4 rounded-md bg-muted/30">
-                                                        {group.permissions.map((perm: any) => (
-                                                            <div key={perm.id} className="flex items-center justify-between gap-4">
-                                                                <label className="flex items-center gap-2">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={!!selectedPermissions[perm.slug]}
-                                                                        onChange={() => togglePermission(perm)}
-                                                                    />
-                                                                    <div className="flex flex-col">
-                                                                        <span>{perm.name}</span>
-                                                                        {perm.description && (<span className="text-xs">({perm.description})</span>)}
-                                                                    </div>
-                                                                </label>
-                                                                {selectedPermissions[perm.slug] && (
-                                                                    <div className="flex items-center gap-2">
+                                    {(formData.callVerified && formData.testVerified) && (
+                                        <div className="absolute left-[9%] top-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white">
+                                            <Verified className="w-5 h-5 text-white" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Card className="glass-card shadow-sm">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                                            <UserPlus className="w-5 h-5" />
+                                            <span>{adminInfoTitle}</span>
+                                        </CardTitle>
+                                        <CardDescription>{adminInfoDescription}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {error && (
+                                            <Alert variant="destructive" className="mb-6">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>{error}</AlertDescription>
+                                            </Alert>
+                                        )}
+
+                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                                            <div>
+                                                <Label htmlFor="firstName">{firstNameLabel}</Label>
+                                                <Input
+                                                    id="firstName"
+                                                    value={formData.firstName ?? ""}
+                                                    onChange={(e) =>
+                                                        setFormData((prev: any) => ({
+                                                            ...prev,
+                                                            firstName: e.target.value,
+                                                        }))
+                                                    }
+                                                    required
+                                                    className="bg-white/80 dark:bg-slate-900/60"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="lastName">{lastNameLabel}</Label>
+                                                <Input
+                                                    id="lastName"
+                                                    value={formData.lastName ?? ""}
+                                                    onChange={(e) =>
+                                                        setFormData((prev: any) => ({
+                                                            ...prev,
+                                                            lastName: e.target.value,
+                                                        }))
+                                                    }
+                                                    required
+                                                    className="bg-white/80 dark:bg-slate-900/60"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-2">
+                                            <Label htmlFor="email">{emailLabel}</Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                value={formData.email ?? ""}
+                                                onChange={(e) =>
+                                                    setFormData((prev: any) => ({
+                                                        ...prev,
+                                                        email: e.target.value,
+                                                    }))
+                                                }
+                                                required
+                                                className="bg-white/80 dark:bg-slate-900/60"
+                                            />
+                                        </div>
+
+                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                                            <div>
+                                                <Label htmlFor="phone">{phoneLabel}</Label>
+                                                <Input
+                                                    id="phone"
+                                                    value={formData.phone ?? ""}
+                                                    onChange={(e) =>
+                                                        setFormData((prev: any) => ({
+                                                            ...prev,
+                                                            phone: e.target.value,
+                                                        }))
+                                                    }
+                                                    placeholder="+40 123 456 789"
+                                                    className="bg-white/80 dark:bg-slate-900/60"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* MULTI-ROLES */}
+                                        <div className="mb-5">
+                                            <Label>{roleLabel}</Label>
+                                            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                                                {userRoles.map((opt) => (
+                                                    <label
+                                                        key={opt.id}
+                                                        className="flex items-center justify-center gap-2 rounded-md border border-slate-200/70 bg-white/70 p-2 dark:border-slate-700/60 dark:bg-slate-900/60"
+                                                    >
+                                                        <Checkbox
+                                                            id={`role-${opt.id}`}
+                                                            checked={hasRole(opt.slug)}          // verificare pe SLUG
+                                                            onCheckedChange={() => toggleRole(opt.slug)} // toggle pe SLUG
+                                                        />
+                                                        <span>{opt.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Change password */}
+                                        <Accordion type="single" collapsible>
+                                            <AccordionItem value="password">
+                                                <Card className="glass-card">
+                                                    <CardHeader className="p-4">
+                                                        <AccordionTrigger className="w-full">
+                                                            <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                                                                <Eye className="w-5 h-5" />
+                                                                <span>{changePassword}</span>
+                                                            </CardTitle>
+                                                        </AccordionTrigger>
+                                                        <CardDescription className="mt-1">
+                                                            {passwordOptional}
+                                                        </CardDescription>
+                                                    </CardHeader>
+                                                    <AccordionContent>
+                                                        <CardContent className="space-y-4">
+                                                            <div className="relative">
+                                                                <Label htmlFor="password">{passwordLabel}</Label>
+                                                                <Input
+                                                                    id="password"
+                                                                    type={showPassword ? "text" : "password"}
+                                                                    value={formData.password}
+                                                                    onChange={(e) =>
+                                                                        setFormData((prev: any) => ({ ...prev, password: e.target.value }))
+                                                                    }
+                                                                    minLength={6}
+                                                                    className="bg-white/80 dark:bg-slate-900/60"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowPassword((prev) => !prev)}
+                                                                    className="absolute right-3 top-9 text-muted-foreground"
+                                                                    tabIndex={-1}
+                                                                >
+                                                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                                </button>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <Label htmlFor="confirm_password">{confirmPasswordLabel}</Label>
+                                                                <Input
+                                                                    id="confirm_password"
+                                                                    type={showConfirmPassword ? "text" : "password"}
+                                                                    value={formData.confirm_password ?? ""}
+                                                                    onChange={(e) =>
+                                                                        setFormData((prev: any) => ({ ...prev, confirm_password: e.target.value }))
+                                                                    }
+                                                                    minLength={6}
+                                                                    className="bg-white/80 dark:bg-slate-900/60"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                                                                    className="absolute right-3 top-9 text-muted-foreground"
+                                                                    tabIndex={-1}
+                                                                >
+                                                                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                                </button>
+                                                            </div>
+                                                        </CardContent>
+                                                    </AccordionContent>
+                                                </Card>
+                                            </AccordionItem>
+                                        </Accordion>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Right Side */}
+                            <div className="space-y-8">
+                                <Card className="glass-card shadow-sm">
+                                    <CardContent>
+                                        <div className="pt-6">
+                                            <Button type="submit" disabled={loading} className="w-full btn-primary">
+                                                {loading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        {savingLabel}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <UserPlus className="w-4 h-4 mr-2" />
+                                                        {saveAdminLabel}
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Permissions Card */}
+                                <Card className="glass-card shadow-sm">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                                            <Icon icon="mdi:identification-card-outline" className="w-5 h-5" />
+                                            <span>{permissionsLabel}</span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <Dialog open={permissionModalOpen} onOpenChange={setPermissionModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
+                                                >
+                                                    {editPermissionsLabel}
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-2xl">
+                                                <DialogHeader>
+                                                    <DialogTitle>{selectPermissionsLabel}</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                                                    {permissions.map((group: any) => (
+                                                        <div key={group.id}>
+                                                            <h4 className="font-semibold mb-2">{group.name}</h4>
+                                                            <div className="grid gap-3 border p-4 rounded-md bg-muted/30">
+                                                                {group.permissions.map((perm: any) => (
+                                                                    <div key={perm.id} className="flex items-center justify-between gap-4">
+                                                                        <label className="flex items-center gap-2">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={!!selectedPermissions[perm.slug]}
+                                                                                onChange={() => togglePermission(perm)}
+                                                                            />
+                                                                            <div className="flex flex-col">
+                                                                                <span>{perm.name}</span>
+                                                                                {perm.description && (<span className="text-xs">({perm.description})</span>)}
+                                                                            </div>
+                                                                        </label>
+                                                                        {selectedPermissions[perm.slug] && (
+                                                                            <div className="flex items-center gap-2">
                                     <span className="text-sm text-muted-foreground">
                                       {selectedPermissions[perm.slug].allowed ? allowLabel : denyLabel}
                                     </span>
-                                                                        <Switch
-                                                                            checked={selectedPermissions[perm.slug].allowed}
-                                                                            onCheckedChange={() => toggleAllowDeny(perm.slug)}
-                                                                        />
+                                                                                <Switch
+                                                                                    checked={selectedPermissions[perm.slug].allowed}
+                                                                                    onCheckedChange={() => toggleAllowDeny(perm.slug)}
+                                                                                />
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                )}
+                                                                ))}
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
+                                            </DialogContent>
+                                        </Dialog>
 
-                                {/* Preview Selected Permissions */}
-                                <div className="space-y-2">
-                                    {Object.entries(formData.user_permissions || {}).length === 0 ? (
-                                        <p className="text-muted-foreground text-sm">{noPermissionsSelected}</p>
-                                    ) : (
-                                        Object.entries(formData.user_permissions || {}).map(([slug, value]: any) => (
-                                            <div key={slug} className="flex items-center justify-between border p-2 rounded-md bg-muted/50">
-                                                <span className="text-sm font-medium">{value.name}</span>
-                                                <span
-                                                    className={`text-xs px-2 py-0.5 rounded-full ${
-                                                        value.allowed ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
-                                                    }`}
-                                                >
+                                        {/* Preview Selected Permissions */}
+                                        <div className="space-y-2">
+                                            {Object.entries(formData.user_permissions || {}).length === 0 ? (
+                                                <p className="text-muted-foreground text-sm">{noPermissionsSelected}</p>
+                                            ) : (
+                                                Object.entries(formData.user_permissions || {}).map(([slug, value]: any) => (
+                                                    <div key={slug} className="flex items-center justify-between border p-2 rounded-md bg-muted/50">
+                                                        <span className="text-sm font-medium">{value.name}</span>
+                                                        <span
+                                                            className={`text-xs px-2 py-0.5 rounded-full ${
+                                                                value.allowed ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
+                                                            }`}
+                                                        >
                           {value.allowed ? allowLabel : denyLabel}
                         </span>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </div>
+            </div>
+        </>
     );
 }

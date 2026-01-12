@@ -31,6 +31,7 @@ import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 interface Question {
   id: string;
@@ -279,160 +280,171 @@ export default function NewTestPage() {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center space-x-4 mb-8">
-        <Link href="/admin/tests">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">{pageTitle}</h1>
-          <p className="text-muted-foreground">
-            {pageSubtitle}
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Informații de bază */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BookOpen className="w-5 h-5" />
-              <span>Informații Test</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Titlu Test *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="ex: Test JavaScript Junior"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="level">Nivel *</Label>
-                <Select value={formData.level} onValueChange={(value) => setFormData({...formData, level: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {levels.map(level => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
+    <>
+      <TrustoraThemeStyles />
+      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+        <div className="container mx-auto px-4 py-10">
+          {/* Header */}
+          <div className="flex items-center space-x-4 mb-8">
+            <Link href="/admin/tests">
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
             <div>
-              <Label htmlFor="description">Descriere *</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Descrierea testului..."
-                rows={3}
-                required
-              />
+              <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{pageTitle}</h1>
+              <p className="text-sm text-muted-foreground">
+                {pageSubtitle}
+              </p>
             </div>
+          </div>
 
-            <div>
-              <Label htmlFor="serviceId">Serviciu *</Label>
-              <Select value={formData.serviceId} onValueChange={(value) => setFormData({...formData, serviceId: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selectează serviciul" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(servicesData?.services || []).map((service: any) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.title} - {service.category?.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="timeLimit">Timp Limită (minute) *</Label>
-                <Input
-                  id="timeLimit"
-                  type="number"
-                  value={formData.timeLimit}
-                  onChange={(e) => setFormData({...formData, timeLimit: parseInt(e.target.value)})}
-                  min="5"
-                  max="180"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="passingScore">Nota de Trecere (%) *</Label>
-                <Input
-                  id="passingScore"
-                  type="number"
-                  value={formData.passingScore}
-                  onChange={(e) => setFormData({...formData, passingScore: parseInt(e.target.value)})}
-                  min="50"
-                  max="100"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="ACTIVE">Activ</SelectItem>
-                    <SelectItem value="INACTIVE">Inactiv</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Informații de bază */}
+            <Card className="glass-card shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                  <BookOpen className="w-5 h-5" />
+                  <span>Informații Test</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Titlu Test *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
+                      placeholder="ex: Test JavaScript Junior"
+                      required
+                      className="bg-white/80 dark:bg-slate-900/60"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="level">Nivel *</Label>
+                    <Select value={formData.level} onValueChange={(value) => setFormData({...formData, level: value})}>
+                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {levels.map(level => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Descriere *</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Descrierea testului..."
+                    rows={3}
+                    required
+                    className="bg-white/80 dark:bg-slate-900/60"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="serviceId">Serviciu *</Label>
+                  <Select value={formData.serviceId} onValueChange={(value) => setFormData({...formData, serviceId: value})}>
+                    <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                      <SelectValue placeholder="Selectează serviciul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(servicesData?.services || []).map((service: any) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.title} - {service.category?.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="timeLimit">Timp Limită (minute) *</Label>
+                    <Input
+                      id="timeLimit"
+                      type="number"
+                      value={formData.timeLimit}
+                      onChange={(e) => setFormData({...formData, timeLimit: parseInt(e.target.value)})}
+                      min="5"
+                      max="180"
+                      required
+                      className="bg-white/80 dark:bg-slate-900/60"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="passingScore">Nota de Trecere (%) *</Label>
+                    <Input
+                      id="passingScore"
+                      type="number"
+                      value={formData.passingScore}
+                      onChange={(e) => setFormData({...formData, passingScore: parseInt(e.target.value)})}
+                      min="50"
+                      max="100"
+                      required
+                      className="bg-white/80 dark:bg-slate-900/60"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DRAFT">Draft</SelectItem>
+                        <SelectItem value="ACTIVE">Activ</SelectItem>
+                        <SelectItem value="INACTIVE">Inactiv</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
         {/* Gestionare întrebări */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Target className="w-5 h-5" />
-                <span>Întrebări ({questions.length})</span>
-                {totalPoints > 0 && (
-                  <Badge variant="outline">
-                    Total: {totalPoints} puncte
-                  </Badge>
-                )}
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="add" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="add">
-                  {editingQuestionIndex !== null ? 'Editează Întrebare' : 'Adaugă Întrebare'}
-                </TabsTrigger>
-                <TabsTrigger value="list">Lista Întrebări</TabsTrigger>
-              </TabsList>
+            <Card className="glass-card shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between text-slate-900 dark:text-white">
+                  <div className="flex items-center space-x-2">
+                    <Target className="w-5 h-5" />
+                    <span>Întrebări ({questions.length})</span>
+                    {totalPoints > 0 && (
+                      <Badge variant="outline">
+                        Total: {totalPoints} puncte
+                      </Badge>
+                    )}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="add" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-white/80 dark:bg-slate-900/60">
+                    <TabsTrigger value="add">
+                      {editingQuestionIndex !== null ? 'Editează Întrebare' : 'Adaugă Întrebare'}
+                    </TabsTrigger>
+                    <TabsTrigger value="list">Lista Întrebări</TabsTrigger>
+                  </TabsList>
 
               <TabsContent value="add" className="space-y-6">
                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
@@ -442,7 +454,7 @@ export default function NewTestPage() {
                       value={currentQuestion.type}
                       onValueChange={(value: any) => handleQuestionTypeChange(value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -470,6 +482,7 @@ export default function NewTestPage() {
                       min="1"
                       max="100"
                       required
+                      className="bg-white/80 dark:bg-slate-900/60"
                     />
                   </div>
                 </div>
@@ -483,6 +496,7 @@ export default function NewTestPage() {
                     placeholder="Scrie întrebarea aici..."
                     rows={3}
                     required
+                    className="bg-white/80 dark:bg-slate-900/60"
                   />
                 </div>
 
@@ -497,6 +511,7 @@ export default function NewTestPage() {
                             value={option}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                             placeholder={`Opțiunea ${index + 1}`}
+                            className="bg-white/80 dark:bg-slate-900/60"
                           />
                           <Button
                             type="button"
@@ -536,7 +551,7 @@ export default function NewTestPage() {
                         onChange={(e) => setCurrentQuestion({...currentQuestion, codeTemplate: e.target.value})}
                         placeholder="function solutie() {&#10;  // Completează funcția&#10;}"
                         rows={5}
-                        className="font-mono"
+                        className="font-mono bg-white/80 dark:bg-slate-900/60"
                       />
                       <p className="text-sm text-muted-foreground mt-1">
                         Codul de bază pe care candidatul îl va completa
@@ -551,7 +566,7 @@ export default function NewTestPage() {
                         onChange={(e) => setCurrentQuestion({...currentQuestion, codeSolution: e.target.value})}
                         placeholder="function solutie() {&#10;  // Soluția corectă a problemei&#10;  return rezultat;&#10;}"
                         rows={5}
-                        className="font-mono"
+                        className="font-mono bg-white/80 dark:bg-slate-900/60"
                       />
                       <p className="text-sm text-muted-foreground mt-1">
                         Soluția corectă a codului (vizibilă doar pentru administratori)
@@ -565,6 +580,7 @@ export default function NewTestPage() {
                         value={currentQuestion.expectedOutput || ''}
                         onChange={(e) => setCurrentQuestion({...currentQuestion, expectedOutput: e.target.value})}
                         placeholder="Rezultatul așteptat"
+                        className="bg-white/80 dark:bg-slate-900/60"
                       />
                     </div>
 
@@ -578,7 +594,7 @@ export default function NewTestPage() {
                         </Button>
                       </div>
                       {currentQuestion.testCases?.map((testCase, index) => (
-                        <div key={index} className="border rounded-lg p-4 space-y-3 mb-3">
+                          <div key={index} className="border rounded-lg p-4 space-y-3 mb-3 bg-white/70 dark:bg-slate-900/40">
                           <div className="flex items-center justify-between">
                             <h4 className="font-medium">Test Case {index + 1}</h4>
                             <Button
@@ -597,6 +613,7 @@ export default function NewTestPage() {
                                 value={testCase.input}
                                 onChange={(e) => updateTestCase(index, 'input', e.target.value)}
                                 placeholder="Input pentru test"
+                                className="bg-white/80 dark:bg-slate-900/60"
                               />
                             </div>
                             <div>
@@ -605,6 +622,7 @@ export default function NewTestPage() {
                                 value={testCase.expectedOutput}
                                 onChange={(e) => updateTestCase(index, 'expectedOutput', e.target.value)}
                                 placeholder="Output așteptat"
+                                className="bg-white/80 dark:bg-slate-900/60"
                               />
                             </div>
                           </div>
@@ -614,6 +632,7 @@ export default function NewTestPage() {
                               value={testCase.description || ''}
                               onChange={(e) => updateTestCase(index, 'description', e.target.value)}
                               placeholder="Descrierea test case-ului"
+                              className="bg-white/80 dark:bg-slate-900/60"
                             />
                           </div>
                         </div>
@@ -632,6 +651,7 @@ export default function NewTestPage() {
                       onChange={(e) => setCurrentQuestion({...currentQuestion, correctAnswers: [e.target.value]})}
                       placeholder="Răspunsul corect"
                       required
+                      className="bg-white/80 dark:bg-slate-900/60"
                     />
                   </div>
                 )}
@@ -644,6 +664,7 @@ export default function NewTestPage() {
                     onChange={(e) => setCurrentQuestion({...currentQuestion, explanation: e.target.value})}
                     placeholder="Explicația răspunsului corect..."
                     rows={2}
+                    className="bg-white/80 dark:bg-slate-900/60"
                   />
                 </div>
 
@@ -696,7 +717,7 @@ export default function NewTestPage() {
                 ) : (
                   <div className="space-y-4">
                     {questions.map((question, index) => (
-                      <div key={question.id} className="border rounded-lg p-4">
+                  <div key={question.id} className="border rounded-lg p-4 bg-white/70 dark:bg-slate-900/40">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-2">
                             <Badge variant="outline">
@@ -736,7 +757,9 @@ export default function NewTestPage() {
                                   {String.fromCharCode(65 + optIndex)}. {option}
                                 </span>
                                 {question.correctAnswers.includes(option) && (
-                                  <Badge className="bg-green-100 text-green-800 text-xs">Corect</Badge>
+                                  <Badge className="border border-emerald-200/60 bg-emerald-100 text-emerald-800 text-xs dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                    Corect
+                                  </Badge>
                                 )}
                               </div>
                             ))}
@@ -793,7 +816,7 @@ export default function NewTestPage() {
 
         {/* Actions */}
         <div className="flex space-x-4">
-          <Button type="submit" disabled={loading || questions.length === 0} className="flex-1">
+                  <Button type="submit" disabled={loading || questions.length === 0} className="flex-1 btn-primary">
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -807,12 +830,14 @@ export default function NewTestPage() {
             )}
           </Button>
           <Link href="/admin/tests">
-            <Button type="button" variant="outline">
-              Anulează
-            </Button>
-          </Link>
+                  <Button type="button" variant="outline" className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60">
+                    Anulează
+                  </Button>
+                </Link>
+              </div>
+            </form>
         </div>
-      </form>
-    </div>
+      </div>
+    </>
   );
 }
