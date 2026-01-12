@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { GripVertical, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GripVertical, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
 import {
@@ -74,8 +75,8 @@ function SortableRow({
             ref={setNodeRef}
             style={style}
             className={cn(
-                'flex items-center justify-between rounded-md border bg-card px-3 py-2',
-                isDragging && 'shadow-lg ring-2 ring-primary/30 bg-accent'
+                'flex items-center justify-between rounded-xl border border-border/60 bg-background/80 px-4 py-3 shadow-sm transition-colors dark:border-slate-800/70 dark:bg-slate-950/60',
+                isDragging && 'shadow-lg ring-2 ring-primary/30 bg-primary/10 dark:bg-slate-900/80'
             )}
         >
             <div className="flex items-center gap-3">
@@ -123,6 +124,9 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
     const savingOrderLabel = useAsyncTranslation(locale, 'admin.roles.saving_order');
     const loadingRoles = useAsyncTranslation(locale, 'admin.roles.loading_roles');
     const noRolesShort = useAsyncTranslation(locale, 'admin.roles.no_roles_short');
+    const listTitle = useAsyncTranslation(locale, 'admin.roles.list_title');
+    const listDescriptionOne = useAsyncTranslation(locale, 'admin.roles.list_description_one');
+    const listDescriptionOther = useAsyncTranslation(locale, 'admin.roles.list_description_other');
     const pageLabel = useAsyncTranslation(locale, 'admin.roles.pagination.page');
     const ofLabel = useAsyncTranslation(locale, 'admin.roles.pagination.of');
     const totalLabelTemplate = useAsyncTranslation(locale, 'admin.roles.pagination.total');
@@ -209,107 +213,125 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
 
     const onEdit = (id: number) => {
         // navigate to your edit page
-        window.location.href = `/admin/roles/${id}`;
+        window.location.href = `/${locale}/admin/roles/${id}`;
     };
     const onDelete = async (id: number) => {
         // dacă ai endpoint de delete, îl poți apela aici; pentru demo doar reîncarc
         await load();
     };
 
-    return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-                <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder={searchPlaceholder}
-                    className="w-64"
-                />
-                <Button
-                    onClick={() => {
-                        setPage(1);
-                        void load();
-                    }}
-                >
-                    {searchButton}
-                </Button>
+    const roleCount = total ?? roles.length;
+    const listDescription =
+        roleCount === 1
+            ? listDescriptionOne
+            : listDescriptionOther.replace('{count}', String(roleCount));
 
-                <div className="ml-auto flex items-center gap-2">
+    return (
+        <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
+            <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <CardTitle className="flex items-center space-x-2">
+                            <span>{listTitle}</span>
+                        </CardTitle>
+                        <CardDescription>{listDescription}</CardDescription>
+                    </div>
                     {savingOrder && (
-                        <span className="flex items-center text-sm text-muted-foreground">
+                        <span className="flex items-center text-xs text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {savingOrderLabel}
             </span>
                     )}
                 </div>
-            </div>
-
-            <div className="rounded-lg border bg-background p-3">
-                {loading ? (
-                    <div className="flex items-center justify-center py-16 text-muted-foreground">
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {loadingRoles}
+            </CardHeader>
+            <CardContent>
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                    <div className="relative w-full max-w-xs">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder={searchPlaceholder}
+                            className="pl-9"
+                        />
                     </div>
-                ) : roles.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-muted-foreground">
-                        {noRolesShort}
-                    </div>
-                ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                        <SortableContext items={itemsIds} strategy={verticalListSortingStrategy}>
-                            <div className="flex flex-col gap-2">
-                                {roles.map((role) => (
-                                    <SortableRow
-                                        key={role.id}
-                                        role={role}
-                                        onEdit={onEdit}
-                                        onDelete={onDelete}
-                                        locale={locale}
-                                    />
-                                ))}
-                            </div>
-                        </SortableContext>
-                    </DndContext>
-                )}
-            </div>
-
-            {/* Pagination */}
-            <div className="mt-6 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                    {pageLabel} {page} {total ? `${ofLabel} ${Math.ceil(total / pageSize)}` : ''}{' '}
-                    {total != null ? `(${totalLabelTemplate.replace('{count}', String(total))})` : ''}
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <select
-                        className="h-9 rounded-md border bg-background px-2 text-sm"
-                        value={pageSize}
-                        onChange={(e) => setPageSize(Number(e.target.value))}
-                    >
-                        {[5, 10, 20, 50].map((n) => (
-                            <option key={n} value={n}>
-                                {n}
-                            </option>
-                        ))}
-                    </select>
-                    <span className="ml-2 text-sm text-muted-foreground">{perPageLabel}</span>
-
                     <Button
-                        variant="outline"
-                        disabled={page <= 1 || loading}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        onClick={() => {
+                            setPage(1);
+                            void load();
+                        }}
                     >
-                        {previousLabel}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        disabled={total != null ? page >= Math.ceil(total / pageSize) || loading : false}
-                        onClick={() => setPage((p) => p + 1)}
-                    >
-                        {nextLabel}
+                        {searchButton}
                     </Button>
                 </div>
-            </div>
-        </div>
+
+                <div className="rounded-2xl border border-border/60 bg-background/70 p-4 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/60">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-16 text-muted-foreground">
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            {loadingRoles}
+                        </div>
+                    ) : roles.length === 0 ? (
+                        <div className="py-10 text-center text-sm text-muted-foreground">
+                            {noRolesShort}
+                        </div>
+                    ) : (
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                            <SortableContext items={itemsIds} strategy={verticalListSortingStrategy}>
+                                <div className="flex flex-col gap-2">
+                                    {roles.map((role) => (
+                                        <SortableRow
+                                            key={role.id}
+                                            role={role}
+                                            onEdit={onEdit}
+                                            onDelete={onDelete}
+                                            locale={locale}
+                                        />
+                                    ))}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
+                    )}
+                </div>
+
+                {/* Pagination */}
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+                    <div className="text-sm text-muted-foreground">
+                        {pageLabel} {page} {total ? `${ofLabel} ${Math.ceil(total / pageSize)}` : ''}{' '}
+                        {total != null ? `(${totalLabelTemplate.replace('{count}', String(total))})` : ''}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <select
+                            className="h-9 rounded-md border border-border/60 bg-background/80 px-2 text-sm text-foreground shadow-sm dark:border-slate-800/70 dark:bg-slate-950/60"
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                        >
+                            {[5, 10, 20, 50].map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="ml-2 text-sm text-muted-foreground">{perPageLabel}</span>
+
+                        <Button
+                            variant="outline"
+                            disabled={page <= 1 || loading}
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        >
+                            {previousLabel}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            disabled={total != null ? page >= Math.ceil(total / pageSize) || loading : false}
+                            onClick={() => setPage((p) => p + 1)}
+                        >
+                            {nextLabel}
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
     );
 }
