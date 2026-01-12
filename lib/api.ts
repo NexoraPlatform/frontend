@@ -35,11 +35,39 @@ class ApiClient {
     }
   }
 
+  private getSelectedLanguageFromPathname(): string | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const pathnameLocale = window.location.pathname.split('/')[1];
+    if (pathnameLocale === 'ro' || pathnameLocale === 'en') {
+      return pathnameLocale;
+    }
+
+    const storedLocale = localStorage.getItem('NEXT_LOCALE');
+    if (storedLocale) {
+      return storedLocale;
+    }
+
+    const cookieLocale = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('NEXT_LOCALE='))
+      ?.split('=')[1];
+
+    return cookieLocale ?? null;
+  }
+
   private async request<T>(
-      endpoint: string,
-      options: RequestInit = {}
+    endpoint: string,
+    options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = new URL(`${this.baseURL}${endpoint}`);
+    const selectedLanguage = this.getSelectedLanguageFromPathname();
+
+    if (selectedLanguage && !url.searchParams.has('language')) {
+      url.searchParams.set('language', selectedLanguage);
+    }
 
     const config: RequestInit = {
       headers: {
@@ -52,7 +80,7 @@ class ApiClient {
     };
 
     try {
-      const response = await fetch(url, config);
+      const response = await fetch(url.toString(), config);
 
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
@@ -135,9 +163,18 @@ class ApiClient {
     sortBy?: string;
     page?: number;
     limit?: number;
+    language?: string;
   }) {
     const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
+    const selectedLanguage =
+        params?.language ?? this.getSelectedLanguageFromPathname();
+
+    if (selectedLanguage) {
+      searchParams.set('language', selectedLanguage);
+    }
+
+    const { language, ...restParams } = params || {};
+    Object.entries(restParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (Array.isArray(value)) {
           value.forEach(v => searchParams.append(key, v.toString()));
@@ -147,10 +184,10 @@ class ApiClient {
       }
     });
 
-    return this.request<any>(`/services`, {
-        method: 'POST',
-        body: JSON.stringify(params),
-    });
+    const query = searchParams.toString();
+    const endpoint = query ? `/services?${query}` : '/services';
+
+    return this.request<any>(endpoint);
   }
 
   // Servicii disponibile pentru prestatori să se înscrie
