@@ -12,6 +12,8 @@ import {formatDistanceToNow} from "date-fns";
 import {ro} from "date-fns/locale";
 import {Badge} from "@/components/ui/badge";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { formatDeadline } from '@/lib/projects';
+import type { Locale } from '@/types/locale';
 
 import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
@@ -40,7 +42,7 @@ export async function generateMetadata({ params }: ProjectDetailPageProps): Prom
     })
 }
 
-export default async function ProjectDetailClient({ id }: {  id: string; }) {
+export default async function ProjectDetailClient({ id, locale }: {  id: string; locale: Locale; }) {
     const project = await apiClient.getProjectBySlug(id);
 
     if (!project) {
@@ -59,21 +61,6 @@ export default async function ProjectDetailClient({ id }: {  id: string; }) {
         );
     }
 
-    const formatDeadline = (value: string): string => {
-        const map: Record<string, string> = {
-            '1day': '1 zi',
-            '1week': 'O săptămână',
-            '2weeks': '2 săptămâni',
-            '3weeks': '3 săptămâni',
-            '1month': '1 lună',
-            '3months': '3 luni',
-            '6months': '6 luni',
-            '1year': '1 an',
-            '1plusyear': '1+ ani',
-        };
-
-        return map[value] || value;
-    };
     return (
         <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
             <TrustoraThemeStyles />
@@ -112,7 +99,7 @@ export default async function ProjectDetailClient({ id }: {  id: string; }) {
                                         <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
                                             <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Durata proiect</div>
                                             <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                {formatDeadline(project.project_duration)}
+                                                {formatDeadline(project.project_duration, locale)}
                                             </div>
                                         </div>
 

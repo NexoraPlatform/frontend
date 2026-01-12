@@ -2,13 +2,18 @@
 
 import { Star, MapPin, Zap } from 'lucide-react';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { ProjectWithClient, formatCurrency, formatDeadline, formatDate } from '@/lib/projects';
+import { Locale } from '@/types/locale';
 
 interface ProjectCardProps {
   project: ProjectWithClient;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const pathname = usePathname();
+  const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
+
   return (
     <div
       className={`rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-[#1E2A3D] ${
@@ -97,7 +102,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div>
             <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">Deadline</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
-              {formatDeadline(project.deadline)}
+              {formatDeadline(project.deadline, locale)}
             </p>
           </div>
           <div>

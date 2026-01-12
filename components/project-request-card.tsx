@@ -33,6 +33,7 @@ import {usePathname, useRouter} from "next/navigation";
 import {toast} from "sonner";
 import {loadStripe} from "@stripe/stripe-js";
 import {Locale} from "@/types/locale";
+import { formatDeadline } from '@/lib/projects';
 
 interface ProjectRequestCardProps {
     project: any;
@@ -183,22 +184,6 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         }
     };
 
-    const formatDeadline = (value: string): string => {
-        const map: Record<string, string> = {
-            '1day': '1 zi',
-            '1week': 'O săptămână',
-            '2weeks': '2 săptămâni',
-            '3weeks': '3 săptămâni',
-            '1month': '1 lună',
-            '3months': '3 luni',
-            '6months': '6 luni',
-            '1year': '1 an',
-            '1plusyear': '1+ ani',
-        };
-
-        return map[value] || value;
-    };
-
     if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -236,7 +221,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 <Calendar className="w-4 h-4" />
                                 <span>
                                     {project.project_duration
-                                        ? `Deadline: ${formatDeadline(project.project_duration)}`
+                                        ? `Deadline: ${formatDeadline(project.project_duration, locale)}`
                                         : 'Fără deadline fix'
                                     }
                                 </span>

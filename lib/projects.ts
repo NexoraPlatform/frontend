@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { Locale } from '@/types/locale';
 
 export type ProjectClient = {
   name: string;
@@ -323,12 +324,33 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function formatDeadline(value: string) {
-  return new Date(value).toLocaleDateString('ro-RO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+export function formatDeadline(value: string, locale: Locale = 'ro') {
+  const labels: Record<Locale, Record<string, string>> = {
+    ro: {
+      '1day': '1 zi',
+      '1week': 'O săptămână',
+      '2weeks': '2 săptămâni',
+      '3weeks': '3 săptămâni',
+      '1month': '1 lună',
+      '3months': '3 luni',
+      '6months': '6 luni',
+      '1year': '1 an',
+      '1plusyear': '1+ ani',
+    },
+    en: {
+      '1day': '1 day',
+      '1week': '1 week',
+      '2weeks': '2 weeks',
+      '3weeks': '3 weeks',
+      '1month': '1 month',
+      '3months': '3 months',
+      '6months': '6 months',
+      '1year': '1 year',
+      '1plusyear': '1+ years',
+    },
+  };
+
+  return labels[locale]?.[value] ?? labels.ro[value] ?? value;
 }
 
 export function formatDate(value: string) {
