@@ -29,7 +29,7 @@ export default function AdminAnalyticsPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 rounded-full border-border/60 bg-background/70 text-foreground shadow-sm transition-colors hover:border-sky-500/30 hover:text-sky-600 dark:border-slate-800/70 dark:bg-slate-950/60 dark:hover:border-sky-500/40 dark:hover:text-sky-300"
+                className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
