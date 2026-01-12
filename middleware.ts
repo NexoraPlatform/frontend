@@ -222,7 +222,11 @@ export default async function middleware(req: NextRequest) {
   // keep a log while testing
   // console.log('[MW] path', req.nextUrl.pathname);
 
-  const { pathname } = req.nextUrl;
+    const basicAuthResponse = checkBasicAuth(req);
+    if (basicAuthResponse) return basicAuthResponse;
+
+
+    const { pathname } = req.nextUrl;
 
   if (
       pathname.startsWith('/api') ||
@@ -291,6 +295,51 @@ export default async function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
+
+function checkBasicAuth(req: NextRequest): NextResponse | null {
+    const users = process.env.BASIC_AUTH_USERS?.split(',') ?? [];
+    const passwords = process.env.BASIC_AUTH_PASSWORDS?.split(',') ?? [];
+
+    if (users.length === 0 || users.length !== passwords.length) {
+        // misconfiguration → fail closed
+        return new NextResponse('Server auth misconfigured', { status: 500 });
+    }
+
+    const auth = req.headers.get('authorization');
+
+    if (!auth || !auth.startsWith('Basic ')) {
+        return new NextResponse('Authentication required', {
+            status: 401,
+            headers: {
+                'WWW-Authenticate': 'Basic realm="Restricted"',
+            },
+        });
+    }
+
+    const encoded = auth.replace('Basic ', '');
+    let decoded = '';
+
+    try {
+        decoded = Buffer.from(encoded, 'base64').toString('utf8');
+    } catch {
+        return new NextResponse('Invalid auth header', { status: 401 });
+    }
+
+    const [user, pass] = decoded.split(':');
+
+    const index = users.indexOf(user);
+    if (index === -1 || passwords[index] !== pass) {
+        return new NextResponse('Unauthorized', {
+            status: 401,
+            headers: {
+                'WWW-Authenticate': 'Basic realm="Restricted"',
+            },
+        });
+    }
+
+    return null; // auth OK
+}
+
 
 // Keep your permissive matcher that was working
 export const config = {
