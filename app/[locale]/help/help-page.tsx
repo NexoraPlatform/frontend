@@ -73,73 +73,89 @@ export default function HelpInteractive({
     return (
         <>
             {/* Hero Section */}
-            <section className="py-20 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-                            Centrul de Ajutor Nexora
-                        </h1>
-                        <p className="text-xl text-muted-foreground mb-8">
-                            Găsește răspunsuri la întrebările tale sau contactează echipa
-                            noastră de suport
-                        </p>
+            <section className="pt-32 pb-20 px-6 hero-gradient">
+                <div className="max-w-6xl mx-auto text-center">
+                    <Badge className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                        <span className="text-[#1BC47D]">●</span> 📚 Centrul de Ajutor
+                    </Badge>
+                    <h1 className="text-4xl lg:text-6xl font-bold mb-6 text-[#0B1C2D] tracking-tight dark:text-[#E6EDF3]">
+                        Răspunsuri rapide pentru <span className="text-[#1BC47D]">încrederea ta</span>
+                    </h1>
+                    <p className="text-xl text-slate-500 mb-10 max-w-3xl mx-auto dark:text-[#A3ADC2]">
+                        Găsește soluții, ghiduri și contactează echipa noastră atunci când ai nevoie
+                        de suport dedicat.
+                    </p>
 
-                        {/* Search Bar */}
-                        <div className="max-w-2xl mx-auto mb-8">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                                <Input
-                                    placeholder="Caută în întrebări frecvente..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-12 pr-4 py-6 text-lg bg-background/80 backdrop-blur border-2 focus:border-primary"
-                                />
-                            </div>
+                    <div className="max-w-2xl mx-auto">
+                        <div className="relative">
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                            <Input
+                                placeholder="Caută în întrebări frecvente..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-12 pr-4 py-6 text-lg bg-white/90 border border-slate-200 shadow-sm focus-visible:ring-[#1BC47D] dark:bg-[#0B1220] dark:border-[#1E2A3D] dark:text-[#E6EDF3]"
+                            />
+                        </div>
+                        <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-[#6B7285]">
+                            <span>Suport live</span>
+                            <span>Resurse ghidate</span>
+                            <span>FAQ actualizat</span>
                         </div>
                     </div>
                 </div>
             </section>
 
             {/* Support Options */}
-            <section className="py-20">
-                <div className="container mx-auto px-4">
+            <section className="py-20 px-6">
+                <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold mb-4">Ai nevoie de ajutor imediat?</h2>
-                        <p className="text-muted-foreground">
-                            Alege modalitatea de contact care ți se potrivește
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
+                            Suport imediat
+                        </p>
+                        <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            Alege canalul care îți oferă răspunsul perfect
+                        </h2>
+                        <p className="text-slate-500 dark:text-[#A3ADC2]">
+                            Echipa Trustora este pregătită să te ghideze pas cu pas.
                         </p>
                     </div>
 
-                    <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                    <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-6">
                         {supportOptions.map((option, index) => {
                             const Icon = getIcon(option.iconKey);
                             return (
                                 <Card
                                     key={index}
-                                    className={`text-center ${
-                                        option.primary ? "border-primary border-2" : ""
+                                    className={`glass-card text-center px-2 py-2 ${
+                                        option.primary ? "border-2 border-[#1BC47D]" : ""
                                     }`}
                                 >
-                                    <CardHeader>
+                                    <CardHeader className="space-y-4">
                                         <div
-                                            className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center ${
+                                            className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center ${
                                                 option.primary
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "bg-muted"
+                                                    ? "bg-[#1BC47D] text-white shadow-[0_10px_30px_rgba(27,196,125,0.35)]"
+                                                    : "bg-slate-50 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]"
                                             }`}
                                         >
                                             <Icon className="w-8 h-8" />
                                         </div>
-                                        <CardTitle className="text-xl">{option.title}</CardTitle>
-                                        <CardDescription>{option.description}</CardDescription>
+                                        <div>
+                                            <CardTitle className="text-xl text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {option.title}
+                                            </CardTitle>
+                                            <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                                                {option.description}
+                                            </CardDescription>
+                                        </div>
                                     </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center justify-center space-x-1 text-sm text-muted-foreground mb-4">
+                                    <CardContent className="space-y-4">
+                                        <div className="flex items-center justify-center space-x-2 text-sm text-slate-400 dark:text-[#6B7285]">
                                             <Clock className="w-4 h-4" />
                                             <span>{option.availability}</span>
                                         </div>
                                         <Button
-                                            className="w-full"
+                                            className={`w-full ${option.primary ? "btn-primary" : "border border-slate-200 text-[#0B1C2D] hover:bg-slate-50 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#0F172A]"}`}
                                             variant={option.primary ? "default" : "outline"}
                                         >
                                             {option.action}
@@ -153,25 +169,30 @@ export default function HelpInteractive({
             </section>
 
             {/* FAQ Section */}
-            <section className="py-20 bg-muted/30">
-                <div className="container mx-auto px-4">
+            <section className="py-20 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+                <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold mb-4">Întrebări Frecvente</h2>
-                        <p className="text-muted-foreground">
-                            Răspunsuri la cele mai comune întrebări despre Nexora
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
+                            Întrebări frecvente
+                        </p>
+                        <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            Tot ce trebuie să știi despre Trustora
+                        </h2>
+                        <p className="text-slate-500 dark:text-[#A3ADC2]">
+                            Răspunsuri rapide, actualizate și ușor de parcurs.
                         </p>
                     </div>
 
                     <div className="max-w-4xl mx-auto">
                         <Tabs defaultValue={faqCategories[0]?.id ?? "general"} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-8">
+                            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-8 bg-white/80 border border-slate-100 rounded-full p-1 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
                                 {faqCategories.map((category) => {
                                     const Icon = getIcon(category.iconKey);
                                     return (
                                         <TabsTrigger
                                             key={category.id}
                                             value={category.id}
-                                            className="flex items-center space-x-2"
+                                            className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-[#1BC47D] data-[state=active]:text-white"
                                         >
                                             <Icon className="w-4 h-4" />
                                             <span className="hidden sm:inline">{category.title}</span>
@@ -182,21 +203,25 @@ export default function HelpInteractive({
 
                             {faqCategories.map((category) => (
                                 <TabsContent key={category.id} value={category.id}>
-                                    <Accordion type="single" collapsible className="w-full">
-                                        {(searchTerm
-                                                ? filteredFAQs.find((c) => c.id === category.id)?.faqs || []
-                                                : category.faqs
-                                        ).map((faq, index) => (
-                                            <AccordionItem key={index} value={`${category.id}-${index}`}>
-                                                <AccordionTrigger className="text-left">
-                                                    {faq.question}
-                                                </AccordionTrigger>
-                                                <AccordionContent className="text-muted-foreground">
-                                                    {faq.answer}
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
+                                    <Card className="glass-card border border-transparent">
+                                        <CardContent className="divide-y divide-slate-100 dark:divide-[#1E2A3D]">
+                                            {(searchTerm
+                                                    ? filteredFAQs.find((c) => c.id === category.id)?.faqs || []
+                                                    : category.faqs
+                                            ).map((faq, index) => (
+                                                <Accordion key={index} type="single" collapsible className="w-full">
+                                                    <AccordionItem value={`${category.id}-${index}`} className="border-none">
+                                                        <AccordionTrigger className="text-left text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                            {faq.question}
+                                                        </AccordionTrigger>
+                                                        <AccordionContent className="text-slate-500 dark:text-[#A3ADC2]">
+                                                            {faq.answer}
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                </Accordion>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
                                 </TabsContent>
                             ))}
                         </Tabs>
@@ -205,12 +230,17 @@ export default function HelpInteractive({
             </section>
 
             {/* Resources Section */}
-            <section className="py-20">
-                <div className="container mx-auto px-4">
+            <section className="py-20 px-6">
+                <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold mb-4">Resurse Utile</h2>
-                        <p className="text-muted-foreground">
-                            Ghiduri, tutoriale și template-uri pentru a te ajuta să reușești
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
+                            Resurse utile
+                        </p>
+                        <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            Instrumente care te ajută să fii în control
+                        </h2>
+                        <p className="text-slate-500 dark:text-[#A3ADC2]">
+                            Ghiduri, tutoriale și template-uri pregătite de echipa Trustora.
                         </p>
                     </div>
 
@@ -220,20 +250,22 @@ export default function HelpInteractive({
                             return (
                                 <Card
                                     key={index}
-                                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+                                    className="glass-card group hover:shadow-lg transition-all duration-300 cursor-pointer"
                                 >
-                                    <CardHeader>
-                                        <div className="w-12 h-12 mb-4 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                            <Icon className="w-6 h-6 text-primary" />
+                                    <CardHeader className="space-y-4">
+                                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center group-hover:bg-emerald-100 transition-colors dark:bg-[rgba(27,196,125,0.1)] dark:group-hover:bg-[rgba(27,196,125,0.2)]">
+                                            <Icon className="w-6 h-6 text-[#1BC47D]" />
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <Badge variant="secondary" className="text-xs">
                                                 {resource.type}
                                             </Badge>
-                                            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                                            <ExternalLink className="w-4 h-4 text-slate-400" />
                                         </div>
-                                        <CardTitle className="text-lg">{resource.title}</CardTitle>
-                                        <CardDescription className="text-sm">
+                                        <CardTitle className="text-lg text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                            {resource.title}
+                                        </CardTitle>
+                                        <CardDescription className="text-sm text-slate-500 dark:text-[#A3ADC2]">
                                             {resource.description}
                                         </CardDescription>
                                     </CardHeader>
@@ -245,49 +277,62 @@ export default function HelpInteractive({
             </section>
 
             {/* Contact Form Section */}
-            <section className="py-20 bg-muted/30">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-2xl mx-auto">
-                        <div className="text-center mb-8">
-                            <h2 className="text-3xl font-bold mb-4">Nu ai găsit răspunsul?</h2>
-                            <p className="text-muted-foreground">
-                                Trimite-ne o întrebare și îți vom răspunde în cel mai scurt timp
-                            </p>
-                        </div>
+            <section className="py-20 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+                <div className="max-w-2xl mx-auto">
+                    <div className="text-center mb-8">
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
+                            Contactează-ne
+                        </p>
+                        <h2 className="text-3xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            Nu ai găsit răspunsul?
+                        </h2>
+                        <p className="text-slate-500 dark:text-[#A3ADC2]">
+                            Trimite-ne o întrebare și îți răspundem în cel mai scurt timp.
+                        </p>
+                    </div>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Contactează Suportul</CardTitle>
-                                <CardDescription>
-                                    Completează formularul de mai jos și te vom contacta în maxim 2 ore
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block">Nume</label>
-                                        <Input placeholder="Numele tău" />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block">Email</label>
-                                        <Input type="email" placeholder="email@exemplu.ro" />
-                                    </div>
-                                </div>
+                    <Card className="glass-card">
+                        <CardHeader>
+                            <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">Contactează Suportul</CardTitle>
+                            <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                                Completează formularul de mai jos și te vom contacta în maxim 2 ore.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium mb-2 block">Subiect</label>
-                                    <Input placeholder="Despre ce vrei să vorbești?" />
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Mesaj</label>
-                                    <textarea
-                                        className="w-full min-h-32 px-3 py-2 border border-input bg-background rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                        placeholder="Descrie problema ta în detaliu..."
+                                    <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Nume</label>
+                                    <Input
+                                        placeholder="Numele tău"
+                                        className="border-slate-200 dark:border-[#1E2A3D]"
                                     />
                                 </div>
-                                <Button className="w-full">Trimite Mesajul</Button>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Email</label>
+                                    <Input
+                                        type="email"
+                                        placeholder="email@exemplu.ro"
+                                        className="border-slate-200 dark:border-[#1E2A3D]"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Subiect</label>
+                                <Input
+                                    placeholder="Despre ce vrei să vorbești?"
+                                    className="border-slate-200 dark:border-[#1E2A3D]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Mesaj</label>
+                                <textarea
+                                    className="w-full min-h-32 px-3 py-2 border border-slate-200 bg-white rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1BC47D] focus:ring-offset-2 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#E6EDF3]"
+                                    placeholder="Descrie problema ta în detaliu..."
+                                />
+                            </div>
+                            <Button className="w-full btn-primary">Trimite Mesajul</Button>
+                        </CardContent>
+                    </Card>
                 </div>
             </section>
         </>

@@ -1,0 +1,30 @@
+{
+  "page": {
+    "aria_label": "Available services",
+    "title": "Services Marketplace",
+    "subtitle": "Find expert developers across technologies and services"
+  },
+  "filters": {
+    "title": "Filters",
+    "service_type": "Service Type",
+    "technologies": "Technologies",
+    "all": "All",
+    "show_more": "Show More",
+    "show_less": "Show Less",
+    "other": "Other"
+  },
+  "results": {
+    "no_services": "No services found matching your filters",
+    "recommended": "Recommended",
+    "standard": "Standard",
+    "more_label": "+{count} more",
+    "providers_more_label": "+{count} more",
+    "providers_available": "{count} providers available",
+    "no_providers": "No providers yet"
+  },
+  "actions": {
+    "wishlisted": "Wishlisted",
+    "add": "Add",
+    "share": "Share"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "hero": {
+    "badge": "PLATFORMĂ LIVE ÎN ROMÂNIA",
+    "title": "Unde munca întâlnește",
+    "title_highlight": "încrederea.",
+    "subtitle": "Prima infrastructură digitală din România care securizează plățile și garantează livrarea serviciilor IT prin sistem Escrow nativ și verificare video.",
+    "primary_cta": "Începe acum — Gratuit",
+    "secondary_cta": "Vezi cum funcționează",
+    "trusted_label": "Peste 500+ specialiști IT verificați video",
+    "dashboard_label": "Active Escrow Dashboard",
+    "secured_label": "SECURED",
+    "contract_name": "Dezvoltare Modul AI",
+    "contract_value": "4.200 €",
+    "milestone_progress": "MILESTONE 3/4",
+    "milestone_eta": "LIVRATĂ ÎN 2 ZILE",
+    "next_milestone": "Next Milestone",
+    "payout_label": "Payout",
+    "payout_value": "Instant"
+  },
+  "pillars": {
+    "verified_title": "Oameni verificați",
+    "verified_description": "Nimeni nu lucrează fără test tehnic și verificare video obligatorie.",
+    "protected_title": "Bani protejați",
+    "protected_description": "Fiecare euro este ținut în escrow până la confirmarea livrării.",
+    "delivery_title": "Livrare garantată",
+    "delivery_description": "Plata se eliberează doar pe baza milestone-urilor acceptate.",
+    "legal_title": "Contracte cu valoare legală",
+    "legal_description": "Fiecare job este un contract digital cu valoare legală deplină."
+  },
+  "messaging": {
+    "clients_badge": "PENTRU CLIENȚI",
+    "clients_title": "„Plătesc doar când primesc livrarea.”",
+    "clients_body": "Banii tăi sunt protejați prin escrow. Nicio plată nu părăsește platforma fără confirmarea ta explicită a calității muncii.",
+    "clients_benefit_one": "Zero risc de pierdere financiară",
+    "clients_benefit_two": "Profesioniști pre-verificați video",
+    "clients_link": "Începe să angajezi în siguranță →",
+    "pros_badge": "PENTRU PROFESIONIȘTI",
+    "pros_title": "„Banii sunt blocați înainte să încep.”",
+    "pros_body": "Nu mai lucrezi pe promisiuni. Plata pentru fiecare milestone este deja blocată în sistem înainte ca tu să scrii prima linie de cod.",
+    "pros_benefit_one": "Garanția plății 100%",
+    "pros_benefit_two": "Dispute rezolvate prin arbitraj tehnic",
+    "pros_link": "Intră în infrastructură →"
+  },
+  "visual": {
+    "title": "Stripe + Notar + Marketplace",
+    "money_label": "Bani",
+    "money_subtitle": "Strat escrow",
+    "contracts_label": "Contracte",
+    "contracts_subtitle": "Execuție digitală",
+    "verification_label": "Verificare",
+    "verification_subtitle": "Strat de identitate"
+  },
+  "final_cta": {
+    "title": "Fără încredere. Fără deal.",
+    "subtitle": "Lucrează fără risc pe cea mai sigură platformă pentru servicii online.",
+    "cta_label": "Pornește un proiect protejat",
+    "escrow_label": "Escrow securizat",
+    "verified_label": "Verificat video",
+    "legal_label": "Valoare legală"
+  }
+}

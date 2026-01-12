@@ -3,6 +3,7 @@ import {generateSEO} from "@/lib/seo";
 import HelpPageComponent from "@/app/[locale]/help/help-page";
 import { Footer } from "@/components/footer";
 import { Header } from '@/components/header';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 
 export const metadata: Metadata = generateSEO({
@@ -177,8 +178,9 @@ export default function HelpPage() {
     ] as const;
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-white dark:bg-[#070C14]">
             <Header />
+            <TrustoraThemeStyles />
             <HelpPageComponent
                 faqCategories={faqCategories as any}
                 supportOptions={supportOptions as any}

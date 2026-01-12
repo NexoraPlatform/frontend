@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,8 @@ export default function TestsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
+        <TrustoraThemeStyles />
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p>Se încarcă...</p>
@@ -58,10 +60,11 @@ export default function TestsPage() {
 
   if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+        <TrustoraThemeStyles />
         <Header />
         <div className="container mx-auto px-4 py-20">
-          <Alert variant="destructive">
+          <Alert className="glass-card border-red-200/70">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               Doar prestatorii pot accesa testele de competență.
@@ -193,26 +196,27 @@ export default function TestsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+      <TrustoraThemeStyles />
       <Header />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Trophy className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Teste de Competență</h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold mb-4 text-[var(--text-near-black)] dark:text-white">Teste de Competență</h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Demonstrează-ți expertiza și obține certificări pentru a oferi servicii pe platformă.
             Fiecare test validează cunoștințele tale în domeniul respectiv.
           </p>
         </div>
 
         {/* Progress Overview */}
-        <Card className="mb-8 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <Card className="mb-8 glass-card border-emerald-100/60">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -222,7 +226,7 @@ export default function TestsPage() {
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-blue-600">0%</div>
+                <div className="text-3xl font-bold text-emerald-600">0%</div>
                 <Progress value={0} className="w-32 mt-2" />
               </div>
             </div>
@@ -231,8 +235,8 @@ export default function TestsPage() {
 
         {/* Test in Progress */}
         {testInProgress && (
-          <Alert className="mb-8 border-blue-200 bg-blue-50">
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <Alert className="mb-8 glass-card border-emerald-100/80">
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
             <AlertDescription>
               <div className="flex items-center justify-between">
                 <div>
@@ -241,7 +245,7 @@ export default function TestsPage() {
                     Testul pentru {categories.find(c => c.id === selectedCategory)?.name} este în desfășurare.
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setTestInProgress(false)}>
+                <Button variant="outline" onClick={() => setTestInProgress(false)} className="border-emerald-200/70">
                   Anulează
                 </Button>
               </div>
@@ -254,10 +258,10 @@ export default function TestsPage() {
           {categories.map((category) => (
             <Card
               key={category.id}
-              className={`group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl ${
+              className={`group relative overflow-hidden glass-card border transition-all duration-300 hover:shadow-xl ${
                 category.status === 'locked' 
                   ? 'opacity-60 cursor-not-allowed' 
-                  : 'hover:border-blue-300 cursor-pointer hover:scale-105'
+                  : 'hover:border-emerald-200/80 cursor-pointer hover:scale-[1.02]'
               }`}
             >
               <div className={`h-2 bg-gradient-to-r ${category.color}`} />
@@ -328,7 +332,7 @@ export default function TestsPage() {
                   </div>
                 ) : (
                   <Button
-                    className="w-full"
+                    className="w-full btn-primary"
                     onClick={() => startTest(category.id)}
                     disabled={testInProgress}
                   >
@@ -342,17 +346,17 @@ export default function TestsPage() {
         </div>
 
         {/* Info Section */}
-        <Card className="mt-12 border-2 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+        <Card className="mt-12 glass-card border-amber-200/70">
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
                 <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
                   Cum funcționează testarea?
                 </h3>
-                <div className="text-yellow-800 dark:text-yellow-200 text-sm space-y-2">
+                <div className="text-amber-800 dark:text-amber-200 text-sm space-y-2">
                   <p>• <strong>Testele sunt obligatorii</strong> pentru a oferi servicii în categoriile respective</p>
                   <p>• <strong>Fiecare test</strong> conține întrebări practice și teoretice</p>
                   <p>• <strong>Nota de trecere</strong> variază în funcție de dificultatea categoriei</p>

@@ -177,7 +177,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
             case 'REJECTED':
                 return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Respins</Badge>;
             case 'NEW_PROPOSE':
-                return <Badge className="bg-blue-100 text-blue-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
+                return <Badge className="bg-emerald-100 text-emerald-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
@@ -257,7 +257,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         </div>
                     </div>
                     {Array.from(servicesMap).map((category: any, index: number) => (
-                        <Badge key={index} className="bg-blue-100 text-blue-800 inline-flex whitespace-nowrap me-1">
+                        <Badge key={index} className="bg-emerald-100 text-emerald-800 inline-flex whitespace-nowrap me-1">
                             {category.name}
                         </Badge>
                     ))}
@@ -329,13 +329,13 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
                                 {/* Budget Proposal */}
                                 {provider.status === 'NEW_PROPOSE' && (
-                                    <Alert className={`mt-3 border-blue-200 bg-blue-50`}>
+                                    <Alert className={`mt-3 border-emerald-200 bg-emerald-50/70`}>
                                         <DollarSign className="h-4 w-4" />
                                         <AlertDescription>
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <div className="font-medium">Propunere de buget nou:</div>
-                                                    <div className="text-lg font-bold text-blue-600">
+                                                    <div className="text-lg font-bold text-emerald-600">
                                                         {provider.proposedBudget?.toLocaleString()} RON
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">
@@ -385,7 +385,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                     <div className="flex-1">
                         <Button
                             onClick={() => getClientSecret(project.id)}
-                            className="w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden group"
+                            className="w-full bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] hover:from-[#17b672] hover:via-[#1bbd8c] hover:to-[#0a1726] text-[#071A12] font-bold py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden group"
                             size="lg"
                         >
                             {/* Animated background */}
@@ -402,7 +402,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                             </div>
 
                             {/* Pulse effect */}
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-400/20 to-teal-400/20 animate-pulse" />
+                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/20 to-emerald-200/20 animate-pulse" />
                         </Button>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => router.push(`/projects/${project.slug}`)}>
@@ -415,17 +415,17 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                     </Button>
                 </div>
                 <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-                    <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-6 text-white">
+                    <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] p-6 text-[#071A12]">
                             <div className="flex items-center space-x-3 mb-4">
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                                     <Shield className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <DialogTitle className="text-xl font-bold text-white">
+                                    <DialogTitle className="text-xl font-bold text-[#071A12]">
                                         Securizează Plata
                                     </DialogTitle>
-                                    <p className="text-blue-100 text-sm">
+                                    <p className="text-emerald-900/70 text-sm">
                                         Protejează-ți investiția cu escrow
                                     </p>
                                 </div>
@@ -433,11 +433,11 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
                             <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-blue-100">Proiect:</span>
+                                    <span className="text-emerald-900/70">Proiect:</span>
                                     <span className="font-semibold">{project.title[locale]}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm mt-2">
-                                    <span className="text-blue-100">Valoare totală:</span>
+                                    <span className="text-emerald-900/70">Valoare totală:</span>
                                     <span className="font-bold text-lg">{project.budget?.toLocaleString()} RON</span>
                                 </div>
                             </div>
@@ -448,34 +448,34 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 <h3 className="font-semibold text-lg mb-2">Cum funcționează Escrow?</h3>
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     <div className="text-center">
-                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <span className="font-bold text-blue-600">1</span>
+                                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <span className="font-bold text-emerald-700">1</span>
                                         </div>
                                         <p className="text-muted-foreground">Banii sunt blocați securizat</p>
                                     </div>
                                     <div className="text-center">
-                                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <span className="font-bold text-purple-600">2</span>
+                                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <span className="font-bold text-emerald-700">2</span>
                                         </div>
                                         <p className="text-muted-foreground">Prestatorii lucrează la proiect</p>
                                     </div>
                                     <div className="text-center">
-                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <span className="font-bold text-green-600">3</span>
+                                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <span className="font-bold text-emerald-700">3</span>
                                         </div>
                                         <p className="text-muted-foreground">Banii sunt eliberați la finalizare</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                            <div className="bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-lg p-4">
                                 <div className="flex items-start space-x-3">
-                                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                                    <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
                                     <div className="text-sm">
-                                        <div className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                                        <div className="font-semibold text-emerald-900 dark:text-emerald-100 mb-1">
                                             Protecție 100% Garantată
                                         </div>
-                                        <p className="text-green-700 dark:text-green-300">
+                                        <p className="text-emerald-700 dark:text-emerald-200">
                                             Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor.
                                         </p>
                                     </div>
@@ -488,7 +488,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 </label>
                                 <div
                                     id="card-element"
-                                    className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all"
+                                    className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all"
                                 />
                             </div>
 
@@ -500,9 +500,9 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                             )}
 
                             {success && (
-                                <Alert className="border-green-200 bg-green-50">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <AlertDescription className="text-green-800">
+                                <Alert className="border-emerald-200 bg-emerald-50/70">
+                                    <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                    <AlertDescription className="text-emerald-800">
                                         Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.
                                     </AlertDescription>
                                 </Alert>
@@ -513,7 +513,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                     type="button"
                                     onClick={() => handlePayment(project.id)}
                                     disabled={loading}
-                                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                                    className="flex-1 bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                                 >
                                     {loading ? (
                                         <>

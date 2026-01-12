@@ -10,7 +10,7 @@
     }
   },
   "features": {
-    "badge": "Servicii Premium",
+    "badge": "Premium Services",
     "title": "Popular Service Categories",
     "subtitle": "Discover a wide range of professional IT services, all verified and rated by our community"
   },
@@ -38,6 +38,6 @@
     "start_now": "Start Now",
     "become_expert": "Become an Expert"
   },
-  "explore_services_in_category": "Explorează servicii din categoria"
+  "explore_services_in_category": "Explore services in category"
 
 }

@@ -71,11 +71,11 @@ export function ChatButton() {
                     aria-label="Deschide conversațiile"
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105"
+                    className="relative w-11 h-11 rounded-2xl border border-emerald-100/60 bg-white text-[#0B1C2D] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10"
                 >
                     <MessageCircle className="h-5 w-5" />
                     {totalUnread > 0 && (
-                        <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs border-2 border-background">
+                        <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-[#1BC47D] to-[#21D19F] text-white text-xs border-2 border-white shadow-sm dark:border-[#0B1220]">
                             {totalUnread > 99 ? "99+" : totalUnread}
                         </Badge>
                     )}
@@ -83,12 +83,12 @@ export function ChatButton() {
             </PopoverTrigger>
 
             <PopoverContent className="w-96 p-0" align="end">
-                <Card className="border-0 shadow-lg">
-                    <CardHeader className="pb-3">
+                <Card className="border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/95 dark:bg-[#0B1220]">
+                    <CardHeader className="pb-3 border-b border-emerald-100/60 dark:border-emerald-500/20">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg">Mesaje</CardTitle>
-                                <CardDescription>
+                                <CardTitle className="text-lg text-[#0B1C2D] dark:text-white">Mesaje</CardTitle>
+                                <CardDescription className="text-muted-foreground">
                                     {totalUnread > 0 ? `${totalUnread} necitite în total` : "Totul citit 🧘"}
                                 </CardDescription>
                             </div>
@@ -97,7 +97,7 @@ export function ChatButton() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="w-8 h-8"
+                                        className="w-8 h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/70 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
                                         onClick={e => {
                                             e.stopPropagation();
                                             // mark all as read: do it client-side per group with unread>0
@@ -113,12 +113,12 @@ export function ChatButton() {
                         </div>
 
                         <div className="relative mt-3">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600/70" />
                             <Input
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Caută conversații sau persoane..."
-                                className="pl-9"
+                                className="pl-9 rounded-xl border-emerald-100/70 focus-visible:ring-emerald-400/40 dark:border-emerald-500/30 dark:bg-[#0B1220]"
                             />
                         </div>
                     </CardHeader>
@@ -138,16 +138,16 @@ export function ChatButton() {
                                             <button
                                                 key={g.id}
                                                 onClick={() => handleOpenGroup(g)}
-                                                className="w-full text-left p-3 hover:bg-muted/60 transition-colors"
+                                                className="w-full text-left p-3 transition-colors hover:bg-emerald-50/60 dark:hover:bg-emerald-500/10"
                                                 aria-label={`${g.name}${isUnread ? ' (necitite)' : ''}`}
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <div className="relative">
-                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white">
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1BC47D] to-[#0B1C2D] flex items-center justify-center text-white shadow-sm">
                                                             {getGroupIcon(g.type)}
                                                         </div>
                                                         {g.unreadCount > 0 && (
-                                                            <Badge className="absolute -top-1 -right-1 px-1.5 py-0 h-5 text-[10px] bg-red-500 text-white">
+                                                            <Badge className="absolute -top-1 -right-1 px-1.5 py-0 h-5 text-[10px] bg-[#E5484D] text-white">
                                                                 {g.unreadCount > 99 ? "99+" : g.unreadCount}
                                                             </Badge>
                                                         )}
@@ -157,7 +157,7 @@ export function ChatButton() {
                                                         <div className="flex items-center justify-between">
                                                             <div
                                                                 className={`truncate ${
-                                                                    isUnread ? 'font-semibold text-foreground' : 'font-medium'
+                                                                    isUnread ? 'font-semibold text-[#0B1C2D] dark:text-white' : 'font-medium'
                                                                 }`}
                                                                 title={g.name}
                                                             >
@@ -166,7 +166,7 @@ export function ChatButton() {
                                                             <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                                                 <Clock className="w-3 h-3" />
                                                                 <span className={`${
-                                                                    isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                                                                    isUnread ? 'font-semibold text-[#0B1C2D] dark:text-white' : 'text-muted-foreground'}`}>
                 {formatDistanceToNow(
                     new Date(g.last_message?.timestamp || (g.updated_at || g.created_at)),
                     { addSuffix: true, locale: ro }
@@ -178,7 +178,7 @@ export function ChatButton() {
                                                         {g.last_message ? (
                                                             <div
                                                                 className={`mt-1 text-xs truncate ${
-                                                                    isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                                                                    isUnread ? 'font-semibold text-[#0B1C2D] dark:text-white' : 'text-muted-foreground'
                                                                 }`}
                                                                 title={
                                                                     g.last_message.translations?.[userLang] ??
@@ -197,7 +197,7 @@ export function ChatButton() {
                                                         )}
 
                                                         <div className="flex items-center gap-2 mt-2">
-                                                            <Badge variant="outline" className="text-[10px]">
+                                                            <Badge variant="outline" className="text-[10px] border-emerald-200 text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-200">
                                                                 {g.type === "PROJECT" ? "Proiect" :
                                                                     g.type === "PROVIDER_ONLY" ? "Prestatori" : "Direct"}
                                                             </Badge>

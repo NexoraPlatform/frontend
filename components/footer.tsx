@@ -210,9 +210,9 @@ export function Footer() {
                       className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors
          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
          disabled:pointer-events-none disabled:opacity-50
-         bg-blue-600 text-white
-         hover:bg-blue-700
-         dark:bg-blue-500 dark:hover:bg-blue-600
+         bg-[#1BC47D] text-[#071A12]
+         hover:bg-[#17b672]
+         dark:bg-[#1BC47D] dark:hover:bg-[#17b672]
          h-9 rounded-md px-3"
                   >
                       {subscribeText}

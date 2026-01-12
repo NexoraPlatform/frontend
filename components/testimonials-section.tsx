@@ -66,7 +66,7 @@ export function TestimonialsSection() {
   }, [testimonials.length]);
 
   return (
-    <section className="py-12 bg-gradient-to-b from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-950/50 dark:via-blue-950/10 dark:to-purple-950/10 relative overflow-hidden">
+    <section className="py-12 bg-gradient-to-b from-gray-50 via-emerald-50/40 to-slate-50 dark:from-gray-950/50 dark:via-emerald-500/10 dark:to-[#0B1220] relative overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
           <Badge variant="secondary" className="mb-8 px-6 py-3 text-base font-semibold bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/50 dark:to-orange-900/50 border border-yellow-200 dark:border-yellow-800">
@@ -82,8 +82,8 @@ export function TestimonialsSection() {
         </div>
 
         <div className="max-w-5xl mx-auto">
-          <Card className="border-3 border-blue-200 dark:border-blue-800 shadow-2xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20"></div>
+          <Card className="border-3 border-emerald-200 dark:border-emerald-500/30 shadow-2xl bg-white/90 dark:bg-[#0B1220]/90 backdrop-blur-sm overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-slate-50/60 dark:from-emerald-500/10 dark:to-[#0B1C2D]/30"></div>
             <CardContent className="p-16 relative z-10">
               <div className="flex mb-8">
                 {[...Array(testimonials[currentTestimonial].rating)].map((_, i) => (
@@ -99,18 +99,18 @@ export function TestimonialsSection() {
                   <Image
                     src={testimonials[currentTestimonial].avatar}
                     alt={testimonials[currentTestimonial].name} width={80} height={80}
-                    className="w-20 h-20 rounded-full object-cover border-4 border-blue-200 dark:border-blue-800"
+                    className="w-20 h-20 rounded-full object-cover border-4 border-emerald-200 dark:border-emerald-500/30"
                   />
                   <div>
                     <div className="font-bold text-2xl">{testimonials[currentTestimonial].name}</div>
                     <div className="text-muted-foreground text-lg">{testimonials[currentTestimonial].role}</div>
-                    <div className="text-blue-600 font-semibold">{testimonials[currentTestimonial].company}</div>
+                    <div className="text-emerald-600 font-semibold">{testimonials[currentTestimonial].company}</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground mb-1">Proiect</div>
                   <div className="font-bold text-xl">{testimonials[currentTestimonial].project}</div>
-                  <div className="text-lg text-green-600 font-bold">{testimonials[currentTestimonial].value}</div>
+                  <div className="text-lg text-emerald-600 font-bold">{testimonials[currentTestimonial].value}</div>
                 </div>
               </div>
             </CardContent>
@@ -124,7 +124,7 @@ export function TestimonialsSection() {
                 onClick={() => setCurrentTestimonial(index)}
                 className={`w-4 h-4 rounded-full transition-all duration-300 ${
                   index === currentTestimonial
-                    ? 'bg-blue-600 scale-125'
+                    ? 'bg-emerald-600 scale-125'
                     : 'bg-gray-300 hover:bg-gray-400'
                 }`}
               />
@@ -135,4 +135,3 @@ export function TestimonialsSection() {
     </section>
   );
 }
-
