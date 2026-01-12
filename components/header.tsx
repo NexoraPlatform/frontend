@@ -139,7 +139,7 @@ export function Header() {
             <Link
                 href={`/${locale}`}
                 className="flex items-center space-x-4 group"
-                aria-label={`Nexora - ${homeText}`}
+                aria-label={`Trustora - ${homeText}`}
             >
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -217,7 +217,7 @@ export function Header() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                  className="w-11 h-11 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
                   aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

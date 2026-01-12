@@ -24,7 +24,7 @@ export function TestimonialsSection() {
       name: 'Maria Popescu',
       role: 'CEO, TechStart Romania',
       content:
-        'Nexora ne-a ajutat să găsim echipa perfectă pentru dezvoltarea aplicației noastre fintech. Profesionalismul și calitatea au depășit toate așteptările noastre!',
+        'Trustora ne-a ajutat să găsim echipa perfectă pentru dezvoltarea aplicației noastre fintech. Profesionalismul și calitatea au depășit toate așteptările noastre!',
       rating: 5,
       avatar:
         'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150',
@@ -36,7 +36,7 @@ export function TestimonialsSection() {
       name: 'Alexandru Ionescu',
       role: 'Marketing Director, E-Commerce Plus',
       content:
-        'Campania de marketing digital realizată prin Nexora ne-a dublat vânzările în doar 3 luni. ROI-ul a fost cu adevărat excepțional!',
+        'Campania de marketing digital realizată prin Trustora ne-a dublat vânzările în doar 3 luni. ROI-ul a fost cu adevărat excepțional!',
       rating: 5,
       avatar:
         'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',

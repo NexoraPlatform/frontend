@@ -1,6 +1,6 @@
 
     let notificationData = {
-        title: 'Nexora',
+        title: 'Trustora',
         body: 'Ai o notificare nouă',
         icon: '',
         badge: '/logo.webp',

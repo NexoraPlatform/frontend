@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.API_URL ||
-    'https://nexorabe.dacars.ro/api';
+    'https://Trustorabe.dacars.ro/api';
 
 export async function getServerUser() {
     const cookieStore = await cookies();

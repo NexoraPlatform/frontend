@@ -21,8 +21,8 @@ import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 
 export const metadata: Metadata = generateSEO({
-  title: 'Contactează Nexora - Suport și Informații',
-  description: 'Ai o intrebare sau vrei să colaborezi cu Nexora? Contactează-ne pentru suport rapid și informații despre serviciile noastre.',
+  title: 'Contactează Trustora - Suport și Informații',
+  description: 'Ai o intrebare sau vrei să colaborezi cu Trustora? Contactează-ne pentru suport rapid și informații despre serviciile noastre.',
   url: '/contact',
 })
 
@@ -31,8 +31,8 @@ export default function ContactPage() {
     {
       icon: Mail,
       title: 'Email',
-      primary: 'contact@nexora.ro',
-      secondary: 'suport@nexora.ro',
+      primary: 'contact@Trustora.ro',
+      secondary: 'suport@Trustora.ro',
       description: 'Răspundem în maxim 2 ore'
     },
     {
@@ -62,25 +62,25 @@ export default function ContactPage() {
     {
       icon: Users,
       title: 'Suport Clienți',
-      email: 'suport@nexora.ro',
+      email: 'suport@Trustora.ro',
       description: 'Pentru întrebări despre servicii și proiecte'
     },
     {
       icon: Briefcase,
       title: 'Parteneriate',
-      email: 'parteneriate@nexora.ro',
+      email: 'parteneriate@Trustora.ro',
       description: 'Colaborări și oportunități de business'
     },
     {
       icon: Building,
       title: 'Presă & Media',
-      email: 'presa@nexora.ro',
+      email: 'presa@Trustora.ro',
       description: 'Informații pentru jurnaliști și media'
     },
     {
       icon: HeadphonesIcon,
       title: 'Suport Tehnic',
-      email: 'tehnic@nexora.ro',
+      email: 'tehnic@Trustora.ro',
       description: 'Probleme tehnice și bug-uri'
     }
   ];
@@ -90,21 +90,21 @@ export default function ContactPage() {
       city: 'București',
       address: 'Strada Exemplu nr. 123, Sector 1',
       phone: '+40 123 456 789',
-      email: 'bucuresti@nexora.ro',
+      email: 'bucuresti@Trustora.ro',
       primary: true
     },
     {
       city: 'Cluj-Napoca',
       address: 'Strada Demo nr. 45, Centru',
       phone: '+40 234 567 890',
-      email: 'cluj@nexora.ro',
+      email: 'cluj@Trustora.ro',
       primary: false
     },
     {
       city: 'Timișoara',
       address: 'Bulevardul Test nr. 67',
       phone: '+40 345 678 901',
-      email: 'timisoara@nexora.ro',
+      email: 'timisoara@Trustora.ro',
       primary: false
     }
   ];
@@ -125,7 +125,7 @@ export default function ContactPage() {
           </h1>
           <p className="text-xl text-slate-500 mb-8 max-w-3xl mx-auto dark:text-[#A3ADC2]">
             Ai o întrebare, o sugestie sau vrei să colaborezi cu noi?
-            Echipa Nexora este gata să îți răspundă și să te sprijine.
+            Echipa Trustora este gata să îți răspundă și să te sprijine.
           </p>
           <div className="mt-10 border-b border-slate-100 dark:border-[#1E2A3D]" />
         </div>

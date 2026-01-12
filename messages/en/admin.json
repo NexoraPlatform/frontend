@@ -2,7 +2,7 @@
   "loading": "Loading...",
   "dashboard": {
     "title": "Admin Dashboard",
-    "subtitle": "Manage the Nexora platform with flexible rates and competency tests",
+    "subtitle": "Manage the Trustora platform with flexible rates and competency tests",
     "stats": {
       "users": "Registered Users",
       "services": "Active Services",
@@ -218,7 +218,7 @@
     "manage_title": "Analytics & Reports",
     "manage_subtitle": "Analyze platform performance",
     "stats_title": "Detailed Statistics",
-    "stats_description": "Reports and analytics for the Nexora platform",
+    "stats_description": "Reports and analytics for the Trustora platform",
     "in_development_title": "Analytics in development",
     "in_development_description": "Detailed reports will be available soon"
   },
@@ -447,7 +447,7 @@
   },
   "settings": {
     "title": "Platform Settings",
-    "subtitle": "Configure general settings for the Nexora platform",
+    "subtitle": "Configure general settings for the Trustora platform",
     "saving": "Saving...",
     "save_all": "Save All",
     "saved_success": "Settings saved successfully!",

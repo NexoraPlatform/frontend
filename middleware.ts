@@ -11,7 +11,7 @@ import {
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.API_URL ||
-    'https://nexorabe.dacars.ro/api';
+    'https://backend.trustora.ro/api';
 
 type RouteRule = { pattern: RegExp; require: Requirement | 'auth-only' };
 

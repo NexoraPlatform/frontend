@@ -14,8 +14,8 @@
     "title": "Popular Service Categories",
     "subtitle": "Discover a wide range of professional IT services, all verified and rated by our community"
   },
-  "why_nexora": {
-    "badge": "Why Nexora?",
+  "why_Trustora": {
+    "badge": "Why Trustora?",
     "title": "Trusted Experience for Your Projects",
     "subtitle": "We provide a secure, fast, and transparent platform for all your IT collaborations",
     "secure_platform": "Secure Platform",
@@ -30,11 +30,11 @@
   "testimonials": {
     "badge": "Testimonials",
     "title": "What Our Clients Say",
-    "subtitle": "Thousands of entrepreneurs and companies have achieved their dreams with the help of experts on Nexora"
+    "subtitle": "Thousands of entrepreneurs and companies have achieved their dreams with the help of experts on Trustora"
   },
   "cta": {
     "title": "Ready to turn your idea into reality?",
-    "subtitle": "Join thousands of entrepreneurs who have found the right experts on Nexora. Start today and watch your project come to life.",
+    "subtitle": "Join thousands of entrepreneurs who have found the right experts on Trustora. Start today and watch your project come to life.",
     "start_now": "Start Now",
     "become_expert": "Become an Expert"
   },

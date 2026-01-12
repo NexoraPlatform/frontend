@@ -210,7 +210,7 @@ export default function SelectServicesPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">
-                  Serviciile sunt administrate de echipa Nexora
+                  Serviciile sunt administrate de echipa Trustora
                 </h3>
                 <div className="text-slate-600 dark:text-slate-300 text-sm space-y-1">
                   <p>• <strong>Administratorii</strong> creează și gestionează serviciile disponibile</p>

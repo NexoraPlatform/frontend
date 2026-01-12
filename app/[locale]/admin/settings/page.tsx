@@ -36,11 +36,11 @@ export default function AdminSettingsPage() {
     const [loading, setLoading] = useState(false);
     const [saved, setSaved] = useState(false);
     const [settings, setSettings] = useState({
-        siteName: 'Nexora',
+        siteName: 'Trustora',
         siteDescription: 'Platforma românească pentru servicii IT profesionale',
-        siteUrl: 'https://nexora.ro',
-        adminEmail: 'admin@nexora.ro',
-        supportEmail: 'suport@nexora.ro',
+        siteUrl: 'https://Trustora.ro',
+        adminEmail: 'admin@Trustora.ro',
+        supportEmail: 'suport@Trustora.ro',
 
         platformCommission: '5',
         minServicePrice: '50',

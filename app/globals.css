@@ -34,12 +34,12 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.75rem;
-    --nexora-blue: 221 83% 53%;
-    --nexora-blue-dark: 221 83% 43%;
-    --nexora-blue-light: 221 83% 63%;
-    --nexora-navy: 221 39% 11%;
-    --nexora-gray: 215 25% 27%;
-    --nexora-light-gray: 215 16% 47%;
+    --Trustora-blue: 221 83% 53%;
+    --Trustora-blue-dark: 221 83% 43%;
+    --Trustora-blue-light: 221 83% 63%;
+    --Trustora-navy: 221 39% 11%;
+    --Trustora-gray: 215 25% 27%;
+    --Trustora-light-gray: 215 16% 47%;
     --trust-green: 155 76% 44%;
     --trust-gold: 37 91% 55%;
 }
@@ -341,7 +341,7 @@ body {
 }
 
 .focus\:ring-2:focus {
-    box-shadow: 0 0 0 2px hsl(var(--nexora-blue));
+    box-shadow: 0 0 0 2px hsl(var(--Trustora-blue));
 }
 
 .focus\:outline-none:focus {
@@ -386,7 +386,7 @@ body {
     position: absolute;
     top: -42px;
     left: 6px;
-    background: hsl(var(--nexora-blue));
+    background: hsl(var(--Trustora-blue));
     color: white;
     padding: 8px 16px;
     text-decoration: none;

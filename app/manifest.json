@@ -26,8 +26,8 @@
     { "src": "/icons/trustora2-icon-512x512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "screenshots": [
-    { "src": "/screenshots/desktop.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "Nexora Desktop" },
-    { "src": "/screenshots/mobile.png",  "sizes": "750x1334", "type": "image/png", "form_factor": "narrow", "label": "Nexora Mobile" }
+    { "src": "/screenshots/desktop.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "Trustora Desktop" },
+    { "src": "/screenshots/mobile.png",  "sizes": "750x1334", "type": "image/png", "form_factor": "narrow", "label": "Trustora Mobile" }
   ],
   "shortcuts": [
     { "name": "Servicii IT", "short_name": "Servicii", "description": "Găsește experți IT", "url": "/services", "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }] },

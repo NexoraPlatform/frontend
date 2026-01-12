@@ -8,7 +8,7 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export const metadata: Metadata = generateSEO({
   title: 'FAQ - Întrebări Frecvente',
-  description: 'Ai o intrebare? Verifica sectiunea de întrebări frecvente pentru răspunsuri rapide la cele mai comune întrebări despre Nexora.',
+  description: 'Ai o intrebare? Verifica sectiunea de întrebări frecvente pentru răspunsuri rapide la cele mai comune întrebări despre Trustora.',
   url: '/help',
 })
 
@@ -20,12 +20,12 @@ export default function HelpPage() {
             iconKey: "HelpCircle",
             faqs: [
                 {
-                    question: "Ce este Nexora și cum funcționează?",
+                    question: "Ce este Trustora și cum funcționează?",
                     answer:
-                        "Nexora este o platformă românească care conectează clienții cu experți IT verificați. Poți căuta servicii, compara oferte, și colabora direct cu furnizorii prin platforma noastră securizată.",
+                        "Trustora este o platformă românească care conectează clienții cu experți IT verificați. Poți căuta servicii, compara oferte, și colabora direct cu furnizorii prin platforma noastră securizată.",
                 },
                 {
-                    question: "Este gratuit să folosesc Nexora?",
+                    question: "Este gratuit să folosesc Trustora?",
                     answer:
                         "Da, înregistrarea și căutarea serviciilor sunt complet gratuite. Plătești doar pentru serviciile pe care le comanzi, fără taxe ascunse.",
                 },
@@ -149,7 +149,7 @@ export default function HelpPage() {
     const resources = [
         {
             title: "Ghid pentru Începători",
-            description: "Învață să folosești Nexora pas cu pas",
+            description: "Învață să folosești Trustora pas cu pas",
             iconKey: "BookOpen",
             type: "PDF Guide",
             link: "#",

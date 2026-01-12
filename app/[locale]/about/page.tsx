@@ -18,7 +18,7 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export const metadata: Metadata = generateSEO({
   title: 'Despre noi',
-  description: 'Vrei sa aflii mai multe despre Nexora? Aici găsești informații despre misiunea, viziunea și valorile noastre, echipa din spatele platformei și povestea noastră de succes.',
+  description: 'Vrei sa aflii mai multe despre Trustora? Aici găsești informații despre misiunea, viziunea și valorile noastre, echipa din spatele platformei și povestea noastră de succes.',
   url: '/about',
 });
 
@@ -83,7 +83,7 @@ export default function AboutPage() {
   const milestones = [
     {
       year: '2020',
-      title: 'Înființarea Nexora',
+      title: 'Înființarea Trustora',
       description: 'Am lansat platforma cu viziunea de a conecta talentele IT românești cu oportunitățile globale.'
     },
     {
@@ -117,13 +117,13 @@ export default function AboutPage() {
       <section className="pt-32 pb-20 px-6 bg-white dark:bg-[#070C14] overflow-hidden">
         <div className="max-w-6xl mx-auto text-center">
           <Badge className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-            <span className="text-[#1BC47D]">●</span> 🚀 Despre Nexora
+            <span className="text-[#1BC47D]">●</span> 🚀 Despre Trustora
           </Badge>
           <h1 className="text-4xl lg:text-6xl font-bold mb-6 text-[#0B1C2D] tracking-tight dark:text-[#E6EDF3]">
             Construim viitorul digital al <span className="text-[#1BC47D]">României</span>
           </h1>
           <p className="text-xl text-slate-500 mb-10 max-w-3xl mx-auto dark:text-[#A3ADC2]">
-              Nexora este platforma românească care conectează antreprenorii cu cei mai buni experți IT.
+              Trustora este platforma românească care conectează antreprenorii cu cei mai buni experți IT.
               Misiunea noastră este să democratizăm accesul la servicii IT de calitate și să susținem
               creșterea ecosistemului tehnologic local.
             </p>
@@ -172,7 +172,7 @@ export default function AboutPage() {
               Eliminăm barierele dintre viziune și execuție
             </h2>
             <p className="text-lg text-slate-500 mb-8 dark:text-[#A3ADC2]">
-              Credem că fiecare idee merită să devină realitate. De aceea, am construit Nexora -
+              Credem că fiecare idee merită să devină realitate. De aceea, am construit Trustora -
               o platformă care elimină barierele dintre viziune și execuție, conectând antreprenorii
               cu experții IT potriviți.
             </p>
@@ -296,7 +296,7 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-4 dark:text-[#6B7285]">
-              Echipa Nexora
+              Echipa Trustora
             </p>
             <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
               Oameni care susțin transformarea digitală
@@ -332,11 +332,11 @@ export default function AboutPage() {
       <section className="py-24 px-6 bg-[#0B1C2D] text-white text-center dark:bg-[#0B1220]">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl lg:text-5xl font-bold mb-6">
-            Alătură-te Comunității Nexora
+            Alătură-te Comunității Trustora
           </h2>
           <p className="text-lg text-slate-400 mb-10 dark:text-[#A3ADC2]">
             Fie că ești antreprenor în căutarea expertului potrivit sau specialist IT care vrea să își
-            dezvolte cariera, Nexora este locul unde visurile devin realitate.
+            dezvolte cariera, Trustora este locul unde visurile devin realitate.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="px-8 py-6 text-lg btn-primary" asChild>

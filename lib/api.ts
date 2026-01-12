@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexorabe.dacars.ro/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
 export type RoleLite = {
   id: number;

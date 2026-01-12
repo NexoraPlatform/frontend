@@ -77,7 +77,7 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
                             </h1>
                             <p className="text-muted-foreground">
                                 {isProvider
-                                    ? 'Programeaza-te pentru un call 1:1 cu un operator Nexora'
+                                    ? 'Programeaza-te pentru un call 1:1 cu un operator Trustora'
                                     : ''
                                 }
                             </p>
@@ -95,7 +95,7 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
 
                 <div className="glass-card border-emerald-100/70 p-6">
                     <Cal namespace="verificare-identitate"
-                         calLink={`nexora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&service_id=${service.service.name}`}
+                         calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&service_id=${service.service.name}`}
                          style={{width:"100%",height:"100%",overflow:"scroll"}}
                          config={{
                              "layout":"month_view",

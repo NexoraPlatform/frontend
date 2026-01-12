@@ -2,7 +2,7 @@
   "loading": "Se încarcă...",
   "dashboard": {
     "title": "Panou de Administrare",
-    "subtitle": "Gestionează platforma Nexora cu tarife flexibile și teste de competență",
+    "subtitle": "Gestionează platforma Trustora cu tarife flexibile și teste de competență",
     "stats": {
       "users": "Utilizatori Înregistrați",
       "services": "Servicii Active",
@@ -216,7 +216,7 @@
     "manage_title": "Analytics & Rapoarte",
     "manage_subtitle": "Analizează performanța platformei",
     "stats_title": "Statistici Detaliate",
-    "stats_description": "Rapoarte și analize pentru platforma Nexora",
+    "stats_description": "Rapoarte și analize pentru platforma Trustora",
     "in_development_title": "Analytics în dezvoltare",
     "in_development_description": "Rapoartele detaliate vor fi disponibile în curând"
   },
@@ -445,7 +445,7 @@
   },
   "settings": {
     "title": "Setări Platformă",
-    "subtitle": "Configurează setările generale ale platformei Nexora",
+    "subtitle": "Configurează setările generale ale platformei Trustora",
     "saving": "Se salvează...",
     "save_all": "Salvează Toate",
     "saved_success": "Setările au fost salvate cu succes!",

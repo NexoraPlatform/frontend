@@ -162,8 +162,8 @@ export function Footer() {
               <div className="space-y-2" aria-labelledby="contact-heading">
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4" />
-                  <a href="mailto:contact@nexora.ro" className="hover:text-primary transition-colors">
-                    contact@nexora.ro
+                  <a href="mailto:contact@Trustora.ro" className="hover:text-primary transition-colors">
+                    contact@Trustora.ro
                   </a>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -207,7 +207,7 @@ export function Footer() {
 
           <div className="border-t mt-8 pt-8 text-center" role="contentinfo">
             <p className="text-sm text-muted-foreground">
-              © 2024 Nexora. {allRightsReservedText}. |
+              © 2024 Trustora. {allRightsReservedText}. |
               <Link
                   href="/privacy"
                   className="hover:text-primary ml-1"

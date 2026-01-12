@@ -133,11 +133,11 @@ body {
 `
 
 export const metadata: Metadata = generateSEO({
-    title: "Nexora - Marketplace de Servicii IT Premium",
+    title: "Trustora - Marketplace de Servicii IT Premium",
     description:
         "Conectează-te cu cei mai buni experți IT din România. Dezvoltare web, aplicații mobile, design UI/UX, marketing digital. Plăți securizate, experți verificați.",
     keywords: [
-        "nexora",
+        "Trustora",
         "servicii IT România",
         "dezvoltare web",
         "aplicații mobile",
@@ -173,7 +173,7 @@ export default function RootLayout({
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
             <link rel="preconnect" href="https://images.pexels.com" crossOrigin="" />
-            <link rel="dns-prefetch" href="//api.nexora.ro" />
+            <link rel="dns-prefetch" href="//api.Trustora.ro" />
             <link rel="dns-prefetch" href="//vercel.app" />
 
             <link rel="icon" href="/trustora-logo.webp" sizes="32x32" type="image/webp" />
@@ -242,7 +242,7 @@ export default function RootLayout({
                         defaultTheme="system"
                         enableSystem
                         disableTransitionOnChange
-                        storageKey="nexora-theme"
+                        storageKey="Trustora-theme"
                     >
                         <ActivityTracker />
 
