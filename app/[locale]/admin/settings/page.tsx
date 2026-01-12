@@ -30,6 +30,7 @@ import {
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { usePathname } from 'next/navigation';
 import { Locale } from '@/types/locale';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminSettingsPage() {
     const [loading, setLoading] = useState(false);
@@ -209,75 +210,100 @@ export default function AdminSettingsPage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center space-x-4">
-                    <Link href="/admin">
-                        <Button variant="outline" size="icon">
-                            <ArrowLeft className="w-4 h-4" />
+        <>
+            <TrustoraThemeStyles />
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                <div className="container mx-auto px-4 py-10">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
+                        <div className="flex items-center space-x-4">
+                            <Link href="/admin">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{pageTitle}</h1>
+                                <p className="text-sm text-muted-foreground">{pageSubtitle}</p>
+                            </div>
+                        </div>
+                        <Button onClick={handleSave} disabled={loading} className="btn-primary">
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    {savingLabel}
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {saveAllLabel}
+                                </>
+                            )}
                         </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold">{pageTitle}</h1>
-                        <p className="text-muted-foreground">{pageSubtitle}</p>
                     </div>
-                </div>
-                <Button onClick={handleSave} disabled={loading}>
-                    {loading ? (
-                        <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            {savingLabel}
-                        </>
-                    ) : (
-                        <>
-                            <Save className="w-4 h-4 mr-2" />
-                            {saveAllLabel}
-                        </>
+
+                    {saved && (
+                        <Alert className="mb-6 border-emerald-200/70 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+                            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                            <AlertDescription className="text-emerald-800 dark:text-emerald-100">
+                                {savedSuccess}
+                            </AlertDescription>
+                        </Alert>
                     )}
-                </Button>
-            </div>
 
-            {saved && (
-                <Alert className="mb-6 border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                        {savedSuccess}
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            <Tabs defaultValue="general" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-6">
-                    <TabsTrigger value="general" className="flex items-center space-x-2">
-                        <Globe className="w-4 h-4" />
-                        <span className="hidden sm:inline">{generalTab}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="platform" className="flex items-center space-x-2">
-                        <Settings className="w-4 h-4" />
-                        <span className="hidden sm:inline">{platformTab}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="payments" className="flex items-center space-x-2">
-                        <DollarSign className="w-4 h-4" />
-                        <span className="hidden sm:inline">{paymentsTab}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="email" className="flex items-center space-x-2">
-                        <Mail className="w-4 h-4" />
-                        <span className="hidden sm:inline">{emailTab}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="security" className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4" />
-                        <span className="hidden sm:inline">{securityTab}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="notifications" className="flex items-center space-x-2">
-                        <Bell className="w-4 h-4" />
-                        <span className="hidden sm:inline">{notificationsTab}</span>
-                    </TabsTrigger>
-                </TabsList>
+                    <Tabs defaultValue="general" className="space-y-6">
+                        <TabsList className="grid w-full grid-cols-2 gap-2 rounded-2xl border border-slate-200/60 bg-white/70 p-2 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60 sm:grid-cols-3 lg:grid-cols-6">
+                            <TabsTrigger
+                                value="general"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Globe className="w-4 h-4" />
+                                <span className="hidden sm:inline">{generalTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="platform"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span className="hidden sm:inline">{platformTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="payments"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <DollarSign className="w-4 h-4" />
+                                <span className="hidden sm:inline">{paymentsTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="email"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Mail className="w-4 h-4" />
+                                <span className="hidden sm:inline">{emailTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="security"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Shield className="w-4 h-4" />
+                                <span className="hidden sm:inline">{securityTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="notifications"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Bell className="w-4 h-4" />
+                                <span className="hidden sm:inline">{notificationsTab}</span>
+                            </TabsTrigger>
+                        </TabsList>
 
                 {/* GENERAL */}
                 <TabsContent value="general">
                     <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Globe className="w-5 h-5" />
@@ -294,6 +320,7 @@ export default function AdminSettingsPage() {
                                         id="siteName"
                                         value={settings.siteName}
                                         onChange={(e) => updateSetting('siteName', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                                 <div>
@@ -303,6 +330,7 @@ export default function AdminSettingsPage() {
                                         value={settings.siteDescription}
                                         onChange={(e) => updateSetting('siteDescription', e.target.value)}
                                         rows={3}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                                 <div>
@@ -311,12 +339,13 @@ export default function AdminSettingsPage() {
                                         id="siteUrl"
                                         value={settings.siteUrl}
                                         onChange={(e) => updateSetting('siteUrl', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Mail className="w-5 h-5" />
@@ -334,6 +363,7 @@ export default function AdminSettingsPage() {
                                         type="email"
                                         value={settings.adminEmail}
                                         onChange={(e) => updateSetting('adminEmail', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                                 <div>
@@ -343,6 +373,7 @@ export default function AdminSettingsPage() {
                                         type="email"
                                         value={settings.supportEmail}
                                         onChange={(e) => updateSetting('supportEmail', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                             </CardContent>
@@ -353,7 +384,7 @@ export default function AdminSettingsPage() {
                 {/* PLATFORM */}
                 <TabsContent value="platform">
                     <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <DollarSign className="w-5 h-5" />
@@ -373,6 +404,7 @@ export default function AdminSettingsPage() {
                                         onChange={(e) => updateSetting('platformCommission', e.target.value)}
                                         min="0"
                                         max="50"
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                                 <div>
@@ -383,6 +415,7 @@ export default function AdminSettingsPage() {
                                         value={settings.minServicePrice}
                                         onChange={(e) => updateSetting('minServicePrice', e.target.value)}
                                         min="0"
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                                 <div>
@@ -393,6 +426,7 @@ export default function AdminSettingsPage() {
                                         value={settings.maxServicePrice}
                                         onChange={(e) => updateSetting('maxServicePrice', e.target.value)}
                                         min="0"
+                                        className="bg-white/80 dark:bg-slate-900/60"
                                     />
                                 </div>
                                 <div>
@@ -401,7 +435,7 @@ export default function AdminSettingsPage() {
                                         value={settings.defaultCurrency}
                                         onValueChange={(value) => updateSetting('defaultCurrency', value)}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -414,7 +448,7 @@ export default function AdminSettingsPage() {
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Users className="w-5 h-5" />
@@ -473,7 +507,7 @@ export default function AdminSettingsPage() {
                 {/* PAYMENTS */}
                 <TabsContent value="payments">
                     <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <DollarSign className="w-5 h-5" />
@@ -485,8 +519,8 @@ export default function AdminSettingsPage() {
                                 {/* Stripe */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                            <DollarSign className="w-5 h-5 text-blue-600" />
+                                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                                            <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-200" />
                                         </div>
                                         <div>
                                             <Label>{payments_stripe_label}</Label>
@@ -494,7 +528,10 @@ export default function AdminSettingsPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <Badge variant={settings.stripeEnabled ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={settings.stripeEnabled ? 'default' : 'secondary'}
+                                            className={settings.stripeEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'}
+                                        >
                                             {settings.stripeEnabled ? activeLabel : inactiveLabel}
                                         </Badge>
                                         <Switch
@@ -507,8 +544,8 @@ export default function AdminSettingsPage() {
                                 {/* PayPal */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                                            <DollarSign className="w-5 h-5 text-yellow-600" />
+                                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                                            <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-200" />
                                         </div>
                                         <div>
                                             <Label>{payments_paypal_label}</Label>
@@ -516,7 +553,10 @@ export default function AdminSettingsPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <Badge variant={settings.paypalEnabled ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={settings.paypalEnabled ? 'default' : 'secondary'}
+                                            className={settings.paypalEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'}
+                                        >
                                             {settings.paypalEnabled ? activeLabel : inactiveLabel}
                                         </Badge>
                                         <Switch
@@ -529,8 +569,8 @@ export default function AdminSettingsPage() {
                                 {/* Bank transfer */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                            <DollarSign className="w-5 h-5 text-green-600" />
+                                        <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                                            <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-200" />
                                         </div>
                                         <div>
                                             <Label>{payments_bank_label}</Label>
@@ -538,7 +578,10 @@ export default function AdminSettingsPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <Badge variant={settings.bankTransferEnabled ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={settings.bankTransferEnabled ? 'default' : 'secondary'}
+                                            className={settings.bankTransferEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'}
+                                        >
                                             {settings.bankTransferEnabled ? activeLabel : inactiveLabel}
                                         </Badge>
                                         <Switch
@@ -550,7 +593,7 @@ export default function AdminSettingsPage() {
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Shield className="w-5 h-5" />
@@ -570,7 +613,7 @@ export default function AdminSettingsPage() {
                                     />
                                 </div>
 
-                                <Alert>
+                                <Alert className="border-amber-200/70 bg-amber-50/60 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>{payments_escrow_alert}</AlertDescription>
                                 </Alert>
@@ -581,7 +624,7 @@ export default function AdminSettingsPage() {
 
                 {/* EMAIL */}
                 <TabsContent value="email">
-                    <Card>
+                    <Card className="glass-card shadow-sm">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <Mail className="w-5 h-5" />
@@ -596,7 +639,7 @@ export default function AdminSettingsPage() {
                                     value={settings.emailProvider}
                                     onValueChange={(value) => updateSetting('emailProvider', value)}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -616,6 +659,7 @@ export default function AdminSettingsPage() {
                                             value={settings.smtpHost}
                                             onChange={(e) => updateSetting('smtpHost', e.target.value)}
                                             placeholder={email_smtp_host_ph}
+                                            className="bg-white/80 dark:bg-slate-900/60"
                                         />
                                     </div>
                                     <div>
@@ -625,6 +669,7 @@ export default function AdminSettingsPage() {
                                             value={settings.smtpPort}
                                             onChange={(e) => updateSetting('smtpPort', e.target.value)}
                                             placeholder={email_smtp_port_ph}
+                                            className="bg-white/80 dark:bg-slate-900/60"
                                         />
                                     </div>
                                     <div>
@@ -633,6 +678,7 @@ export default function AdminSettingsPage() {
                                             id="smtpUser"
                                             value={settings.smtpUser}
                                             onChange={(e) => updateSetting('smtpUser', e.target.value)}
+                                            className="bg-white/80 dark:bg-slate-900/60"
                                         />
                                     </div>
                                     <div>
@@ -642,6 +688,7 @@ export default function AdminSettingsPage() {
                                             type="password"
                                             value={settings.smtpPassword}
                                             onChange={(e) => updateSetting('smtpPassword', e.target.value)}
+                                            className="bg-white/80 dark:bg-slate-900/60"
                                         />
                                     </div>
                                 </div>
@@ -653,7 +700,7 @@ export default function AdminSettingsPage() {
                 {/* SECURITY */}
                 <TabsContent value="security">
                     <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Shield className="w-5 h-5" />
@@ -675,31 +722,33 @@ export default function AdminSettingsPage() {
 
                                 <div>
                                     <Label htmlFor="passwordMinLength">{security_pwd_len_label}</Label>
-                                    <Input
-                                        id="passwordMinLength"
-                                        type="number"
-                                        value={settings.passwordMinLength}
-                                        onChange={(e) => updateSetting('passwordMinLength', e.target.value)}
-                                        min="6"
-                                        max="20"
-                                    />
-                                </div>
+                                <Input
+                                    id="passwordMinLength"
+                                    type="number"
+                                    value={settings.passwordMinLength}
+                                    onChange={(e) => updateSetting('passwordMinLength', e.target.value)}
+                                    min="6"
+                                    max="20"
+                                    className="bg-white/80 dark:bg-slate-900/60"
+                                />
+                            </div>
 
-                                <div>
-                                    <Label htmlFor="maxLoginAttempts">{security_max_attempts}</Label>
-                                    <Input
-                                        id="maxLoginAttempts"
-                                        type="number"
-                                        value={settings.maxLoginAttempts}
-                                        onChange={(e) => updateSetting('maxLoginAttempts', e.target.value)}
-                                        min="3"
-                                        max="10"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
+                            <div>
+                                <Label htmlFor="maxLoginAttempts">{security_max_attempts}</Label>
+                                <Input
+                                    id="maxLoginAttempts"
+                                    type="number"
+                                    value={settings.maxLoginAttempts}
+                                    onChange={(e) => updateSetting('maxLoginAttempts', e.target.value)}
+                                    min="3"
+                                    max="10"
+                                    className="bg-white/80 dark:bg-slate-900/60"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                        <Card>
+                        <Card className="glass-card shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Clock className="w-5 h-5" />
@@ -710,14 +759,15 @@ export default function AdminSettingsPage() {
                             <CardContent className="space-y-4">
                                 <div>
                                     <Label htmlFor="sessionTimeout">{security_session_timeout_label}</Label>
-                                    <Input
-                                        id="sessionTimeout"
-                                        type="number"
-                                        value={settings.sessionTimeout}
-                                        onChange={(e) => updateSetting('sessionTimeout', e.target.value)}
-                                        min="1"
-                                        max="168"
-                                    />
+                                <Input
+                                    id="sessionTimeout"
+                                    type="number"
+                                    value={settings.sessionTimeout}
+                                    onChange={(e) => updateSetting('sessionTimeout', e.target.value)}
+                                    min="1"
+                                    max="168"
+                                    className="bg-white/80 dark:bg-slate-900/60"
+                                />
                                     <p className="text-sm text-muted-foreground mt-1">
                                         {security_session_timeout_desc}
                                     </p>
@@ -729,7 +779,7 @@ export default function AdminSettingsPage() {
 
                 {/* NOTIFICATIONS */}
                 <TabsContent value="notifications">
-                    <Card>
+                    <Card className="glass-card shadow-sm">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <Bell className="w-5 h-5" />
@@ -785,6 +835,8 @@ export default function AdminSettingsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-        </div>
+                </div>
+            </div>
+        </>
     );
 }
