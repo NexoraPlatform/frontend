@@ -85,7 +85,7 @@ export default function AdminCategoriesPage() {
     if (!children.length) return null;
 
     return children.map((child: any) => {
-      const paddingLeft = Math.max(32, depth * 24);
+      const paddingLeft = Math.max(64, depth * 24);
 
       return (
         <Fragment key={child.id}>
