@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,17 +80,72 @@ export default function AdminCategoriesPage() {
     return childrenMap[parentId] || [];
   };
 
-  const getCategoryDepth = (category: any) => {
-    let depth = 0;
-    let current = category;
+  const renderChildRows = (parentId: string, depth = 1) => {
+    const children = getChildrenForParent(parentId);
+    if (!children.length) return null;
 
-    while (current?.parent_id) {
-      depth += 1;
-      current = categories.find((item: any) => item.id === current.parent_id);
-      if (!current) break;
-    }
+    return children.map((child: any) => {
+      const paddingLeft = Math.max(32, depth * 24);
 
-    return depth;
+      return (
+        <Fragment key={child.id}>
+          <div
+            className="flex flex-col gap-4 border-b border-border/60 p-4 last:border-b-0 dark:border-slate-800/70 sm:flex-row sm:items-center sm:justify-between"
+            style={{ paddingLeft: `${paddingLeft}px` }}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted dark:bg-slate-900/80">
+                <Folder className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <h4 className="font-medium">{child.name[locale]}</h4>
+                  <Badge variant="outline" className="text-xs">
+                    {child.slug}
+                  </Badge>
+                  {!child.isActive && (
+                    <Badge variant="destructive" className="text-xs">{inactiveLabel}</Badge>
+                  )}
+                </div>
+                {child.description && (
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {child.description[locale]}
+                  </p>
+                )}
+                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                  <span>{orderLabel}: {child.sortOrder}</span>
+                  {child.icon && (
+                    <span>{iconLabel}: {child.icon}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => router.push(`/admin/categories/${child.id}`)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  {editLabel}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleCategoryAction(child.id, 'delete')}
+                  className="text-red-600"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {deleteLabel}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {renderChildRows(child.id, depth + 1)}
+        </Fragment>
+      );
+    });
   };
 
   return (
@@ -211,67 +266,7 @@ export default function AdminCategoriesPage() {
 
                     {children.length > 0 && (
                       <div className="border-t border-border/60 dark:border-slate-800/70">
-                        {children.map((child: any) => {
-                          const depth = getCategoryDepth(child);
-                          const paddingLeft = Math.max(24, depth * 24);
-
-                          return (
-                          <div
-                            key={child.id}
-                            className="flex flex-col gap-4 border-b border-border/60 p-4 last:border-b-0 dark:border-slate-800/70 sm:flex-row sm:items-center sm:justify-between"
-                            style={{ paddingLeft: `${paddingLeft}px` }}
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted dark:bg-slate-900/80">
-                                <Folder className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <h4 className="font-medium">{child.name[locale]}</h4>
-                                  <Badge variant="outline" className="text-xs">
-                                    {child.slug}
-                                  </Badge>
-                                  {!child.isActive && (
-                                    <Badge variant="destructive" className="text-xs">{inactiveLabel}</Badge>
-                                  )}
-                                </div>
-                                {child.description && (
-                                  <p className="text-sm text-muted-foreground mb-1">
-                                    {child.description[locale]}
-                                  </p>
-                                )}
-                                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                  <span>{orderLabel}: {child.sortOrder}</span>
-                                  {child.icon && (
-                                    <span>{iconLabel}: {child.icon}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => router.push(`/admin/categories/${child.id}`)}>
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  {editLabel}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleCategoryAction(child.id, 'delete')}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  {deleteLabel}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        );
-                        })}
+                        {renderChildRows(category.id)}
                       </div>
                     )}
                   </div>
