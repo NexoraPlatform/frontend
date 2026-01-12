@@ -1,6 +1,7 @@
 import DashboardClient from './dashboard-client';
 import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export const metadata: Metadata = generateSEO({
     title: 'Panou de control',
@@ -11,6 +12,7 @@ export const metadata: Metadata = generateSEO({
 export default function DashboardPage() {
   return (
       <>
+        <TrustoraThemeStyles />
         <DashboardClient />
       </>
   );
