@@ -33,20 +33,20 @@ import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { t } from '@/lib/i18n';
 
 const STATUS_STYLE_MAP: Record<OrderStatus, { color: string; icon: LucideIcon }> = {
-    PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-    ACCEPTED: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
-    IN_PROGRESS: { color: 'bg-purple-100 text-purple-800', icon: Clock },
-    DELIVERED: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    COMPLETED: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    CANCELLED: { color: 'bg-red-100 text-red-800', icon: XCircle },
-    DISPUTED: { color: 'bg-orange-100 text-orange-800', icon: AlertCircle },
+    PENDING: { color: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200', icon: Clock },
+    ACCEPTED: { color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200', icon: CheckCircle },
+    IN_PROGRESS: { color: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200', icon: Clock },
+    DELIVERED: { color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200', icon: CheckCircle },
+    COMPLETED: { color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200', icon: CheckCircle },
+    CANCELLED: { color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200', icon: XCircle },
+    DISPUTED: { color: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200', icon: AlertCircle },
 };
 
 const PAYMENT_STYLE_MAP: Record<PaymentStatus, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    PAID: 'bg-green-100 text-green-800',
-    FAILED: 'bg-red-100 text-red-800',
-    REFUNDED: 'bg-gray-100 text-gray-800',
+    PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200',
+    PAID: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
+    FAILED: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200',
+    REFUNDED: 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200',
 };
 
 export type OrderType = {
@@ -256,7 +256,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
                 <div className="flex justify-center items-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin" />
                 </div>
@@ -266,7 +266,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
     if (!order) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{notFoundLabel}</AlertDescription>
@@ -276,20 +276,36 @@ export default function OrderDetailsPage({ id }: { id: string }) {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/orders">
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-3xl font-bold">{orderLabel} #{order.orderNumber}</h1>
-                    <p className="text-muted-foreground">{detailSubtitle}</p>
+        <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+            <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.2),_rgba(15,23,42,0)_60%)]" />
+                <div className="relative flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Link href={`/${locale}/admin/orders`}>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            Trustora Admin
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {getStatusBadge(order.status)}
+                        {getPaymentStatusBadge(order.paymentStatus)}
+                    </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    {getStatusBadge(order.status)}
-                    {getPaymentStatusBadge(order.paymentStatus)}
+                <div className="relative mt-4">
+                    <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
+                        {orderLabel} #{order.orderNumber}
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+                        {detailSubtitle}
+                    </p>
                 </div>
             </div>
 
@@ -302,7 +318,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
             <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <FileText className="w-5 h-5" />
@@ -311,7 +327,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <h4 className="font-semibold text-lg text-blue-600 mb-2">
+                                <h4 className="font-semibold text-lg text-sky-700 dark:text-sky-400 mb-2">
                                     {order.service.title}
                                 </h4>
                                 <p className="text-sm text-muted-foreground mb-2">
@@ -321,7 +337,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
                             <div>
                                 <h5 className="font-medium mb-2">{requirementsTitle}</h5>
-                                <p className="text-sm bg-muted p-3 rounded-lg">
+                                <p className="text-sm rounded-lg border border-border/50 bg-muted/40 p-3 text-muted-foreground dark:border-slate-800/70 dark:bg-slate-900/60">
                                     {order.requirements}
                                 </p>
                             </div>
@@ -329,7 +345,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                             {order.clientNotes && (
                                 <div>
                                     <h5 className="font-medium mb-2">{clientNotesTitle}</h5>
-                                    <p className="text-sm bg-blue-50 p-3 rounded-lg">
+                                    <p className="text-sm rounded-lg border border-sky-200/50 bg-sky-50 p-3 text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100">
                                         {order.clientNotes}
                                     </p>
                                 </div>
@@ -338,7 +354,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                             {order.providerNotes && (
                                 <div>
                                     <h5 className="font-medium mb-2">{providerNotesTitle}</h5>
-                                    <p className="text-sm bg-green-50 p-3 rounded-lg">
+                                    <p className="text-sm rounded-lg border border-emerald-200/50 bg-emerald-50 p-3 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
                                         {order.providerNotes}
                                     </p>
                                 </div>
@@ -350,7 +366,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                     <ul className="space-y-1">
                                         {order.deliverables.map((item, index) => (
                                             <li key={index} className="flex items-center space-x-2 text-sm">
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                                <CheckCircle className="w-4 h-4 text-emerald-500" />
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -360,7 +376,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <User className="w-5 h-5" />
@@ -370,7 +386,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         <CardContent>
                             <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-3">
-                                    <h5 className="font-medium text-blue-600">{clientLabel}</h5>
+                                    <h5 className="font-medium text-sky-600 dark:text-sky-300">{clientLabel}</h5>
                                     <div className="flex items-center space-x-3">
                                         <Avatar className="w-12 h-12">
                                             <AvatarImage src={order.client.avatar} />
@@ -388,11 +404,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                         </div>
                                     </div>
                                     <div className="flex space-x-2">
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                             <MessageSquare className="w-4 h-4 mr-1" />
                                             {messageButton}
                                         </Button>
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                             <Eye className="w-4 h-4 mr-1" />
                                             {profileButton}
                                         </Button>
@@ -400,7 +416,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <h5 className="font-medium text-green-600">{providerLabel}</h5>
+                                    <h5 className="font-medium text-emerald-600 dark:text-emerald-300">{providerLabel}</h5>
                                     <div className="flex items-center space-x-3">
                                         <Avatar className="w-12 h-12">
                                             <AvatarImage src={order.provider.avatar} />
@@ -418,11 +434,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                         </div>
                                     </div>
                                     <div className="flex space-x-2">
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200">
                                             <MessageSquare className="w-4 h-4 mr-1" />
                                             {messageButton}
                                         </Button>
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200">
                                             <Eye className="w-4 h-4 mr-1" />
                                             {profileButton}
                                         </Button>
@@ -434,7 +450,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                 </div>
 
                 <div className="space-y-6">
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <DollarSign className="w-5 h-5" />
@@ -444,7 +460,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{orderValueLabel}</span>
-                                <span className="font-bold text-lg text-green-600">
+                                <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
                                   {order.amount.toLocaleString()} RON
                                 </span>
                             </div>
@@ -469,7 +485,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <Calendar className="w-5 h-5" />
@@ -494,7 +510,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <Edit className="w-5 h-5" />
@@ -553,11 +569,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                             </Button>
 
                             <div className="pt-4 border-t space-y-2">
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                     <Download className="w-4 h-4 mr-2" />
                                     {downloadInvoice}
                                 </Button>
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                     <MessageSquare className="w-4 h-4 mr-2" />
                                     {messageHistory}
                                 </Button>
