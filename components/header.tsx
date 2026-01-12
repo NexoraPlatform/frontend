@@ -28,7 +28,7 @@ const NotificationBell = dynamic(
       <Button
         variant="ghost"
         size="icon"
-        className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl"
+        className="w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl"
         aria-label="Notificări"
       >
         <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
@@ -45,7 +45,7 @@ const ChatButton = dynamic(
       <Button
         variant="ghost"
         size="icon"
-        className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl"
+        className="w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl"
         aria-label="Mesaje"
       >
         <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
@@ -142,7 +142,7 @@ export function Header() {
                 aria-label={`Nexora - ${homeText}`}
             >
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1BC47D] to-[#0B1C2D] rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                 <picture>
                   <source
                       type="image/avif"
@@ -189,7 +189,7 @@ export function Header() {
 
               </div>
               <div className="flex flex-col">
-              <span className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
                 Nexora
               </span>
                 <span className="text-xs text-muted-foreground font-medium -mt-1">
@@ -216,8 +216,8 @@ export function Header() {
                       aria-label={`${navigateToText} + ' ' + ${item.name}`}
                   >
                     {item.name}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
-                    <span className="absolute inset-0 bg-blue-50 dark:bg-blue-950/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#1BC47D] to-[#0B1C2D] transition-all duration-300 group-hover:w-full rounded-full"></span>
+                    <span className="absolute inset-0 bg-emerald-50/70 dark:bg-emerald-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
                   </Link>
               ))}
             </nav>
@@ -239,7 +239,7 @@ export function Header() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105"
+                  className="w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
                   aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -289,10 +289,10 @@ export function Header() {
                   </DropdownMenu>
               ) : (
                   <div className="hidden md:flex items-center space-x-3">
-                    <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 dark:hover:border-blue-700 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
+                    <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
                       <Link href={`/${locale}/auth/signin`}>{loginText}</Link>
                     </Button>
-                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
+                    <Button className="bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
                       <Link href={`/${locale}/auth/signup`}>{registerText}</Link>
                     </Button>
                   </div>
@@ -301,18 +301,18 @@ export function Header() {
               {/* Mobile Menu */}
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger asChild>
-                  <Button aria-label="Meniul principal pe mobil" variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl">
+                  <Button aria-label="Meniul principal pe mobil" variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-80 glass-effect border-l-2 border-blue-200 dark:border-blue-800">
+                <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
                   <div className="flex flex-col space-y-6 mt-8">
                     <SearchBar className="lg:hidden" />
                     {navigation.map((item, index) => (
                         <Link
                             key={index}
                             href={locale + item.href}
-                            className="text-lg font-semibold hover:text-blue-600 transition-colors py-3 border-b border-border/50 hover:border-blue-200 dark:hover:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950 px-4"
+                            className="text-lg font-semibold hover:text-emerald-700 transition-colors py-3 border-b border-border/50 hover:border-emerald-200 dark:hover:border-emerald-500/40 rounded-lg hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 px-4"
                             onClick={() => setIsOpen(false)}
                         >
                           {item.name}
@@ -320,10 +320,10 @@ export function Header() {
                     ))}
                     {!user && (
                         <div className="flex flex-col space-y-4 pt-6">
-                          <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950 rounded-xl py-3 font-semibold" asChild>
+                          <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 rounded-xl py-3 font-semibold" asChild>
                             <Link href={`/${locale}/auth/signin`}>{loginText}</Link>
                           </Button>
-                          <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
+                          <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl py-3 font-semibold shadow-lg" asChild>
                             <Link href={`/${locale}/auth/signup`}>{registerText}</Link>
                           </Button>
                         </div>

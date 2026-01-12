@@ -958,9 +958,9 @@ function MessageBubble({
                                 className={`absolute top-0 ${isOwn ? "left-0" : "right-0"} transform ${isOwn ? "-translate-x-full" : "translate-x-full"} flex space-x-1 bg-background border rounded-lg shadow-lg p-1`}
                             >
                                 <Button variant="ghost" size="icon" className="w-6 h-6">
-                                    <Edit className={`w-3 h-3 ${isOwn && "text-blue-600"}`} />
+                                    <Edit className={`w-3 h-3 ${isOwn && "text-emerald-600"}`} />
                                 </Button>
-                                <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && "text-blue-600"}`}>
+                                <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && "text-emerald-600"}`}>
                                     <Trash2 className="w-3 h-3" />
                                 </Button>
                             </div>
