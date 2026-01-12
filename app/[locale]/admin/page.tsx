@@ -381,14 +381,14 @@ export default function AdminDashboard() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="relative mb-10 overflow-hidden rounded-3xl border border-slate-800/70 bg-slate-900/60 p-8 shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] backdrop-blur">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
+      <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-8 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
         <div className="relative flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Trustora Admin
           </span>
-          <h1 className="text-3xl font-semibold text-white sm:text-4xl">{dashboardTitle}</h1>
-          <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
+          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{dashboardTitle}</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
             {dashboardSubtitle}
           </p>
         </div>
@@ -398,32 +398,32 @@ export default function AdminDashboard() {
       <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {stats.map((stat, index) => (
           <Link key={index} href={`/${locale}${stat.href}`}>
-            <Card className="group h-full border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-900">
+            <Card className="group h-full border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-card dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] dark:hover:border-sky-500/40 dark:hover:bg-slate-900">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-semibold text-white flex flex-wrap items-center gap-2">
+                    <p className="text-2xl font-semibold text-foreground flex flex-wrap items-center gap-2">
                       {stat.value}
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${stat?.current <= 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
-                        <span className="text-slate-400">(</span>
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${stat?.current <= 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
+                        <span className="text-muted-foreground">(</span>
                         {stat?.current} &nbsp;{stat?.current <= 0
                           ? <TrendingDown className="text-red-500 w-5 h-5" />
                           : <TrendingUp className="text-green-500 w-5 h-5" />}
-                        <span className="text-slate-400">)</span>
+                        <span className="text-muted-foreground">)</span>
                       </span>
                     </p>
-                    {stat?.change && (<p className="text-xs text-slate-400 mt-2">
-                      <span className={`font-semibold ${stat?.change < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                    {stat?.change && (<p className="text-xs text-muted-foreground mt-2">
+                      <span className={`font-semibold ${stat?.change < 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                         {changeTemplate.replace('{percent}', String(stat?.change))}
                       </span>
                     </p>)}
                   </div>
                   <div className="relative">
                     <div className="absolute inset-0 rounded-2xl bg-sky-500/20 blur-xl transition-opacity group-hover:opacity-100 opacity-0" />
-                    <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-800/70 bg-slate-950/70 ${stat.color}`}>
+                    <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-background/60 ${stat.color} dark:border-slate-800/70 dark:bg-slate-950/70`}>
                       <stat.icon className="w-6 h-6" />
                     </div>
                   </div>
@@ -437,13 +437,13 @@ export default function AdminDashboard() {
       <div className="grid xs:grid-cols-1 lg:grid-cols-[2.6fr_1fr] gap-8">
         {/* Quick Actions */}
         <div>
-          <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
+          <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Plus className="w-5 h-5" />
                 <span>{quickActionsTitle}</span>
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 {quickActionsDescription}
               </CardDescription>
             </CardHeader>
@@ -451,17 +451,17 @@ export default function AdminDashboard() {
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
                   <Link key={index} href={`/${locale}${action.href}`}>
-                    <Card className="group h-full border border-slate-800/70 bg-slate-950/60 text-slate-100 transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-950">
+                    <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
                           <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                             <action.icon className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold mb-1 text-white">{action.title}</h3>
-                            <p className="text-sm text-slate-400">{action.description}</p>
+                            <h3 className="font-semibold mb-1 text-foreground">{action.title}</h3>
+                            <p className="text-sm text-muted-foreground">{action.description}</p>
                           </div>
-                          <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-sky-300 transition-colors" />
+                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
                         </div>
                       </CardContent>
                     </Card>
@@ -472,13 +472,13 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Admin Sections */}
-          <Card className="mt-6 border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
+          <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Settings className="w-5 h-5" />
                 <span>{sectionsTitle}</span>
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 {sectionsDescription}
               </CardDescription>
             </CardHeader>
@@ -495,17 +495,17 @@ export default function AdminDashboard() {
                     allPerms={section.permissions || []}
                   >
                     <Link href={`/${locale}${section.href}`}>
-                      <Card className="group h-full border border-slate-800/70 bg-slate-950/60 text-slate-100 transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/40 hover:bg-slate-950">
+                      <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start space-x-3">
                               <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
-                                <section.icon className="w-5 h-5 text-sky-300" />
+                                <section.icon className="w-5 h-5 text-sky-600 dark:text-sky-300" />
                               </div>
                               <div>
-                                <h3 className="font-semibold mb-1 text-white">{section.title}</h3>
-                                <p className="text-sm text-slate-400 mb-2">{section.description}</p>
-                                <p className="text-xs text-slate-500">{section.stats}</p>
+                                <h3 className="font-semibold mb-1 text-foreground">{section.title}</h3>
+                                <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
+                                <p className="text-xs text-muted-foreground/80">{section.stats}</p>
                               </div>
                             </div>
                             <div className="flex flex-col items-end space-y-1">
@@ -514,7 +514,7 @@ export default function AdminDashboard() {
                                   {pendingTemplate.replace('{count}', String(section.pending))}
                                 </Badge>
                               )}
-                              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-sky-300 transition-colors" />
+                              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
                             </div>
                           </div>
                         </CardContent>
@@ -529,9 +529,9 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <div>
-          <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
+          <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Activity className="w-5 h-5" />
                 <span>{activityTitle}</span>
               </CardTitle>
@@ -539,20 +539,20 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-3 transition-colors hover:border-sky-500/30 hover:bg-slate-950">
-                    <div className={`w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center ${activity.color}`}>
+                  <div key={index} className="flex items-center space-x-3 rounded-2xl border border-border/60 bg-background/60 p-3 transition-colors hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:hover:border-sky-500/30 dark:hover:bg-slate-950">
+                    <div className={`w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center ${activity.color}`}>
                       <activity.icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-white">{activity.message}</p>
-                      <p className="text-xs text-slate-400">{activity.time}</p>
+                      <p className="text-sm font-medium text-foreground">{activity.message}</p>
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t border-slate-800/70">
+              <div className="mt-4 pt-4 border-t border-border/60 dark:border-slate-800/70">
                 <Link href="/admin/activity">
-                  <Button variant="outline" className="w-full border-slate-700 text-slate-200 hover:border-sky-500/60 hover:text-sky-200">
+                  <Button variant="outline" className="w-full border-border text-foreground hover:border-sky-500/60 hover:text-sky-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-sky-200">
                     <Eye className="w-4 h-4 mr-2" />
                     {viewAllActivity}
                   </Button>
@@ -562,9 +562,9 @@ export default function AdminDashboard() {
           </Card>
 
           {/* System Status */}
-          <Card className="mt-6 border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
+          <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Bell className="w-5 h-5" />
                 <span>{systemStatusTitle}</span>
               </CardTitle>
@@ -573,8 +573,8 @@ export default function AdminDashboard() {
               <div className="space-y-3">
                 {systemStatus.map((status, index) => (
                   <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm text-slate-300">{status.label}</span>
-                    <Badge className="bg-emerald-500/10 text-emerald-200 border border-emerald-500/40">{status.value}</Badge>
+                    <span className="text-sm text-muted-foreground">{status.label}</span>
+                    <Badge className="border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">{status.value}</Badge>
                   </div>
                 ))}
               </div>
