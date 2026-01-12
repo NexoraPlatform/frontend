@@ -364,12 +364,12 @@ export function ChatWidget() {
             <div className="fixed bottom-6 right-6 z-50">
                 <Button
                     onClick={() => (isPanelOpen ? closePanel() : openPanel())}
-                    className="w-14 h-14 rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 relative"
+                    className="w-14 h-14 rounded-full shadow-lg bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] relative text-[#071A12]"
                     aria-label="Deschide chat-ul"
                 >
                     <MessageCircle className="w-6 h-6" />
                     {totalUnread > 0 && (
-                        <Badge className="absolute -top-2 -right-2 w-6 h-6 p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                        <Badge className="absolute -top-2 -right-2 w-6 h-6 p-0 flex items-center justify-center bg-[#E5484D] text-white text-xs shadow-sm">
                             {totalUnread > 99 ? "99+" : totalUnread}
                         </Badge>
                     )}
@@ -378,29 +378,46 @@ export function ChatWidget() {
 
             {/* Chat Widget */}
             {isPanelOpen && (
-                <Card className="fixed bottom-24 right-6 w-96 h-auto shadow-2xl border-2 z-40 bg-background">
+                <Card className="fixed bottom-24 right-6 w-96 h-auto shadow-2xl border border-emerald-100/70 z-40 bg-white/95 rounded-2xl overflow-hidden dark:border-emerald-500/20 dark:bg-[#0B1220]">
                     {/* Header */}
-                    <CardHeader className="pb-3 border-b">
+                    <CardHeader className="pb-3 border-b border-emerald-100/70 bg-emerald-50/60 dark:border-emerald-500/20 dark:bg-emerald-500/10">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                                 {activeGroup && (
-                                    <Button variant="ghost" size="sm" onClick={() => setActiveGroup(null)} className="p-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setActiveGroup(null)}
+                                        className="p-1 text-emerald-700 hover:bg-emerald-100/70 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                                    >
                                         <ArrowLeft className="w-4 h-4" />
                                     </Button>
                                 )}
                                 <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
-                                <CardTitle className="text-lg">{activeGroup ? activeGroup.name : "Chat"}</CardTitle>
+                                <CardTitle className="text-lg text-[#0B1C2D] dark:text-white">
+                                    {activeGroup ? activeGroup.name : "Chat"}
+                                </CardTitle>
                                 {activeGroup && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs border-emerald-200 text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-200">
                                         {getGroupIcon(activeGroup.type)} {activeGroup.members.length}
                                     </Badge>
                                 )}
                             </div>
                             <div className="flex items-center space-x-1">
-                                <Button variant="ghost" size="icon" onClick={() => setIsMinimized(!isMinimized)} className="w-8 h-8">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsMinimized(!isMinimized)}
+                                    className="w-8 h-8 text-emerald-700 hover:bg-emerald-100/70 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                                >
                                     {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => closePanel()} className="w-8 h-8">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => closePanel()}
+                                    className="w-8 h-8 text-emerald-700 hover:bg-emerald-100/70 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+                                >
                                     <X className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -518,15 +535,15 @@ export function ChatWidget() {
                             {!activeGroup ? (
                                 /* Groups List */
                                 <div className="flex-1 flex flex-col">
-                                    <div className="p-4 border-b">
+                                    <div className="p-4 border-b border-emerald-100/70 dark:border-emerald-500/20">
                                         <div className="flex items-center space-x-2 mb-3">
                                             <div className="relative flex-1">
-                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-600/70 w-4 h-4" />
                                                 <Input
                                                     placeholder="Caută conversații..."
                                                     value={searchTerm}
                                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                                    className="pl-10"
+                                                    className="pl-10 rounded-xl border-emerald-100/70 focus-visible:ring-emerald-400/40 dark:border-emerald-500/30 dark:bg-[#0B1220]"
                                                 />
                                             </div>
                                             {/*<CreateGroupDialog onGroupCreated={refreshGroups} />*/}
@@ -542,11 +559,11 @@ export function ChatWidget() {
                                                     <div
                                                         key={group.id}
                                                         onClick={() => setActiveGroup(group)}
-                                                        className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                                                        className="p-3 rounded-xl hover:bg-emerald-50/60 dark:hover:bg-emerald-500/10 cursor-pointer transition-colors"
                                                     >
                                                         <div className="flex items-center space-x-3">
                                                             <div className="relative">
-                                                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                                <div className="w-12 h-12 bg-gradient-to-br from-[#1BC47D] to-[#0B1C2D] rounded-full flex items-center justify-center text-white font-bold shadow-sm">
                                                                     {getGroupIcon(group.type)}
                                                                 </div>
                                                             </div>
@@ -557,7 +574,7 @@ export function ChatWidget() {
                                                                     <h4 className="truncate" title={group.name}>
                                                                         {group.name}
                                                                         {group.unreadCount > 0 && (
-                                                                            <Badge className="ms-2 bg-red-500 text-white">{group.unreadCount}</Badge>
+                                                                            <Badge className="ms-2 bg-[#E5484D] text-white">{group.unreadCount}</Badge>
                                                                         )}
                                                                     </h4>
 
@@ -586,7 +603,7 @@ export function ChatWidget() {
                                                                 )}
 
                                                                 <div className="flex items-center space-x-1 mt-1">
-                                                                    <Badge variant="outline" className="text-xs">
+                                                                    <Badge variant="outline" className="text-xs border-emerald-200 text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-200">
                                                                         {group.type === "PROJECT"
                                                                             ? "Proiect"
                                                                             : group.type === "PROVIDER_ONLY"
@@ -677,10 +694,10 @@ export function ChatWidget() {
                                     </ScrollArea>
 
                                     {/* Message Input */}
-                                    <div className="p-4 border-t overflow-hidden">
+                                    <div className="p-4 border-t border-emerald-100/70 dark:border-emerald-500/20 overflow-hidden">
                                         {uploading && (
                                             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
-                                                <div className="rounded-xl bg-white/90 p-3 text-sm">Se încarcă și se verifică fișierul…</div>
+                                                <div className="rounded-xl bg-white/90 p-3 text-sm shadow-lg">Se încarcă și se verifică fișierul…</div>
                                             </div>
                                         )}
                                         {showSensitiveWarning && (
@@ -721,7 +738,7 @@ export function ChatWidget() {
                                                     }}
                                                     onKeyDown={handleKeyPress}
                                                     placeholder="Scrie un mesaj..."
-                                                    className="resize-none min-h-[10px]"
+                                                    className="resize-none min-h-[10px] rounded-xl border-emerald-100/70 focus-visible:ring-emerald-400/40 dark:border-emerald-500/30 dark:bg-[#0B1220]"
                                                     rows={1}
                                                     style={{
                                                         overflow: "scroll",
@@ -742,7 +759,7 @@ export function ChatWidget() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="w-8 h-8"
+                                                    className="w-8 h-8 text-emerald-700 hover:bg-emerald-100/70 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
                                                     onClick={onPickFile}
                                                     disabled={!isConnected || uploading}
                                                 >
@@ -750,7 +767,7 @@ export function ChatWidget() {
                                                 </Button>
                                                 <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
                                                     <PopoverTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="w-8 h-8">
+                                                        <Button variant="ghost" size="icon" className="w-8 h-8 text-emerald-700 hover:bg-emerald-100/70 dark:text-emerald-200 dark:hover:bg-emerald-500/20">
                                                             <Smile className="w-4 h-4" />
                                                         </Button>
                                                     </PopoverTrigger>
@@ -775,7 +792,7 @@ export function ChatWidget() {
                                                 <Button
                                                     onClick={handleSendMessage}
                                                     disabled={!messageInput.trim() || !isConnected}
-                                                    className="w-8 h-8"
+                                                    className="w-8 h-8 bg-[#1BC47D] text-[#071A12] hover:bg-[#17b672]"
                                                     size="icon"
                                                 >
                                                     <Send className="w-4 h-4" />
@@ -866,7 +883,9 @@ function MessageBubble({
 
                     <div
                         className={`relative px-4 py-2 rounded-2xl ${
-                            isOwn ? "bg-blue-600 text-white rounded-br-md" : "bg-muted rounded-bl-md"
+                            isOwn
+                                ? "bg-[#1BC47D] text-[#071A12] rounded-br-md shadow-sm"
+                                : "bg-emerald-50/70 text-[#0B1C2D] rounded-bl-md dark:bg-emerald-500/10 dark:text-white"
                         }`}
                         onMouseEnter={() => setShowActions(true)}
                         onMouseLeave={() => setShowActions(false)}
@@ -922,7 +941,7 @@ function MessageBubble({
 
                         <div
                             className={`flex items-center justify-between mt-1 text-xs ${
-                                isOwn ? "text-blue-100" : "text-muted-foreground"
+                                isOwn ? "text-emerald-900/70" : "text-muted-foreground"
                             }`}
                         >
               <span>
@@ -939,9 +958,9 @@ function MessageBubble({
                                 className={`absolute top-0 ${isOwn ? "left-0" : "right-0"} transform ${isOwn ? "-translate-x-full" : "translate-x-full"} flex space-x-1 bg-background border rounded-lg shadow-lg p-1`}
                             >
                                 <Button variant="ghost" size="icon" className="w-6 h-6">
-                                    <Edit className={`w-3 h-3 ${isOwn && "text-blue-600"}`} />
+                                    <Edit className={`w-3 h-3 ${isOwn && "text-emerald-600"}`} />
                                 </Button>
-                                <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && "text-blue-600"}`}>
+                                <Button variant="ghost" size="icon" className={`w-6 h-6 ${isOwn && "text-emerald-600"}`}>
                                     <Trash2 className="w-3 h-3" />
                                 </Button>
                             </div>

@@ -106,7 +106,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
                         </div>
                     </div>
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-50 -z-0 dark:bg-[#1BC47D]/20" />
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-50 -z-0 dark:bg-[#111B2D]/60" />
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-50 -z-0 dark:bg-[#0B1C2D]/60" />
                 </div>
             </div>
         </section>

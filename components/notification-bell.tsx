@@ -66,21 +66,21 @@ export function NotificationBell() {
     const getNotificationColor = (type: AppNotification['type'], isRead: boolean) => {
         if (isRead) return 'bg-gray-50 dark:bg-gray-900/50';
         switch (type) {
-            case 'PROJECT_ADDED': return 'bg-blue-50 dark:bg-blue-950/50 border-l-4 border-l-blue-500';
-            case 'ORDER_UPDATE': return 'bg-green-50 dark:bg-green-950/50 border-l-4 border-l-green-500';
-            case 'MESSAGE': return 'bg-purple-50 dark:bg-purple-950/50 border-l-4 border-l-purple-500';
+            case 'PROJECT_ADDED': return 'bg-emerald-50/70 dark:bg-emerald-500/10 border-l-4 border-l-[#1BC47D]';
+            case 'ORDER_UPDATE': return 'bg-emerald-100/60 dark:bg-emerald-500/15 border-l-4 border-l-[#21D19F]';
+            case 'MESSAGE': return 'bg-slate-50 dark:bg-[#0B1220] border-l-4 border-l-[#0B1C2D]';
             case 'SYSTEM':
-            default: return 'bg-orange-50 dark:bg-orange-950/50 border-l-4 border-l-orange-500';
+            default: return 'bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-500';
         }
     };
 
     const getNotificationIcon = (type: AppNotification['type']) => {
         switch (type) {
-            case 'PROJECT_ADDED': return <Rocket className="w-4 h-4 text-blue-500" />;
-            case 'ORDER_UPDATE': return <Package className="w-4 h-4 text-green-500" />;
-            case 'MESSAGE': return <MessageSquare className="w-4 h-4 text-purple-500" />;
+            case 'PROJECT_ADDED': return <Rocket className="w-4 h-4 text-emerald-600" />;
+            case 'ORDER_UPDATE': return <Package className="w-4 h-4 text-emerald-500" />;
+            case 'MESSAGE': return <MessageSquare className="w-4 h-4 text-[#0B1C2D] dark:text-emerald-200" />;
             case 'SYSTEM':
-            default: return <Cog className="w-4 h-4 text-orange-500" />;
+            default: return <Cog className="w-4 h-4 text-amber-500" />;
         }
     };
 
@@ -117,11 +117,11 @@ export function NotificationBell() {
                     aria-label="Deschide notificarile"
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-xl transition-all duration-200 hover:scale-105"
+                    className="relative w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
                 >
-                    {unreadCount > 0 ? <BellRing className="h-5 w-5 text-blue-600" /> : <Bell className="h-5 w-5" />}
+                    {unreadCount > 0 ? <BellRing className="h-5 w-5 text-emerald-600" /> : <Bell className="h-5 w-5" />}
                     {unreadCount > 0 && (
-                        <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs border-2 border-background">
+                        <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-[#E5484D] to-[#F5A623] text-white text-xs border-2 border-background">
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </Badge>
                     )}
@@ -129,21 +129,21 @@ export function NotificationBell() {
             </PopoverTrigger>
 
             <PopoverContent className="w-96 p-0" align="end">
-                <Card className="border-0 shadow-lg">
-                    <CardHeader className="pb-3">
+                <Card className="border-0 shadow-2xl rounded-2xl overflow-hidden bg-white/95 dark:bg-[#0B1220]">
+                    <CardHeader className="pb-3 border-b border-emerald-100/60 dark:border-emerald-500/20">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg">Notificări</CardTitle>
+                                <CardTitle className="text-lg text-[#0B1C2D] dark:text-white">Notificări</CardTitle>
                                 <CardDescription>
                                     {unreadCount > 0 ? `${unreadCount} notificări necitite` : 'Toate notificările sunt citite'}
                                 </CardDescription>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Button variant="ghost" size="icon" onClick={() => setShowSettings(s => !s)} className="w-8 h-8">
+                                <Button variant="ghost" size="icon" onClick={() => setShowSettings(s => !s)} className="w-8 h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/70 dark:text-emerald-300 dark:hover:bg-emerald-500/10">
                                     <Settings className="w-4 h-4" />
                                 </Button>
                                 {unreadCount > 0 && (
-                                    <Button variant="ghost" size="icon" onClick={markAllAsRead} className="w-8 h-8">
+                                    <Button variant="ghost" size="icon" onClick={markAllAsRead} className="w-8 h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/70 dark:text-emerald-300 dark:hover:bg-emerald-500/10">
                                         <CheckCheck className="w-4 h-4" />
                                     </Button>
                                 )}
@@ -199,16 +199,16 @@ export function NotificationBell() {
                                     {notifications.map((n) => (
                                         <div
                                             key={n.id}
-                                            className={`p-4 cursor-pointer transition-colors hover:bg-muted/50 ${getNotificationColor(n.type, n.isRead)}`}
+                                            className={`p-4 cursor-pointer transition-colors hover:bg-emerald-50/60 dark:hover:bg-emerald-500/10 ${getNotificationColor(n.type, n.isRead)}`}
                                             onClick={() => onClickNotification(n)}
                                             role="listitem"
                                         >
                                             <div className="flex items-start space-x-3">
                                                 <div className="flex-shrink-0 mt-1">
-                                                    {n.type === 'PROJECT_ADDED' ? <Rocket className="w-4 h-4 text-blue-500" /> :
-                                                        n.type === 'ORDER_UPDATE' ? <Package className="w-4 h-4 text-green-500" /> :
-                                                            n.type === 'MESSAGE' ? <MessageSquare className="w-4 h-4 text-purple-500" /> :
-                                                                <Cog className="w-4 h-4 text-orange-500" />}
+                                                    {n.type === 'PROJECT_ADDED' ? <Rocket className="w-4 h-4 text-emerald-600" /> :
+                                                        n.type === 'ORDER_UPDATE' ? <Package className="w-4 h-4 text-emerald-500" /> :
+                                                            n.type === 'MESSAGE' ? <MessageSquare className="w-4 h-4 text-[#0B1C2D] dark:text-emerald-200" /> :
+                                                                <Cog className="w-4 h-4 text-amber-500" />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between">
