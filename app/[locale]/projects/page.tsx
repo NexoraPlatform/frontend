@@ -141,7 +141,7 @@ export default function ProjectsPage() {
     <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
       <TrustoraThemeStyles />
       <Header />
-      <main className="min-h-screen bg-slate-50 dark:bg-[#070C14]">
+      <main className="min-h-screen bg-slate-50 dark:bg-[#070C14] pt-8">
         <section className="pt-32 pb-12 px-6 hero-gradient">
           <div className="max-w-7xl mx-auto">
             <Badge className="mb-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
