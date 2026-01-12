@@ -47,13 +47,19 @@ export async function getTranslation(locale: Locale, key: string): Promise<strin
 
     if (!namespace) return key;
 
-    if (!namespaceCache[locale][namespace]) {
-        const loadNamespace = translations[locale]?.[namespace as keyof typeof translations[typeof locale]];
-        if (!loadNamespace) return key;
-        namespaceCache[locale][namespace] = await loadNamespace();
+    const resolvedLocale = translations[locale] ? locale : defaultLocale;
+    if (!namespaceCache[resolvedLocale]) {
+        namespaceCache[resolvedLocale] = {};
     }
 
-    let value: any = namespaceCache[locale][namespace];
+    if (!namespaceCache[resolvedLocale][namespace]) {
+        const loadNamespace =
+            translations[resolvedLocale]?.[namespace as keyof typeof translations[typeof resolvedLocale]];
+        if (!loadNamespace) return key;
+        namespaceCache[resolvedLocale][namespace] = await loadNamespace();
+    }
+
+    let value: any = namespaceCache[resolvedLocale][namespace];
     for (const k of keys) {
         value = value?.[k];
     }
