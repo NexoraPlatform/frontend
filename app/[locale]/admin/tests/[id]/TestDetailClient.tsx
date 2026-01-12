@@ -243,30 +243,30 @@ export default function TestDetailsClient({ id }: { id: string; }) {
             <TrustoraThemeStyles />
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
                 <div className="container mx-auto px-4 py-10">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center space-x-4">
-                    <Link href="/admin/tests">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{test.title}</h1>
-                        <p className="text-muted-foreground">
-                            {test.service?.title} - {test.service?.category?.name?.[locale]}
-                        </p>
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center space-x-4">
+                            <Link href="/admin/tests">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{test.title}</h1>
+                                <p className="text-muted-foreground">
+                                    {test.service?.title} - {test.service?.category?.name?.[locale]}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            {getLevelBadge(test.level)}
+                            {getStatusBadge(test.status)}
+                        </div>
                     </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                    {getLevelBadge(test.level)}
-                    {getStatusBadge(test.status)}
-                </div>
-            </div>
 
             {actionError && (
                 <Alert variant="destructive" className="mb-6">
@@ -540,10 +540,9 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                     <Trash2 className="w-4 h-4 mr-2" />
                     {deleteTestLabel}
                 </Button>
-            </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </>
+        </>
     );
 }
