@@ -165,35 +165,35 @@ export default function CallsPage() {
         switch (status) {
             case "WAITING":
                 return (
-                    <Badge className="bg-green-100 text-yellow-500">
+                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {text}
                     </Badge>
                 );
             case "ACCEPTED":
                 return (
-                    <Badge className="bg-gray-100 text-green-500">
+                    <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200">
                         <XCircle className="w-3 h-3 mr-1" />
                         {text}
                     </Badge>
                 );
             case "FINISHED":
                 return (
-                    <Badge className="bg-yellow-100 text-green-800">
+                    <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {text}
                     </Badge>
                 );
             case "REFUSED":
                 return (
-                    <Badge className="bg-yellow-100 text-red-800">
+                    <Badge className="bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200">
                         <AlertCircle className="w-3 h-3 mr-1" />
                         {text}
                     </Badge>
                 );
             case "NO_SHOW":
                 return (
-                    <Badge className="bg-yellow-100 text-red-400">
+                    <Badge className="bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200">
                         <AlertCircle className="w-3 h-3 mr-1" />
                         {text}
                     </Badge>
@@ -204,23 +204,33 @@ export default function CallsPage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center space-x-4">
-                    <Link href="/admin">
-                        <Button variant="outline" size="icon">
-                            <ArrowLeft className="w-4 h-4" />
-                        </Button>
-                    </Link>
+        <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+            <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
+                <div className="relative flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <Link href="/admin">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            Trustora Admin
+                        </span>
+                    </div>
                     <div>
-                        <h1 className="text-3xl font-bold">{t.title}</h1>
-                        <p className="text-muted-foreground">{t.subtitle}</p>
+                        <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{t.title}</h1>
+                        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">{t.subtitle}</p>
                     </div>
                 </div>
             </div>
 
             {/* Filters */}
-            <Card className="mb-6">
+            <Card className="mb-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1">
@@ -291,7 +301,7 @@ export default function CallsPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <BookOpen className="w-5 h-5" />
@@ -311,24 +321,24 @@ export default function CallsPage() {
                             {filteredCalls.map((call: any) => (
                                 <div
                                     key={call.id}
-                                    className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                    className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/5 dark:border-slate-800/70 dark:bg-slate-950/60"
                                 >
-                                    <div className="flex-1">
-                                        <div className="flex items-center space-x-2 mb-2">
+                                    <div className="flex flex-1 flex-col gap-3">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="font-semibold text-lg">
                                                 {call.attendees.firstName} {call.attendees.lastName}
                                             </h3>
                                             {getStatusBadge(call.status)}
                                         </div>
 
-                                        <div className="flex items-center space-x-6 text-sm mb-3">
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                             <div className="flex items-center space-x-1">
-                                                <BookOpen className="w-4 h-4 text-blue-500" />
+                                                <BookOpen className="w-4 h-4 text-sky-500" />
                                                 <span className="font-medium">{call.service?.name?.[locale]}</span>
                                             </div>
 
                                             <div className="flex items-center space-x-1">
-                                                <ListTodo className="w-4 h-4 text-green-500" />
+                                                <ListTodo className="w-4 h-4 text-emerald-500" />
                                                 <span>
                           <a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>
                             {t.viewTestDetails}
@@ -337,7 +347,7 @@ export default function CallsPage() {
                                             </div>
 
                                             <div className="flex items-center space-x-1">
-                                                <Clock className="w-4 h-4 text-orange-500" />
+                                                <Clock className="w-4 h-4 text-amber-500" />
                                                 <span>
                           {t.scheduledAtPrefix}{" "}
                                                     {DateTime.fromISO(call.date_time, { setZone: true }).toFormat("dd.MM.yyyy HH:mm")}{" "}
@@ -345,14 +355,14 @@ export default function CallsPage() {
                                             </div>
 
                                             <div className="flex items-center space-x-1">
-                                                <BarChart3 className="w-4 h-4 text-purple-500" />
+                                                <BarChart3 className="w-4 h-4 text-indigo-500" />
                                                 <span>
                           {t.passingScorePrefix} {call.test_result.score}%
                         </span>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span>
                         {t.categoryPrefix} {call.service?.category?.name?.[locale]}
                       </span>
@@ -367,13 +377,14 @@ export default function CallsPage() {
                                         </div>
                                     </div>
 
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <MoreHorizontal className="w-4 h-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
+                                    <div className="flex items-center justify-end">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="rounded-full">
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
                                             <DropdownMenuItem asChild>
                                                 <Link target="_blank" href={call.call_url}>
                                                     <Eye className="w-4 h-4 mr-2" />
@@ -413,13 +424,13 @@ export default function CallsPage() {
                                             )}
 
                                             {noteModalCallId === call.id && (
-                                                <div className="mt-2 p-4 border rounded bg-muted space-y-2 w-full max-w-md">
+                                                <div className="mt-2 w-full max-w-md space-y-2 rounded-2xl border border-border/60 bg-background/70 p-4 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
                                                     <label className="text-sm font-medium">{t.refuseReasonLabel}</label>
                                                     <textarea
                                                         value={noteText}
                                                         onChange={(e) => setNoteText(e.target.value)}
                                                         placeholder={t.refuseReasonPlaceholder}
-                                                        className="w-full h-20 border rounded p-2 text-sm"
+                                                        className="h-20 w-full rounded-lg border border-border/60 bg-background/70 p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 dark:border-slate-800/70 dark:bg-slate-950/70"
                                                     />
                                                     <div className="flex justify-end space-x-2">
                                                         <Button variant="secondary" onClick={() => setNoteModalCallId(null)}>
@@ -444,13 +455,14 @@ export default function CallsPage() {
                                                     {t.moveNoShow}
                                                 </DropdownMenuItem>
                                             )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
                             ))}
 
                             {filteredCalls.length === 0 && (
-                                <div className="text-center py-12">
+                                <div className="rounded-2xl border border-dashed border-border/60 bg-background/60 py-12 text-center dark:border-slate-800/70 dark:bg-slate-950/60">
                                     <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                                     <h3 className="text-lg font-medium mb-2">{t.noCallsTitle}</h3>
                                     <p className="text-muted-foreground mb-4">{t.noCallsDescription}</p>
