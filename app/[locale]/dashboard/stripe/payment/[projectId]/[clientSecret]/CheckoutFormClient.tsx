@@ -8,6 +8,8 @@ import {
     useStripe,
     useElements,
 } from '@stripe/react-stripe-js';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -52,24 +54,26 @@ function CheckoutForm({
         }
     };
 
-    if (!clientSecret) return <p>Se încarcă sesiunea de plată...</p>;
+    if (!clientSecret) return <p className="text-center text-slate-500 dark:text-[#A3ADC2]">Se încarcă sesiunea de plată...</p>;
 
     return (
-        <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: 'auto' }}>
-            <CardElement
-                options={{
-                    style: {
-                        base: {
-                            fontSize: '16px',
-                            color: '#32325d',
-                            '::placeholder': { color: '#a0aec0' },
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-[#1BC47D]/30 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                <CardElement
+                    options={{
+                        style: {
+                            base: {
+                                fontSize: '16px',
+                                color: '#0B1C2D',
+                                '::placeholder': { color: '#94A3B8' },
+                            },
                         },
-                    },
-                }}
-            />
-            <button type="submit" disabled={!stripe || loading} style={{ marginTop: 20, padding: '10px 20px' }}>
+                    }}
+                />
+            </div>
+            <Button type="submit" disabled={!stripe || loading} className="w-full btn-primary">
                 {loading ? 'Se procesează...' : 'Plătește'}
-            </button>
+            </Button>
         </form>
     );
 }
@@ -89,21 +93,31 @@ export default function StripeCheckoutClient({ projectId, clientSecret }: Client
     };
 
     return (
-        <>
+        <div className="max-w-xl mx-auto">
             {message && (
-                <p style={{ color: message.startsWith('Eroare') ? 'red' : 'green' }}>
+                <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${message.startsWith('Eroare') ? 'border-red-200 bg-red-50 text-red-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                     {message}
-                </p>
+                </div>
             )}
-            {/* pt CardElement nu e obligatoriu să treci options cu clientSecret */}
-            <Elements stripe={stripePromise}>
-                <CheckoutForm
-                    projectId={projectId}
-                    clientSecret={clientSecret}
-                    onPaymentSuccess={onPaymentSuccess}
-                    onPaymentError={onPaymentError}
-                />
-            </Elements>
-        </>
+            <Card className="glass-card">
+                <CardHeader>
+                    <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">Finalizează plata</CardTitle>
+                    <p className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                        Introdu detaliile cardului pentru a confirma plata în siguranță.
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    {/* pt CardElement nu e obligatoriu să treci options cu clientSecret */}
+                    <Elements stripe={stripePromise}>
+                        <CheckoutForm
+                            projectId={projectId}
+                            clientSecret={clientSecret}
+                            onPaymentSuccess={onPaymentSuccess}
+                            onPaymentError={onPaymentError}
+                        />
+                    </Elements>
+                </CardContent>
+            </Card>
+        </div>
     );
 }

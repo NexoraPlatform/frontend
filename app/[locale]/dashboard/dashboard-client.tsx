@@ -236,8 +236,8 @@ export default function DashboardClient() {
     const visiblePages = getVisiblePages();
 
     return (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-[#1E2A3D]">
+          <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
             Afișând {Math.min((currentPage - 1) * projectsPerPage + 1, projects.length)} - {Math.min(currentPage * projectsPerPage, projects.length)} din {projects.length} proiecte
           </div>
 
@@ -339,18 +339,21 @@ export default function DashboardClient() {
   const overviewStats = getOverviewStats();
 
   return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white dark:bg-[#070C14]">
         <Header />
 
-        <div className="container mx-auto px-4 py-8">
-          {/* Welcome Header */}
-          <div className="mb-8">
+        <section className="pt-28 pb-10 px-6 hero-gradient">
+          <div className="max-w-6xl mx-auto">
+            {/* Welcome Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
               <div>
-                <h1 className="text-3xl font-bold mb-2">
+                <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                  <span className="text-[#1BC47D]">●</span> Trustora Dashboard
+                </Badge>
+                <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
                   Bun venit, {user.firstName}! 👋
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-slate-500 dark:text-[#A3ADC2]">
                   {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
                       ? 'Gestionează-ți serviciile și proiectele active'
                       : 'Urmărește-ți proiectele și găsește experții potriviți'
@@ -358,37 +361,42 @@ export default function DashboardClient() {
                 </p>
               </div>
               <div className="flex items-center space-x-3">
-                <Avatar className="w-16 h-16">
+                <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
                   <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="text-lg">
+                  <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
                     {user.firstName[0]}{user.lastName[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-semibold">{user.firstName} {user.lastName}</div>
-                  <Badge className={user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
+                  <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
+                  <Badge className={user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
                     {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Prestator' : 'Client'}
                   </Badge>
-                  <Button variant="outline" size="sm" className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                          onClick={getStripeOnboardingUrl}
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
+                      onClick={getStripeOnboardingUrl}
                   >
                     <SiStripe className="w-4 h-4 mr-2 text-current" />
                     {user.stripe_account_id ? 'Modifica Detalii Cont Stripe' : 'Conecteaza Cont Stripe'}
                   </Button>
-
                 </div>
               </div>
             </div>
           </div>
+        </section>
 
-          {/* Dashboard Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview" className="flex items-center">
+        <section className="px-6 pb-20">
+          <div className="max-w-6xl mx-auto">
+            {/* Dashboard Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
+                <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
                 <span>Prezentare</span>
               </TabsTrigger>
-              <TabsTrigger value="projects" className="flex items-center">
+                <TabsTrigger value="projects" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                   {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') ? (
                       <Link href={`/${locale}/client/project-requests`}>Proiecte</Link>
                   ) : (
@@ -398,16 +406,16 @@ export default function DashboardClient() {
                       </>
                   )}
 
-              </TabsTrigger>
-              <TabsTrigger value="services" className="flex items-center">
+                </TabsTrigger>
+                <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Target className="hidden sm:block w-4 h-4 pe-1" />
                 <span>Servicii</span>
               </TabsTrigger>
-              <TabsTrigger value="messages" className="flex items-center">
+                <TabsTrigger value="messages" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <MessageSquare className="hidden sm:block w-4 h-4 pe-1" />
                 <span>Mesaje</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center">
+                <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Settings className="hidden sm:block w-4 h-4 pe-1" />
                 <span>Setări</span>
               </TabsTrigger>
@@ -418,19 +426,19 @@ export default function DashboardClient() {
               {/* Stats Cards */}
               <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {overviewStats.map((stat, index) => (
-                    <Card key={index} className="border-2 hover:shadow-lg transition-all duration-300">
+                    <Card key={index} className="glass-card shadow-sm hover:shadow-md transition-all duration-300">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground mb-1">
+                            <p className="text-sm font-medium text-slate-500 mb-1 dark:text-[#A3ADC2]">
                               {stat.title}
                             </p>
-                            <p className="text-2xl font-bold">{stat.value}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">{stat.value}</p>
+                            <p className="text-xs text-slate-400 mt-1 dark:text-[#6B7285]">
                               {stat.change}
                             </p>
                           </div>
-                          <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color}`}>
+                          <div className={`w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center ${stat.color}`}>
                             <stat.icon className="w-6 h-6" />
                           </div>
                         </div>
@@ -440,13 +448,13 @@ export default function DashboardClient() {
               </div>
 
               {/* Quick Actions */}
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Zap className="w-5 h-5" />
                     <span>Acțiuni Rapide</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
                     {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
                         ? 'Acțiuni frecvente pentru gestionarea activității tale'
                         : 'Începe un proiect nou sau gestionează proiectele existente'
@@ -503,7 +511,7 @@ export default function DashboardClient() {
               </Card>
 
               {/* Recent Activity */}
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Clock className="w-5 h-5" />
@@ -581,7 +589,7 @@ export default function DashboardClient() {
             {/* Projects Tab */}
             <TabsContent value="projects" className="space-y-6">
               {/* Filters and Search */}
-              <Card>
+              <Card className="glass-card">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search Bar */}
@@ -595,7 +603,7 @@ export default function DashboardClient() {
                               setSearchTerm(e.target.value);
                               setCurrentPage(1);
                             }}
-                            className="pl-10"
+                            className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
                         />
                       </div>
                     </div>
@@ -605,7 +613,7 @@ export default function DashboardClient() {
                       setStatusFilter(value);
                       setCurrentPage(1);
                     }}>
-                      <SelectTrigger className="w-full lg:w-64">
+                      <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
                         <Filter className="w-4 h-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
@@ -624,7 +632,7 @@ export default function DashboardClient() {
                         setSortBy(value);
                         setCurrentPage(1);
                       }}>
-                        <SelectTrigger className="w-full lg:w-48">
+                        <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -640,7 +648,7 @@ export default function DashboardClient() {
                           variant="outline"
                           size="icon"
                           onClick={toggleSortOrder}
-                          className="flex-shrink-0"
+                          className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
                       >
                         {sortOrder === 'asc' ? (
                             <ArrowUp className="w-4 h-4" />
@@ -653,8 +661,8 @@ export default function DashboardClient() {
 
                   {/* Active Filters */}
                   {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
-                      <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
-                        <span className="text-sm font-medium text-muted-foreground">Filtre active:</span>
+                      <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                        <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">Filtre active:</span>
 
                         {searchTerm && (
                             <Badge variant="secondary" className="flex items-center space-x-1">
@@ -683,7 +691,7 @@ export default function DashboardClient() {
                             </Badge>
                         )}
 
-                        <Button variant="outline" size="sm" onClick={resetFilters}>
+                        <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
                           Resetează Toate
                         </Button>
                       </div>
@@ -694,16 +702,16 @@ export default function DashboardClient() {
               {/* Projects Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold">
+                  <h2 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
                     {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Cereri de Proiecte' : 'Proiectele Mele'}
                   </h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-slate-500 dark:text-[#A3ADC2]">
                     {loadingProjects ? 'Se încarcă...' : `${projects.length} proiecte găsite`}
                   </p>
                 </div>
 
                 {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
-                    <Button asChild>
+                    <Button asChild className="btn-primary">
                       <Link href={`/${locale}/projects/new`}>
                         <Plus className="w-4 h-4 mr-2" />
                         Proiect Nou
@@ -723,20 +731,20 @@ export default function DashboardClient() {
                     <AlertDescription>{projectsError}</AlertDescription>
                   </Alert>
               ) : projects.length === 0 ? (
-                  <Card>
+                  <Card className="glass-card">
                     <CardContent className="text-center py-20">
                       <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-xl font-semibold mb-2">
                         {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Nu ai cereri de proiecte' : 'Nu ai proiecte create'}
                       </h3>
-                      <p className="text-muted-foreground mb-6">
+                      <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
                         {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
                             ? 'Când clienții vor crea proiecte și te vor selecta, le vei vedea aici'
                             : 'Creează primul tău proiect pentru a începe colaborarea cu prestatorii'
                         }
                       </p>
                         <Can {...({ superuser: true } || { roles: ['client'] })}>
-                          <Button asChild>
+                          <Button asChild className="btn-primary">
                             <Link href={`/${locale}/projects/new`}>
                               <Plus className="w-4 h-4 mr-2" />
                               Creează Primul Proiect
@@ -762,13 +770,13 @@ export default function DashboardClient() {
 
             {/* Services Tab */}
             <TabsContent value="services" className="space-y-6">
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Target className="w-5 h-5" />
                     <span>{user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Serviciile Mele' : 'Servicii Favorite'}</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
                     {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
                         ? 'Gestionează serviciile pe care le oferi'
                         : 'Serviciile pe care le urmărești'
@@ -802,13 +810,13 @@ export default function DashboardClient() {
 
             {/* Messages Tab */}
             <TabsContent value="messages" className="space-y-6">
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <MessageSquare className="w-5 h-5" />
                     <span>Mesaje</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
                     Conversațiile tale cu clienții și prestatorii
                   </CardDescription>
                 </CardHeader>
@@ -828,7 +836,7 @@ export default function DashboardClient() {
             <TabsContent value="settings" className="space-y-6">
               <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Profile Settings */}
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <User className="w-5 h-5" />
@@ -858,7 +866,7 @@ export default function DashboardClient() {
                 </Card>
 
                 {/* Notification Settings */}
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Bell className="w-5 h-5" />
@@ -890,7 +898,7 @@ export default function DashboardClient() {
                 </Card>
 
                 {/* Account Settings */}
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Shield className="w-5 h-5" />
@@ -915,7 +923,7 @@ export default function DashboardClient() {
 
                 {/* Billing (for clients) */}
                 {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
-                    <Card>
+                    <Card className="glass-card">
                       <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
                           <DollarSign className="w-5 h-5" />
@@ -938,6 +946,7 @@ export default function DashboardClient() {
             </TabsContent>
           </Tabs>
         </div>
+        </section>
 
         <Footer />
       </div>
