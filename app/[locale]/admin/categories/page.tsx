@@ -80,6 +80,19 @@ export default function AdminCategoriesPage() {
     return childrenMap[parentId] || [];
   };
 
+  const getCategoryDepth = (category: any) => {
+    let depth = 0;
+    let current = category;
+
+    while (current?.parent_id) {
+      depth += 1;
+      current = categories.find((item: any) => item.id === current.parent_id);
+      if (!current) break;
+    }
+
+    return depth;
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
@@ -198,8 +211,16 @@ export default function AdminCategoriesPage() {
 
                     {children.length > 0 && (
                       <div className="border-t border-border/60 dark:border-slate-800/70">
-                        {children.map((child: any) => (
-                          <div key={child.id} className="flex flex-col gap-4 border-b border-border/60 p-4 pl-16 last:border-b-0 dark:border-slate-800/70 sm:flex-row sm:items-center sm:justify-between">
+                        {children.map((child: any) => {
+                          const depth = getCategoryDepth(child);
+                          const paddingLeft = Math.max(24, depth * 24);
+
+                          return (
+                          <div
+                            key={child.id}
+                            className="flex flex-col gap-4 border-b border-border/60 p-4 last:border-b-0 dark:border-slate-800/70 sm:flex-row sm:items-center sm:justify-between"
+                            style={{ paddingLeft: `${paddingLeft}px` }}
+                          >
                             <div className="flex items-center space-x-3">
                               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted dark:bg-slate-900/80">
                                 <Folder className="w-4 h-4 text-muted-foreground" />
@@ -249,7 +270,8 @@ export default function AdminCategoriesPage() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     )}
                   </div>
