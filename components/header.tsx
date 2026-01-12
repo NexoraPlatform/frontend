@@ -146,17 +146,17 @@ export function Header() {
                 <picture>
                   <source
                       type="image/avif"
-                      srcSet="/logo-60.avif 1x, /logo-120.avif 2x"
+                      srcSet="/trustora-logo-60.avif 1x, /trustora-logo-120.avif 2x"
                       className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
                   />
                   <source
                       type="image/webp"
-                      srcSet="/logo-60.webp 1x, /logo-120.webp 2x"
+                      srcSet="/trustora-logo-60.webp 1x, /trustora-logo-120.webp 2x"
                       className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
                   />
                   <Image
-                      src="/logo-60.webp"
-                      alt="Nexora Logo"
+                      src="/trustora-logo-60.webp"
+                      alt="Trustora Logo"
                       width={60}
                       height={75}
                       className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
@@ -168,17 +168,17 @@ export function Header() {
                 <picture>
                   <source
                       type="image/avif"
-                      srcSet="/logo-white-60.avif 1x, /logo-white-120.avif 2x"
+                      srcSet="/trustora-logo-white-60.avif 1x, /trustora-logo-white-120.avif 2x"
                       className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
                   />
                   <source
                       type="image/webp"
-                      srcSet="/logo-white-60.webp 1x, /logo-120.webp 2x"
+                      srcSet="/trustora-logo-white-60.webp 1x, /trustora-logo-white.webp 2x"
                       className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
                   />
                   <Image
-                      src="/logo-white-60.webp"
-                      alt="Nexora Logo"
+                      src="/trustora-logo-white-60.webp"
+                      alt="Trustora Logo"
                       width={60}
                       height={75}
                       className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
@@ -190,10 +190,10 @@ export function Header() {
               </div>
               <div className="flex flex-col">
               <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
-                Nexora
+                Trustora
               </span>
                 <span className="text-xs text-muted-foreground font-medium -mt-1">
-                IT Marketplace
+                Where work meets trust.
               </span>
               </div>
             </Link>
