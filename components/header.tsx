@@ -142,48 +142,26 @@ export function Header() {
                 aria-label={`Nexora - ${homeText}`}
             >
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#1BC47D] to-[#0B1C2D] rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                 <picture>
                   <source
                       type="image/avif"
-                      srcSet="/trustora-logo-60.avif 1x, /trustora-logo-120.avif 2x"
-                      className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
+                      srcSet="/trustora-logo2-60.avif 1x, /trustora-logo2-120.avif 2x"
+                      className="relative z-10 rounded-xl h-13 w-auto"
                   />
                   <source
                       type="image/webp"
-                      srcSet="/trustora-logo-60.webp 1x, /trustora-logo-120.webp 2x"
-                      className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
+                      srcSet="/trustora-logo2-60.webp 1x, /trustora-logo2-120.webp 2x"
+                      className="relative z-10 rounded-xl h-13 w-auto"
                   />
                   <Image
-                      src="/trustora-logo-60.webp"
+                      src="/trustora-logo2-60.webp"
                       alt="Trustora Logo"
                       width={60}
                       height={75}
-                      className="dark:hidden relative z-10 rounded-xl h-13 w-auto"
+                      className="relative z-10 rounded-xl h-13 w-auto"
                       decoding="async"
                       priority
-                  />
-                </picture>
-
-                <picture>
-                  <source
-                      type="image/avif"
-                      srcSet="/trustora-logo-white-60.avif 1x, /trustora-logo-white-120.avif 2x"
-                      className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
-                  />
-                  <source
-                      type="image/webp"
-                      srcSet="/trustora-logo-white-60.webp 1x, /trustora-logo-white.webp 2x"
-                      className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
-                  />
-                  <Image
-                      src="/trustora-logo-white-60.webp"
-                      alt="Trustora Logo"
-                      width={60}
-                      height={75}
-                      className="hidden dark:block relative z-10 rounded-xl h-13 w-auto"
-                      loading="lazy"
-                      decoding="async"
                   />
                 </picture>
 

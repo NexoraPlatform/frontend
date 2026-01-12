@@ -222,8 +222,8 @@ export default async function middleware(req: NextRequest) {
   // keep a log while testing
   // console.log('[MW] path', req.nextUrl.pathname);
 
-    const basicAuthResponse = checkBasicAuth(req);
-    if (basicAuthResponse) return basicAuthResponse;
+    // const basicAuthResponse = checkBasicAuth(req);
+    // if (basicAuthResponse) return basicAuthResponse;
 
 
     const { pathname } = req.nextUrl;
