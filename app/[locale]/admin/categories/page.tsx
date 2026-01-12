@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,31 +80,111 @@ export default function AdminCategoriesPage() {
     return childrenMap[parentId] || [];
   };
 
+  const renderChildRows = (parentId: string, depth = 1) => {
+    const children = getChildrenForParent(parentId);
+    if (!children.length) return null;
+
+    return children.map((child: any) => {
+      const paddingLeft = Math.max(64, depth * 24);
+
+      return (
+        <Fragment key={child.id}>
+          <div
+            className="flex flex-col gap-4 border-b border-border/60 p-4 last:border-b-0 dark:border-slate-800/70 sm:flex-row sm:items-center sm:justify-between"
+            style={{ paddingLeft: `${paddingLeft}px` }}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted dark:bg-slate-900/80">
+                <Folder className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <h4 className="font-medium">{child.name[locale]}</h4>
+                  <Badge variant="outline" className="text-xs">
+                    {child.slug}
+                  </Badge>
+                  {!child.isActive && (
+                    <Badge variant="destructive" className="text-xs">{inactiveLabel}</Badge>
+                  )}
+                </div>
+                {child.description && (
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {child.description[locale]}
+                  </p>
+                )}
+                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                  <span>{orderLabel}: {child.sortOrder}</span>
+                  {child.icon && (
+                    <span>{iconLabel}: {child.icon}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => router.push(`/admin/categories/${child.id}`)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  {editLabel}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleCategoryAction(child.id, 'delete')}
+                  className="text-red-600"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {deleteLabel}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {renderChildRows(child.id, depth + 1)}
+        </Fragment>
+      );
+    });
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <Link href={`/${locale}/admin`}>
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
+    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+      <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
+        <div className="relative flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <Link href={`/${locale}/admin`}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Trustora Admin
+              </span>
+            </div>
+            <Link href={`/${locale}/admin/categories/new`}>
+              <Button className="shadow-sm">
+                <Plus className="w-4 h-4 mr-2" />
+                {addCategory}
+              </Button>
+            </Link>
+          </div>
           <div>
-            <h1 className="text-3xl font-bold">{manageTitle}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{manageTitle}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
               {manageSubtitle}
             </p>
           </div>
         </div>
-        <Link href={`/${locale}/admin/categories/new`}>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            {addCategory}
-          </Button>
-        </Link>
       </div>
 
-      <Card>
+      <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FolderPlus className="w-5 h-5" />
@@ -128,11 +208,11 @@ export default function AdminCategoriesPage() {
                 const children = getChildrenForParent(category.id);
 
                 return (
-                  <div key={category.id} className="border rounded-lg">
+                  <div key={category.id} className="rounded-2xl border border-border/60 bg-background/70 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/60">
                     {/* Parent Category */}
-                    <div className="flex items-center justify-between p-4 bg-muted/30">
+                    <div className="flex flex-col gap-4 border-b border-border/60 bg-muted/30 p-4 dark:border-slate-800/70 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-sky-500/20 dark:text-sky-200">
                           <MuiIcon icon={category.icon} size={20} />
                         </div>
                         <div>
@@ -164,7 +244,7 @@ export default function AdminCategoriesPage() {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" className="rounded-full">
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -185,59 +265,8 @@ export default function AdminCategoriesPage() {
                     </div>
 
                     {children.length > 0 && (
-                      <div className="border-t">
-                        {children.map((child: any) => (
-                          <div key={child.id} className="flex items-center justify-between p-4 pl-16 border-b last:border-b-0">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                                <Folder className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <h4 className="font-medium">{child.name[locale]}</h4>
-                                  <Badge variant="outline" className="text-xs">
-                                    {child.slug}
-                                  </Badge>
-                                  {!child.isActive && (
-                                    <Badge variant="destructive" className="text-xs">{inactiveLabel}</Badge>
-                                  )}
-                                </div>
-                                {child.description && (
-                                  <p className="text-sm text-muted-foreground mb-1">
-                                    {child.description[locale]}
-                                  </p>
-                                )}
-                                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                                  <span>{orderLabel}: {child.sortOrder}</span>
-                                  {child.icon && (
-                                    <span>{iconLabel}: {child.icon}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => router.push(`/admin/categories/${child.id}`)}>
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  {editLabel}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleCategoryAction(child.id, 'delete')}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  {deleteLabel}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        ))}
+                      <div className="border-t border-border/60 dark:border-slate-800/70">
+                        {renderChildRows(category.id)}
                       </div>
                     )}
                   </div>
@@ -245,7 +274,7 @@ export default function AdminCategoriesPage() {
               })}
 
               {categories.length === 0 && (
-                <div className="text-center py-12">
+                <div className="rounded-2xl border border-dashed border-border/60 bg-background/60 py-12 text-center dark:border-slate-800/70 dark:bg-slate-950/60">
                   <FolderPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">{noCategoriesTitle}</h3>
                   <p className="text-muted-foreground mb-4">
