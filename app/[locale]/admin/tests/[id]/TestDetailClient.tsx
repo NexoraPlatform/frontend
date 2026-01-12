@@ -28,6 +28,7 @@ import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 type QuestionType =
     | 'SINGLE_CHOICE'
@@ -153,9 +154,24 @@ export default function TestDetailsClient({ id }: { id: string; }) {
     };
 
     const statusBadgeMap = useMemo(() => ({
-        ACTIVE: <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{statusActive}</Badge>,
-        INACTIVE: <Badge className="bg-gray-100 text-gray-800"><XCircle className="w-3 h-3 mr-1" />{statusInactive}</Badge>,
-        DRAFT: <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="w-3 h-3 mr-1" />{statusDraft}</Badge>,
+        ACTIVE: (
+            <Badge className="border border-emerald-200/60 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                {statusActive}
+            </Badge>
+        ),
+        INACTIVE: (
+            <Badge className="border border-slate-200/70 bg-slate-100 text-slate-700 dark:border-slate-600/50 dark:bg-slate-800/70 dark:text-slate-200">
+                <XCircle className="w-3 h-3 mr-1" />
+                {statusInactive}
+            </Badge>
+        ),
+        DRAFT: (
+            <Badge className="border border-amber-200/60 bg-amber-100 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                {statusDraft}
+            </Badge>
+        ),
     }), [statusActive, statusInactive, statusDraft]);
 
     const getStatusBadge = (status: string) => {
@@ -165,10 +181,26 @@ export default function TestDetailsClient({ id }: { id: string; }) {
     type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
 
     const levelBadgeMap = useMemo(() => ({
-        JUNIOR: { label: levelJunior, color: 'bg-green-100 text-green-800' },
-        MEDIU: { label: levelMediu, color: 'bg-blue-100 text-blue-800' },
-        SENIOR: { label: levelSenior, color: 'bg-purple-100 text-purple-800' },
-        EXPERT: { label: levelExpert, color: 'bg-orange-100 text-orange-800' },
+        JUNIOR: {
+            label: levelJunior,
+            color:
+                'border border-emerald-200/60 bg-emerald-100 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200',
+        },
+        MEDIU: {
+            label: levelMediu,
+            color:
+                'border border-blue-200/60 bg-blue-100 text-blue-800 dark:border-blue-400/40 dark:bg-blue-500/20 dark:text-blue-200',
+        },
+        SENIOR: {
+            label: levelSenior,
+            color:
+                'border border-purple-200/60 bg-purple-100 text-purple-800 dark:border-purple-400/40 dark:bg-purple-500/20 dark:text-purple-200',
+        },
+        EXPERT: {
+            label: levelExpert,
+            color:
+                'border border-orange-200/60 bg-orange-100 text-orange-800 dark:border-orange-400/40 dark:bg-orange-500/20 dark:text-orange-200',
+        },
     }), [levelJunior, levelMediu, levelSenior, levelExpert]);
 
     const getLevelBadge = (level: Level) => {
@@ -178,36 +210,53 @@ export default function TestDetailsClient({ id }: { id: string; }) {
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
+            <>
+                <TrustoraThemeStyles />
+                <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                    <div className="container mx-auto px-4 py-10">
+                        <div className="flex justify-center py-20">
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </>
         );
     }
 
     if (error) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            </div>
+            <>
+                <TrustoraThemeStyles />
+                <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                    <div className="container mx-auto px-4 py-10">
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    </div>
+                </div>
+            </>
         );
     }
     return (
-        <div className="container mx-auto px-4 py-8">
+        <>
+            <TrustoraThemeStyles />
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                <div className="container mx-auto px-4 py-10">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-4">
                     <Link href="/admin/tests">
-                        <Button variant="outline" size="icon">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+                        >
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold">{test.title}</h1>
+                        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{test.title}</h1>
                         <p className="text-muted-foreground">
                             {test.service?.title} - {test.service?.category?.name?.[locale]}
                         </p>
@@ -227,9 +276,9 @@ export default function TestDetailsClient({ id }: { id: string; }) {
             )}
 
             {/* Test Overview */}
-            <Card className="mb-8">
+            <Card className="mb-8 glass-card shadow-sm">
                 <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
+                    <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                         <BookOpen className="w-5 h-5" />
                         <span>{detailTitle}</span>
                     </CardTitle>
@@ -285,7 +334,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
         </div>
     </div>
 
-    <div className="mt-6 pt-6 border-t">
+    <div className="mt-6 pt-6 border-t border-slate-200/70 dark:border-slate-700/60">
         <h3 className="font-semibold text-lg mb-2">{descriptionLabel}</h3>
         <p className="text-muted-foreground">{test.description}</p>
     </div>
@@ -293,9 +342,9 @@ export default function TestDetailsClient({ id }: { id: string; }) {
             </Card>
 
             {/* Questions */}
-            <Card className="mb-8">
+            <Card className="mb-8 glass-card shadow-sm">
                 <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
+                    <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                         <Target className="w-5 h-5" />
                         <span>{questionsSectionTemplate.replace('{count}', String(test.questions.length))}</span>
                     </CardTitle>
@@ -306,7 +355,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                             const IconComponent = getQuestionTypeIcon(question.type);
 
                             return (
-                                <div key={question.id} className="border rounded-lg p-4">
+                                <div key={question.id} className="border rounded-lg p-4 bg-white/70 dark:bg-slate-900/40">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center space-x-2">
                                             <IconComponent className="w-5 h-5 text-primary" />
@@ -352,7 +401,9 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                         {String.fromCharCode(65 + optIndex)}. {option}
                     </span>
                                                         {question?.correct_answers?.includes(option) && (
-                                                            <Badge className="bg-green-100 text-green-800 text-xs">Corect</Badge>
+                                                            <Badge className="border border-emerald-200/60 bg-emerald-100 text-emerald-800 text-xs dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                                                Corect
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                 ))}
@@ -437,14 +488,14 @@ export default function TestDetailsClient({ id }: { id: string; }) {
             {/* Actions */}
             <div className="flex flex-wrap gap-4">
                 <Link href={`/admin/tests/${id}/edit`}>
-                    <Button>
+                    <Button className="btn-primary">
                         <Edit className="w-4 h-4 mr-2" />
                         {editTestLabel}
                     </Button>
                 </Link>
 
                 <Link href={`/admin/tests/${id}/statistics`}>
-                    <Button variant="outline">
+                    <Button variant="outline" className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60">
                         <BarChart3 className="w-4 h-4 mr-2" />
                         {viewStatisticsLabel}
                     </Button>
@@ -453,6 +504,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                 {test.status === 'ACTIVE' ? (
                     <Button
                         variant="outline"
+                        className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
                         onClick={() => handleAction('deactivate')}
                         disabled={actionLoading}
                     >
@@ -462,6 +514,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                 ) : (
                     <Button
                         variant="outline"
+                        className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
                         onClick={() => handleAction('activate')}
                         disabled={actionLoading}
                     >
@@ -472,6 +525,7 @@ export default function TestDetailsClient({ id }: { id: string; }) {
 
                 <Button
                     variant="outline"
+                    className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
                     onClick={() => window.open(`/tests/preview/${id}`, '_blank')}
                 >
                     <PlayCircle className="w-4 h-4 mr-2" />
@@ -487,6 +541,9 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                     {deleteTestLabel}
                 </Button>
             </div>
+                </div>
+            </div>
         </div>
+    </>
     );
 }
