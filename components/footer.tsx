@@ -56,50 +56,33 @@ export function Footer() {
                   <picture>
                     <source
                         type="image/avif"
-                        srcSet="/logo-60.avif 1x, /logo-120.avif 2x"
+                        srcSet="/trustora-logo2-60.avif 1x, /trustora-logo2-120.avif 2x"
                         className="dark:hidden h-10 w-auto"
                     />
                     <source
                         type="image/webp"
-                        srcSet="/logo-60.webp 1x, /logo-120.webp 2x"
+                        srcSet="/trustora-logo2-60.webp 1x, /trustora-logo2-120.webp 2x"
                         className="dark:hidden h-10 w-auto"
                     />
                     <Image
-                        src="/logo-60.webp"
-                        alt="Nexora Logo"
+                        src="/trustora-logo2-60.webp"
+                        alt="Trustoria Logo"
                         width={140}
                         height={175}
-                        className="dark:hidden h-10 w-auto"
+                        className="h-10 w-auto"
                         loading="eager"
                         decoding="async"
                         style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
                     />
                   </picture>
-
-                  <picture>
-                    <source
-                        type="image/avif"
-                        srcSet="/logo-60.avif 1x, /logo-120.avif 2x"
-                        className="hidden dark:block h-10 w-auto"
-                    />
-                    <source
-                        type="image/webp"
-                        srcSet="/logo-white-60.webp 1x, /logo-120.webp 2x"
-                        className="hidden dark:block h-10 w-auto"
-                    />
-                    <Image
-                        src="/logo-white-60.webp"
-                        alt="Nexora Logo"
-                        width={140}
-                        height={175}
-                        className="hidden dark:block h-10 w-auto"
-                        loading="lazy"
-                        decoding="async"
-                        style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
-                    />
-                  </picture>
                 </div>
-                <span className="text-xl font-bold text-primary pb-3">Nexora</span>
+                  <div className="flex flex-col">
+                      <span className="text-xl font-bold text-primary ps-4">Trustora</span>
+                      <span className="text-xs text-muted-foreground font-medium -mt-1 pb-3">
+                        Where work meets trust.
+                      </span>
+                  </div>
+
               </div>
               <p className="text-sm text-muted-foreground">
                   {footerPlatformDescriptionText}
