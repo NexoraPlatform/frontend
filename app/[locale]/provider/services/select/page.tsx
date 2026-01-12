@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -125,7 +126,7 @@ export default function SelectServicesPage() {
 
   if (loading || categoriesLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
@@ -138,7 +139,8 @@ export default function SelectServicesPage() {
   const categories = categoriesData || [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+      <TrustoraThemeStyles />
       <Header />
 
       <div className="container mx-auto px-4 py-8">
@@ -155,39 +157,39 @@ export default function SelectServicesPage() {
           </div>
           <div className="text-right">
             <div className="text-sm text-muted-foreground">Pasul 1 din 4</div>
-            <div className="text-lg font-semibold">Selectare Servicii</div>
+            <div className="text-lg font-semibold text-[var(--midnight-blue)] dark:text-white">Selectare Servicii</div>
           </div>
         </div>
 
         {/* Progress */}
-        <div className="mb-8">
+        <div className="mb-8 glass-card p-4">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-[var(--emerald-green)] text-white rounded-full flex items-center justify-center text-sm font-bold">
                 1
               </div>
-              <span className="font-medium text-blue-600">Selectare Servicii</span>
+              <span className="font-medium text-[var(--emerald-green)]">Selectare Servicii</span>
             </div>
-            <div className="flex-1 h-0.5 bg-gray-200"></div>
+            <div className="flex-1 h-0.5 bg-slate-200"></div>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-slate-200 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold">
                 2
               </div>
-              <span className="text-gray-500">Niveluri Competență</span>
+              <span className="text-slate-500">Niveluri Competență</span>
             </div>
-            <div className="flex-1 h-0.5 bg-gray-200"></div>
+            <div className="flex-1 h-0.5 bg-slate-200"></div>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-slate-200 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold">
                 3
               </div>
-              <span className="text-gray-500">Teste & Certificare</span>
+              <span className="text-slate-500">Teste & Certificare</span>
             </div>
-            <div className="flex-1 h-0.5 bg-gray-200"></div>
+            <div className="flex-1 h-0.5 bg-slate-200"></div>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-slate-200 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold">
                 4
               </div>
-              <span className="text-gray-500">Setare Tarife</span>
+              <span className="text-slate-500">Setare Tarife</span>
             </div>
           </div>
         </div>
@@ -200,17 +202,17 @@ export default function SelectServicesPage() {
         )}
 
         {/* Info Card */}
-        <Card className="mb-8 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+        <Card className="mb-8 glass-card border-emerald-100/60 bg-white/80 dark:bg-white/5">
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-[var(--emerald-green)] rounded-xl flex items-center justify-center">
                 <Target className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">
                   Serviciile sunt administrate de echipa Nexora
                 </h3>
-                <div className="text-blue-800 dark:text-blue-200 text-sm space-y-1">
+                <div className="text-slate-600 dark:text-slate-300 text-sm space-y-1">
                   <p>• <strong>Administratorii</strong> creează și gestionează serviciile disponibile</p>
                   <p>• <strong>Tu te înscrii</strong> să prestezi serviciile existente cu tarifele tale</p>
                   <p>• <strong>Selectezi nivelul</strong> pentru fiecare serviciu (Junior, Mediu, Senior, Expert)</p>
@@ -226,7 +228,7 @@ export default function SelectServicesPage() {
         <div className="grid xs:grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Categories Sidebar */}
           <div className="lg:col-span-1">
-            <Card>
+            <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <FolderOpen className="w-5 h-5" />
@@ -274,7 +276,7 @@ export default function SelectServicesPage() {
           {/* Services Grid */}
           <div className="lg:col-span-3">
             {!selectedCategory ? (
-              <Card className="h-96 flex items-center justify-center">
+              <Card className="h-96 flex items-center justify-center glass-card">
                 <CardContent className="text-center">
                   <FolderOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Selectează o categorie</h3>
@@ -284,14 +286,14 @@ export default function SelectServicesPage() {
                 </CardContent>
               </Card>
             ) : loadingServices ? (
-              <Card className="h-96 flex items-center justify-center">
+              <Card className="h-96 flex items-center justify-center glass-card">
                 <CardContent className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
                   <p className="text-muted-foreground">Se încarcă serviciile...</p>
                 </CardContent>
               </Card>
             ) : services.length === 0 ? (
-              <Card className="h-96 flex items-center justify-center">
+              <Card className="h-96 flex items-center justify-center glass-card">
                 <CardContent className="text-center">
                   <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Nu există servicii în această categorie</h3>
@@ -322,10 +324,10 @@ export default function SelectServicesPage() {
                     return (
                       <Card
                         key={service.id}
-                        className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                        className={`cursor-pointer transition-all duration-200 glass-card hover:shadow-lg ${
                           isSelected 
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md' 
-                            : 'border-gray-200 hover:border-blue-300'
+                            ? 'border-emerald-400/70 bg-emerald-50/60 dark:bg-emerald-500/10 shadow-md' 
+                            : 'border-white/60 hover:border-emerald-200'
                         }`}
                         onClick={() => handleServiceToggle(service.id)}
                       >
@@ -334,8 +336,8 @@ export default function SelectServicesPage() {
                             <div className="flex items-center space-x-3">
                               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                                 isSelected 
-                                  ? 'bg-blue-500 text-white' 
-                                  : 'bg-gray-100 text-gray-600'
+                                  ? 'bg-[var(--emerald-green)] text-white' 
+                                  : 'bg-slate-100 text-slate-600'
                               }`}>
                                 <IconComponent className="w-6 h-6" />
                               </div>
@@ -391,25 +393,25 @@ export default function SelectServicesPage() {
 
         {/* Selection Summary */}
         {selectedServices.length > 0 && (
-          <Card className="mt-8 border-green-200 bg-green-50 dark:bg-green-950/20">
+          <Card className="mt-8 glass-card border-emerald-100/60 bg-emerald-50/60 dark:bg-emerald-500/10">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                  <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">
                     Servicii Selectate ({selectedServices.length})
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedServices.map(serviceId => {
                       const service = services.find(s => s.id === serviceId);
                       return service ? (
-                        <Badge key={serviceId} className="bg-green-600 text-white">
+                        <Badge key={serviceId} className="bg-[var(--emerald-green)] text-white">
                           {service.name}
                         </Badge>
                       ) : null;
                     })}
                   </div>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-500" />
+                <CheckCircle className="w-8 h-8 text-[var(--emerald-green)]" />
               </div>
             </CardContent>
           </Card>
@@ -425,7 +427,7 @@ export default function SelectServicesPage() {
           <Button
             onClick={handleContinue}
             disabled={selectedServices.length === 0}
-            className="px-8"
+            className="btn-primary px-8"
           >
             Continuă
             <ArrowRight className="w-4 h-4 ml-2" />
