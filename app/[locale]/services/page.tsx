@@ -695,7 +695,7 @@ function ServiceCard({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] overflow-hidden hover:shadow-lg transition-all duration-300">
+    <div className="bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] overflow-visible hover:shadow-lg transition-all duration-300">
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <span className="inline-block px-3 py-1 bg-slate-100 dark:bg-[#111B2D] text-slate-700 dark:text-[#E6EDF3] text-xs font-bold rounded-full">
@@ -736,17 +736,23 @@ function ServiceCard({
             {service.providers && service.providers.length > 0 ? (
               <>
                 <div className="flex -space-x-2">
-                  {service.providers.slice(0, 3).map((provider) => (
-                    <div key={provider.id} className="relative">
-                      <Image
-                        src={provider.avatar || '/placeholder-avatar.png'}
-                        alt={`${provider.firstName} ${provider.lastName}`}
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                      />
-                    </div>
-                  ))}
+                  {service.providers.slice(0, 3).map((provider) => {
+                    const providerName = `${provider.firstName} ${provider.lastName}`;
+                    return (
+                      <div key={provider.id} className="relative group">
+                        <Image
+                          src={provider.avatar || '/placeholder-avatar.png'}
+                          alt={providerName}
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                        />
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100">
+                          {providerName}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
                 {remainingProviders > 0 && (
                   <span className="text-xs text-slate-600 dark:text-[#A3ADC2] font-medium">
