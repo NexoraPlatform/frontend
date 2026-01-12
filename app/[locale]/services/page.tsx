@@ -695,7 +695,7 @@ function ServiceCard({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] overflow-hidden hover:shadow-lg transition-all duration-300">
+    <div className="bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] overflow-visible hover:shadow-lg transition-all duration-300">
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <span className="inline-block px-3 py-1 bg-slate-100 dark:bg-[#111B2D] text-slate-700 dark:text-[#E6EDF3] text-xs font-bold rounded-full">
