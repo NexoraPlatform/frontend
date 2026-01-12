@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import {formatDistanceToNow} from "date-fns";
 import {ro} from "date-fns/locale";
 import {Badge} from "@/components/ui/badge";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
@@ -44,7 +45,8 @@ export default async function ProjectDetailClient({ id }: {  id: string; }) {
 
     if (!project) {
         return (
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+                <TrustoraThemeStyles />
                 <Header />
                 <div className="container mx-auto px-4 py-20">
                     <Alert variant="destructive">
@@ -73,105 +75,121 @@ export default async function ProjectDetailClient({ id }: {  id: string; }) {
         return map[value] || value;
     };
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+            <TrustoraThemeStyles />
             <Header />
-            <div className="container mx-auto px-4 py-8">
+            <main className="pt-24">
+                <section className="px-6 pb-10 hero-gradient">
+                    <div className="max-w-6xl mx-auto">
+                        <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                            <span className="text-[#1BC47D]">●</span> Detalii proiect
+                        </Badge>
+                        <h1 className="text-3xl lg:text-4xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {project.title.replace(/^Proiect(\s+)/i, "")}
+                        </h1>
+                        <p className="mt-3 text-base text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
+                            {project.description || "Nu există o descriere pentru acest proiect."}
+                        </p>
+                    </div>
+                </section>
 
-                <div className="mb-8">
-                    <Card className="border-2 shadow-lg">
-                        <CardContent className="p-8">
-                            <h1 className="text-3xl font-bold mb-2">
-                                {project.title.replace(/^Proiect(\s+)/i, "")}
-                            </h1>
-                            <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                    <div className="text-sm text-muted-foreground">Adaugat</div>
-                                    <div className="text-2xl font-bold text-blue-600">
-                                        {formatDistanceToNow(new Date(project.created_at), {
-                                            addSuffix: true,
-                                            locale: ro
-                                        })}
+                <section className="px-6 py-12 bg-[#F5F7FA] dark:bg-[#0B1220]">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="mb-8">
+                            <Card className="glass-card shadow-sm">
+                                <CardContent className="p-8">
+                                    <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Adaugat</div>
+                                            <div className="text-2xl font-bold text-[#1BC47D]">
+                                                {formatDistanceToNow(new Date(project.created_at), {
+                                                    addSuffix: true,
+                                                    locale: ro
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Durata proiect</div>
+                                            <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {formatDeadline(project.project_duration)}
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Status proiect</div>
+                                            <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {project.completedAt ? 'Finalizat' : 'Nefinalizat' }
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Prestatori selectati</div>
+                                            <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                {project.selected_providers.length > 0 ? project.selected_providers.length : 'N/A'}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                    <div className="text-sm text-muted-foreground">Durata proiect</div>
-                                    <div className="text-2xl font-bold text-green-600">
-                                        {formatDeadline(project.project_duration)}
-                                    </div>
-                                </div>
+                                    {(project?.existing_services?.length > 0
+                                        || project?.custom_services?.length > 0) && (
+                                        <div className="my-6">
+                                            <div className="text-sm font-medium mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                Tehnologii Proiect:
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {project.existing_services.map((tech: any, index: number) => (
+                                                    <Badge key={index} variant="outline" className="text-xs border-slate-200 dark:border-[#1E2A3D]">
+                                                        {tech.name}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
-                                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                    <div className="text-sm text-muted-foreground">Status proiect</div>
-                                    <div className="text-2xl font-bold text-purple-600">
-                                        {project.completedAt ? 'Finalizat' : 'Nefinalizat' }
-                                    </div>
-                                </div>
-
-                                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                    <div className="text-sm text-muted-foreground">Prestatori selectati</div>
-                                    <div className="text-2xl font-bold text-orange-600">
-                                        {project.selected_providers.length > 0 ? project.selected_providers.length : 'N/A'}
-                                    </div>
-                                </div>
-                            </div>
-                            <p className="text-muted-foreground leading-relaxed">
-                                {project.description || "Nu există o descriere pentru acest proiect."}
-                            </p>
-
-                            {(project?.existing_services?.length > 0
-                                || project?.custom_services?.length > 0) && (
-                                <div className="my-4">
-                                    <div className="text-sm font-medium mb-2">Tehnologii Proiect:</div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {project.existing_services.map((tech: any, index: number) => (
-                                            <Badge key={index} variant="outline" className="text-xs">
-                                                {tech.name}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {project?.recommended_team?.length > 0 && (
-                                <div className="my-4">
-                                    <div className="text-sm font-medium mb-2">Structura recomandata de echipa:</div>
-                                    <ul className="list-disc flex flex-wrap" style={{ gap: '1.6rem' }}>
-                                        {project?.recommended_team?.map((team: any, index: number) => (
-                                            <li
-                                                key={index}
-                                                className="text-sm font-medium basis-[16.66%] min-w-[150px]"
-                                            >
-                                                Serviciu: <span className="text-blue-600">{team.service}</span>
-                                                <ul className="list-disc pl-5 space-y-2">
-                                                    <li className="text-muted-foreground">
-                                                        <span className="font-normal">Rol:</span> {team.role}
+                                    {project?.recommended_team?.length > 0 && (
+                                        <div className="my-6">
+                                            <div className="text-sm font-medium mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                Structura recomandata de echipa:
+                                            </div>
+                                            <ul className="list-disc flex flex-wrap" style={{ gap: '1.6rem' }}>
+                                                {project?.recommended_team?.map((team: any, index: number) => (
+                                                    <li
+                                                        key={index}
+                                                        className="text-sm font-medium basis-[16.66%] min-w-[150px]"
+                                                    >
+                                                        Serviciu: <span className="text-emerald-green">{team.service}</span>
+                                                        <ul className="list-disc pl-5 space-y-2">
+                                                            <li className="text-slate-500 dark:text-[#A3ADC2]">
+                                                                <span className="font-normal">Rol:</span> {team.role}
+                                                            </li>
+                                                            <li className="text-slate-500 dark:text-[#A3ADC2]">
+                                                                <span className="font-normal">Nivel de experiență:</span> {team.experience_level}
+                                                            </li>
+                                                            <li className="text-slate-500 dark:text-[#A3ADC2]">
+                                                                <span className="font-normal">Număr de prestatori:</span> {team.count}
+                                                            </li>
+                                                        </ul>
                                                     </li>
-                                                    <li className="text-muted-foreground">
-                                                        <span className="font-normal">Nivel de experiență:</span> {team.experience_level}
-                                                    </li>
-                                                    <li className="text-muted-foreground">
-                                                        <span className="font-normal">Număr de prestatori:</span> {team.count}
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
 
-                            {project.providers.length > 0 && (
-                                <div className="lg:col-span-2 space-y-4">
-                                    {project.providers.map((provider: any) => (
-                                        <ProviderCard provider={provider} key={provider.id} />
-                                    ))}
-                                </div>
-                            )}
+                                    {project.providers.length > 0 && (
+                                        <div className="lg:col-span-2 space-y-4">
+                                            {project.providers.map((provider: any) => (
+                                                <ProviderCard provider={provider} key={provider.id} />
+                                            ))}
+                                        </div>
+                                    )}
 
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </section>
+            </main>
 
             <Footer />
         </div>

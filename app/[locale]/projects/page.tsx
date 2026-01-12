@@ -8,6 +8,7 @@ import { ProjectCard } from '@/components/ProjectCard';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Badge } from '@/components/ui/badge';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -139,16 +140,20 @@ export default function ProjectsPage() {
       <TrustoraThemeStyles />
       <Header />
       <main className="min-h-screen bg-slate-50 dark:bg-[#070C14]">
-        <div className="pt-24 pb-8 px-6 bg-white border-b border-slate-200 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+        <section className="pt-32 pb-12 px-6 hero-gradient">
           <div className="max-w-7xl mx-auto">
+            <Badge className="mb-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+              <span className="text-[#1BC47D]">●</span> Proiecte Trustora
+            </Badge>
             <h1 className="text-4xl lg:text-5xl font-bold text-midnight-blue mb-3 dark:text-[#E6EDF3]">
               Proiecte
             </h1>
-            <p className="text-lg text-slate-600 dark:text-[#A3ADC2]">
-              Găsește proiecte potrivite pentru tine și ofertează pe cele care te interesează
+            <p className="text-lg text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
+              Găsește proiecte potrivite pentru tine și ofertează pe cele care te interesează,
+              într-un ecosistem sigur și verificat.
             </p>
           </div>
-        </div>
+        </section>
 
         <ProjectFilters
           categories={categories}
@@ -166,7 +171,7 @@ export default function ProjectsPage() {
           selectedBudgetMax={selectedBudgetMax}
         />
 
-        <div className="py-12 px-6 bg-slate-50 dark:bg-[#070C14]">
+        <section className="py-12 px-6 bg-slate-50 dark:bg-[#070C14]">
           <div className="max-w-7xl mx-auto">
             <div className="space-y-4 mb-12">
               {projects.map((project) => (
@@ -190,7 +195,7 @@ export default function ProjectsPage() {
 
             <div ref={observerTarget} className="h-4" />
           </div>
-        </div>
+        </section>
       </main>
       <Footer />
     </div>
