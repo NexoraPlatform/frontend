@@ -190,8 +190,8 @@ export default function RootLayout({
 
             <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
 
-            <link rel="preload" href="/logo-60.webp" as="image" type="image/webp" fetchPriority="high" />
-            <link rel="preload" href="/logo-120.webp" as="image" type="image/webp" fetchPriority="high" />
+            {/*<link rel="preload" href="/logo-60.webp" as="image" type="image/webp" fetchPriority="high" />*/}
+            {/*<link rel="preload" href="/logo-120.webp" as="image" type="image/webp" fetchPriority="high" />*/}
 
             <meta httpEquiv="x-dns-prefetch-control" content="on" />
             <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
