@@ -43,7 +43,8 @@ export default function SelectServicesPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('');
 
     const [services, setServices] = useState<any[]>([]);
-    const [selectedServices, setSelectedServices] = useState<string[]>([]);
+    // Changed from array (multiple) to string (single)
+    const [selectedService, setSelectedService] = useState<string>('');
     const [loadingServices, setLoadingServices] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
@@ -114,37 +115,39 @@ export default function SelectServicesPage() {
             // It's a parent category -> Drill down
             setParentCategory(category);
             setSelectedCategory(''); // Reset selected leaf category
+            setSelectedService(''); // Reset selected service
             setServices([]); // Clear services
             setError('');
         } else {
             // It's a leaf category (no children) -> Select and fetch services
             setSelectedCategory(category.id);
+            setSelectedService(''); // Reset selected service when changing category
         }
     };
 
     const handleBackToParents = () => {
         setParentCategory(null);
         setSelectedCategory('');
+        setSelectedService('');
         setServices([]);
         setError('');
     };
 
-    const handleServiceToggle = (serviceId: string) => {
-        setSelectedServices(prev =>
-            prev.includes(serviceId)
-                ? prev.filter(id => id !== serviceId)
-                : [...prev, serviceId]
-        );
+    // Modified to handle single selection
+    const handleServiceSelect = (serviceId: string) => {
+        // If clicked again, deselect (optional) or just keep selected.
+        // Here we toggle it off if clicked again, otherwise replace selection.
+        setSelectedService(prev => (prev === serviceId ? '' : serviceId));
     };
 
     const handleContinue = () => {
-        if (selectedServices.length === 0) {
-            setError('Selectează cel puțin un serviciu pentru a continua');
+        if (!selectedService) {
+            setError('Selectează un serviciu pentru a continua');
             return;
         }
 
-        const servicesParam = selectedServices.join(',');
-        router.push(`/provider/services/levels?services=${servicesParam}`);
+        // Redirect to levels page with single service
+        router.push(`/provider/services/levels?services=${selectedService}`);
     };
 
     if (loading || categoriesLoading) {
@@ -176,14 +179,14 @@ export default function SelectServicesPage() {
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                     <div className="flex-1">
-                        <h1 className="text-3xl font-bold">Selectează Serviciile</h1>
+                        <h1 className="text-3xl font-bold">Selectează Serviciul</h1>
                         <p className="text-muted-foreground">
-                            Alege categoria și serviciile pe care vrei să le prestezi pe platformă
+                            Alege categoria și serviciul pe care vrei să îl prestezi pe platformă
                         </p>
                     </div>
                     <div className="text-right">
                         <div className="text-sm text-muted-foreground">Pasul 1 din 4</div>
-                        <div className="text-lg font-semibold text-[var(--midnight-blue)] dark:text-white">Selectare Servicii</div>
+                        <div className="text-lg font-semibold text-[var(--midnight-blue)] dark:text-white">Selectare Serviciu</div>
                     </div>
                 </div>
 
@@ -194,7 +197,7 @@ export default function SelectServicesPage() {
                             <div className="w-8 h-8 bg-[var(--emerald-green)] text-white rounded-full flex items-center justify-center text-sm font-bold">
                                 1
                             </div>
-                            <span className="font-medium text-[var(--emerald-green)]">Selectare Servicii</span>
+                            <span className="font-medium text-[var(--emerald-green)]">Selectare Serviciu</span>
                         </div>
                         <div className="flex-1 h-0.5 bg-slate-200"></div>
                         <div className="flex items-center space-x-2">
@@ -240,8 +243,8 @@ export default function SelectServicesPage() {
                                 </h3>
                                 <div className="text-slate-600 dark:text-slate-300 text-sm space-y-1">
                                     <p>• <strong>Administratorii</strong> creează și gestionează serviciile disponibile</p>
-                                    <p>• <strong>Tu te înscrii</strong> să prestezi serviciile existente cu tarifele tale</p>
-                                    <p>• <strong>Selectezi nivelul</strong> pentru fiecare serviciu (Junior, Mediu, Senior, Expert)</p>
+                                    <p>• <strong>Tu te înscrii</strong> să prestezi un serviciu existent cu tarifele tale</p>
+                                    <p>• <strong>Selectezi nivelul</strong> (Junior, Mediu, Senior, Expert)</p>
                                     <p>• <strong>Susții teste</strong> pentru a demonstra competența</p>
                                     <p>• <strong>Setezi tarifele</strong> și începi să primești comenzi</p>
                                 </div>
@@ -283,9 +286,6 @@ export default function SelectServicesPage() {
                                 <div className="space-y-1">
                                     {displayedCategories.map((category: any) => {
                                         const hasChildren = category.children && category.children.length > 0;
-                                        // For icon, if it's a subcategory without a specific icon mapping,
-                                        // we could try to use parent's slug or fallback to Code.
-                                        // Here we use the category slug if available.
                                         const IconComponent = serviceIcons[category.slug as ServiceSlug] || Code;
 
                                         const isSelected = selectedCategory === category.id;
@@ -367,14 +367,14 @@ export default function SelectServicesPage() {
                                         Servicii disponibile ({services.length})
                                     </h3>
                                     <Badge variant="outline">
-                                        {selectedServices.length} selectate
+                                        {selectedService ? '1 selectat' : '0 selectate'}
                                     </Badge>
                                 </div>
 
                                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     {services.map((service: any) => {
                                         const IconComponent = serviceIcons[service.category?.slug as ServiceSlug] || Code;
-                                        const isSelected = selectedServices.includes(service.id);
+                                        const isSelected = selectedService === service.id;
 
                                         return (
                                             <Card
@@ -384,7 +384,7 @@ export default function SelectServicesPage() {
                                                         ? 'border-emerald-400/70 bg-emerald-50/60 dark:bg-emerald-500/10 shadow-md'
                                                         : 'border-white/60 hover:border-emerald-200'
                                                 }`}
-                                                onClick={() => handleServiceToggle(service.id)}
+                                                onClick={() => handleServiceSelect(service.id)}
                                             >
                                                 <CardHeader>
                                                     <div className="flex items-start justify-between">
@@ -405,7 +405,7 @@ export default function SelectServicesPage() {
                                                         </div>
                                                         <Checkbox
                                                             checked={isSelected}
-                                                            onChange={() => handleServiceToggle(service.id)}
+                                                            onCheckedChange={() => handleServiceSelect(service.id)}
                                                             className="mt-1"
                                                         />
                                                     </div>
@@ -447,23 +447,23 @@ export default function SelectServicesPage() {
                 </div>
 
                 {/* Selection Summary */}
-                {selectedServices.length > 0 && (
+                {selectedService && (
                     <Card className="mt-8 glass-card border-emerald-100/60 bg-emerald-50/60 dark:bg-emerald-500/10">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">
-                                        Servicii Selectate ({selectedServices.length})
+                                        Serviciu Selectat
                                     </h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {selectedServices.map(serviceId => {
-                                            const service = services.find(s => s.id === serviceId);
+                                        {(() => {
+                                            const service = services.find(s => s.id === selectedService);
                                             return service ? (
-                                                <Badge key={serviceId} className="bg-[var(--emerald-green)] text-white">
+                                                <Badge className="bg-[var(--emerald-green)] text-white">
                                                     {service.name}
                                                 </Badge>
                                             ) : null;
-                                        })}
+                                        })()}
                                     </div>
                                 </div>
                                 <CheckCircle className="w-8 h-8 text-[var(--emerald-green)]" />
@@ -481,7 +481,7 @@ export default function SelectServicesPage() {
 
                     <Button
                         onClick={handleContinue}
-                        disabled={selectedServices.length === 0}
+                        disabled={!selectedService}
                         className="btn-primary px-8"
                     >
                         Continuă
