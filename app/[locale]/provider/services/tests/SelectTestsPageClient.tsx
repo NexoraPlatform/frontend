@@ -4,7 +4,7 @@ import parseJson from "parse-json";
 
 export const dynamic = 'force-dynamic';
 
-import {useState, useEffect, useCallback} from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import {AnimatePresence, motion} from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface TestData {
     serviceId: string;
@@ -164,7 +164,7 @@ export default function SelectTestsPageClient() {
         } finally {
             setLoadingResults(false);
         }
-    }, [answers, currentTest.test.id, currentTest.test.timeLimit, testData, testStartTime]);
+    }, [answers, currentTest, testData, testStartTime]);
 
     // Timer pentru test
     useEffect(() => {
@@ -372,8 +372,8 @@ export default function SelectTestsPageClient() {
                                 <div>
                                     <Label className="text-sm font-medium mb-2 block">Template:</Label>
                                     <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto">
-                    {question.codeTemplate}
-                  </pre>
+                                        {question.codeTemplate}
+                                    </pre>
                                 </div>
                             )}
 
@@ -511,9 +511,8 @@ export default function SelectTestsPageClient() {
                             className={`glass-card border-2 ${testResult.passed ? 'border-emerald-200/80 bg-emerald-50/70' : 'border-red-200/80 bg-red-50/70'}`}
                         >
                             <CardHeader className="text-center">
-                                <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${
-                                    testResult.passed ? 'bg-green-500' : 'bg-red-500'
-                                }`}>
+                                <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${testResult.passed ? 'bg-green-500' : 'bg-red-500'
+                                    }`}>
                                     {testResult.passed ? (
                                         <Trophy className="w-10 h-10 text-white" />
                                     ) : (
@@ -650,14 +649,13 @@ export default function SelectTestsPageClient() {
                             </div>
                             <div className="flex items-center space-x-4">
                                 <div
-                                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-                                        timeRemaining < 300 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-                                    }`}
+                                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${timeRemaining < 300 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                                        }`}
                                 >
                                     <Timer className="w-4 h-4" />
                                     <span className="font-mono font-bold">
-                    {formatTime(timeRemaining)}
-                  </span>
+                                        {formatTime(timeRemaining)}
+                                    </span>
                                 </div>
                             </div>
                         </div>

@@ -135,12 +135,12 @@ export default function CallsPage() {
             alert(t.errorPrefix + error.message);
         }
     };
-
+console.log(callsData);
     const filteredCalls = (callsData?.calls || []).filter((call: any) => {
         const matchesSearch =
-            call.interviewer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.interviewer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.interviewer?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            call?.interviewer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            call?.interviewer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            call.interviewer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.attendees.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.attendees.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             call.attendees?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||

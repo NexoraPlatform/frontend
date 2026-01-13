@@ -113,12 +113,18 @@ export function Can(props: Props) {
 
     if (!user) return null;
 
-    // 1) Superuser override
-    if (isSuperProps(props)) {
-        return isSuperUser(user) ? <>{props.children}</> : null;
+    // 1) Global Superuser Override (Access Control Policy)
+    // Superusers implicitly have all permissions and roles access (unless specific restriction, not implemented here)
+    if (isSuperUser(user)) {
+        return <>{props.children}</>;
     }
 
-    // 2) Role check
+    // 2) If the requirement WAS explicitly for superuser only (and they failed step 1), deny
+    if (isSuperProps(props)) {
+        return null;
+    }
+
+    // 3) Role/Permission check (we know props is RuleProps now)
     const okRole = hasAnyRole(user, props.roles);
 
     // 3) Permissions with deny/allow precedence
