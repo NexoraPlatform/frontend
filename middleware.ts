@@ -1,23 +1,24 @@
-// middleware.ts (or src/middleware.ts)
+// middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt } from 'jose'; // npm i jose
+import { decodeJwt } from 'jose';
 import {
   checkRequirement,
   type AccessUser,
   type AccessRole,
   type Requirement,
 } from '@/lib/access';
+import { locales, defaultLocale } from '@/lib/i18n';
 
 const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.API_URL ||
-    'https://backend.trustora.ro/api';
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.API_URL ||
+  'https://backend.trustora.ro/api';
 
 type RouteRule = { pattern: RegExp; require: Requirement | 'auth-only' };
 
 // Define protections
 const ROUTE_RULES: RouteRule[] = [
-  // /admin -> role "admin" OR superuser (superuser bypass by default)
+  // /admin -> role "admin" OR superuser
   { pattern: /\/admin(\/|$)/i, require: { roles: ['admin'] } },
 
   // authenticated-only sections
@@ -31,13 +32,9 @@ const ROUTE_RULES: RouteRule[] = [
   { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
   { pattern: /\/projects\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
-
-  // examples:
-  // { pattern: /\/billing(\/|$)/i, require: { permissions: ['users.read'] } },
-  // { pattern: /\/super(\/|$)/i, require: { superuser: true } },
 ];
 
-const AUTH_PAGES = new Set<string>(['/auth/signin', '/auth/signup']);
+const AUTH_PAGES = new Set(['/auth/signin', '/auth/signup']);
 
 function findRequirement(pathname: string): Requirement | 'auth-only' | null {
   for (const r of ROUTE_RULES) {
@@ -46,47 +43,34 @@ function findRequirement(pathname: string): Requirement | 'auth-only' | null {
   return null;
 }
 
-// ---- Normalizers ----
+// ---- Helper Functions (Consider moving to lib/auth.ts if reused) ----
 
 function normalizeRoles(input: any): AccessRole[] {
   if (!input) return [];
-  // Accept roles as array of objects with slug, or array of string slugs
   if (Array.isArray(input)) {
-    return input
-        .map((r) => {
-          if (typeof r === 'string') {
-            return { slug: r } as AccessRole;
-          }
-          if (r && typeof r === 'object') {
-            const slug = r.slug ?? r.name ?? r.code ?? '';
-            const perms: any[] = Array.isArray(r.permissions) ? r.permissions : [];
-            return {
-              id: r.id,
-              slug,
-              permissions: perms
-                  .map((p) => {
-                    if (typeof p === 'string') return { slug: p };
-                    if (p && typeof p === 'object') return { id: p.id, slug: p.slug ?? p.name ?? '' };
-                    return null;
-                  })
-                  .filter(Boolean) as { id?: number | string; slug: string }[],
-            } as AccessRole;
-          }
-          return null;
-        })
-        .filter(Boolean) as AccessRole[];
+    return input.map((r) => {
+      if (typeof r === 'string') return { slug: r } as AccessRole;
+      if (r && typeof r === 'object') {
+        const slug = r.slug ?? r.name ?? r.code ?? '';
+        return {
+          id: r.id,
+          slug,
+          permissions: Array.isArray(r.permissions)
+            ? r.permissions.map((p: any) => {
+              if (typeof p === 'string') return { slug: p };
+              if (p && typeof p === 'object') return { id: p.id, slug: p.slug ?? p.name ?? '' };
+              return null;
+            }).filter(Boolean)
+            : [],
+        } as AccessRole;
+      }
+      return null;
+    }).filter(Boolean) as AccessRole[];
   }
   return [];
 }
 
 function buildUserFromPayload(payload: any): AccessUser {
-  const roles = normalizeRoles(payload.roles ?? payload.user?.roles ?? []);
-  const extraPerms: string[] =
-      (payload.permissions ??
-          payload.perms ??
-          payload.user?.permissions ??
-          []) as string[];
-
   return {
     id: String(payload.id ?? payload.sub ?? payload.user?.id ?? ''),
     email: String(payload.email ?? payload.user?.email ?? ''),
@@ -99,58 +83,40 @@ function buildUserFromPayload(payload: any): AccessUser {
     testVerified: payload.testVerified ?? payload.user?.testVerified,
     callVerified: payload.callVerified ?? payload.user?.callVerified,
     stripe_account_id: payload.stripe_account_id ?? payload.user?.stripe_account_id,
-
-    roles,
-    permissions: Array.isArray(extraPerms) ? extraPerms : [],
-    is_superuser:
-        payload.is_superuser ??
-        payload.superuser ??
-        payload.user?.isSuperUser ??
-        false,
+    roles: normalizeRoles(payload.roles ?? payload.user?.roles ?? []),
+    permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
+    is_superuser: payload.is_superuser ?? payload.superuser ?? payload.user?.isSuperUser ?? false,
   };
 }
 
 function buildUserFromProfile(profile: any): AccessUser | null {
-  const data = profile?.user ? profile.user : profile;
+  const data = profile?.user ?? profile;
+  if (!data?.id && !data?.email) return null;
 
-  const roles = normalizeRoles(data?.roles);
-  const extraPerms: string[] = Array.isArray(data?.permissions) ? data.permissions : [];
-
-  const user: AccessUser = {
-    id: String(data?.id ?? ''),
-    email: String(data?.email ?? ''),
-    firstName: data?.firstName,
-    lastName: data?.lastName,
-    location: data?.location,
-    language: data?.language,
-    bio: data?.bio,
-    avatar: data?.avatar,
-    testVerified: data?.testVerified,
-    callVerified: data?.callVerified,
-    stripe_account_id: data?.stripe_account_id,
-
-    roles,
-    permissions: extraPerms,
-    is_superuser:
-        data?.is_superuser ??
-        // treat role slug 'superuser' as superuser
-        (Array.isArray(roles) && roles.some(r => r.slug?.toLowerCase() === 'superuser')) ??
-        false,
+  return {
+    id: String(data.id ?? ''),
+    email: String(data.email ?? ''),
+    firstName: data.firstName,
+    lastName: data.lastName,
+    location: data.location,
+    language: data.language,
+    bio: data.bio,
+    avatar: data.avatar,
+    testVerified: data.testVerified,
+    callVerified: data.callVerified,
+    stripe_account_id: data.stripe_account_id,
+    roles: normalizeRoles(data.roles),
+    permissions: Array.isArray(data.permissions) ? data.permissions : [],
+    is_superuser: data.is_superuser ?? (Array.isArray(data.roles) && data.roles.some((r: any) => r.slug?.toLowerCase() === 'superuser')) ?? false,
   };
-
-  if (!user.id && !user.email) return null;
-  return user;
 }
-
-// ---- Token decode / fetch profile ----
 
 function tryDecodeUserFromJwt(token?: string): AccessUser | null {
   if (!token || !token.includes('.')) return null;
   try {
     const payload: any = decodeJwt(token);
     const user = buildUserFromPayload(payload);
-    if (!user.id && !user.email) return null;
-    return user;
+    return (user.id || user.email) ? user : null;
   } catch {
     return null;
   }
@@ -161,7 +127,7 @@ async function fetchUserFromApi(token: string): Promise<AccessUser | null> {
     const res = await fetch(`${API_BASE_URL}/auth/profile`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      cache: 'no-store',
+      cache: 'no-store', // Important for middleware to not cache bad auth states
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -178,96 +144,113 @@ function redirectToSignin(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-const locales = ['ro', 'en'];
-const defaultLocale = 'ro';
-
 function getLocale(request: NextRequest): string {
-  // Check if locale is in pathname
   const pathname = request.nextUrl.pathname;
-  const pathnameIsMissingLocale = locales.every(
-      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+
+  // Check if pathname already has locale
+  const hasLocale = locales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
-  // Redirect if there is no locale
-  if (pathnameIsMissingLocale) {
-    // Try to get locale from Accept-Language header
-    const acceptLanguage = request.headers.get('Accept-Language');
-    let locale = defaultLocale;
-
-    if (acceptLanguage) {
-      const preferredLanguages = acceptLanguage
-          .split(',')
-          .map(lang => lang.split(';')[0].trim().toLowerCase());
-
-      for (const lang of preferredLanguages) {
-        if (lang.startsWith('ro')) {
-          locale = 'ro';
-          break;
-        } else if (lang.startsWith('en')) {
-          locale = 'en';
-          break;
-        }
-      }
-    }
-
-    return locale;
+  if (hasLocale) {
+    return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
   }
 
-  return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
+  // Get from headers
+  const acceptLanguage = request.headers.get('Accept-Language');
+  if (acceptLanguage) {
+    const preferredLanguages = acceptLanguage
+      .split(',')
+      .map(lang => lang.split(';')[0].trim().toLowerCase());
+
+    for (const lang of preferredLanguages) {
+      const found = locales.find(l => lang.startsWith(l));
+      if (found) return found;
+    }
+  }
+
+  return defaultLocale;
 }
 
-// ---- Middleware ----
+// ---- Middleware Main ----
 
 export default async function middleware(req: NextRequest) {
-  // keep a log while testing
-  // console.log('[MW] path', req.nextUrl.pathname);
+  const { pathname } = req.nextUrl;
 
-    const basicAuthResponse = checkBasicAuth(req);
-    // if (basicAuthResponse) return basicAuthResponse;
-
-
-    const { pathname } = req.nextUrl;
-
+  // Ignore static files and API
   if (
-      pathname.startsWith('/api') ||
-      pathname.startsWith('/_next') ||
-      pathname.includes('.') ||
-      pathname.startsWith('/favicon')
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.includes('.') ||
+    pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
   }
 
-  const pathnameIsMissingLocale = locales.every(
-      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  // 1. Locale Handling
+  const pathnameHasLocale = locales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
-  if (pathnameIsMissingLocale) {
+  if (!pathnameHasLocale) {
     const locale = getLocale(req);
-    return NextResponse.redirect(
-        new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url)
-    );
+    const url = new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url);
+    url.search = req.nextUrl.search;
+    return NextResponse.redirect(url);
   }
 
+  // 2. Auth Flow
   const token =
-      req.cookies.get('auth_token')?.value ||
-      req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
-      undefined;
+    req.cookies.get('auth_token')?.value ||
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
+    undefined;
 
-  // If authenticated, keep users away from signin/signup pages
-  if ((pathname === '/auth/signin' || pathname === '/auth/signup') && token) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+  // Redirect authenticated users away from auth pages
+  if (AUTH_PAGES.has(pathname) && token) {
+    // Note: we might want to redirect to localized dashboard, but pathname encompasses locale now?
+    // Actually pathname includes locale because of step 1 check (or we wouldn't be here if we redirected).
+    // Wait, if we just redirected in step 1, this subsequent code doesn't run for THIS request.
+    // So here pathname DOES have locale.
+    // We need to strip locale to check if it matches /auth/signin strictly? 
+    // AUTH_PAGES above are defined as '/auth/signin'.
+    // But pathname is '/ro/auth/signin'.
+
+    const segments = pathname.split('/');
+    // segments[0] is empty, segments[1] is locale
+    const pathWithoutLocale = '/' + segments.slice(2).join('/');
+
+    if (AUTH_PAGES.has(pathWithoutLocale)) {
+      const url = new URL('/dashboard', req.url);
+      url.search = req.nextUrl.search;
+      return NextResponse.redirect(url);
+      // Ideally clean this to be localized dashboard: already handled by localized router or just let it redirect to default
+    }
   }
 
-  const requirement = findRequirement(pathname);
+  // 3. Protected Routes
+  // We need to check requirement against the path WITHOUT locale?
+  // implementation check: ROUTE_RULES use regex.
+  // The regexes in original code: /\/admin(\/|$)/i matches /admin in any position?
+  // No, original code: pathname was potentially missing locale or having it?
+  // The original findRequirement used 'pathname' directly from req.nextUrl.
+
+  // Imrovement: Strip locale for routing checks to ensure consistence
+  const segments = pathname.split('/');
+  const locale = segments[1];
+  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/'; // Handle root /ro -> /
+
+  const requirement = findRequirement(pathWithoutLocale);
+
+  // Also check if the raw pathname matched (old behavior fallback) if strict strip failed? 
+  // Actually, standard practice is to define rules on non-localized paths.
+
   if (!requirement) return NextResponse.next();
 
-  // Any protected route requires authentication
+  // 4. Token & Permission Checks
   if (!token) return redirectToSignin(req);
 
-  // auth-only routes skip RBAC
   if (requirement === 'auth-only') return NextResponse.next();
 
-  // RBAC routes: get user via JWT or profile
   let user = tryDecodeUserFromJwt(token);
 
   const needsPerms = requirement.permissions && requirement.permissions.length > 0;
@@ -275,73 +258,33 @@ export default async function middleware(req: NextRequest) {
   const needsSuper = !!requirement.superuser;
 
   const hasEnoughClaims =
-      !!user &&
-      (!needsPerms || true) && // roles carry permissions; we can always fetch if missing later
-      (!needsRole || (user.roles && user.roles.length > 0)) &&
-      (!needsSuper || user.is_superuser !== undefined);
+    !!user &&
+    // Optimistic check: if we have roles, we assume permissions might be implicit, 
+    // but strictly we should check if token has them.
+    // Original code allowed permissive check if roles were present.
+    (!needsRole || (user.roles && user.roles.length > 0)) &&
+    (!needsSuper || user.is_superuser !== undefined);
 
   if (!hasEnoughClaims && token) {
     user = await fetchUserFromApi(token);
   }
+
   if (!user) return redirectToSignin(req);
 
   const allowed = checkRequirement(user, requirement);
   if (!allowed) {
     const url = req.nextUrl.clone();
     url.pathname = '/access-denied';
-    url.searchParams.set('from', req.nextUrl.pathname); // optional: track where they came from
+    // Append 'from' but keep existing params if needed, or maybe clean them?
+    // usually we just want to know where they came from.
+    // clone() keeps the search params.
+    url.searchParams.set('from', req.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
 }
 
-function checkBasicAuth(req: NextRequest): NextResponse | null {
-    const users = process.env.BASIC_AUTH_USERS?.split(',') ?? [];
-    const passwords = process.env.BASIC_AUTH_PASSWORDS?.split(',') ?? [];
-
-    if (users.length === 0 || users.length !== passwords.length) {
-        // misconfiguration → fail closed
-        return new NextResponse('Server auth misconfigured', { status: 500 });
-    }
-
-    const auth = req.headers.get('authorization');
-
-    if (!auth || !auth.startsWith('Basic ')) {
-        return new NextResponse('Authentication required', {
-            status: 401,
-            headers: {
-                'WWW-Authenticate': 'Basic realm="Restricted"',
-            },
-        });
-    }
-
-    const encoded = auth.replace('Basic ', '');
-    let decoded = '';
-
-    try {
-        decoded = Buffer.from(encoded, 'base64').toString('utf8');
-    } catch {
-        return new NextResponse('Invalid auth header', { status: 401 });
-    }
-
-    const [user, pass] = decoded.split(':');
-
-    const index = users.indexOf(user);
-    if (index === -1 || passwords[index] !== pass) {
-        return new NextResponse('Unauthorized', {
-            status: 401,
-            headers: {
-                'WWW-Authenticate': 'Basic realm="Restricted"',
-            },
-        });
-    }
-
-    return null; // auth OK
-}
-
-
-// Keep your permissive matcher that was working
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)',
