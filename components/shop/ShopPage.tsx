@@ -7,26 +7,21 @@ type Product = {
   id: number;
   name: string;
   description: string;
-  category: string;
   price: number;
 };
 
 const PAGE_SIZE = 12;
 const TOTAL_PRODUCTS = 72;
 
-const categories = ["Audio", "Home", "Travel", "Wellness", "Workspace"];
-
 const buildProducts = (): Product[] =>
   Array.from({ length: TOTAL_PRODUCTS }, (_, index) => {
     const id = index + 1;
-    const category = categories[index % categories.length];
     const price = 24 + (index % 8) * 6 + id * 0.5;
 
     return {
       id,
-      name: `${category} Essential ${id}`,
-      description: `Curated ${category.toLowerCase()} pick with premium materials and thoughtful design.`,
-      category,
+      name: `Essential ${id}`,
+      description: "Curated pick with premium materials and thoughtful design.",
       price,
     };
   });
@@ -89,9 +84,6 @@ export default function ShopPage() {
                 className="flex h-full flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg shadow-slate-900/30"
               >
                 <div className="space-y-4">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {product.category}
-                  </span>
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-white">
                       {product.name}
