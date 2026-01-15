@@ -121,7 +121,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-500 ${isScrolled
+      className={`sticky top-[-1px] z-50 w-full transition-all duration-500 ${isScrolled
         ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
         : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
         }`}
