@@ -1,6 +1,7 @@
 'use client';
 
 import parseJson from "parse-json";
+import Cal, { getCalApi } from "@calcom/embed-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -109,6 +110,11 @@ export default function SelectTestsPageClient() {
             setShowQuestions((prev) => !prev);
             setKey((k) => k + 1);
         }, 3000);
+
+        (async function () {
+            const cal = await getCalApi({ apiKey: process.env.NEXT_PUBLIC_CAL_API_KEY } as any);
+            cal("ui", { "styles": { "branding": { "brandColor": "#000000" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+        })();
 
         return () => clearInterval(interval);
     }, []);
@@ -472,7 +478,6 @@ export default function SelectTestsPageClient() {
                 <TrustoraThemeStyles />
                 <div className="flex flex-col items-center justify-center p-4">
                     <Loader2 className="w-10 h-10 text-[var(--emerald-green)] animate-spin mb-4" />
-
                     <p className="text-lg text-slate-700 dark:text-slate-200 font-medium h-8">
                         Se generează{" "}
                         <AnimatePresence mode="wait">
@@ -568,6 +573,22 @@ export default function SelectTestsPageClient() {
                                     <Button onClick={() => router.push('/dashboard')}>
                                         Înapoi la Dashboard
                                     </Button>
+                                </div>
+
+                                {/* Calendar Scheduling */}
+                                <div className="mt-8 border-t border-border/50 pt-8">
+                                    <h3 className="text-xl font-semibold mb-4 text-center">Programează Interviul Video</h3>
+                                    <p className="text-center text-muted-foreground mb-6">
+                                        Pentru a finaliza procesul de verificare, te rugăm să alegi o dată pentru interviu.
+                                    </p>
+                                    <div className="w-full h-[600px] overflow-hidden rounded-xl border border-border/50 bg-background/50">
+                                        <Cal
+                                            namespace="verificare-identitate"
+                                            calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&notes=Test Passed: ${currentTest.test.title}&service_id=${currentTest.serviceInfo.serviceId}`}
+                                            style={{ width: "100%", height: "100%", overflow: "scroll" }}
+                                            config={{ layout: 'month_view' }}
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Explicații răspunsuri */}

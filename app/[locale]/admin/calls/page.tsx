@@ -100,8 +100,8 @@ export default function CallsPage() {
     const [noteText, setNoteText] = useState("");
     const [range, setRange] = useState<Range[]>([
         {
-            startDate: new Date(2025, 0, 1),
-            endDate: new Date(),
+            startDate: undefined,
+            endDate: undefined,
             key: "selection",
         },
     ]);
@@ -135,7 +135,7 @@ export default function CallsPage() {
             alert(t.errorPrefix + error.message);
         }
     };
-console.log(callsData);
+    console.log(callsData);
     const filteredCalls = (callsData?.calls || []).filter((call: any) => {
         const matchesSearch =
             call?.interviewer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -151,10 +151,12 @@ console.log(callsData);
         const matchesService = serviceFilter === "all" || call.serviceId === serviceFilter;
         const matchesPassed = passedFilter === "all" || call.passed === passedFilter; // atenție la tip (string vs number/bool)
         const callDate = parseISO(call.date_time);
-        const matchesDate = isWithinInterval(callDate, {
-            start: range[0].startDate ?? new Date(),
-            end: range[0].endDate ?? new Date(),
-        });
+        const matchesDate =
+            (!range[0].startDate || !range[0].endDate) ||
+            isWithinInterval(callDate, {
+                start: range[0].startDate,
+                end: range[0].endDate,
+            });
         const matchesStatus = statusFilter === "all" || call.status === statusFilter;
 
         return matchesSearch && matchesService && matchesPassed && matchesDate && matchesStatus;
@@ -340,39 +342,39 @@ console.log(callsData);
                                             <div className="flex items-center space-x-1">
                                                 <ListTodo className="w-4 h-4 text-emerald-500" />
                                                 <span>
-                          <a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>
-                            {t.viewTestDetails}
-                          </a>
-                        </span>
+                                                    <a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>
+                                                        {t.viewTestDetails}
+                                                    </a>
+                                                </span>
                                             </div>
 
                                             <div className="flex items-center space-x-1">
                                                 <Clock className="w-4 h-4 text-amber-500" />
                                                 <span>
-                          {t.scheduledAtPrefix}{" "}
+                                                    {t.scheduledAtPrefix}{" "}
                                                     {DateTime.fromISO(call.date_time, { setZone: true }).toFormat("dd.MM.yyyy HH:mm")}{" "}
-                        </span>
+                                                </span>
                                             </div>
 
                                             <div className="flex items-center space-x-1">
                                                 <BarChart3 className="w-4 h-4 text-indigo-500" />
                                                 <span>
-                          {t.passingScorePrefix} {call.test_result.score}%
-                        </span>
+                                                    {t.passingScorePrefix} {call.test_result.score}%
+                                                </span>
                                             </div>
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      <span>
-                        {t.categoryPrefix} {call.service?.category?.name?.[locale]}
-                      </span>
                                             <span>
-                        {t.createdPrefix} {new Date(call.created_at).toLocaleString(locale)}
-                      </span>
+                                                {t.categoryPrefix} {call.service?.category?.name?.[locale]}
+                                            </span>
+                                            <span>
+                                                {t.createdPrefix} {new Date(call.created_at).toLocaleString(locale)}
+                                            </span>
                                             {call.results && (
                                                 <span>
-                          {t.resultsLabelTemplate.replace("{count}", call.results.length.toString())}
-                        </span>
+                                                    {t.resultsLabelTemplate.replace("{count}", call.results.length.toString())}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
@@ -385,76 +387,76 @@ console.log(callsData);
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                            <DropdownMenuItem asChild>
-                                                <Link target="_blank" href={call.call_url}>
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    {t.connectToInterview}
-                                                </Link>
-                                            </DropdownMenuItem>
-
-                                            {call.status !== "WAITING" && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "WAITING", null)}>
-                                                    <PauseCircleOutlineIcon className="w-4 h-4 mr-2" />
-                                                    {t.moveWaiting}
+                                                <DropdownMenuItem asChild>
+                                                    <Link target="_blank" href={call.call_url}>
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        {t.connectToInterview}
+                                                    </Link>
                                                 </DropdownMenuItem>
-                                            )}
 
-                                            {call.status !== "FINISHED" && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "FINISHED", null)}>
-                                                    <PlaylistAddCheckCircleIcon className="!w-4 !h-4 mr-2" />
-                                                    {t.moveFinished}
-                                                </DropdownMenuItem>
-                                            )}
+                                                {call.status !== "WAITING" && (
+                                                    <DropdownMenuItem onClick={() => handleCallAction(call.id, "WAITING", null)}>
+                                                        <PauseCircleOutlineIcon className="w-4 h-4 mr-2" />
+                                                        {t.moveWaiting}
+                                                    </DropdownMenuItem>
+                                                )}
 
-                                            {call.status !== "ACCEPTED" && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "ACCEPTED", null)}>
-                                                    <CheckCircleOutlineIcon className="!w-4 !h-4 mr-2" />
-                                                    {t.moveAccepted}
-                                                </DropdownMenuItem>
-                                            )}
+                                                {call.status !== "FINISHED" && (
+                                                    <DropdownMenuItem onClick={() => handleCallAction(call.id, "FINISHED", null)}>
+                                                        <PlaylistAddCheckCircleIcon className="!w-4 !h-4 mr-2" />
+                                                        {t.moveFinished}
+                                                    </DropdownMenuItem>
+                                                )}
 
-                                            {call.status !== "REFUSED" && (
-                                                <DropdownMenuItem
-                                                    onSelect={(e) => e.preventDefault()}
-                                                    onClick={() => setNoteModalCallId(call.id)}
-                                                >
-                                                    <VisibilityOff className="!w-4 !h-4 mr-2" />
-                                                    {t.moveRefused}
-                                                </DropdownMenuItem>
-                                            )}
+                                                {call.status !== "ACCEPTED" && (
+                                                    <DropdownMenuItem onClick={() => handleCallAction(call.id, "ACCEPTED", null)}>
+                                                        <CheckCircleOutlineIcon className="!w-4 !h-4 mr-2" />
+                                                        {t.moveAccepted}
+                                                    </DropdownMenuItem>
+                                                )}
 
-                                            {noteModalCallId === call.id && (
-                                                <div className="mt-2 w-full max-w-md space-y-2 rounded-2xl border border-border/60 bg-background/70 p-4 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
-                                                    <label className="text-sm font-medium">{t.refuseReasonLabel}</label>
-                                                    <textarea
-                                                        value={noteText}
-                                                        onChange={(e) => setNoteText(e.target.value)}
-                                                        placeholder={t.refuseReasonPlaceholder}
-                                                        className="h-20 w-full rounded-lg border border-border/60 bg-background/70 p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 dark:border-slate-800/70 dark:bg-slate-950/70"
-                                                    />
-                                                    <div className="flex justify-end space-x-2">
-                                                        <Button variant="secondary" onClick={() => setNoteModalCallId(null)}>
-                                                            {t.cancelLabel}
-                                                        </Button>
-                                                        <Button
-                                                            onClick={() => {
-                                                                handleCallAction(call.id, "REFUSED", noteText);
-                                                                setNoteModalCallId(null);
-                                                                setNoteText("");
-                                                            }}
-                                                        >
-                                                            {t.confirmLabel}
-                                                        </Button>
+                                                {call.status !== "REFUSED" && (
+                                                    <DropdownMenuItem
+                                                        onSelect={(e) => e.preventDefault()}
+                                                        onClick={() => setNoteModalCallId(call.id)}
+                                                    >
+                                                        <VisibilityOff className="!w-4 !h-4 mr-2" />
+                                                        {t.moveRefused}
+                                                    </DropdownMenuItem>
+                                                )}
+
+                                                {noteModalCallId === call.id && (
+                                                    <div className="mt-2 w-full max-w-md space-y-2 rounded-2xl border border-border/60 bg-background/70 p-4 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
+                                                        <label className="text-sm font-medium">{t.refuseReasonLabel}</label>
+                                                        <textarea
+                                                            value={noteText}
+                                                            onChange={(e) => setNoteText(e.target.value)}
+                                                            placeholder={t.refuseReasonPlaceholder}
+                                                            className="h-20 w-full rounded-lg border border-border/60 bg-background/70 p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 dark:border-slate-800/70 dark:bg-slate-950/70"
+                                                        />
+                                                        <div className="flex justify-end space-x-2">
+                                                            <Button variant="secondary" onClick={() => setNoteModalCallId(null)}>
+                                                                {t.cancelLabel}
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => {
+                                                                    handleCallAction(call.id, "REFUSED", noteText);
+                                                                    setNoteModalCallId(null);
+                                                                    setNoteText("");
+                                                                }}
+                                                            >
+                                                                {t.confirmLabel}
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {call.status !== "NO_SHOW" && (
-                                                <DropdownMenuItem onClick={() => handleCallAction(call.id, "NO_SHOW", null)}>
-                                                    <XCircle className="w-4 h-4 mr-2" />
-                                                    {t.moveNoShow}
-                                                </DropdownMenuItem>
-                                            )}
+                                                {call.status !== "NO_SHOW" && (
+                                                    <DropdownMenuItem onClick={() => handleCallAction(call.id, "NO_SHOW", null)}>
+                                                        <XCircle className="w-4 h-4 mr-2" />
+                                                        {t.moveNoShow}
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>

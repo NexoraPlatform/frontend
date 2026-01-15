@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter as useNextRouter } from 'next/navigation';
-import { useLocale } from './use-locale';
+import { useLocale } from '@/hooks/use-locale';
 
 /**
  * Custom hook that wraps Next.js router to automatically handle locale in URLs.
