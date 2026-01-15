@@ -219,7 +219,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-11 h-11 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+              className="w-11 h-11hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
               aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
