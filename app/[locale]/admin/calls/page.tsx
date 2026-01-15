@@ -135,26 +135,31 @@ export default function CallsPage() {
     };
     console.log(callsData);
     const filteredCalls = (callsData?.calls || []).filter((call: any) => {
-        const matchesSearch =
-            call?.interviewer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call?.interviewer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.interviewer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.attendees.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.attendees.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.attendees?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.service.name[locale].toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.service.category.name[locale].toLowerCase().includes(searchTerm.toLowerCase()) ||
-            call.date_time.toLowerCase().includes(searchTerm.toLowerCase());
+        const normalizedSearchTerm = searchTerm.toLowerCase();
+        const matchesSearch = [
+            call?.interviewer?.firstName,
+            call?.interviewer?.lastName,
+            call?.interviewer?.email,
+            call?.attendees?.firstName,
+            call?.attendees?.lastName,
+            call?.attendees?.email,
+            call?.service?.name?.[locale],
+            call?.service?.category?.name?.[locale],
+            call?.date_time,
+        ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(normalizedSearchTerm));
 
         const matchesService = serviceFilter === "all" || call.serviceId === serviceFilter;
         const matchesPassed = passedFilter === "all" || call.passed === passedFilter; // atenție la tip (string vs number/bool)
-        const callDate = parseISO(call.date_time);
+        const callDate = call.date_time ? parseISO(call.date_time) : null;
         const matchesDate =
             (!range[0].startDate || !range[0].endDate) ||
-            isWithinInterval(callDate, {
-                start: range[0].startDate,
-                end: range[0].endDate,
-            });
+            (callDate &&
+                isWithinInterval(callDate, {
+                    start: range[0].startDate,
+                    end: range[0].endDate,
+                }));
         const matchesStatus = statusFilter === "all" || call.status === statusFilter;
 
         return matchesSearch && matchesService && matchesPassed && matchesDate && matchesStatus;
