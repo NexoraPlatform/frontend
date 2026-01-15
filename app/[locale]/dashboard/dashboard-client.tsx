@@ -1,7 +1,8 @@
 "use client";
 
 import {useState, useEffect, useCallback} from 'react';
-import {usePathname, useRouter} from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,6 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import {SiStripe} from "react-icons/si";
 import {Can} from "@/components/Can";
-import {Locale} from "@/types/locale";
 
 export default function DashboardClient() {
   const { user, loading } = useAuth();
@@ -68,9 +68,7 @@ export default function DashboardClient() {
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   useEffect(() => {
     if (!loading && !user) {
       console.log('Auth loading:', loading, 'User:', user);

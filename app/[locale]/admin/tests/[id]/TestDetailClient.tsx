@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +28,6 @@ import {
 import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 type QuestionType =
@@ -58,8 +58,7 @@ interface Question {
 
 export default function TestDetailsClient({ id }: { id: string; }) {
     const router = useRouter();
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const { data: test, loading, error, refetch } = useTest(id);
     const [actionLoading, setActionLoading] = useState(false);
     const [actionError, setActionError] = useState('');

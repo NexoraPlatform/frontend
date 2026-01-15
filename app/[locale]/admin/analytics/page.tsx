@@ -1,17 +1,14 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { ArrowLeft, BarChart3, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 export default function AdminAnalyticsPage() {
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const title = useAsyncTranslation(locale, 'admin.analytics.manage_title');
   const subtitle = useAsyncTranslation(locale, 'admin.analytics.manage_subtitle');
   const statsTitle = useAsyncTranslation(locale, 'admin.analytics.stats_title');

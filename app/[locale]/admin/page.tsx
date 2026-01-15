@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,6 @@ import CallIcon from '@mui/icons-material/Call';
 import apiClient from '@/lib/api';
 import { Can } from '@/components/Can';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 interface AdminStats {
   totalUsers: number;
@@ -53,9 +52,7 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState<AdminStats | null>(null);
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   useEffect(() => {
     const fetchStats = async () => {
       try {

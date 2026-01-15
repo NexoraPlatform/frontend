@@ -1,7 +1,8 @@
 "use client";
 
 import {useState, useEffect, useCallback, useMemo} from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,6 @@ import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {InputAdornment, TextField} from "@mui/material";
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function ServiceDetailClient({ id }: { id: string;}) {
@@ -37,8 +37,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
     const [newTag, setNewTag] = useState('');
     const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
     const router = useRouter();
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const { data: categoriesData } = useCategories();
 
     const pageTitle = useAsyncTranslation(locale, 'admin.services.edit_service.title');

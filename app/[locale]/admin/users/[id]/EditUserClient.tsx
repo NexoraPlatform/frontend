@@ -3,9 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import apiClient from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { usePathname } from "next/navigation";
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
-import { Locale } from "@/types/locale";
 import Link from "next/link";
 import {
     AlertCircle,
@@ -65,9 +64,7 @@ type RoleOption = { id: number | string; name: string; slug: string };
 
 export default function EditUserClient({ id }: { id: number }) {
     const { user } = useAuth();
-    const pathname = usePathname();
-    const locale = (pathname.split("/")[1] as Locale) || "ro";
-
+    const locale = useLocale();
     // i18n
     const cannotEdit = useAsyncTranslation(locale, "admin.users.edit.cannot_edit");
     const passwordsNotMatch = useAsyncTranslation(locale, "admin.users.edit.passwords_not_match");

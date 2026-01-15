@@ -1,7 +1,8 @@
 "use client";
 
 import {useState, useEffect, useMemo, useCallback} from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -156,9 +157,7 @@ type SelectedProvider = {
 };
 
 export default function NewProjectPage() {
-    const pathname = usePathname();
-    const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
-
+    const locale = useLocale();
     useEffect(() => {
         setDayjsLocale(locale);
     }, [locale]);

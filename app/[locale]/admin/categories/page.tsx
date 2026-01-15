@@ -18,17 +18,15 @@ import {
 } from 'lucide-react';
 import { useAdminCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { MuiIcon } from '@/components/MuiIcons';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 export default function AdminCategoriesPage() {
   const { data: categoriesData, loading: categoriesLoading, refetch: refetchCategories } = useAdminCategories();
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const manageTitle = useAsyncTranslation(locale, 'admin.categories.manage_title');
   const manageSubtitle = useAsyncTranslation(locale, 'admin.categories.manage_subtitle');
   const addCategory = useAsyncTranslation(locale, 'admin.categories.add_category');
