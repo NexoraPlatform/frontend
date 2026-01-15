@@ -6,17 +6,15 @@ import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import RolesListClient from './roles-list-client';
-import { Locale } from '@/types/locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 const PermissionMatrix = dynamic(() => import('./PermissionMatrixTab'), { ssr: false });
 
 export default function RolesPage() {
   const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
   const rolesLabel = useAsyncTranslation(locale, 'admin.roles.tabs.roles');
   const permissionsLabel = useAsyncTranslation(locale, 'admin.roles.tabs.permissions');
   const loadingPermissions = useAsyncTranslation(locale, 'admin.roles.permissions_tab_loading');

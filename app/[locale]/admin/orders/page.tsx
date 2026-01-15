@@ -19,8 +19,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useAdminOrders } from '@/hooks/use-api';
-import { usePathname } from 'next/navigation';
-import { Locale } from '@/types/locale';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -41,8 +40,7 @@ const PAYMENT_STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminOrdersPage() {
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
   const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
   const manageTitle = useAsyncTranslation(locale, 'admin.orders.manage_title');

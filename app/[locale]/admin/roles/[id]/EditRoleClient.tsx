@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, IdCardLanyard, Loader2 } from 'lucide-react';
 
@@ -10,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import {
     Accordion,
     AccordionContent,
@@ -46,9 +46,7 @@ type GroupPermissions = {
 };
 
 export default function EditRoleClient({ id }: { id: number }) {
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
     const [roleData, setRoleData] = useState<Role>({
         name: '',
         description: '',

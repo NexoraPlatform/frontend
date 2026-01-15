@@ -27,8 +27,7 @@ import {
 } from 'lucide-react';
 import { useAdminTests } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { usePathname } from 'next/navigation';
-import { Locale } from '@/types/locale';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
@@ -38,9 +37,7 @@ export default function AdminTestsPage() {
   const [levelFilter, setLevelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const manageTitle = useAsyncTranslation(locale, 'admin.tests.manage_title');
   const manageSubtitle = useAsyncTranslation(locale, 'admin.tests.manage_subtitle');
   const addTest = useAsyncTranslation(locale, 'admin.tests.add_test');

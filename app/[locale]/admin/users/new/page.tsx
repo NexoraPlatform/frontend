@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function NewUserPage() {
@@ -27,9 +27,7 @@ export default function NewUserPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const addTitle = useAsyncTranslation(locale, 'admin.users.new.title');
   const addSubtitle = useAsyncTranslation(locale, 'admin.users.new.subtitle');
   const infoTitle = useAsyncTranslation(locale, 'admin.users.new.info_title');

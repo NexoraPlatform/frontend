@@ -1,7 +1,6 @@
 import React from "react";
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 export default function ClientCard({
                                        formData,
@@ -18,8 +17,7 @@ export default function ClientCard({
     loading?: boolean;
     error?: string;
 }) {
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const title = useAsyncTranslation(locale, 'admin.users.detail_card.client_title');
     const idLabel = useAsyncTranslation(locale, 'admin.users.detail_card.id');
     const nameLabel = useAsyncTranslation(locale, 'admin.users.detail_card.name');

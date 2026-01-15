@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,6 @@ import {
 import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import parseJson from "parse-json";
 
 // ---------- Helpers to parse/normalize ----------
@@ -182,8 +182,7 @@ export default function EditTestClient({ id }: { id: string }) {
     const router = useRouter();
 
     const { data: testData, loading: testLoading, error: testError } = useTest(id);
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const pageTitle = useAsyncTranslation(locale, 'admin.tests.edit.title');
     const pageSubtitle = useAsyncTranslation(locale, 'admin.tests.edit.subtitle');
 

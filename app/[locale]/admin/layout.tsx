@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 export default function AdminLayout({
   children,
@@ -16,8 +16,7 @@ export default function AdminLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
   const loadingText = useAsyncTranslation(locale, 'admin.loading');
   useEffect(() => {
     if (!loading) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,6 @@ import {
 import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 interface Question {
@@ -77,8 +77,7 @@ export default function NewTestPage() {
   const router = useRouter();
 
   const { data: servicesData } = useAdminServices();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
   const pageTitle = useAsyncTranslation(locale, 'admin.tests.new.title');
   const pageSubtitle = useAsyncTranslation(locale, 'admin.tests.new.subtitle');
 

@@ -8,9 +8,9 @@ import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import apiClient from "@/lib/api";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useLocale } from "@/hooks/use-locale";
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import {
     Accordion,
     AccordionContent,
@@ -51,9 +51,7 @@ export default function NewRolePage() {
     const [loading, setLoading] = useState<boolean>(false);
     const [permissionGroups, setPermissionGroups] = useState<GroupPermissions[]>([]);
     const router = useRouter();
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
     const title = useAsyncTranslation(locale, 'admin.roles.new_role.title');
     const subtitle = useAsyncTranslation(locale, 'admin.roles.new_role.subtitle');
     const infoTitle = useAsyncTranslation(locale, 'admin.roles.new_role.info_title');

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { ChevronDown, Heart, Loader2, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { Header } from '@/components/header';
@@ -177,8 +177,7 @@ function getServicesFromResponse(
 }
 
 export default function ServicesPage() {
-  const pathname = usePathname();
-  const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
+    const locale = useLocale();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [technologies, setTechnologies] = useState<Technology[]>([]);
