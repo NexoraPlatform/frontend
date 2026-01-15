@@ -117,7 +117,7 @@ export function NotificationBell() {
                     aria-label="Deschide notificarile"
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                    className="relative w-11 h-11 rounded-xl text-[#0B1C2D] transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
                 >
                     {unreadCount > 0 ? <BellRing className="h-5 w-5 text-emerald-600" /> : <Bell className="h-5 w-5" />}
                     {unreadCount > 0 && (
