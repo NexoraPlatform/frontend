@@ -25,10 +25,10 @@ import {
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import {useRouter, usePathname} from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useLocale } from "@/hooks/use-locale";
 import {Can} from "@/components/Can";
 import {useAsyncTranslation} from "@/hooks/use-async-translation";
-import {Locale} from "@/types/locale";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminUsersPage() {
@@ -36,9 +36,7 @@ export default function AdminUsersPage() {
   const [userFilter, setUserFilter] = useState('all');
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const manageTitle = useAsyncTranslation(locale, 'admin.users.manage_title');
   const manageSubtitle = useAsyncTranslation(locale, 'admin.users.manage_subtitle');
   const addUser = useAsyncTranslation(locale, 'admin.users.add_user');

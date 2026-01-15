@@ -28,8 +28,7 @@ import {
     Clock,
 } from 'lucide-react';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { usePathname } from 'next/navigation';
-import { Locale } from '@/types/locale';
+import { useLocale } from '@/hooks/use-locale';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminSettingsPage() {
@@ -76,10 +75,7 @@ export default function AdminSettingsPage() {
         featuredServicesCount: '8',
         recentServicesCount: '12',
     });
-
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
     // ====== Traduceri (TOP-LEVEL, în ordine fixă) ======
     // Header
     const pageTitle               = useAsyncTranslation(locale, 'admin.settings.title');

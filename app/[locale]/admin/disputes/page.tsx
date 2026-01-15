@@ -4,14 +4,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, ArrowLeft } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { Locale } from '@/types/locale';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 export default function AdminDisputesPage() {
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const manageTitle = useAsyncTranslation(locale, 'admin.disputes.manage_title');
   const manageSubtitle = useAsyncTranslation(locale, 'admin.disputes.manage_subtitle');
   const listTitle = useAsyncTranslation(locale, 'admin.disputes.list_title');

@@ -1,7 +1,8 @@
 "use client";
 
 import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,6 @@ import { apiClient } from '@/lib/api';
 import {MuiIcon} from '@/components/MuiIcons';
 import {IconSearchDropdown} from "@/components/IconSearchDropdown";
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 export default function NewCategoryPage() {
   const [formData, setFormData] = useState({
@@ -30,8 +30,7 @@ export default function NewCategoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
   const { data: categoriesData } = useAdminCategories();
   const containerRef = useRef<HTMLDivElement>(null);
 

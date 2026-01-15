@@ -25,18 +25,15 @@ import {
 } from 'lucide-react';
 import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminServicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const { data: servicesData, loading: servicesLoading, refetch: refetchServices } = useAdminServices();
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
   const manageTitle = useAsyncTranslation(locale, 'admin.services.manage_title');
   const manageSubtitle = useAsyncTranslation(locale, 'admin.services.manage_subtitle');
   const addService = useAsyncTranslation(locale, 'admin.services.add_service');

@@ -1,7 +1,8 @@
 "use client";
 
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {useRouter, usePathname} from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import Link from 'next/link';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -15,7 +16,6 @@ import {useAdminCategories} from '@/hooks/use-api';
 import {apiClient} from '@/lib/api';
 import {IconSearchDropdown} from "@/components/IconSearchDropdown";
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 export default function CategoryDetailPage({ id }: { id: string }) {
     const [formData, setFormData] = useState({
@@ -29,8 +29,7 @@ export default function CategoryDetailPage({ id }: { id: string }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const { data: categoriesData } = useAdminCategories();
     const containerRef = useRef<HTMLDivElement>(null);
 

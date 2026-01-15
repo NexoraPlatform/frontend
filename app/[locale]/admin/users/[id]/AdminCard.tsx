@@ -15,9 +15,8 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import apiClient from '@/lib/api';
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import { usePathname } from 'next/navigation';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { Locale } from '@/types/locale';
 
 type PermissionState = {
     [slug: string]: { id: number; name: string; allowed: boolean };
@@ -43,8 +42,7 @@ export default function AdminCard({
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
     const [selectedPermissions, setSelectedPermissions] = useState<PermissionState>({});
     const hasInitializedPermissions = useRef(false);
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const editAdminTitleTemplate = useAsyncTranslation(locale, 'admin.users.edit.admin.title');
     const editAdminSubtitle = useAsyncTranslation(locale, 'admin.users.edit.admin.subtitle');
     const adminInfoTitle = useAsyncTranslation(locale, 'admin.users.edit.admin.info_title');

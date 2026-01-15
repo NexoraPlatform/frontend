@@ -27,8 +27,7 @@ import {
     XCircle, LucideIcon
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { usePathname } from 'next/navigation';
-import { Locale } from '@/types/locale';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { t } from '@/lib/i18n';
 
@@ -100,8 +99,7 @@ export type PaymentStatus =
     | 'PAID';
 
 export default function OrderDetailsPage({ id }: { id: string }) {
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
     const [order, setOrder] = useState<OrderType | null>(null);

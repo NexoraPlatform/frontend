@@ -21,8 +21,7 @@ import {
     Square
 } from 'lucide-react';
 import { useTestStatistics } from '@/hooks/use-api';
-import { usePathname } from 'next/navigation';
-import { Locale } from '@/types/locale';
+import { useLocale } from '@/hooks/use-locale';
 import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import {useMemo} from "react";
 
@@ -37,9 +36,7 @@ interface QuestionStat {
 
 export default function TestStatisticsPage({ id }: {  id: string; }) {
     const { data: stats, loading: statsLoading, error: statsError } = useTestStatistics(id);
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
-
+    const locale = useLocale();
     const subtitle = useAsyncTranslation(locale, 'admin.tests.statistics.subtitle');
     const titleSuffix = useAsyncTranslation(locale, 'admin.tests.statistics.title_suffix');
     const userLabel = useAsyncTranslation(locale, 'admin.tests.statistics.user_label');
