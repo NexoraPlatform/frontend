@@ -71,7 +71,7 @@ export function ChatButton() {
                     aria-label="Deschide conversațiile"
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 rounded-2xl border border-emerald-100/60 bg-white text-[#0B1C2D] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10"
+                    className="relative w-11 h-11 rounded-2xl border border-emerald-100/60 bg-white text-[#0B1C2D] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:border-emerald-500/20 dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
                 >
                     <MessageCircle className="h-5 w-5" />
                     {totalUnread > 0 && (
