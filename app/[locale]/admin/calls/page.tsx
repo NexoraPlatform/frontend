@@ -133,7 +133,7 @@ export default function CallsPage() {
             alert(t.errorPrefix + error.message);
         }
     };
-    console.log(callsData);
+
     const filteredCalls = (callsData?.calls || []).filter((call: any) => {
         const normalizedSearchTerm = searchTerm.toLowerCase();
         const matchesSearch = [
