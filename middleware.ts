@@ -224,6 +224,23 @@ function isBasicAuthAuthorized(request: NextRequest) {
   }
 }
 
+function isAdminUser(user: AccessUser | null) {
+  if (!user) return false;
+  const hasAdminRole =
+    user.roles?.some((role) => ['admin', 'superuser'].includes(role.slug?.toLowerCase() ?? '')) ??
+    false;
+  return Boolean(user.is_superuser || hasAdminRole);
+}
+
+async function canBypassEarlyAccess(token?: string) {
+  if (!token) return false;
+  const user = tryDecodeUserFromJwt(token);
+  if (user && isAdminUser(user)) return true;
+  if (user && user.roles && user.roles.length > 0) return false;
+  const fetchedUser = await fetchUserFromApi(token);
+  return isAdminUser(fetchedUser);
+}
+
 // ---- Middleware Main ----
 
 export default async function middleware(req: NextRequest) {
@@ -266,6 +283,11 @@ export default async function middleware(req: NextRequest) {
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
+  const token =
+    req.cookies.get('auth_token')?.value ||
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
+    undefined;
+
   if (isEarlyAccessEnabled()) {
     const earlyAccessRoutes = new Set([
       '/early-access',
@@ -273,23 +295,22 @@ export default async function middleware(req: NextRequest) {
       '/early-access/provider',
     ]);
 
-    if (normalizedPath === '/') {
-      const url = new URL(`/${locale}/early-access`, req.url);
-      return NextResponse.rewrite(url);
-    }
+    const bypassEarlyAccess = await canBypassEarlyAccess(token);
 
-    if (!earlyAccessRoutes.has(normalizedPath)) {
-      const url = new URL(`/${locale}/early-access`, req.url);
-      return NextResponse.redirect(url);
+    if (!bypassEarlyAccess) {
+      if (normalizedPath === '/') {
+        const url = new URL(`/${locale}/early-access`, req.url);
+        return NextResponse.rewrite(url);
+      }
+
+      if (!earlyAccessRoutes.has(normalizedPath)) {
+        const url = new URL(`/${locale}/early-access`, req.url);
+        return NextResponse.redirect(url);
+      }
     }
   }
 
   // 2. Auth Flow
-  const token =
-    req.cookies.get('auth_token')?.value ||
-    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
-    undefined;
-
   // Redirect authenticated users away from auth pages
   if (AUTH_PAGES.has(pathname) && token) {
     // Note: we might want to redirect to localized dashboard, but pathname encompasses locale now?

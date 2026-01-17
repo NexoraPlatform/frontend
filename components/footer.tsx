@@ -21,6 +21,11 @@ export function Footer() {
   const pathname = usePathname();
   const locale = pathname.split('/')[1] as Locale || 'ro';
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
+  const isAdminUser = Boolean(
+    user?.is_superuser ||
+    user?.roles?.some((role) => ['admin', 'superuser'].includes(role.slug?.toLowerCase() ?? ''))
+  );
+  const showEarlyAccessFooter = earlyAccessEnabled && !isAdminUser;
   const footerInfoText = useAsyncTranslation(locale, "common.footer_info")
   const followUsSocialText = useAsyncTranslation(locale, "common.follow_us_social");
   const followUsOnText = useAsyncTranslation(locale, "common.follow_us_on");
@@ -49,7 +54,7 @@ export function Footer() {
       >
         {user && (<ChatLauncher />)}
         <div className="container mx-auto px-4 !py-12">
-          {earlyAccessEnabled ? (
+          {showEarlyAccessFooter ? (
             <div className="rounded-3xl border border-slate-200/60 bg-white/70 p-8 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70">
               <div className="grid gap-10 md:grid-cols-2 md:items-start">
                 <div className="space-y-4">

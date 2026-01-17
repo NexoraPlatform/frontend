@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import ActivityTracker from "@/components/ActivityTracker"
 import { NotificationProvider } from "@/contexts/notification-context"
 import { ChatProvider } from "@/contexts/chat-context"
+import { EnvironmentStatusBanner } from "@/components/environment-status-banner"
 import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
@@ -159,6 +160,11 @@ export default function RootLayout({
                                    }: {
     children: React.ReactNode
 }) {
+    const earlyAccessEnabled =
+        process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === "true" ||
+        process.env.EARLY_ACCESS_FUNNEL === "true"
+    const basicAuthEnabled =
+        process.env.BASIC_AUTH_ENABLED === "true" || process.env.BASIC_AUTH === "true"
     const organizationStructuredData = generateStructuredData({
         type: "Organization",
     })
@@ -245,6 +251,10 @@ export default function RootLayout({
                         storageKey="Trustora-theme"
                     >
                         <ActivityTracker />
+                        <EnvironmentStatusBanner
+                            earlyAccessEnabled={earlyAccessEnabled}
+                            basicAuthEnabled={basicAuthEnabled}
+                        />
 
                         {/* Main content */}
                         <main id="main-content">{children}</main>

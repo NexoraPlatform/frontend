@@ -63,6 +63,11 @@ export function Header() {
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
+  const isAdminUser = Boolean(
+    user?.is_superuser ||
+    user?.roles?.some((role) => ['admin', 'superuser'].includes(role.slug?.toLowerCase() ?? ''))
+  );
+  const showEarlyAccessHeader = earlyAccessEnabled && !isAdminUser;
   const router = useLocalizedRouter();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
@@ -137,7 +142,7 @@ export function Header() {
     return null;
   }
 
-  if (earlyAccessEnabled) {
+  if (showEarlyAccessHeader) {
     return (
       <header
         className={`sticky top-[-1px] z-50 w-full transition-all duration-500 ${isScrolled
