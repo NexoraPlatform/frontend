@@ -151,6 +151,30 @@ class ApiClient {
     return this.request<any>(`/test/result/${id}`);
   }
 
+  async submitEarlyAccess(payload: {
+    user_type: 'client' | 'provider';
+    email: string;
+    contact_name?: string;
+    company_name?: string;
+    hiring_needs?: string;
+    typical_project_budget?: number;
+    hire_frequency?: string;
+    lost_money?: boolean;
+    escrow_help?: boolean;
+    full_name?: string;
+    country?: string;
+    primary_skill?: string;
+    years_experience?: number;
+    has_clients?: boolean;
+    unpaid_work?: boolean;
+    wants_escrow?: boolean;
+  }) {
+    return this.request<any>('/early-access', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Services endpoints
   async getServices(params?: {
     search?: string;

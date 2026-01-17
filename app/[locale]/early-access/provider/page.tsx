@@ -17,6 +17,7 @@ import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { usePathname } from "next/navigation";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { Locale } from "@/types/locale";
+import { apiClient } from "@/lib/api";
 
 export default function EarlyAccessProviderPage() {
     const pathname = usePathname();
@@ -69,11 +70,6 @@ export default function EarlyAccessProviderPage() {
         locale,
         "trustora.early_access.provider.error_skill",
         "Selectează skill-ul principal.",
-    );
-    const genericErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_generic",
-        "A apărut o eroare. Încearcă din nou.",
     );
     const submitErrorText = useAsyncTranslation(
         locale,
@@ -221,19 +217,7 @@ export default function EarlyAccessProviderPage() {
                 wants_escrow: formData.wantsEscrow,
             };
 
-            const response = await fetch("/api/early-access", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => null);
-                const message = errorBody?.message ?? genericErrorText;
-                throw new Error(message);
-            }
+            await apiClient.submitEarlyAccess(payload);
 
             setSuccess(true);
             setFormData({
