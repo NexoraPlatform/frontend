@@ -191,16 +191,44 @@ export function Header() {
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               </Button>
-              <Button
-                className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
-                variant="outline"
-                asChild
-              >
-                <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
-              </Button>
-              <Button className="w-full btn-primary text-white sm:w-auto" asChild>
-                <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
-              </Button>
+              <div className="hidden sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+                <Button
+                  className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
+                  variant="outline"
+                  asChild
+                >
+                  <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
+                </Button>
+                <Button className="w-full btn-primary text-white sm:w-auto" asChild>
+                  <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
+                </Button>
+              </div>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    aria-label="Meniul principal pe mobil"
+                    variant="ghost"
+                    size="icon"
+                    className="sm:hidden w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl"
+                  >
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
+                  <div className="mt-8 flex flex-col space-y-4">
+                    <Button
+                      className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60"
+                      variant="outline"
+                      asChild
+                    >
+                      <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
+                    </Button>
+                    <Button className="w-full btn-primary text-white" asChild>
+                      <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
