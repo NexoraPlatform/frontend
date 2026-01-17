@@ -120,7 +120,7 @@
     "vitest": "^1.0.0"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": "22.x"
   },
   "browserslist": [
     "chrome >= 91",
