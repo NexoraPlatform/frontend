@@ -60,6 +60,7 @@ const ChatButton = dynamic(
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useLocalizedRouter();
@@ -117,6 +118,83 @@ export function Header() {
 
   if (!mounted) {
     return null;
+  }
+
+  if (earlyAccessEnabled) {
+    return (
+      <header
+        className={`sticky top-[-1px] z-50 w-full transition-all duration-500 ${isScrolled
+          ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
+          : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
+          }`}
+        role="banner"
+        aria-label={mainNavigationText}
+      >
+        <a
+          href="#main-content"
+          className="skip-link focus-visible:focus-visible"
+          aria-label={skipToContentText}
+        >
+          {skipToContentText}
+        </a>
+        <div className="container mx-auto px-4">
+          <div className="flex h-20 items-center justify-between gap-4">
+            <LocalizedLink
+              href="/"
+              className="flex items-center space-x-4 group"
+              aria-label={`Trustora - ${homeText}`}
+            >
+              <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                <picture>
+                  <source
+                    type="image/avif"
+                    srcSet="/trustora-logo2-60.avif 1x, /trustora-logo2-120.avif 2x"
+                    className="relative z-10 rounded-xl h-13 w-auto"
+                  />
+                  <source
+                    type="image/webp"
+                    srcSet="/trustora-logo2-60.webp 1x, /trustora-logo2-120.webp 2x"
+                    className="relative z-10 rounded-xl h-13 w-auto"
+                  />
+                  <Image
+                    src="/trustora-logo2-60.webp"
+                    alt="Trustora Logo"
+                    width={60}
+                    height={75}
+                    className="relative z-10 rounded-xl h-13 w-auto"
+                    decoding="async"
+                    priority
+                  />
+                </picture>
+
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
+                  Trustora
+                </span>
+                <span className="text-xs text-muted-foreground font-medium -mt-1">
+                  Where work meets trust.
+                </span>
+              </div>
+            </LocalizedLink>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button
+                className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
+                variant="outline"
+                asChild
+              >
+                <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
+              </Button>
+              <Button className="w-full btn-primary text-white sm:w-auto" asChild>
+                <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
   }
 
   return (
