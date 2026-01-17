@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { TermsContent } from '@/components/terms-content';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -32,8 +33,12 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const pathname = usePathname();
+  const locale = pathname.split('/')[1] || 'ro';
   const router = useRouter();
   const { register } = useAuth();
+  const termsHref = `/${locale}/terms`;
+  const privacyHref = `/${locale}/privacy`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,6 +275,12 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
+                  <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
+                    <div className="max-h-64 overflow-y-auto pr-2">
+                      <TermsContent className="text-xs" headingClassName="text-base" />
+                    </div>
+                  </div>
+
                   <div className="flex items-start gap-2">
                     <Checkbox
                       id="terms"
@@ -278,11 +289,11 @@ export default function SignUpPage() {
                     />
                     <Label htmlFor="terms" className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                       Sunt de acord cu{' '}
-                      <Link href="/terms" className="font-medium text-emerald-700 hover:underline dark:text-emerald-300">
+                      <Link href={termsHref} className="font-medium text-emerald-700 hover:underline dark:text-emerald-300">
                         Termenii și Condițiile
                       </Link>{' '}
                       și{' '}
-                      <Link href="/privacy" className="font-medium text-emerald-700 hover:underline dark:text-emerald-300">
+                      <Link href={privacyHref} className="font-medium text-emerald-700 hover:underline dark:text-emerald-300">
                         Politica de Confidențialitate
                       </Link>
                     </Label>

@@ -15,6 +15,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { LocalizedLink } from "@/components/LocalizedLink";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
+import { TermsContent } from "@/components/terms-content";
 import { apiClient } from "@/lib/api";
 import { usePathname } from "next/navigation";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
@@ -183,6 +184,7 @@ export default function EarlyAccessClientPage() {
         hireFrequency: "",
         lostMoney: false,
         escrowHelp: false,
+        agreeToTerms: false,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
@@ -197,6 +199,9 @@ export default function EarlyAccessClientPage() {
         try {
             if (!formData.hireFrequency) {
                 throw new Error(frequencyErrorText);
+            }
+            if (!formData.agreeToTerms) {
+                throw new Error("Trebuie să accepți termenii și condițiile.");
             }
 
             const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
@@ -223,6 +228,7 @@ export default function EarlyAccessClientPage() {
                 hireFrequency: "",
                 lostMoney: false,
                 escrowHelp: false,
+                agreeToTerms: false,
             });
         } catch (submitError: any) {
             setError(submitError?.message ?? submitErrorText);
@@ -421,6 +427,39 @@ export default function EarlyAccessClientPage() {
                                                 {escrowHelpLabel}
                                             </Label>
                                         </div>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
+                                        <div className="max-h-64 overflow-y-auto pr-2">
+                                            <TermsContent className="text-xs" headingClassName="text-base" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-2">
+                                        <Checkbox
+                                            id="terms"
+                                            checked={formData.agreeToTerms}
+                                            onCheckedChange={(checked) =>
+                                                setFormData({ ...formData, agreeToTerms: checked as boolean })
+                                            }
+                                        />
+                                        <Label htmlFor="terms" className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                                            Am luat la cunoștință și sunt de acord cu{" "}
+                                            <LocalizedLink
+                                                href="/terms"
+                                                className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
+                                            >
+                                                Termenii și Condițiile
+                                            </LocalizedLink>{" "}
+                                            și{" "}
+                                            <LocalizedLink
+                                                href="/privacy"
+                                                className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
+                                            >
+                                                Politica de Confidențialitate
+                                            </LocalizedLink>
+                                            .
+                                        </Label>
                                     </div>
 
                                     <Button type="submit" className="w-full btn-primary text-white" disabled={isSubmitting}>
