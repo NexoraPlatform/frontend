@@ -284,31 +284,36 @@ export default async function middleware(req: NextRequest) {
       '/early-access',
       '/early-access/client',
       '/early-access/provider',
+      '/privacy',
+      '/terms',
+      '/cookies',
     ]);
 
     const isEarlyAccessRoute =
       normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
-    if (!isEarlyAccessRoute) {
-      let adminBypass = false;
-      if (token) {
-        let user = tryDecodeUserFromJwt(token);
-        if (!user || !user.roles?.length) {
-          const fetchedUser = await fetchUserFromApi(token);
-          if (fetchedUser) {
-            user = fetchedUser;
-          }
-        }
-        adminBypass = isAdminUser(user);
-      }
+    if (isEarlyAccessRoute) {
+      return NextResponse.next();
+    }
 
-      if (!adminBypass) {
-        const url = new URL(`/${locale}/early-access`, req.url);
-        if (normalizedPath === '/') {
-          return NextResponse.rewrite(url);
+    let adminBypass = false;
+    if (token) {
+      let user = tryDecodeUserFromJwt(token);
+      if (!user || !user.roles?.length) {
+        const fetchedUser = await fetchUserFromApi(token);
+        if (fetchedUser) {
+          user = fetchedUser;
         }
-        return NextResponse.redirect(url);
       }
+      adminBypass = isAdminUser(user);
+    }
+
+    if (!adminBypass) {
+      const url = new URL(`/${locale}/early-access`, req.url);
+      if (normalizedPath === '/') {
+        return NextResponse.rewrite(url);
+      }
+      return NextResponse.redirect(url);
     }
   }
 
