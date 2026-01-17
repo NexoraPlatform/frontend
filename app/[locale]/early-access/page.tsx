@@ -74,7 +74,7 @@ export default function EarlyAccessPage() {
                         </div>
                     </div>
 
-                    <div className="mt-12 mb-12 grid gap-6 lg:grid-cols-2">
+                    <div className="mt-12 grid gap-6 lg:grid-cols-2">
                         <Card
                             id="early-access-client"
                             className="glass-card flex h-full flex-col border border-slate-200/60 bg-white/90 pb-6 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90"
