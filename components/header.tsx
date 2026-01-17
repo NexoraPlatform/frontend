@@ -8,8 +8,8 @@ import { LocalizedLink } from '@/components/LocalizedLink';
 import { useLocalizedRouter } from '@/hooks/use-localized-router';
 
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Moon, Sun, LogOut } from 'lucide-react';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Menu, Moon, Sun, LogOut, Mail, Phone, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
@@ -75,6 +75,23 @@ export function Header() {
   const darkText = useAsyncTranslation(locale, 'navigation.dark');
   const lightText = useAsyncTranslation(locale, 'navigation.light');
   const openMainUserMenuText = useAsyncTranslation(locale, 'navigation.open_main_user_menu');
+  const earlyAccessClientCta = useAsyncTranslation(locale, 'trustora.early_access.header.client_cta', 'Înregistrare ca client');
+  const earlyAccessProviderCta = useAsyncTranslation(locale, 'trustora.early_access.header.provider_cta', 'Înregistrare ca prestator');
+  const earlyAccessMenuAria = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_aria', 'Meniul principal pe mobil');
+  const earlyAccessMenuTitle = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_title', 'Meniu înscriere early access');
+  const earlyAccessMenuLabel = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_label', 'Meniu');
+  const earlyAccessMenuDescription = useAsyncTranslation(
+    locale,
+    'trustora.early_access.header.mobile_menu_description',
+    'Alege tipul de cont pentru înscriere în early access.',
+  );
+  const earlyAccessMenuSrDescription = useAsyncTranslation(
+    locale,
+    'trustora.early_access.header.mobile_menu_sr_description',
+    'Alege tipul de cont pentru înscriere în early access și accesează detaliile de contact Trustora.',
+  );
+  const earlyAccessContactLabel = useAsyncTranslation(locale, 'trustora.early_access.header.contact_label', 'Date de contact');
+  const earlyAccessContactTag = useAsyncTranslation(locale, 'trustora.early_access.header.contact_tag', 'Trustora');
 
   const servicesText = useAsyncTranslation(locale, 'navigation.services');
   const projectsText = useAsyncTranslation(locale, 'navigation.projects');
@@ -138,7 +155,7 @@ export function Header() {
           {skipToContentText}
         </a>
         <div className="container mx-auto px-4">
-          <div className="flex h-20 items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
             <LocalizedLink
               href="/"
               className="flex items-center space-x-4 group"
@@ -179,17 +196,8 @@ export function Header() {
               </div>
             </LocalizedLink>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Button
-                className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
-                variant="outline"
-                asChild
-              >
-                <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
-              </Button>
-              <Button className="w-full btn-primary text-white sm:w-auto" asChild>
-                <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
-              </Button>
+            <div className="flex items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <LocaleSwitcher className="w-fit" currentLocale={locale} />
               <Button
                 variant="ghost"
                 size="icon"
@@ -200,6 +208,88 @@ export function Header() {
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               </Button>
+              <div className="hidden sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+                <Button
+                  className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
+                  variant="outline"
+                  asChild
+                >
+                  <LocalizedLink href="/early-access/client">{earlyAccessClientCta}</LocalizedLink>
+                </Button>
+                <Button className="w-full btn-primary text-white sm:w-auto" asChild>
+                  <LocalizedLink href="/early-access/provider">{earlyAccessProviderCta}</LocalizedLink>
+                </Button>
+              </div>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    aria-label={earlyAccessMenuAria}
+                    variant="ghost"
+                    size="icon"
+                    className="sm:hidden w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl"
+                  >
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
+                  <SheetTitle className="sr-only">{earlyAccessMenuTitle}</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {earlyAccessMenuSrDescription}
+                  </SheetDescription>
+                  <div className="mt-8 flex flex-col space-y-6">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">{earlyAccessMenuLabel}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {earlyAccessMenuDescription}
+                      </p>
+                    </div>
+                    <Button
+                      className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60"
+                      variant="outline"
+                      asChild
+                    >
+                      <LocalizedLink href="/early-access/client">{earlyAccessClientCta}</LocalizedLink>
+                    </Button>
+                    <Button className="w-full btn-primary text-white" asChild>
+                      <LocalizedLink href="/early-access/provider">{earlyAccessProviderCta}</LocalizedLink>
+                    </Button>
+                    <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/80 p-4 text-xs text-emerald-950 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300">
+                          {earlyAccessContactLabel}
+                        </p>
+                        <span className="text-[10px] font-medium text-emerald-500/80 dark:text-emerald-200/80">
+                          {earlyAccessContactTag}
+                        </span>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          <Mail className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
+                          <a
+                            href="mailto:contact@Trustora.ro"
+                            className="font-medium underline decoration-emerald-400/60 underline-offset-4"
+                          >
+                            contact@Trustora.ro
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          <Phone className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
+                          <a
+                            href="tel:+40123456789"
+                            className="font-medium underline decoration-emerald-400/60 underline-offset-4"
+                          >
+                            +40 123 456 789
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
+                          <span className="font-medium">București, România</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
@@ -225,7 +315,7 @@ export function Header() {
       </a>
 
       <div className="container mx-auto px-4">
-        <div className="flex h-20 items-center justify-between">
+        <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
           <LocalizedLink
             href="/"
             className="flex items-center space-x-4 group"
@@ -291,7 +381,7 @@ export function Header() {
           </nav>
 
           {/* Right Side Actions */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2">
             {user && (
               <>
                 {/* Notifications */}
@@ -302,19 +392,19 @@ export function Header() {
               </>
             )}
 
+            <LocaleSwitcher className="hidden lg:block" currentLocale={locale} />
+
             {/* Theme Toggle */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-11 h-11hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+              className="w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
               aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
-
-            <LocaleSwitcher className="hidden lg:block" currentLocale={locale} />
 
             {/* User Menu or Auth Buttons */}
             {user ? (
