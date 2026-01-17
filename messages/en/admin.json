@@ -79,6 +79,11 @@
         "title": "Analytics & Reports",
         "description": "Analyze platform performance",
         "stats": "Detailed statistics"
+      },
+      "early_access": {
+        "title": "Early Access Applications",
+        "description": "Review all pre-early stage applications",
+        "stats": "Grouped by account type"
       }
     },
     "pending_template": "{count} pending",
@@ -106,6 +111,29 @@
       "flexible": "Flexible",
       "active": "Active"
     }
+  },
+  "early_access": {
+    "manage_title": "Early Access Applications",
+    "manage_subtitle": "View all pre-early stage applications",
+    "providers": {
+      "title": "Signed-up Providers",
+      "description": "{count} providers registered",
+      "empty": "There are no providers registered yet."
+    },
+    "clients": {
+      "title": "Signed-up Clients",
+      "description": "{count} clients registered",
+      "empty": "There are no clients registered yet."
+    },
+    "columns": {
+      "name": "Full name",
+      "contact_name": "Contact name",
+      "company_name": "Company",
+      "email": "Email",
+      "score": "Score",
+      "created_at": "Signed up on"
+    },
+    "error": "We couldn't load the applications."
   },
   "categories": {
     "manage_title": "Manage Categories",

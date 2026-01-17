@@ -61,6 +61,11 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
+  const basicAuthEnabled =
+    process.env.NEXT_PUBLIC_BASIC_AUTH_ENABLED === 'true' ||
+    process.env.NEXT_PUBLIC_BASIC_AUTH === 'true' ||
+    process.env.BASIC_AUTH_ENABLED === 'true' ||
+    process.env.BASIC_AUTH === 'true';
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const router = useLocalizedRouter();
@@ -92,6 +97,16 @@ export function Header() {
   );
   const earlyAccessContactLabel = useAsyncTranslation(locale, 'trustora.early_access.header.contact_label', 'Date de contact');
   const earlyAccessContactTag = useAsyncTranslation(locale, 'trustora.early_access.header.contact_tag', 'Trustora');
+  const earlyAccessBannerText = useAsyncTranslation(
+    locale,
+    'common.banner.early_access_enabled',
+    'Early access funnel is enabled.',
+  );
+  const basicAuthBannerText = useAsyncTranslation(
+    locale,
+    'common.banner.basic_auth_enabled',
+    'Basic authentication is enabled.',
+  );
 
   const servicesText = useAsyncTranslation(locale, 'navigation.services');
   const projectsText = useAsyncTranslation(locale, 'navigation.projects');
@@ -104,6 +119,28 @@ export function Header() {
   const logoutText = useAsyncTranslation(locale, 'navigation.logout');
   const loginText = useAsyncTranslation(locale, 'navigation.login');
   const registerText = useAsyncTranslation(locale, 'navigation.register');
+
+  const isAdminUser =
+    user?.is_superuser ||
+    user?.roles?.some((role: any) => role?.slug?.toLowerCase() === 'admin');
+  const showAdminBanner = isAdminUser && (earlyAccessEnabled || basicAuthEnabled);
+
+  const bannerContent = showAdminBanner ? (
+    <div className="border-b border-amber-200/70 bg-amber-50/80 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+      <div className="container mx-auto flex flex-wrap items-center gap-2 px-4 py-2 text-xs font-semibold">
+        {earlyAccessEnabled && (
+          <span className="rounded-full bg-amber-200/70 px-3 py-1 text-amber-900 dark:bg-amber-500/20 dark:text-amber-100">
+            {earlyAccessBannerText}
+          </span>
+        )}
+        {basicAuthEnabled && (
+          <span className="rounded-full bg-amber-200/70 px-3 py-1 text-amber-900 dark:bg-amber-500/20 dark:text-amber-100">
+            {basicAuthBannerText}
+          </span>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   const navigation = [
     { name: homeText, href: '/' },
@@ -154,6 +191,7 @@ export function Header() {
         >
           {skipToContentText}
         </a>
+        {bannerContent}
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
             <LocalizedLink
@@ -313,6 +351,7 @@ export function Header() {
       >
         {skipToContentText}
       </a>
+      {bannerContent}
 
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
