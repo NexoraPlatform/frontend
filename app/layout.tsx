@@ -176,9 +176,9 @@ export default function RootLayout({
             <link rel="dns-prefetch" href="//api.Trustora.ro" />
             <link rel="dns-prefetch" href="//vercel.app" />
 
-            <link rel="icon" href="/trustora-logo.webp" sizes="32x32" type="image/webp" />
-            <link rel="apple-touch-icon" href="/trustora-logo.webp" sizes="180x180" />
-            <link rel="mask-icon" href="/trustora-logo.webp" color="#3b82f6" />
+            <link rel="icon" href="/trustora-logo2.webp" sizes="32x32" type="image/webp" />
+            <link rel="apple-touch-icon" href="/trustora-logo2.webp" sizes="180x180" />
+            <link rel="mask-icon" href="/trustora-logo2.webp" color="#3b82f6" />
 
             {/* PWA manifest */}
             <link rel="manifest" href="/manifest.json" />
