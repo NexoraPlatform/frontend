@@ -76,7 +76,7 @@ export function Footer() {
                     />
                   </picture>
                 </div>
-                  <div className="flex items-baseline gap-2 ps-4">
+                  <div className="flex flex-col items-start ps-4">
                       <span className="text-xl font-bold text-primary">Trustora</span>
                       <span className="text-xs text-muted-foreground font-medium">
                         Where work meets trust.
