@@ -220,12 +220,9 @@ export const TrustoraStoryCard = () => {
     };
 
     return (
-        <div
-            className="flex min-h-screen items-center justify-center p-4 font-sans"
-            style={{ backgroundColor: colors.bg }}
-        >
+        <div className="flex min-h-screen items-center justify-center p-4 font-sans">
             {/* Main Card Container */}
-            <div className="flex w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl transition-all duration-500 ease-in-out md:flex-row">
+            <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl transition-all duration-500 ease-in-out md:flex-row">
                 {/* Left Side: Interactive Story Navigation */}
                 <div className="relative z-20 flex w-full flex-col justify-between bg-white p-8 md:w-1/2 md:p-10">
                     {/* Header */}
