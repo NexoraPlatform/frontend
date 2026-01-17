@@ -40,6 +40,11 @@ export function Footer() {
   const termsConditionsText = useAsyncTranslation(locale, "common.terms_conditions");
   const readTermsConditionsText = useAsyncTranslation(locale, "common.read_terms_conditions");
   const allRightsReservedText = useAsyncTranslation(locale, "common.all_rights_reserved");
+  const cookiePolicyText = useAsyncTranslation(locale, "common.cookie_policy", "Politica de cookie-uri");
+  const readCookiePolicyText = useAsyncTranslation(locale, "common.read_cookie_policy", "Citește politica de cookie-uri");
+  const privacyHref = `/${locale}/privacy`;
+  const termsHref = `/${locale}/terms`;
+  const cookiesHref = `/${locale}/cookies`;
 
   return (
       <footer
@@ -110,6 +115,20 @@ export function Footer() {
                         {subscribeText}
                     </Button>
                   </form>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p className="font-semibold text-slate-900 dark:text-white">Documente legale</p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      <Link href={privacyHref} className="hover:text-primary transition-colors">
+                        {privacyPolicyText}
+                      </Link>
+                      <Link href={termsHref} className="hover:text-primary transition-colors">
+                        {termsConditionsText}
+                      </Link>
+                      <Link href={cookiesHref} className="hover:text-primary transition-colors">
+                        {cookiePolicyText}
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -271,26 +290,30 @@ export function Footer() {
 
           <div className="border-t mt-8 pt-8 text-center" role="contentinfo">
             <p className="text-sm text-muted-foreground">
-              © 2024 Trustora. {allRightsReservedText}{!earlyAccessEnabled && (
-                <>
-                  . |
-                  <Link
-                      href="/privacy"
-                      className="hover:text-primary ml-1"
-                      aria-label={readPrivacyPolicyText}
-                  >
-                      {privacyPolicyText}
-                  </Link> |
-                  <Link
-                      href="/terms"
-                      className="hover:text-primary ml-1"
-                      aria-label={readTermsConditionsText}
-                  >
-                      {termsConditionsText}
-                  </Link>
-                </>
-              )}
-              {earlyAccessEnabled && '.'}
+              © 2024 Trustora. {allRightsReservedText}. |
+              <Link
+                href={privacyHref}
+                className="hover:text-primary ml-1"
+                aria-label={readPrivacyPolicyText}
+              >
+                {privacyPolicyText}
+              </Link>{" "}
+              |
+              <Link
+                href={termsHref}
+                className="hover:text-primary ml-1"
+                aria-label={readTermsConditionsText}
+              >
+                {termsConditionsText}
+              </Link>
+              {" "}|{" "}
+              <Link
+                href={cookiesHref}
+                className="hover:text-primary"
+                aria-label={readCookiePolicyText}
+              >
+                {cookiePolicyText}
+              </Link>
             </p>
           </div>
         </div>
