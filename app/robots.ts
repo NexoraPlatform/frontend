@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
     return {
-        rules: { userAgent: '*', allow: '/' },
-        sitemap: 'https://Trustora.ro/sitemap.xml',
-        host: 'https://Trustora.ro',
+        rules: { userAgent: '*', allow: '/', disallow: ['/admin/', '/dashboard/', '/private/'] },
+        sitemap: 'https://trustora.ro/sitemap.xml',
+        host: 'https://trustora.ro',
     };
 }
