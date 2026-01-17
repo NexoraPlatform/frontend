@@ -138,7 +138,7 @@ export function Header() {
           {skipToContentText}
         </a>
         <div className="container mx-auto px-4">
-          <div className="flex flex-col gap-4 py-4 sm:h-20 sm:flex-row sm:items-center sm:justify-between sm:py-0">
+          <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
             <LocalizedLink
               href="/"
               className="flex items-center space-x-4 group"
@@ -179,7 +179,7 @@ export function Header() {
               </div>
             </LocalizedLink>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <LocaleSwitcher className="w-fit" currentLocale={locale} />
               <Button
                 variant="ghost"
@@ -254,7 +254,7 @@ export function Header() {
       </a>
 
       <div className="container mx-auto px-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3 sm:h-20 sm:flex-nowrap sm:py-0">
+        <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
           <LocalizedLink
             href="/"
             className="flex items-center space-x-4 group"
@@ -320,7 +320,7 @@ export function Header() {
           </nav>
 
           {/* Right Side Actions */}
-          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+          <div className="flex items-center gap-2">
             {user && (
               <>
                 {/* Notifications */}
