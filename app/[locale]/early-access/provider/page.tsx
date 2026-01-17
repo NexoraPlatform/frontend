@@ -1,0 +1,310 @@
+"use client";
+
+import { useState } from "react";
+import { CheckCircle, Mail, UserRound, Globe2, Award, Clock } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
+import { LocalizedLink } from "@/components/LocalizedLink";
+import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
+
+const primarySkillOptions = [
+    "Design",
+    "Frontend development",
+    "Backend development",
+    "Full-stack",
+    "Product management",
+    "QA & testing",
+    "DevOps",
+    "Mobile development",
+] as const;
+
+export default function EarlyAccessProviderPage() {
+    const [formData, setFormData] = useState({
+        email: "",
+        fullName: "",
+        country: "",
+        primarySkill: "",
+        yearsExperience: "",
+        hasClients: false,
+        unpaidWork: false,
+        wantsEscrow: false,
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState(false);
+
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setError("");
+        setSuccess(false);
+        setIsSubmitting(true);
+
+        try {
+            if (!formData.primarySkill) {
+                throw new Error("Selectează skill-ul principal.");
+            }
+
+            const payload = {
+                user_type: "provider",
+                email: formData.email,
+                full_name: formData.fullName,
+                country: formData.country,
+                primary_skill: formData.primarySkill,
+                years_experience: Number(formData.yearsExperience),
+                has_clients: formData.hasClients,
+                unpaid_work: formData.unpaidWork,
+                wants_escrow: formData.wantsEscrow,
+            };
+
+            const response = await fetch("/api/early-access", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => null);
+                const message = errorBody?.message ?? "A apărut o eroare. Încearcă din nou.";
+                throw new Error(message);
+            }
+
+            setSuccess(true);
+            setFormData({
+                email: "",
+                fullName: "",
+                country: "",
+                primarySkill: "",
+                yearsExperience: "",
+                hasClients: false,
+                unpaidWork: false,
+                wantsEscrow: false,
+            });
+        } catch (submitError: any) {
+            setError(submitError?.message ?? "Nu am putut trimite formularul.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+            <TrustoraThemeStyles />
+            <Header />
+
+            <div className="relative mt-8 overflow-hidden">
+                <div className="absolute inset-0 hero-gradient" />
+                <div className="relative container mx-auto px-4 py-16">
+                    <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] items-start">
+                        <div className="space-y-8">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-emerald-100/60 px-4 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                                Formular prestator
+                            </div>
+                            <div className="space-y-4">
+                                <h1 className="text-4xl font-bold leading-tight text-[#0F172A] dark:text-white md:text-5xl">
+                                    Înscriere <span className="text-[#1BC47D]">prestator</span> pentru early access
+                                </h1>
+                                <p className="text-lg text-slate-600 dark:text-slate-300">
+                                    Îți colectăm experiența și preferințele pentru a-ți potrivi rapid proiecte cu clienți serioși.
+                                </p>
+                            </div>
+                            <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+                                {[
+                                    "Profil publicat doar după verificare manuală",
+                                    "Acces rapid la proiecte cu bugete clare",
+                                    "Escrow opțional pentru plăți sigure",
+                                ].map((item) => (
+                                    <div
+                                        key={item}
+                                        className="glass-card flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 font-medium shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                    >
+                                        <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                <LocalizedLink href="/early-access" className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300">
+                                    ← Înapoi la alegerea tipului de cont
+                                </LocalizedLink>
+                            </div>
+                        </div>
+
+                        <Card className="glass-card border border-slate-200/60 bg-white/90 shadow-2xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
+                            <CardHeader className="space-y-2 text-left">
+                                <CardTitle className="text-2xl text-[#0F172A] dark:text-white">Completează profilul</CardTitle>
+                                <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
+                                    Datele tale ne ajută să te potrivim cu proiecte relevante.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {error && (
+                                    <Alert variant="destructive">
+                                        <AlertDescription>{error}</AlertDescription>
+                                    </Alert>
+                                )}
+                                {success && (
+                                    <Alert className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                        <CheckCircle className="h-4 w-4" />
+                                        <AlertDescription>
+                                            Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email</Label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                placeholder="freelancer@example.com"
+                                                value={formData.email}
+                                                onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                                                className="pl-10"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fullName">Nume complet</Label>
+                                        <div className="relative">
+                                            <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                            <Input
+                                                id="fullName"
+                                                placeholder="Ana Popescu"
+                                                value={formData.fullName}
+                                                onChange={(event) => setFormData({ ...formData, fullName: event.target.value })}
+                                                className="pl-10"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="country">Țara</Label>
+                                        <div className="relative">
+                                            <Globe2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                            <Input
+                                                id="country"
+                                                placeholder="Romania"
+                                                value={formData.country}
+                                                onChange={(event) => setFormData({ ...formData, country: event.target.value })}
+                                                className="pl-10"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="primarySkill">Skill principal</Label>
+                                            <Select
+                                                value={formData.primarySkill}
+                                                onValueChange={(value) => setFormData({ ...formData, primarySkill: value })}
+                                            >
+                                                <SelectTrigger id="primarySkill">
+                                                    <SelectValue placeholder="Alege skill" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {primarySkillOptions.map((option) => (
+                                                        <SelectItem key={option} value={option}>
+                                                            {option}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="yearsExperience">Ani experiență</Label>
+                                            <div className="relative">
+                                                <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                                <Input
+                                                    id="yearsExperience"
+                                                    type="number"
+                                                    min={0}
+                                                    max={80}
+                                                    placeholder="5"
+                                                    value={formData.yearsExperience}
+                                                    onChange={(event) =>
+                                                        setFormData({ ...formData, yearsExperience: event.target.value })
+                                                    }
+                                                    className="pl-10"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-start gap-2">
+                                            <Checkbox
+                                                id="hasClients"
+                                                checked={formData.hasClients}
+                                                onCheckedChange={(checked) =>
+                                                    setFormData({ ...formData, hasClients: checked as boolean })
+                                                }
+                                            />
+                                            <Label htmlFor="hasClients" className="text-sm text-slate-600 dark:text-slate-300">
+                                                Am deja clienți activi.
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                            <Checkbox
+                                                id="unpaidWork"
+                                                checked={formData.unpaidWork}
+                                                onCheckedChange={(checked) =>
+                                                    setFormData({ ...formData, unpaidWork: checked as boolean })
+                                                }
+                                            />
+                                            <Label htmlFor="unpaidWork" className="text-sm text-slate-600 dark:text-slate-300">
+                                                Am făcut muncă neplătită recent.
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                            <Checkbox
+                                                id="wantsEscrow"
+                                                checked={formData.wantsEscrow}
+                                                onCheckedChange={(checked) =>
+                                                    setFormData({ ...formData, wantsEscrow: checked as boolean })
+                                                }
+                                            />
+                                            <Label htmlFor="wantsEscrow" className="text-sm text-slate-600 dark:text-slate-300">
+                                                Doresc să folosesc escrow pentru fiecare proiect.
+                                            </Label>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 text-xs text-slate-500 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-slate-300">
+                                        <Award className="h-4 w-4 text-emerald-500" />
+                                        Creștem scorul profilului dacă ai clienți activi și experiență solidă.
+                                    </div>
+
+                                    <Button type="submit" className="w-full btn-primary text-white" disabled={isSubmitting}>
+                                        {isSubmitting ? "Trimitem aplicația..." : "Trimite aplicația"}
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+
+            <Footer />
+        </div>
+    );
+}
