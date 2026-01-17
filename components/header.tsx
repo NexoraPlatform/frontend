@@ -8,7 +8,7 @@ import { LocalizedLink } from '@/components/LocalizedLink';
 import { useLocalizedRouter } from '@/hooks/use-localized-router';
 
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Moon, Sun, LogOut, Mail, Phone, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -216,6 +216,9 @@ export function Header() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
                   <SheetTitle className="sr-only">Meniu înscriere early access</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Alege tipul de cont pentru înscriere în early access și accesează detaliile de contact Trustora.
+                  </SheetDescription>
                   <div className="mt-8 flex flex-col space-y-6">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Meniu</p>
