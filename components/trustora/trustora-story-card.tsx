@@ -220,7 +220,7 @@ export const TrustoraStoryCard = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans dark:bg-slate-950">
+        <div className="flex min-h-screen items-center justify-center p-4 font-sans">
             {/* Main Card Container */}
             <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl transition-all duration-500 ease-in-out dark:border-slate-800 dark:bg-slate-900 md:flex-row">
                 {/* Left Side: Interactive Story Navigation */}
