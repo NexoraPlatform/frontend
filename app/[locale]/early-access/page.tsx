@@ -28,8 +28,9 @@ export default function EarlyAccessPage() {
                                 Alege tipul de cont <span className="text-[#1BC47D]">Trustora</span>
                             </h1>
                             <p className="text-lg text-slate-600 dark:text-slate-300">
-                                Începe cu formularul potrivit. Dacă ești client, te ajutăm să găsești prestatori verificați. Dacă
-                                ești prestator, îți pregătim profilul pentru proiecte plătite în siguranță.
+                                Înscrierile sunt pentru early access: în curând vom lansa early beta, iar cei înscriși vor primi
+                                primii invitațiile. Dacă ești client, te ajutăm să găsești prestatori verificați. Dacă ești
+                                prestator, îți pregătim profilul pentru proiecte plătite în siguranță.
                             </p>
                         </div>
                     </div>
