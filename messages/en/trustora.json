@@ -57,5 +57,168 @@
     "escrow_label": "Escrow Secured",
     "verified_label": "Video Verified",
     "legal_label": "Legal Grade"
+  },
+  "early_access": {
+    "common": {
+      "back_link": "← Back to account type selection",
+      "submit": "Submit application",
+      "submitting": "Submitting application...",
+      "error_generic": "Something went wrong. Please try again.",
+      "error_submit": "We could not submit the form.",
+      "title_suffix": "for early access"
+    },
+    "header": {
+      "client_cta": "Register as a client",
+      "provider_cta": "Register as a provider",
+      "mobile_menu_aria": "Main menu on mobile",
+      "mobile_menu_title": "Early access signup menu",
+      "mobile_menu_label": "Menu",
+      "mobile_menu_description": "Choose the account type for early access signup.",
+      "mobile_menu_sr_description": "Choose the account type for early access signup and access Trustora contact details.",
+      "contact_label": "Contact details",
+      "contact_tag": "Trustora"
+    },
+    "landing": {
+      "badge": "Early access signups",
+      "title": "Choose your account type",
+      "title_highlight": "Trustora",
+      "description": "Early access registrations are open: we will launch the early beta soon, and those who sign up will be the first to receive invitations. If you are a client, we help you find verified providers. If you are a provider, we prepare your profile for secure paid projects.",
+      "client_title": "I'm a client",
+      "client_description": "Share your company details and hiring needs. You'll get access to top-rated providers.",
+      "client_cta": "Start the client form",
+      "provider_title": "I'm a provider",
+      "provider_description": "Tell us your experience and preferred settings. We'll prepare your profile for secure projects.",
+      "provider_cta": "Start the provider form"
+    },
+    "client": {
+      "badge": "Client form",
+      "title": "Signup",
+      "title_highlight": "client",
+      "subtitle": "Tell us about your company and hiring needs. We'll send you priority access to the right providers.",
+      "benefits": {
+        "preselect": "We preselect verified providers for you",
+        "scoring": "You receive transparent scoring for applications",
+        "escrow": "You can enable escrow from the first step"
+      },
+      "form_title": "Complete your details",
+      "form_description": "All fields are required for early access.",
+      "success": "Thank you! Your request has been sent. We'll follow up by email.",
+      "error_frequency": "Select a hiring frequency.",
+      "fields": {
+        "email_label": "Company email",
+        "email_placeholder": "company@example.com",
+        "contact_label": "Contact person",
+        "contact_placeholder": "Full name",
+        "company_label": "Company",
+        "company_placeholder": "Company name",
+        "needs_label": "Hiring needs",
+        "needs_placeholder": "Ex: web development, UI/UX, QA automation",
+        "budget_label": "Typical project budget (€)",
+        "budget_placeholder": "3500",
+        "frequency_label": "Hiring frequency",
+        "frequency_placeholder": "Choose frequency",
+        "frequency_monthly": "Monthly",
+        "frequency_quarterly": "Quarterly",
+        "frequency_on_demand": "On demand",
+        "frequency_one_project": "Single project"
+      },
+      "checkboxes": {
+        "lost_money": "I have had projects where I lost money or time due to poor delivery.",
+        "escrow_help": "I want to use escrow for secure payments."
+      }
+    },
+    "provider": {
+      "badge": "Provider form",
+      "title": "Signup",
+      "title_highlight": "provider",
+      "subtitle": "We collect your experience and preferences to match you quickly with serious clients.",
+      "benefits": {
+        "verification": "Profile published only after manual verification",
+        "projects": "Fast access to projects with clear budgets",
+        "escrow": "Optional escrow for secure payments"
+      },
+      "form_title": "Complete your profile",
+      "form_description": "Your details help us match you with relevant projects.",
+      "success": "Thank you! Your request has been sent. We'll follow up by email.",
+      "error_skill": "Select a primary skill.",
+      "fields": {
+        "email_label": "Email",
+        "email_placeholder": "freelancer@example.com",
+        "full_name_label": "Full name",
+        "full_name_placeholder": "Ana Popescu",
+        "country_label": "Country",
+        "country_placeholder": "Romania",
+        "skill_label": "Primary skill",
+        "skill_placeholder": "Choose a skill",
+        "years_label": "Years of experience",
+        "years_placeholder": "5"
+      },
+      "skills": {
+        "design": "Design",
+        "frontend": "Frontend development",
+        "backend": "Backend development",
+        "fullstack": "Full-stack",
+        "product": "Product management",
+        "qa": "QA & testing",
+        "devops": "DevOps",
+        "mobile": "Mobile development"
+      },
+      "checkboxes": {
+        "has_clients": "I already have active clients.",
+        "unpaid_work": "I have done unpaid work recently.",
+        "wants_escrow": "I want to use escrow for every project."
+      },
+      "profile_note": "We increase your profile score if you have active clients and solid experience."
+    },
+    "story": {
+      "manifest_label": "TRUSTORA MANIFESTO",
+      "heading_line": "From uncertainty to",
+      "heading_highlight": "digital infrastructure.",
+      "active_label": "ACTIVE",
+      "next_step": "Next step",
+      "join_network": "Join the network",
+      "payment_failed": "PAYMENT: FAILED",
+      "risk_label": "RISK",
+      "compliance_gap": "Compliance gap",
+      "protocol_init": "TRUST_PROTOCOL_INIT",
+      "legal_wrapper": "LEGAL WRAPPER",
+      "smart_contract": "SMART CONTRACT",
+      "connecting_nodes": "CONNECTING NODES...",
+      "escrow": "ESCROW",
+      "active_protection": "ACTIVE PROTECTION",
+      "funds_label": "Funds",
+      "global_infrastructure": "Global trust infrastructure",
+      "verified": "VERIFIED",
+      "secured": "SECURED",
+      "system_status_label": "System status:",
+      "status": {
+        "critical": "CRITICAL",
+        "initializing": "INITIALIZING",
+        "secured": "SECURED",
+        "optimal": "OPTIMAL"
+      },
+      "steps": {
+        "chaos": {
+          "title": "The current chaos",
+          "subtitle": "Freelancing is a minefield.",
+          "description": "Email contracts. Unsecured payments. Inconsistent invoices in spreadsheets. Clients risk penalties for misclassification, while professionals risk non-payment. It's a gamble, not a business."
+        },
+        "infrastructure": {
+          "title": "The infrastructure vision",
+          "subtitle": "We don't sell freelancers. We sell certainty.",
+          "description": "We built a unified legal wrapper. Trustora is not just a marketplace; it is the security infrastructure between money and delivery. Stripe + digital notary + marketplace in one place."
+        },
+        "mechanism": {
+          "title": "The trust mechanism",
+          "subtitle": "Smart escrow & total verification.",
+          "description": "Funds are locked in segregated accounts before kickoff. Identity is verified biometrically. Contracts include automatic IP transfer. Nothing is left to chance."
+        },
+        "success": {
+          "title": "The new reality",
+          "subtitle": "Where work meets trust.",
+          "description": "An ecosystem where payments are guaranteed and work is legally protected. No fear. No administrative risk. Just focus on delivery and performance."
+        }
+      }
+    }
   }
 }

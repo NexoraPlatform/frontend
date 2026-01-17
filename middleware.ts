@@ -172,6 +172,58 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
+function isEarlyAccessEnabled() {
+  return (
+    process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true' ||
+    process.env.EARLY_ACCESS_FUNNEL === 'true'
+  );
+}
+
+function isBasicAuthEnabled() {
+  return process.env.BASIC_AUTH_ENABLED === 'true' || process.env.BASIC_AUTH === 'true';
+}
+
+function getBasicAuthCredentials() {
+  const users = (process.env.BASIC_AUTH_USERS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const passwords = (process.env.BASIC_AUTH_PASSWORDS || '')
+    .split(',')
+    .map((value) => value.trim());
+
+  return users
+    .map((user, index) => {
+      const password = passwords[index];
+      if (!password) return null;
+      return { user, password };
+    })
+    .filter(Boolean) as Array<{ user: string; password: string }>;
+}
+
+function isBasicAuthAuthorized(request: NextRequest) {
+  const credentials = getBasicAuthCredentials();
+  if (credentials.length === 0) return true;
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+
+  try {
+    const base64Credentials = authHeader.split(' ')[1] ?? '';
+    const decoded = atob(base64Credentials);
+    const separatorIndex = decoded.indexOf(':');
+    if (separatorIndex === -1) return false;
+    const username = decoded.slice(0, separatorIndex);
+    const password = decoded.slice(separatorIndex + 1);
+
+    return credentials.some(
+      (credential) => credential.user === username && credential.password === password
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ---- Middleware Main ----
 
 export default async function middleware(req: NextRequest) {
@@ -187,6 +239,15 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
+    return new NextResponse('Authentication required.', {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="Trustora"',
+      },
+    });
+  }
+
   // 1. Locale Handling
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
@@ -197,6 +258,30 @@ export default async function middleware(req: NextRequest) {
     const url = new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url);
     url.search = req.nextUrl.search;
     return NextResponse.redirect(url);
+  }
+
+  const segments = pathname.split('/');
+  const locale = segments[1];
+  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/';
+  const normalizedPath =
+    pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
+
+  if (isEarlyAccessEnabled()) {
+    const earlyAccessRoutes = new Set([
+      '/early-access',
+      '/early-access/client',
+      '/early-access/provider',
+    ]);
+
+    if (normalizedPath === '/') {
+      const url = new URL(`/${locale}/early-access`, req.url);
+      return NextResponse.rewrite(url);
+    }
+
+    if (!earlyAccessRoutes.has(normalizedPath)) {
+      const url = new URL(`/${locale}/early-access`, req.url);
+      return NextResponse.redirect(url);
+    }
   }
 
   // 2. Auth Flow
@@ -215,11 +300,12 @@ export default async function middleware(req: NextRequest) {
     // AUTH_PAGES above are defined as '/auth/signin'.
     // But pathname is '/ro/auth/signin'.
 
-    const segments = pathname.split('/');
     // segments[0] is empty, segments[1] is locale
     const pathWithoutLocale = '/' + segments.slice(2).join('/');
+    const normalizedPath =
+      pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-    if (AUTH_PAGES.has(pathWithoutLocale)) {
+    if (AUTH_PAGES.has(normalizedPath)) {
       const url = new URL('/dashboard', req.url);
       url.search = req.nextUrl.search;
       return NextResponse.redirect(url);
@@ -235,11 +321,7 @@ export default async function middleware(req: NextRequest) {
   // The original findRequirement used 'pathname' directly from req.nextUrl.
 
   // Imrovement: Strip locale for routing checks to ensure consistence
-  const segments = pathname.split('/');
-  const locale = segments[1];
-  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/'; // Handle root /ro -> /
-
-  const requirement = findRequirement(pathWithoutLocale);
+  const requirement = findRequirement(normalizedPath);
 
   // Also check if the raw pathname matched (old behavior fallback) if strict strip failed? 
   // Actually, standard practice is to define rules on non-localized paths.

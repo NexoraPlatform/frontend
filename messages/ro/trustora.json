@@ -57,5 +57,168 @@
     "escrow_label": "Escrow securizat",
     "verified_label": "Verificat video",
     "legal_label": "Valoare legală"
+  },
+  "early_access": {
+    "common": {
+      "back_link": "← Înapoi la alegerea tipului de cont",
+      "submit": "Trimite aplicația",
+      "submitting": "Trimitem aplicația...",
+      "error_generic": "A apărut o eroare. Încearcă din nou.",
+      "error_submit": "Nu am putut trimite formularul.",
+      "title_suffix": "pentru early access"
+    },
+    "header": {
+      "client_cta": "Înregistrare ca client",
+      "provider_cta": "Înregistrare ca prestator",
+      "mobile_menu_aria": "Meniul principal pe mobil",
+      "mobile_menu_title": "Meniu înscriere early access",
+      "mobile_menu_label": "Meniu",
+      "mobile_menu_description": "Alege tipul de cont pentru înscriere în early access.",
+      "mobile_menu_sr_description": "Alege tipul de cont pentru înscriere în early access și accesează detaliile de contact Trustora.",
+      "contact_label": "Date de contact",
+      "contact_tag": "Trustora"
+    },
+    "landing": {
+      "badge": "Înscrieri early access",
+      "title": "Alege tipul de cont",
+      "title_highlight": "Trustora",
+      "description": "Înscrierile sunt pentru early access: în curând vom lansa early beta, iar cei înscriși vor primi primii invitațiile. Dacă ești client, te ajutăm să găsești prestatori verificați. Dacă ești prestator, îți pregătim profilul pentru proiecte plătite în siguranță.",
+      "client_title": "Sunt client",
+      "client_description": "Completează datele despre companie și nevoile de recrutare. Vei primi acces la prestatori cu scor ridicat.",
+      "client_cta": "Încep formularul pentru client",
+      "provider_title": "Sunt prestator",
+      "provider_description": "Spune-ne experiența ta și setările preferate. Îți pregătim profilul pentru proiecte sigure.",
+      "provider_cta": "Încep formularul pentru prestator"
+    },
+    "client": {
+      "badge": "Formular client",
+      "title": "Înscriere",
+      "title_highlight": "client",
+      "subtitle": "Spune-ne despre compania ta și nevoile de recrutare. Îți trimitem acces prioritar la prestatorii potriviți.",
+      "benefits": {
+        "preselect": "Preselectăm prestatori verificați pentru tine",
+        "scoring": "Primești un scoring transparent al aplicațiilor",
+        "escrow": "Poți activa escrow automat din prima etapă"
+      },
+      "form_title": "Completează datele",
+      "form_description": "Toate câmpurile sunt obligatorii pentru accesul early access.",
+      "success": "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
+      "error_frequency": "Selectează frecvența de recrutare.",
+      "fields": {
+        "email_label": "Email companie",
+        "email_placeholder": "company@example.com",
+        "contact_label": "Persoană de contact",
+        "contact_placeholder": "Nume și prenume",
+        "company_label": "Companie",
+        "company_placeholder": "Numele companiei",
+        "needs_label": "Nevoi de recrutare",
+        "needs_placeholder": "Ex: dezvoltare web, UI/UX, QA automation",
+        "budget_label": "Buget tipic proiect (€)",
+        "budget_placeholder": "3500",
+        "frequency_label": "Frecvență recrutare",
+        "frequency_placeholder": "Alege frecvența",
+        "frequency_monthly": "O dată pe lună",
+        "frequency_quarterly": "Trimestrial",
+        "frequency_on_demand": "La nevoie",
+        "frequency_one_project": "Proiect unic"
+      },
+      "checkboxes": {
+        "lost_money": "Am avut proiecte în care am pierdut bani sau timp din cauza livrării slabe.",
+        "escrow_help": "Vreau să folosesc escrow pentru plăți sigure."
+      }
+    },
+    "provider": {
+      "badge": "Formular prestator",
+      "title": "Înscriere",
+      "title_highlight": "prestator",
+      "subtitle": "Îți colectăm experiența și preferințele pentru a-ți potrivi rapid proiecte cu clienți serioși.",
+      "benefits": {
+        "verification": "Profil publicat doar după verificare manuală",
+        "projects": "Acces rapid la proiecte cu bugete clare",
+        "escrow": "Escrow opțional pentru plăți sigure"
+      },
+      "form_title": "Completează profilul",
+      "form_description": "Datele tale ne ajută să te potrivim cu proiecte relevante.",
+      "success": "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
+      "error_skill": "Selectează skill-ul principal.",
+      "fields": {
+        "email_label": "Email",
+        "email_placeholder": "freelancer@example.com",
+        "full_name_label": "Nume complet",
+        "full_name_placeholder": "Ana Popescu",
+        "country_label": "Țara",
+        "country_placeholder": "România",
+        "skill_label": "Skill principal",
+        "skill_placeholder": "Alege skill",
+        "years_label": "Ani experiență",
+        "years_placeholder": "5"
+      },
+      "skills": {
+        "design": "Design",
+        "frontend": "Frontend development",
+        "backend": "Backend development",
+        "fullstack": "Full-stack",
+        "product": "Product management",
+        "qa": "QA & testing",
+        "devops": "DevOps",
+        "mobile": "Mobile development"
+      },
+      "checkboxes": {
+        "has_clients": "Am deja clienți activi.",
+        "unpaid_work": "Am făcut muncă neplătită recent.",
+        "wants_escrow": "Doresc să folosesc escrow pentru fiecare proiect."
+      },
+      "profile_note": "Creștem scorul profilului dacă ai clienți activi și experiență solidă."
+    },
+    "story": {
+      "manifest_label": "MANIFESTUL TRUSTORA",
+      "heading_line": "De la Incertitudine la",
+      "heading_highlight": "Infrastructură Digitală.",
+      "active_label": "ACTIV",
+      "next_step": "Următorul Pas",
+      "join_network": "Intră în rețea",
+      "payment_failed": "PLATĂ: EȘUATĂ",
+      "risk_label": "RISC",
+      "compliance_gap": "Lipsă conformitate",
+      "protocol_init": "TRUST_PROTOCOL_INIT",
+      "legal_wrapper": "WRAPPER LEGAL",
+      "smart_contract": "CONTRACT INTELIGENT",
+      "connecting_nodes": "CONEXIUNI ÎN CURS...",
+      "escrow": "ESCROW",
+      "active_protection": "PROTECȚIE ACTIVĂ",
+      "funds_label": "Fonduri",
+      "global_infrastructure": "Infrastructură globală de încredere",
+      "verified": "VERIFICAT",
+      "secured": "SECURIZAT",
+      "system_status_label": "Stare sistem:",
+      "status": {
+        "critical": "CRITIC",
+        "initializing": "INIȚIALIZARE",
+        "secured": "SECURIZAT",
+        "optimal": "OPTIM"
+      },
+      "steps": {
+        "chaos": {
+          "title": "Haosul Curent",
+          "subtitle": "Freelancing-ul este un câmp minat.",
+          "description": "Contracte pe email. Plăți nesecurizate. Facturi neconforme în Excel. Clienții riscă amenzi pentru 'angajare mascată', iar profesioniști riscă neplata. Este un joc de noroc, nu o afacere."
+        },
+        "infrastructure": {
+          "title": "Viziunea Infrastructurii",
+          "subtitle": "Nu vindem freelanceri. Vindem certitudine.",
+          "description": "Am creat un 'Legal Wrapper' unificat. Trustora nu este doar un marketplace, este infrastructura de securitate dintre bani și livrabil. Stripe + Notar Digital + Marketplace într-un singur loc."
+        },
+        "mechanism": {
+          "title": "Mecanismul de Încredere",
+          "subtitle": "Smart Escrow & Verificare Totală.",
+          "description": "Banii sunt blocați în conturi segregate înainte de start. Identitatea este verificată biometric. Contractele includ transfer automat de IP. Nimic nu este lăsat la voia întâmplării."
+        },
+        "success": {
+          "title": "Noua Realitate",
+          "subtitle": "Unde munca întâlnește încrederea.",
+          "description": "Un ecosistem unde plățile sunt garantate și munca este protejată legal. Fără frică. Fără riscuri administrative. Doar focus pe livrare și performanță."
+        }
+      }
+    }
   }
 }
