@@ -15,6 +15,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { LocalizedLink } from "@/components/LocalizedLink";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
+import { apiClient } from "@/lib/api";
 import { usePathname } from "next/navigation";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { Locale } from "@/types/locale";
@@ -198,7 +199,7 @@ export default function EarlyAccessClientPage() {
                 throw new Error(frequencyErrorText);
             }
 
-            const payload = {
+            const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
                 user_type: "client",
                 email: formData.email,
                 contact_name: formData.contactName,
@@ -210,19 +211,7 @@ export default function EarlyAccessClientPage() {
                 escrow_help: formData.escrowHelp,
             };
 
-            const response = await fetch("/api/early-access", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.json().catch(() => null);
-                const message = errorBody?.message ?? genericErrorText;
-                throw new Error(message);
-            }
+            await apiClient.createEarlyAccessApplication(payload);
 
             setSuccess(true);
             setFormData({

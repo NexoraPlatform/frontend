@@ -42,6 +42,10 @@
   "Trustora_benefits_list": "Trustora benefits list",
   "category_label": "Category",
   "benefit_label": "Benefit",
-  "statistic_label": "Statistic"
+  "statistic_label": "Statistic",
+  "banner": {
+    "early_access_enabled": "Early access funnel is enabled.",
+    "basic_auth_enabled": "Basic auth is enabled."
+  }
 
 }

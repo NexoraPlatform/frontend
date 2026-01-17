@@ -42,5 +42,9 @@
   "Trustora_benefits_list": "Lista beneficii Trustora",
   "category_label": "Categorie",
   "benefit_label": "Beneficiu",
-  "statistic_label": "Statistică"
+  "statistic_label": "Statistică",
+  "banner": {
+    "early_access_enabled": "Early access funnel este activ.",
+    "basic_auth_enabled": "Basic auth este activ."
+  }
 }

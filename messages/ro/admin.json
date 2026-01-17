@@ -77,6 +77,11 @@
         "title": "Analytics & Rapoarte",
         "description": "Analizează performanța platformei",
         "stats": "Statistici detaliate"
+      },
+      "early_access": {
+        "title": "Înscrieri Early Access",
+        "description": "Vezi toți aplicanții din pre-early stage",
+        "stats": "Aplicații grupate pe tip"
       }
     },
     "pending_template": "{count} în așteptare",
@@ -104,6 +109,29 @@
       "flexible": "Flexibile",
       "active": "Active"
     }
+  },
+  "early_access": {
+    "manage_title": "Înscrieri Early Access",
+    "manage_subtitle": "Vizualizează toate aplicațiile din pre-early stage",
+    "providers": {
+      "title": "Prestatori înscriși",
+      "description": "{count} prestatori înregistrați",
+      "empty": "Nu există prestatori înscriși momentan."
+    },
+    "clients": {
+      "title": "Clienți înscriși",
+      "description": "{count} clienți înregistrați",
+      "empty": "Nu există clienți înscriși momentan."
+    },
+    "columns": {
+      "name": "Nume complet",
+      "contact_name": "Persoană de contact",
+      "company_name": "Companie",
+      "email": "Email",
+      "score": "Scor",
+      "created_at": "Înscris la"
+    },
+    "error": "Nu am putut încărca înscrierile."
   },
   "categories": {
     "manage_title": "Gestionare Categorii",

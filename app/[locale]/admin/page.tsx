@@ -17,6 +17,7 @@ import {
   Plus,
   FolderPlus,
   UserPlus,
+  UserCheck,
   Eye,
   ArrowRight,
   Activity,
@@ -117,6 +118,9 @@ export default function AdminDashboard() {
   const analyticsSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.analytics.title');
   const analyticsSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.analytics.description');
   const analyticsSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.analytics.stats');
+  const earlyAccessSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.early_access.title');
+  const earlyAccessSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.early_access.description');
+  const earlyAccessSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.early_access.stats');
   const pendingTemplate = useAsyncTranslation(locale, 'admin.dashboard.pending_template');
 
   const activityTitle = useAsyncTranslation(locale, 'admin.dashboard.activity.title');
@@ -235,6 +239,15 @@ export default function AdminDashboard() {
       permissions: ['users.read']
     },
     {
+      title: earlyAccessSectionTitle,
+      description: earlyAccessSectionDescription,
+      icon: UserCheck,
+      href: '/admin/early-access',
+      stats: earlyAccessSectionStats,
+      pending: 0,
+      role: 'admin'
+    },
+    {
       title: servicesSectionTitle,
       description: servicesSectionDescription,
       icon: FileText,
@@ -334,6 +347,9 @@ export default function AdminDashboard() {
     analyticsSectionTitle,
     analyticsSectionDescription,
     analyticsSectionStats,
+    earlyAccessSectionTitle,
+    earlyAccessSectionDescription,
+    earlyAccessSectionStats,
     statsData
   ]);
 
