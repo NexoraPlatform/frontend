@@ -220,22 +220,22 @@ export const TrustoraStoryCard = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4 font-sans">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 font-sans dark:bg-slate-950">
             {/* Main Card Container */}
-            <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl transition-all duration-500 ease-in-out md:flex-row">
+            <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl transition-all duration-500 ease-in-out dark:border-slate-800 dark:bg-slate-900 md:flex-row">
                 {/* Left Side: Interactive Story Navigation */}
-                <div className="relative z-20 flex w-full flex-col justify-between bg-white p-8 md:w-1/2 md:p-10">
+                <div className="relative z-20 flex w-full flex-col justify-between bg-white p-8 dark:bg-slate-900 md:w-1/2 md:p-10">
                     {/* Header */}
                     <div className="mb-6">
                         <div className="mb-3 flex items-center gap-2">
                             <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0B1C2D]">
                                 <div className="h-2.5 w-2.5 border-r-2 border-t-2 border-[#1BC47D]"></div>
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
                                 {manifestLabel}
                             </span>
                         </div>
-                        <h2 className="text-3xl font-bold leading-tight text-[#0B1C2D]">
+                        <h2 className="text-3xl font-bold leading-tight text-[#0B1C2D] dark:text-white">
                             {headingLine} <br />
                             <span style={{ color: colors.accent }}>{headingHighlight}</span>
                         </h2>
@@ -244,7 +244,7 @@ export const TrustoraStoryCard = () => {
                     {/* Timeline Steps */}
                     <div className="relative z-10 flex-grow space-y-3">
                         {/* Connecting Line */}
-                        <div className="absolute bottom-6 left-[27px] top-6 -z-10 w-0.5 bg-slate-100"></div>
+                        <div className="absolute bottom-6 left-[27px] top-6 -z-10 w-0.5 bg-slate-100 dark:bg-slate-800"></div>
 
                         {steps.map((step, index) => (
                             <div
@@ -252,16 +252,16 @@ export const TrustoraStoryCard = () => {
                                 onClick={() => handleStepClick(index)}
                                 className={`group cursor-pointer rounded-xl border border-transparent p-3 transition-all duration-300 ${
                                     activeStep === index
-                                        ? "translate-x-2 border-slate-200 bg-slate-50 shadow-sm"
-                                        : "hover:border-slate-100 hover:bg-slate-50"
+                                        ? "translate-x-2 border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-800/60"
+                                        : "hover:border-slate-100 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/50"
                                 }`}
                             >
                                 <div className="flex items-start gap-4">
                                     <div
                                         className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 bg-white transition-all duration-300 ${
                                             activeStep === index
-                                                ? "scale-110 border-[#1BC47D]"
-                                                : "border-slate-200 grayscale"
+                                                ? "scale-110 border-[#1BC47D] dark:bg-slate-900"
+                                                : "border-slate-200 grayscale dark:border-slate-700 dark:bg-slate-900"
                                         }`}
                                     >
                                         <div className="scale-75 transform">{step.icon}</div>
@@ -271,13 +271,15 @@ export const TrustoraStoryCard = () => {
                                         <div className="mb-1 flex items-center justify-between">
                                             <h3
                                                 className={`text-sm font-bold ${
-                                                    activeStep === index ? "text-[#0B1C2D]" : "text-slate-500"
+                                                    activeStep === index
+                                                        ? "text-[#0B1C2D] dark:text-white"
+                                                        : "text-slate-500 dark:text-slate-400"
                                                 }`}
                                             >
                                                 {step.title}
                                             </h3>
                                             {activeStep === index && (
-                                                <span className="rounded-full bg-[#1BC47D]/10 px-2 py-0.5 text-[10px] font-bold text-[#1BC47D]">
+                                                <span className="rounded-full bg-[#1BC47D]/10 px-2 py-0.5 text-[10px] font-bold text-[#1BC47D] dark:bg-[#1BC47D]/20">
                                                     {activeLabel}
                                                 </span>
                                             )}
@@ -285,7 +287,9 @@ export const TrustoraStoryCard = () => {
 
                                         <p
                                             className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
-                                                activeStep === index ? "text-slate-800" : "text-slate-400"
+                                                activeStep === index
+                                                    ? "text-slate-800 dark:text-slate-200"
+                                                    : "text-slate-400 dark:text-slate-500"
                                             }`}
                                         >
                                             {step.subtitle}
@@ -299,7 +303,7 @@ export const TrustoraStoryCard = () => {
                                                     : "max-h-0 opacity-0"
                                             }`}
                                         >
-                                            <p className="border-l-2 border-[#1BC47D]/30 pl-3 text-sm leading-relaxed text-slate-600">
+                                            <p className="border-l-2 border-[#1BC47D]/30 pl-3 text-sm leading-relaxed text-slate-600 dark:border-[#1BC47D]/50 dark:text-slate-300">
                                                 {step.description}
                                             </p>
                                         </div>
@@ -310,13 +314,15 @@ export const TrustoraStoryCard = () => {
                     </div>
 
                     {/* Bottom Action Area */}
-                    <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+                    <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
                         <div className="flex gap-1.5">
                             {steps.map((step) => (
                                 <div
                                     key={step.id}
                                     className={`h-1 rounded-full transition-all duration-500 ${
-                                        activeStep === step.id ? "w-6 bg-[#1BC47D]" : "w-2 bg-slate-200"
+                                        activeStep === step.id
+                                            ? "w-6 bg-[#1BC47D]"
+                                            : "w-2 bg-slate-200 dark:bg-slate-700"
                                     }`}
                                 />
                             ))}
@@ -325,7 +331,7 @@ export const TrustoraStoryCard = () => {
                         {activeStep < steps.length - 1 ? (
                             <button
                                 onClick={handleNext}
-                                className="group flex items-center gap-2 rounded px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#0B1C2D] transition-colors hover:bg-slate-50 hover:text-[#1BC47D]"
+                                className="group flex items-center gap-2 rounded px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#0B1C2D] transition-colors hover:bg-slate-50 hover:text-[#1BC47D] dark:text-slate-100 dark:hover:bg-slate-800"
                             >
                                 {nextStepLabel}{" "}
                                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
@@ -333,7 +339,7 @@ export const TrustoraStoryCard = () => {
                         ) : (
                             <a
                                 href="#early-access-client"
-                                className="flex items-center gap-2 rounded-lg bg-[#0B1C2D] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-[#0B1C2D]/20 transition-colors hover:bg-[#152a3d]"
+                                className="flex items-center gap-2 rounded-lg bg-[#0B1C2D] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-[#0B1C2D]/20 transition-colors hover:bg-[#152a3d] dark:bg-slate-950 dark:hover:bg-slate-800"
                             >
                                 {joinNetworkLabel} <ArrowRight size={14} />
                             </a>
