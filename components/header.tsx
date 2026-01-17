@@ -180,16 +180,7 @@ export function Header() {
             </LocalizedLink>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Button
-                className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
-                variant="outline"
-                asChild
-              >
-                <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
-              </Button>
-              <Button className="w-full btn-primary text-white sm:w-auto" asChild>
-                <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
-              </Button>
+              <LocaleSwitcher currentLocale={locale} />
               <Button
                 variant="ghost"
                 size="icon"
@@ -199,6 +190,16 @@ export function Header() {
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              </Button>
+              <Button
+                className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
+                variant="outline"
+                asChild
+              >
+                <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
+              </Button>
+              <Button className="w-full btn-primary text-white sm:w-auto" asChild>
+                <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
               </Button>
             </div>
           </div>
@@ -302,19 +303,19 @@ export function Header() {
               </>
             )}
 
+            <LocaleSwitcher className="hidden lg:block" currentLocale={locale} />
+
             {/* Theme Toggle */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-11 h-11hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white dark:hover:bg-emerald-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+              className="w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
               aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
-
-            <LocaleSwitcher className="hidden lg:block" currentLocale={locale} />
 
             {/* User Menu or Auth Buttons */}
             {user ? (
