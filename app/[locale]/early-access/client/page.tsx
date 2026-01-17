@@ -199,7 +199,7 @@ export default function EarlyAccessClientPage() {
                 throw new Error(frequencyErrorText);
             }
 
-            const payload = {
+            const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
                 user_type: "client",
                 email: formData.email,
                 contact_name: formData.contactName,
