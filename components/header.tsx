@@ -190,6 +190,16 @@ export function Header() {
               <Button className="w-full btn-primary text-white sm:w-auto" asChild>
                 <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
+                aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
+              >
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              </Button>
             </div>
           </div>
         </div>
