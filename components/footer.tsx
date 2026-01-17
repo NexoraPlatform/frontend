@@ -1,8 +1,10 @@
 "use client";
 
-import { Mail, Phone, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import Image from 'next/image';
 import { useAuth } from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
@@ -18,11 +20,25 @@ export function Footer() {
   const { user } = useAuth();
   const pathname = usePathname();
   const locale = pathname.split('/')[1] as Locale || 'ro';
+  const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const footerInfoText = useAsyncTranslation(locale, "common.footer_info")
+  const followUsSocialText = useAsyncTranslation(locale, "common.follow_us_social");
+  const followUsOnText = useAsyncTranslation(locale, "common.follow_us_on");
+  const footerPlatformDescriptionText = useAsyncTranslation(locale, "common.footer_platform_description");
+  const quickLinksText = useAsyncTranslation(locale, "common.quick_links");
+  const servicesText = useAsyncTranslation(locale, "navigation.services")
+  const aboutText = useAsyncTranslation(locale, "navigation.about")
+  const helpText = useAsyncTranslation(locale, "navigation.help")
+  const contactText = useAsyncTranslation(locale, "navigation.contact")
+  const popularServicesText = useAsyncTranslation(locale, "common.popular_services");
   const emailForNewsletterText = useAsyncTranslation(locale, "common.newsletter_email_address");
   const yourEmailText = useAsyncTranslation(locale, "common.your_email");
   const subscribeToNewsletterText = useAsyncTranslation(locale, "common.subscribe_to_newsletter");
   const subscribeText = useAsyncTranslation(locale, "common.subscribe");
+  const privacyPolicyText = useAsyncTranslation(locale, "common.privacy_policy");
+  const readPrivacyPolicyText = useAsyncTranslation(locale, "common.read_privacy_policy");
+  const termsConditionsText = useAsyncTranslation(locale, "common.terms_conditions");
+  const readTermsConditionsText = useAsyncTranslation(locale, "common.read_terms_conditions");
   const allRightsReservedText = useAsyncTranslation(locale, "common.all_rights_reserved");
 
   return (
@@ -33,73 +49,248 @@ export function Footer() {
       >
         {user && (<ChatLauncher />)}
         <div className="container mx-auto px-4 !py-12">
-          <div className="rounded-3xl border border-slate-200/60 bg-white/70 p-8 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70">
-            <div className="grid gap-10 md:grid-cols-2 md:items-start">
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold" id="contact-heading">Contact</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Suntem aici dacă ai nevoie de ajutor sau informații suplimentare.
-                  </p>
+          {earlyAccessEnabled ? (
+            <div className="rounded-3xl border border-slate-200/60 bg-white/70 p-8 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70">
+              <div className="grid gap-10 md:grid-cols-2 md:items-start">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <h2 className="text-lg font-semibold" id="contact-heading">Contact</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Suntem aici dacă ai nevoie de ajutor sau informații suplimentare.
+                    </p>
+                  </div>
+                  <div className="space-y-3" aria-labelledby="contact-heading">
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
+                      <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                      <a href="mailto:contact@Trustora.ro" className="font-medium hover:text-primary transition-colors">
+                        contact@Trustora.ro
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
+                      <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                      <a href="tel:+40123456789" className="font-medium hover:text-primary transition-colors">
+                        +40 123 456 789
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
+                      <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                      <span className="font-medium">București, România</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-3" aria-labelledby="contact-heading">
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
-                    <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                    <a href="mailto:contact@Trustora.ro" className="font-medium hover:text-primary transition-colors">
+
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold" id="newsletter-heading">Newsletter</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Primești update-uri despre Trustora și acces la noutăți.
+                    </p>
+                  </div>
+                  <form
+                    className="flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80 sm:flex-row sm:items-center"
+                    aria-labelledby="newsletter-heading"
+                  >
+                    <Input
+                        placeholder={yourEmailText}
+                        className="h-11 text-sm"
+                        type="email"
+                        aria-label={emailForNewsletterText}
+                    />
+                    <Button
+                        size="sm"
+                        type="submit"
+                        aria-label={subscribeToNewsletterText}
+                        className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl px-5 text-sm font-semibold ring-offset-background transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50
+           bg-[#1BC47D] text-[#071A12]
+           hover:bg-[#17b672]
+           dark:bg-[#1BC47D] dark:hover:bg-[#17b672]"
+                    >
+                        {subscribeText}
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <div className="relative w-8 h-8 flex flex-col-reverse">
+                    <picture>
+                      <source
+                          type="image/avif"
+                          srcSet="/trustora-logo2-60.avif 1x, /trustora-logo2-120.avif 2x"
+                          className="dark:hidden h-10 w-auto"
+                      />
+                      <source
+                          type="image/webp"
+                          srcSet="/trustora-logo2-60.webp 1x, /trustora-logo2-120.webp 2x"
+                          className="dark:hidden h-10 w-auto"
+                      />
+                      <Image
+                          src="/trustora-logo2-60.webp"
+                          alt="Trustoria Logo"
+                          width={140}
+                          height={175}
+                          className="h-10 w-auto"
+                          loading="eager"
+                          decoding="async"
+                          style={{ maxWidth: 'unset', height: '2.5rem', width: 'auto' }}
+                      />
+                    </picture>
+                  </div>
+                  <div className="flex flex-col items-start ps-4">
+                      <span className="text-xl font-bold text-primary">Trustora</span>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        Where work meets trust.
+                      </span>
+                  </div>
+
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    {footerPlatformDescriptionText}
+                </p>
+                <div className="flex space-x-2" role="group" aria-label={followUsSocialText}>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${followUsOnText} Facebook`}
+                  >
+                    <Facebook className="h-4 w-4" />
+                  </Button>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${followUsOnText} Twitter`}
+                  >
+                    <Twitter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${followUsOnText} LinkedIn`}
+                  >
+                    <Linkedin className="h-4 w-4" />
+                  </Button>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${followUsOnText} Instagram`}
+                  >
+                    <Instagram className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold" id="quick-links-heading">{quickLinksText}</h2>
+                <nav className="space-y-2" aria-labelledby="quick-links-heading">
+                  <Link href={`/${locale}/services`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                      {servicesText}
+                  </Link>
+                  <Link href={`/${locale}/about`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                      {aboutText}
+                  </Link>
+                  <Link href={`/${locale}/help`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                      {helpText}
+                  </Link>
+                  <Link href={`/${locale}/contact`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                      {contactText}
+                  </Link>
+                </nav>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold" id="popular-services-heading">{popularServicesText}</h2>
+                <nav className="space-y-2" aria-labelledby="popular-services-heading">
+                  <Link href={`/${locale}/services?category=web-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Dezvoltare Web
+                  </Link>
+                  <Link href={`/${locale}/services?category=mobile-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Aplicații Mobile
+                  </Link>
+                  <Link href={`/${locale}/services?category=design`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Design UI/UX
+                  </Link>
+                  <Link href={`/${locale}/services?category=marketing`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Marketing Digital
+                  </Link>
+                </nav>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold" id="contact-heading">Contact</h2>
+                <div className="space-y-2" aria-labelledby="contact-heading">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    <a href="mailto:contact@Trustora.ro" className="hover:text-primary transition-colors">
                       contact@Trustora.ro
                     </a>
                   </div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
-                    <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                    <a href="tel:+40123456789" className="font-medium hover:text-primary transition-colors">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    <a href="tel:+40123456789" className="hover:text-primary transition-colors">
                       +40 123 456 789
                     </a>
                   </div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
-                    <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                    <span className="font-medium">București, România</span>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>București, România</span>
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-semibold" id="newsletter-heading">Newsletter</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Primești update-uri despre Trustora și acces la noutăți.
-                  </p>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium" id="newsletter-heading">Newsletter</h3>
+                  <form className="flex space-x-2" aria-labelledby="newsletter-heading">
+                    <Input
+                        placeholder={yourEmailText}
+                        className="text-sm"
+                        type="email"
+                        aria-label={emailForNewsletterText}
+                    />
+                    <Button
+                        size="sm"
+                        type="submit"
+                        aria-label={subscribeToNewsletterText}
+                        className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50
+           bg-[#1BC47D] text-[#071A12]
+           hover:bg-[#17b672]
+           dark:bg-[#1BC47D] dark:hover:bg-[#17b672]
+           h-9 rounded-md px-3"
+                    >
+                        {subscribeText}
+                    </Button>
+                  </form>
                 </div>
-                <form
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80 sm:flex-row sm:items-center"
-                  aria-labelledby="newsletter-heading"
-                >
-                  <Input
-                      placeholder={yourEmailText}
-                      className="h-11 text-sm"
-                      type="email"
-                      aria-label={emailForNewsletterText}
-                  />
-                  <Button
-                      size="sm"
-                      type="submit"
-                      aria-label={subscribeToNewsletterText}
-                      className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl px-5 text-sm font-semibold ring-offset-background transition-colors
-         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-         disabled:pointer-events-none disabled:opacity-50
-         bg-[#1BC47D] text-[#071A12]
-         hover:bg-[#17b672]
-         dark:bg-[#1BC47D] dark:hover:bg-[#17b672]"
-                  >
-                      {subscribeText}
-                  </Button>
-                </form>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="border-t mt-8 pt-8 text-center" role="contentinfo">
             <p className="text-sm text-muted-foreground">
-              © 2024 Trustora. {allRightsReservedText}.
+              © 2024 Trustora. {allRightsReservedText}{!earlyAccessEnabled && (
+                <>
+                  . |
+                  <Link
+                      href="/privacy"
+                      className="hover:text-primary ml-1"
+                      aria-label={readPrivacyPolicyText}
+                  >
+                      {privacyPolicyText}
+                  </Link> |
+                  <Link
+                      href="/terms"
+                      className="hover:text-primary ml-1"
+                      aria-label={readTermsConditionsText}
+                  >
+                      {termsConditionsText}
+                  </Link>
+                </>
+              )}
+              {earlyAccessEnabled && '.'}
             </p>
           </div>
         </div>
