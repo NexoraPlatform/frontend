@@ -9,7 +9,7 @@ import { useLocalizedRouter } from '@/hooks/use-localized-router';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Moon, Sun, LogOut } from 'lucide-react';
+import { Menu, Moon, Sun, LogOut, Mail, Phone, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
@@ -233,18 +233,37 @@ export function Header() {
                     <Button className="w-full btn-primary text-white" asChild>
                       <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
                     </Button>
-                    <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/70 p-4 text-xs text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-                      <p className="font-semibold">Contact</p>
-                      <p className="mt-2">
-                        <a href="mailto:contact@Trustora.ro" className="underline decoration-emerald-400/60 underline-offset-4">
-                          contact@Trustora.ro
-                        </a>
-                      </p>
-                      <p className="mt-1">
-                        <a href="mailto:suport@Trustora.ro" className="underline decoration-emerald-400/60 underline-offset-4">
-                          suport@Trustora.ro
-                        </a>
-                      </p>
+                    <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/80 p-4 text-xs text-emerald-950 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300">
+                          Date de contact
+                        </p>
+                        <span className="text-[10px] font-medium text-emerald-500/80 dark:text-emerald-200/80">Trustora</span>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          <Mail className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
+                          <a
+                            href="mailto:contact@Trustora.ro"
+                            className="font-medium underline decoration-emerald-400/60 underline-offset-4"
+                          >
+                            contact@Trustora.ro
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          <Phone className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
+                          <a
+                            href="tel:+40123456789"
+                            className="font-medium underline decoration-emerald-400/60 underline-offset-4"
+                          >
+                            +40 123 456 789
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
+                          <span className="font-medium">București, România</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </SheetContent>
