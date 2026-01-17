@@ -216,7 +216,13 @@ export function Header() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
                   <SheetTitle className="sr-only">Meniu înscriere early access</SheetTitle>
-                  <div className="mt-8 flex flex-col space-y-4">
+                  <div className="mt-8 flex flex-col space-y-6">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Meniu</p>
+                      <p className="text-sm text-muted-foreground">
+                        Alege tipul de cont pentru înscriere în early access.
+                      </p>
+                    </div>
                     <Button
                       className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60"
                       variant="outline"
@@ -227,6 +233,19 @@ export function Header() {
                     <Button className="w-full btn-primary text-white" asChild>
                       <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
                     </Button>
+                    <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/70 p-4 text-xs text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+                      <p className="font-semibold">Contact</p>
+                      <p className="mt-2">
+                        <a href="mailto:contact@Trustora.ro" className="underline decoration-emerald-400/60 underline-offset-4">
+                          contact@Trustora.ro
+                        </a>
+                      </p>
+                      <p className="mt-1">
+                        <a href="mailto:suport@Trustora.ro" className="underline decoration-emerald-400/60 underline-offset-4">
+                          suport@Trustora.ro
+                        </a>
+                      </p>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
