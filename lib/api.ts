@@ -175,6 +175,30 @@ class ApiClient {
     });
   }
 
+  async getEarlyAccessGrouped() {
+    return this.request<{
+      providers: Array<{
+        id: number;
+        user_type: 'provider';
+        full_name: string;
+        email: string;
+        score: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+      clients: Array<{
+        id: number;
+        user_type: 'client';
+        contact_name: string;
+        company_name: string;
+        email: string;
+        score: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }>('/early-access/grouped');
+  }
+
   // Services endpoints
   async getServices(params?: {
     search?: string;

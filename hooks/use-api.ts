@@ -103,6 +103,10 @@ export function useAdminCalls() {
   return useApi(() => apiClient.getCalls(), []);
 }
 
+export function useEarlyAccessGrouped() {
+  return useApi(() => apiClient.getEarlyAccessGrouped(), []);
+}
+
 // Tests hooks
 export function useTests(params?: any) {
   return useApi(() => apiClient.getTests(params), [JSON.stringify(params)]);
@@ -173,4 +177,3 @@ export function useProject(id: string) {
 export function useTechnologies() {
   return useApi(() => apiClient.getTechnologies(), []);
 }
-
