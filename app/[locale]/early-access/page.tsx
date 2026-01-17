@@ -75,6 +75,35 @@ export default function EarlyAccessPage() {
                             </div>
                         </Card>
                     </div>
+
+                    <Card className="group relative overflow-hidden border border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/60 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_24px_60px_-24px_rgba(16,185,129,0.6)] dark:border-emerald-500/20 dark:from-[#0B1220] dark:via-[#0F172A] dark:to-emerald-500/10">
+                        <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl transition-transform duration-500 group-hover:scale-110 dark:bg-emerald-400/10" />
+                        <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl transition-transform duration-500 group-hover:scale-110 dark:bg-emerald-300/10" />
+                        <CardHeader className="relative z-10 space-y-4 p-8 md:p-10">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-white/80 px-4 py-1 text-xs font-semibold text-emerald-700 shadow-sm dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                Povestea Trustora
+                            </div>
+                            <CardTitle className="text-3xl font-semibold text-[#0F172A] dark:text-white">
+                                De ce construim Trustora și cum te ajută în early access
+                            </CardTitle>
+                            <CardDescription className="text-base text-slate-600 dark:text-slate-300">
+                                Am pornit Trustora pentru a aduce încredere în colaborările dintre clienți și prestatori: proiecte
+                                clare, plăți sigure și recomandări bazate pe scor real. Early access înseamnă acces prioritar la primele
+                                proiecte, feedback direct către echipă și influență asupra funcțiilor care contează pentru tine.
+                            </CardDescription>
+                            <div className="flex flex-col gap-3 text-sm text-slate-600 dark:text-slate-300 md:flex-row md:items-center md:gap-6">
+                                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                    ✔ Acces prioritar
+                                </span>
+                                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                    ✔ Feedback direct
+                                </span>
+                                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                                    ✔ Comunitate selectă
+                                </span>
+                            </div>
+                        </CardHeader>
+                    </Card>
                 </div>
             </div>
 
