@@ -267,10 +267,6 @@ export default async function middleware(req: NextRequest) {
   // The original findRequirement used 'pathname' directly from req.nextUrl.
 
   // Imrovement: Strip locale for routing checks to ensure consistence
-  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/'; // Handle root /ro -> /
-  const normalizedPath =
-    pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
-
   const requirement = findRequirement(normalizedPath);
 
   // Also check if the raw pathname matched (old behavior fallback) if strict strip failed? 
