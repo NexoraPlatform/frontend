@@ -172,6 +172,13 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
+function isEarlyAccessEnabled() {
+  return (
+    process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true' ||
+    process.env.EARLY_ACCESS_FUNNEL === 'true'
+  );
+}
+
 // ---- Middleware Main ----
 
 export default async function middleware(req: NextRequest) {
@@ -199,6 +206,30 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  const segments = pathname.split('/');
+  const locale = segments[1];
+  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/';
+  const normalizedPath =
+    pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
+
+  if (isEarlyAccessEnabled()) {
+    const earlyAccessRoutes = new Set([
+      '/early-access',
+      '/early-access/client',
+      '/early-access/provider',
+    ]);
+
+    if (normalizedPath === '/') {
+      const url = new URL(`/${locale}/early-access`, req.url);
+      return NextResponse.rewrite(url);
+    }
+
+    if (!earlyAccessRoutes.has(normalizedPath)) {
+      const url = new URL(`/${locale}/early-access`, req.url);
+      return NextResponse.redirect(url);
+    }
+  }
+
   // 2. Auth Flow
   const token =
     req.cookies.get('auth_token')?.value ||
@@ -215,11 +246,12 @@ export default async function middleware(req: NextRequest) {
     // AUTH_PAGES above are defined as '/auth/signin'.
     // But pathname is '/ro/auth/signin'.
 
-    const segments = pathname.split('/');
     // segments[0] is empty, segments[1] is locale
     const pathWithoutLocale = '/' + segments.slice(2).join('/');
+    const normalizedPath =
+      pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-    if (AUTH_PAGES.has(pathWithoutLocale)) {
+    if (AUTH_PAGES.has(normalizedPath)) {
       const url = new URL('/dashboard', req.url);
       url.search = req.nextUrl.search;
       return NextResponse.redirect(url);
@@ -235,11 +267,11 @@ export default async function middleware(req: NextRequest) {
   // The original findRequirement used 'pathname' directly from req.nextUrl.
 
   // Imrovement: Strip locale for routing checks to ensure consistence
-  const segments = pathname.split('/');
-  const locale = segments[1];
   const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/'; // Handle root /ro -> /
+  const normalizedPath =
+    pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-  const requirement = findRequirement(pathWithoutLocale);
+  const requirement = findRequirement(normalizedPath);
 
   // Also check if the raw pathname matched (old behavior fallback) if strict strip failed? 
   // Actually, standard practice is to define rules on non-localized paths.
