@@ -14,7 +14,7 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
           POLITICA DE COOKIE-URI – TRUSTORA
         </h2>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Ultima actualizare: 2026-01-17
+          Ultima actualizare: 17 ianuarie 2026
         </p>
       </div>
 
@@ -231,7 +231,7 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
           COOKIE POLICY – TRUSTORA
         </h2>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Last updated: 2026-01-17
+          Last updated: January 17, 2026
         </p>
       </div>
 

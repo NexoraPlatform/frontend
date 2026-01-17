@@ -14,7 +14,7 @@ function TermsContentRo({ className, headingClassName }: Omit<TermsContentProps,
           TERMENI ȘI CONDIȚII DE UTILIZARE – TRUSTORA
         </h2>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Ultima actualizare: [Data Curentă]
+          Ultima actualizare: 17 ianuarie 2026
         </p>
       </div>
 
@@ -164,7 +164,7 @@ function TermsContentEn({ className, headingClassName }: Omit<TermsContentProps,
           TERMS AND CONDITIONS OF USE – TRUSTORA
         </h2>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Last updated: [Current Date]
+          Last updated: January 17, 2026
         </p>
       </div>
 

@@ -14,7 +14,7 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
           POLITICA DE CONFIDENȚIALITATE – TRUSTORA
         </h2>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Data intrării în vigoare: [Data Curentă]
+          Data intrării în vigoare: 17 ianuarie 2026
         </p>
       </div>
 
@@ -273,7 +273,7 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
           PRIVACY POLICY – TRUSTORA
         </h2>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Effective date: [Current Date]
+          Effective date: January 17, 2026
         </p>
       </div>
 

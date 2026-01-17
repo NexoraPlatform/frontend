@@ -31,7 +31,7 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
       <Header />
       <TrustoraThemeStyles />
       <main className="container mx-auto px-4 pb-16 pt-28">
-        <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90 md:p-10">
+        <div className="mx-auto mb-6 mt-6 max-w-5xl rounded-3xl border border-slate-200/60 bg-white/90 p-6 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90 md:p-10">
           <PrivacyContent
             className="text-sm md:text-base"
             headingClassName="text-2xl md:text-3xl"
