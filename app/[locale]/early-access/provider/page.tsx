@@ -210,7 +210,7 @@ export default function EarlyAccessProviderPage() {
                 throw new Error(skillErrorText);
             }
 
-            const payload = {
+            const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
                 user_type: "provider",
                 email: formData.email,
                 full_name: formData.fullName,
