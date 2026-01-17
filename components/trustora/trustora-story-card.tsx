@@ -189,9 +189,12 @@ export const TrustoraStoryCard = () => {
                                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                             </button>
                         ) : (
-                            <button className="flex items-center gap-2 rounded-lg bg-[#0B1C2D] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-[#0B1C2D]/20 transition-colors hover:bg-[#152a3d]">
+                            <a
+                                href="#early-access-client"
+                                className="flex items-center gap-2 rounded-lg bg-[#0B1C2D] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-[#0B1C2D]/20 transition-colors hover:bg-[#152a3d]"
+                            >
                                 Join The Network <ArrowRight size={14} />
-                            </button>
+                            </a>
                         )}
                     </div>
                 </div>
