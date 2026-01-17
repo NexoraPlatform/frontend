@@ -65,6 +65,8 @@
       "submitting": "Trimitem aplicația...",
       "error_generic": "A apărut o eroare. Încearcă din nou.",
       "error_submit": "Nu am putut trimite formularul.",
+      "terms_acknowledgement": "Am luat la cunoștință și sunt de acord cu",
+      "terms_and": "și",
       "title_suffix": "pentru early access"
     },
     "header": {

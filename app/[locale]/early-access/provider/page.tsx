@@ -77,6 +77,18 @@ export default function EarlyAccessProviderPage() {
         "trustora.early_access.common.error_generic",
         "A apărut o eroare. Încearcă din nou.",
     );
+    const termsAcknowledgementText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.common.terms_acknowledgement",
+        "Am luat la cunoștință și sunt de acord cu",
+    );
+    const termsAndText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.common.terms_and",
+        "și",
+    );
+    const termsLinkText = useAsyncTranslation(locale, "common.terms_conditions", "Termenii și Condițiile");
+    const privacyLinkText = useAsyncTranslation(locale, "common.privacy_policy", "Politica de Confidențialitate");
     const submitErrorText = useAsyncTranslation(
         locale,
         "trustora.early_access.common.error_submit",
@@ -448,7 +460,7 @@ export default function EarlyAccessProviderPage() {
 
                                     <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
                                         <div className="max-h-64 overflow-y-auto pr-2">
-                                            <TermsContent className="text-xs" headingClassName="text-base" />
+                                            <TermsContent className="text-xs" headingClassName="text-base" locale={locale} />
                                         </div>
                                     </div>
 
@@ -461,19 +473,19 @@ export default function EarlyAccessProviderPage() {
                                             }
                                         />
                                         <Label htmlFor="terms" className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                                            Am luat la cunoștință și sunt de acord cu{" "}
+                                            {termsAcknowledgementText}{" "}
                                             <LocalizedLink
                                                 href="/terms"
                                                 className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                                             >
-                                                Termenii și Condițiile
+                                                {termsLinkText}
                                             </LocalizedLink>{" "}
-                                            și{" "}
+                                            {termsAndText}{" "}
                                             <LocalizedLink
                                                 href="/privacy"
                                                 className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                                             >
-                                                Politica de Confidențialitate
+                                                {privacyLinkText}
                                             </LocalizedLink>
                                             .
                                         </Label>

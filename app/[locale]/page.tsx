@@ -14,7 +14,12 @@ import {generateStructuredData} from "@/lib/seo";
 
 export const revalidate = 86400; // 24h
 
-export async function generateMetadata({ params: { locale } }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Homepage' });
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexoraplatform.com'; // Înlocuiește cu domeniul tău real
 

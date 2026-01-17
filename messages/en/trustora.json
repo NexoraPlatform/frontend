@@ -65,6 +65,8 @@
       "submitting": "Submitting application...",
       "error_generic": "Something went wrong. Please try again.",
       "error_submit": "We could not submit the form.",
+      "terms_acknowledgement": "I have read and agree to the",
+      "terms_and": "and",
       "title_suffix": "for early access"
     },
     "header": {
