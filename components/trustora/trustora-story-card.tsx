@@ -12,9 +12,158 @@ import {
     Scale,
     Shield,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useAsyncTranslation } from "@/hooks/use-async-translation";
+import { Locale } from "@/types/locale";
 
 export const TrustoraStoryCard = () => {
     const [activeStep, setActiveStep] = useState(0);
+    const pathname = usePathname();
+    const locale = (pathname.split("/")[1] as Locale) || "ro";
+    const manifestLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.manifest_label",
+        "MANIFESTUL TRUSTORA",
+    );
+    const headingLine = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.heading_line",
+        "De la Incertitudine la",
+    );
+    const headingHighlight = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.heading_highlight",
+        "Infrastructură Digitală.",
+    );
+    const activeLabel = useAsyncTranslation(locale, "trustora.early_access.story.active_label", "ACTIVE");
+    const nextStepLabel = useAsyncTranslation(locale, "trustora.early_access.story.next_step", "Următorul Pas");
+    const joinNetworkLabel = useAsyncTranslation(locale, "trustora.early_access.story.join_network", "Intră în rețea");
+    const paymentFailedLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.payment_failed",
+        "PLATĂ: EȘUATĂ",
+    );
+    const riskLabel = useAsyncTranslation(locale, "trustora.early_access.story.risk_label", "RISC");
+    const complianceGapLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.compliance_gap",
+        "Lipsă conformitate",
+    );
+    const protocolInitLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.protocol_init",
+        "TRUST_PROTOCOL_INIT",
+    );
+    const legalWrapperLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.legal_wrapper",
+        "WRAPPER LEGAL",
+    );
+    const smartContractLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.smart_contract",
+        "CONTRACT INTELIGENT",
+    );
+    const connectingNodesLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.connecting_nodes",
+        "CONEXIUNI ÎN CURS...",
+    );
+    const escrowLabel = useAsyncTranslation(locale, "trustora.early_access.story.escrow", "ESCROW");
+    const activeProtectionLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.active_protection",
+        "PROTECȚIE ACTIVĂ",
+    );
+    const fundsLabel = useAsyncTranslation(locale, "trustora.early_access.story.funds_label", "Fonduri");
+    const globalInfrastructureLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.global_infrastructure",
+        "Infrastructură globală de încredere",
+    );
+    const verifiedLabel = useAsyncTranslation(locale, "trustora.early_access.story.verified", "VERIFICAT");
+    const securedLabel = useAsyncTranslation(locale, "trustora.early_access.story.secured", "SECURIZAT");
+    const systemStatusLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.system_status_label",
+        "Stare sistem:",
+    );
+    const statusCritical = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.status.critical",
+        "CRITIC",
+    );
+    const statusInitializing = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.status.initializing",
+        "INIȚIALIZARE",
+    );
+    const statusSecured = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.status.secured",
+        "SECURIZAT",
+    );
+    const statusOptimal = useAsyncTranslation(locale, "trustora.early_access.story.status.optimal", "OPTIM");
+    const stepChaosTitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.chaos.title",
+        "Haosul Curent",
+    );
+    const stepChaosSubtitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.chaos.subtitle",
+        "Freelancing-ul este un câmp minat.",
+    );
+    const stepChaosDescription = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.chaos.description",
+        "Contracte pe email. Plăți nesecurizate. Facturi neconforme în Excel. Clienții riscă amenzi pentru 'angajare mascată', iar profesioniști riscă neplata. Este un joc de noroc, nu o afacere.",
+    );
+    const stepInfrastructureTitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.infrastructure.title",
+        "Viziunea Infrastructurii",
+    );
+    const stepInfrastructureSubtitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.infrastructure.subtitle",
+        "Nu vindem freelanceri. Vindem certitudine.",
+    );
+    const stepInfrastructureDescription = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.infrastructure.description",
+        "Am creat un 'Legal Wrapper' unificat. Trustora nu este doar un marketplace, este infrastructura de securitate dintre bani și livrabil. Stripe + Notar Digital + Marketplace într-un singur loc.",
+    );
+    const stepMechanismTitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.mechanism.title",
+        "Mecanismul de Încredere",
+    );
+    const stepMechanismSubtitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.mechanism.subtitle",
+        "Smart Escrow & Verificare Totală.",
+    );
+    const stepMechanismDescription = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.mechanism.description",
+        "Banii sunt blocați în conturi segregate înainte de start. Identitatea este verificată biometric. Contractele includ transfer automat de IP. Nimic nu este lăsat la voia întâmplării.",
+    );
+    const stepSuccessTitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.success.title",
+        "Noua Realitate",
+    );
+    const stepSuccessSubtitle = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.success.subtitle",
+        "Unde munca întâlnește încrederea.",
+    );
+    const stepSuccessDescription = useAsyncTranslation(
+        locale,
+        "trustora.early_access.story.steps.success.description",
+        "Un ecosistem unde plățile sunt garantate și munca este protejată legal. Fără frică. Fără riscuri administrative. Doar focus pe livrare și performanță.",
+    );
 
     // Culorile brandului Trustora
     const colors = {
@@ -28,37 +177,33 @@ export const TrustoraStoryCard = () => {
     const steps = [
         {
             id: 0,
-            title: "Haosul Curent",
-            subtitle: "Freelancing-ul este un câmp minat.",
-            description:
-                "Contracte pe email. Plăți nesecurizate. Facturi neconforme în Excel. Clienții riscă amenzi pentru 'angajare mascată', iar profesioniști riscă neplata. Este un joc de noroc, nu o afacere.",
+            title: stepChaosTitle,
+            subtitle: stepChaosSubtitle,
+            description: stepChaosDescription,
             icon: <AlertTriangle size={24} color={colors.error} />,
             visualState: "risk",
         },
         {
             id: 1,
-            title: "Viziunea Infrastructurii",
-            subtitle: "Nu vindem freelanceri. Vindem certitudine.",
-            description:
-                "Am creat un 'Legal Wrapper' unificat. Trustora nu este doar un marketplace, este infrastructura de securitate dintre bani și livrabil. Stripe + Notar Digital + Marketplace într-un singur loc.",
+            title: stepInfrastructureTitle,
+            subtitle: stepInfrastructureSubtitle,
+            description: stepInfrastructureDescription,
             icon: <Layers size={24} color="#3B82F6" />,
             visualState: "infrastructure",
         },
         {
             id: 2,
-            title: "Mecanismul de Încredere",
-            subtitle: "Smart Escrow & Verificare Totală.",
-            description:
-                "Banii sunt blocați în conturi segregate înainte de start. Identitatea este verificată biometric. Contractele includ transfer automat de IP. Nimic nu este lăsat la voia întâmplării.",
+            title: stepMechanismTitle,
+            subtitle: stepMechanismSubtitle,
+            description: stepMechanismDescription,
             icon: <Lock size={24} color={colors.accent} />,
             visualState: "mechanism",
         },
         {
             id: 3,
-            title: "Noua Realitate",
-            subtitle: "Unde munca întâlnește încrederea.",
-            description:
-                "Un ecosistem unde plățile sunt garantate și munca este protejată legal. Fără frică. Fără riscuri administrative. Doar focus pe livrare și performanță.",
+            title: stepSuccessTitle,
+            subtitle: stepSuccessSubtitle,
+            description: stepSuccessDescription,
             icon: <Globe size={24} color={colors.primary} />,
             visualState: "success",
         },
@@ -90,12 +235,12 @@ export const TrustoraStoryCard = () => {
                                 <div className="h-2.5 w-2.5 border-r-2 border-t-2 border-[#1BC47D]"></div>
                             </div>
                             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                                MANIFESTUL TRUSTORA
+                                {manifestLabel}
                             </span>
                         </div>
                         <h2 className="text-3xl font-bold leading-tight text-[#0B1C2D]">
-                            De la Incertitudine la <br />
-                            <span style={{ color: colors.accent }}>Infrastructură Digitală.</span>
+                            {headingLine} <br />
+                            <span style={{ color: colors.accent }}>{headingHighlight}</span>
                         </h2>
                     </div>
 
@@ -136,7 +281,7 @@ export const TrustoraStoryCard = () => {
                                             </h3>
                                             {activeStep === index && (
                                                 <span className="rounded-full bg-[#1BC47D]/10 px-2 py-0.5 text-[10px] font-bold text-[#1BC47D]">
-                                                    ACTIVE
+                                                    {activeLabel}
                                                 </span>
                                             )}
                                         </div>
@@ -185,7 +330,7 @@ export const TrustoraStoryCard = () => {
                                 onClick={handleNext}
                                 className="group flex items-center gap-2 rounded px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#0B1C2D] transition-colors hover:bg-slate-50 hover:text-[#1BC47D]"
                             >
-                                Următorul Pas{" "}
+                                {nextStepLabel}{" "}
                                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                             </button>
                         ) : (
@@ -193,7 +338,7 @@ export const TrustoraStoryCard = () => {
                                 href="#early-access-client"
                                 className="flex items-center gap-2 rounded-lg bg-[#0B1C2D] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-[#0B1C2D]/20 transition-colors hover:bg-[#152a3d]"
                             >
-                                Join The Network <ArrowRight size={14} />
+                                {joinNetworkLabel} <ArrowRight size={14} />
                             </a>
                         )}
                     </div>
@@ -233,15 +378,15 @@ export const TrustoraStoryCard = () => {
                                     </div>
                                 </div>
                                 <div className="absolute bottom-12 right-0 w-32 rotate-[12deg] rounded border border-red-500/30 bg-white/5 p-3 delay-300 animate-pulse">
-                                    <div className="text-[10px] font-mono text-red-400">PAYMENT: FAILED</div>
+                                    <div className="text-[10px] font-mono text-red-400">{paymentFailedLabel}</div>
                                 </div>
                                 {/* Center Warning */}
                                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform text-center">
                                     <div className="select-none text-4xl font-bold tracking-tighter text-white opacity-20">
-                                        RISK
+                                        {riskLabel}
                                     </div>
                                     <div className="mt-1 rounded border border-red-500/50 bg-red-900/20 px-2 py-1 text-xs font-mono uppercase tracking-widest text-red-400">
-                                        Compliance Gap
+                                        {complianceGapLabel}
                                     </div>
                                 </div>
                             </div>
@@ -257,7 +402,7 @@ export const TrustoraStoryCard = () => {
                         >
                             <div className="w-72 rounded-xl border border-blue-500/40 bg-[#0F172A] p-5 shadow-[0_0_30px_rgba(59,130,246,0.15)] backdrop-blur-sm">
                                 <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-2">
-                                    <span className="text-[10px] font-mono text-blue-400">TRUST_PROTOCOL_INIT</span>
+                                    <span className="text-[10px] font-mono text-blue-400">{protocolInitLabel}</span>
                                     <div className="flex gap-1">
                                         <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
                                         <div className="h-2 w-2 rounded-full bg-slate-700"></div>
@@ -268,7 +413,7 @@ export const TrustoraStoryCard = () => {
                                     <div className="flex items-center gap-3 rounded border border-slate-700 bg-slate-800/50 p-2">
                                         <Scale size={16} className="text-slate-400" />
                                         <div className="flex-grow">
-                                            <div className="text-[10px] font-bold text-slate-300">LEGAL WRAPPER</div>
+                                            <div className="text-[10px] font-bold text-slate-300">{legalWrapperLabel}</div>
                                             <div className="mt-1 h-1 w-full overflow-hidden rounded bg-blue-900/50">
                                                 <div className="h-full w-full animate-[shimmer_2s_infinite] bg-blue-500"></div>
                                             </div>
@@ -276,11 +421,11 @@ export const TrustoraStoryCard = () => {
                                     </div>
                                     <div className="flex items-center gap-3 rounded border border-slate-700 bg-slate-800/50 p-2">
                                         <FileText size={16} className="text-slate-400" />
-                                        <div className="text-[10px] font-bold text-slate-300">SMART CONTRACT</div>
+                                        <div className="text-[10px] font-bold text-slate-300">{smartContractLabel}</div>
                                     </div>
                                 </div>
                                 <div className="mt-4 text-center">
-                                    <span className="text-[10px] font-mono text-slate-500">CONNECTING NODES...</span>
+                                    <span className="text-[10px] font-mono text-slate-500">{connectingNodesLabel}</span>
                                 </div>
                             </div>
                         </div>
@@ -303,15 +448,15 @@ export const TrustoraStoryCard = () => {
                                     <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#1BC47D]/10 text-[#1BC47D]">
                                         <Lock size={28} strokeWidth={2.5} />
                                     </div>
-                                    <div className="text-lg font-bold text-[#0B1C2D]">ESCROW</div>
+                                    <div className="text-lg font-bold text-[#0B1C2D]">{escrowLabel}</div>
                                     <div className="mb-4 text-xs font-bold tracking-wider text-[#1BC47D]">
-                                        ACTIVE PROTECTION
+                                        {activeProtectionLabel}
                                     </div>
 
                                     {/* Transaction Simulation */}
                                     <div className="flex w-full items-center justify-between rounded border border-slate-100 bg-[#F5F7FA] p-2">
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] font-bold uppercase text-slate-400">Funds</span>
+                                            <span className="text-[9px] font-bold uppercase text-slate-400">{fundsLabel}</span>
                                             <span className="text-xs font-mono font-bold text-[#0B1C2D]">$3,500.00</span>
                                         </div>
                                         <div className="rounded-full bg-[#1BC47D] p-1 text-white">
@@ -338,15 +483,15 @@ export const TrustoraStoryCard = () => {
                                     <Globe size={64} className="mx-auto mb-4 text-white opacity-90" strokeWidth={1} />
                                     <h3 className="mb-2 text-3xl font-bold tracking-tight text-white">TRUSTORA</h3>
                                     <p className="mb-6 text-xs font-medium uppercase tracking-widest text-[#1BC47D]">
-                                        Global Trust Infrastructure
+                                        {globalInfrastructureLabel}
                                     </p>
 
                                     <div className="flex justify-center gap-3">
                                         <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-mono text-white backdrop-blur">
-                                            <CheckCircle size={10} className="text-[#1BC47D]" /> VERIFIED
+                                            <CheckCircle size={10} className="text-[#1BC47D]" /> {verifiedLabel}
                                         </div>
                                         <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-mono text-white backdrop-blur">
-                                            <Shield size={10} className="text-[#1BC47D]" /> SECURED
+                                            <Shield size={10} className="text-[#1BC47D]" /> {securedLabel}
                                         </div>
                                     </div>
                                 </div>
@@ -357,14 +502,14 @@ export const TrustoraStoryCard = () => {
                     {/* Decorative Bottom Text in Visual Area */}
                     <div className="absolute bottom-6 left-0 right-0 text-center opacity-40">
                         <p className="text-[9px] font-mono uppercase tracking-[0.3em] text-white">
-                            System Status:{" "}
+                            {systemStatusLabel}{" "}
                             {activeStep === 0
-                                ? "CRITICAL"
+                                ? statusCritical
                                 : activeStep === 1
-                                  ? "INITIALIZING"
+                                  ? statusInitializing
                                   : activeStep === 2
-                                    ? "SECURED"
-                                    : "OPTIMAL"}
+                                    ? statusSecured
+                                    : statusOptimal}
                         </p>
                     </div>
                 </div>

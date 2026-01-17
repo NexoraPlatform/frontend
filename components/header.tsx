@@ -75,6 +75,23 @@ export function Header() {
   const darkText = useAsyncTranslation(locale, 'navigation.dark');
   const lightText = useAsyncTranslation(locale, 'navigation.light');
   const openMainUserMenuText = useAsyncTranslation(locale, 'navigation.open_main_user_menu');
+  const earlyAccessClientCta = useAsyncTranslation(locale, 'trustora.early_access.header.client_cta', 'Înregistrare ca client');
+  const earlyAccessProviderCta = useAsyncTranslation(locale, 'trustora.early_access.header.provider_cta', 'Înregistrare ca prestator');
+  const earlyAccessMenuAria = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_aria', 'Meniul principal pe mobil');
+  const earlyAccessMenuTitle = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_title', 'Meniu înscriere early access');
+  const earlyAccessMenuLabel = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_label', 'Meniu');
+  const earlyAccessMenuDescription = useAsyncTranslation(
+    locale,
+    'trustora.early_access.header.mobile_menu_description',
+    'Alege tipul de cont pentru înscriere în early access.',
+  );
+  const earlyAccessMenuSrDescription = useAsyncTranslation(
+    locale,
+    'trustora.early_access.header.mobile_menu_sr_description',
+    'Alege tipul de cont pentru înscriere în early access și accesează detaliile de contact Trustora.',
+  );
+  const earlyAccessContactLabel = useAsyncTranslation(locale, 'trustora.early_access.header.contact_label', 'Date de contact');
+  const earlyAccessContactTag = useAsyncTranslation(locale, 'trustora.early_access.header.contact_tag', 'Trustora');
 
   const servicesText = useAsyncTranslation(locale, 'navigation.services');
   const projectsText = useAsyncTranslation(locale, 'navigation.projects');
@@ -197,16 +214,16 @@ export function Header() {
                   variant="outline"
                   asChild
                 >
-                  <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
+                  <LocalizedLink href="/early-access/client">{earlyAccessClientCta}</LocalizedLink>
                 </Button>
                 <Button className="w-full btn-primary text-white sm:w-auto" asChild>
-                  <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
+                  <LocalizedLink href="/early-access/provider">{earlyAccessProviderCta}</LocalizedLink>
                 </Button>
               </div>
               <Sheet>
                 <SheetTrigger asChild>
                   <Button
-                    aria-label="Meniul principal pe mobil"
+                    aria-label={earlyAccessMenuAria}
                     variant="ghost"
                     size="icon"
                     className="sm:hidden w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl"
@@ -215,15 +232,15 @@ export function Header() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
-                  <SheetTitle className="sr-only">Meniu înscriere early access</SheetTitle>
+                  <SheetTitle className="sr-only">{earlyAccessMenuTitle}</SheetTitle>
                   <SheetDescription className="sr-only">
-                    Alege tipul de cont pentru înscriere în early access și accesează detaliile de contact Trustora.
+                    {earlyAccessMenuSrDescription}
                   </SheetDescription>
                   <div className="mt-8 flex flex-col space-y-6">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Meniu</p>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">{earlyAccessMenuLabel}</p>
                       <p className="text-sm text-muted-foreground">
-                        Alege tipul de cont pentru înscriere în early access.
+                        {earlyAccessMenuDescription}
                       </p>
                     </div>
                     <Button
@@ -231,17 +248,19 @@ export function Header() {
                       variant="outline"
                       asChild
                     >
-                      <LocalizedLink href="/early-access/client">Înregistrare ca client</LocalizedLink>
+                      <LocalizedLink href="/early-access/client">{earlyAccessClientCta}</LocalizedLink>
                     </Button>
                     <Button className="w-full btn-primary text-white" asChild>
-                      <LocalizedLink href="/early-access/provider">Înregistrare ca prestator</LocalizedLink>
+                      <LocalizedLink href="/early-access/provider">{earlyAccessProviderCta}</LocalizedLink>
                     </Button>
                     <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/80 p-4 text-xs text-emerald-950 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
                       <div className="flex items-center justify-between">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300">
-                          Date de contact
+                          {earlyAccessContactLabel}
                         </p>
-                        <span className="text-[10px] font-medium text-emerald-500/80 dark:text-emerald-200/80">Trustora</span>
+                        <span className="text-[10px] font-medium text-emerald-500/80 dark:text-emerald-200/80">
+                          {earlyAccessContactTag}
+                        </span>
                       </div>
                       <div className="mt-3 space-y-2">
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">

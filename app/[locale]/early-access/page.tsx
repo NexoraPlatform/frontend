@@ -9,8 +9,48 @@ import { Header } from "@/components/header";
 import { LocalizedLink } from "@/components/LocalizedLink";
 import { TrustoraStoryCard } from "@/components/trustora/trustora-story-card";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
+import { usePathname } from "next/navigation";
+import { useAsyncTranslation } from "@/hooks/use-async-translation";
+import { Locale } from "@/types/locale";
 
 export default function EarlyAccessPage() {
+    const pathname = usePathname();
+    const locale = (pathname.split("/")[1] as Locale) || "ro";
+    const badgeText = useAsyncTranslation(locale, "trustora.early_access.landing.badge", "Înscrieri early access");
+    const titleText = useAsyncTranslation(locale, "trustora.early_access.landing.title", "Alege tipul de cont");
+    const titleHighlightText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.landing.title_highlight",
+        "Trustora",
+    );
+    const descriptionText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.landing.description",
+        "Înscrierile sunt pentru early access: în curând vom lansa early beta, iar cei înscriși vor primi primii invitațiile. Dacă ești client, te ajutăm să găsești prestatori verificați. Dacă ești prestator, îți pregătim profilul pentru proiecte plătite în siguranță.",
+    );
+    const clientTitle = useAsyncTranslation(locale, "trustora.early_access.landing.client_title", "Sunt client");
+    const clientDescription = useAsyncTranslation(
+        locale,
+        "trustora.early_access.landing.client_description",
+        "Completează datele despre companie și nevoile de recrutare. Vei primi acces la prestatori cu scor ridicat.",
+    );
+    const clientCta = useAsyncTranslation(
+        locale,
+        "trustora.early_access.landing.client_cta",
+        "Încep formularul pentru client",
+    );
+    const providerTitle = useAsyncTranslation(locale, "trustora.early_access.landing.provider_title", "Sunt prestator");
+    const providerDescription = useAsyncTranslation(
+        locale,
+        "trustora.early_access.landing.provider_description",
+        "Spune-ne experiența ta și setările preferate. Îți pregătim profilul pentru proiecte sigure.",
+    );
+    const providerCta = useAsyncTranslation(
+        locale,
+        "trustora.early_access.landing.provider_cta",
+        "Încep formularul pentru prestator",
+    );
+
     return (
         <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
             <TrustoraThemeStyles />
@@ -22,16 +62,14 @@ export default function EarlyAccessPage() {
                     <div className="mx-auto max-w-3xl space-y-8 text-center">
                         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-emerald-100/60 px-4 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
                             <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                            Înscrieri early access
+                            {badgeText}
                         </div>
                         <div className="space-y-4">
                             <h1 className="text-4xl font-bold leading-tight text-[#0F172A] dark:text-white md:text-5xl">
-                                Alege tipul de cont <span className="text-[#1BC47D]">Trustora</span>
+                                {titleText} <span className="text-[#1BC47D]">{titleHighlightText}</span>
                             </h1>
                             <p className="text-lg text-slate-600 dark:text-slate-300">
-                                Înscrierile sunt pentru early access: în curând vom lansa early beta, iar cei înscriși vor primi
-                                primii invitațiile. Dacă ești client, te ajutăm să găsești prestatori verificați. Dacă ești
-                                prestator, îți pregătim profilul pentru proiecte plătite în siguranță.
+                                {descriptionText}
                             </p>
                         </div>
                     </div>
@@ -46,16 +84,15 @@ export default function EarlyAccessPage() {
                                     <UserRound className="h-6 w-6" />
                                 </div>
                                 <div className="space-y-2">
-                                    <CardTitle className="text-2xl">Sunt client</CardTitle>
+                                    <CardTitle className="text-2xl">{clientTitle}</CardTitle>
                                     <CardDescription className="text-sm text-slate-600 dark:text-slate-300">
-                                        Completează datele despre companie și nevoile de recrutare. Vei primi acces la prestatori cu
-                                        scor ridicat.
+                                        {clientDescription}
                                     </CardDescription>
                                 </div>
                             </CardHeader>
                             <div className="mt-auto px-6">
                                 <Button asChild className="w-full btn-primary text-white">
-                                    <LocalizedLink href="/early-access/client">Încep formularul pentru client</LocalizedLink>
+                                    <LocalizedLink href="/early-access/client">{clientCta}</LocalizedLink>
                                 </Button>
                             </div>
                         </Card>
@@ -66,15 +103,15 @@ export default function EarlyAccessPage() {
                                     <Briefcase className="h-6 w-6" />
                                 </div>
                                 <div className="space-y-2">
-                                    <CardTitle className="text-2xl">Sunt prestator</CardTitle>
+                                    <CardTitle className="text-2xl">{providerTitle}</CardTitle>
                                     <CardDescription className="text-sm text-slate-600 dark:text-slate-300">
-                                        Spune-ne experiența ta și setările preferate. Îți pregătim profilul pentru proiecte sigure.
+                                        {providerDescription}
                                     </CardDescription>
                                 </div>
                             </CardHeader>
                             <div className="mt-auto px-6">
                                 <Button asChild className="w-full btn-primary text-white">
-                                    <LocalizedLink href="/early-access/provider">Încep formularul pentru prestator</LocalizedLink>
+                                    <LocalizedLink href="/early-access/provider">{providerCta}</LocalizedLink>
                                 </Button>
                             </div>
                         </Card>
