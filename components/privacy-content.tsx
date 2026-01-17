@@ -28,7 +28,7 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
         </p>
         <p>
           Această Politică explică modul în care colectăm, utilizăm, stocăm și protejăm datele dumneavoastră atunci când
-          accesați site-ul nostru (trustora.ro / trustora.com) și utilizați aplicația noastră.
+          accesați site-ul nostru (trustora.ro) și utilizați aplicația noastră.
         </p>
       </section>
 
@@ -36,8 +36,8 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">2. OPERATORUL DE DATE</h3>
         <p>Operatorul datelor dumneavoastră cu caracter personal este:</p>
         <ul className="space-y-1 pl-5 list-disc">
-          <li>Denumire Companie: [Numele Persoanei Juridice, ex: Trustora Tech S.R.L.]</li>
-          <li>Sediu Social: Otopeni, Jud. Ilfov, România</li>
+          <li>Denumire Companie: PTECHIT S.R.L.</li>
+          <li>Sediu Social: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>
           <li>Email contact GDPR: contact@trustora.ro</li>
           <li>Reprezentant: Ion Arsene Claudiu</li>
         </ul>
@@ -286,7 +286,7 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
         </p>
         <p>
           This Policy explains how we collect, use, store, and protect your data when you access our website
-          (trustora.ro / trustora.com) and use our application.
+          (trustora.ro) and use our application.
         </p>
       </section>
 
@@ -294,8 +294,8 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">2. DATA CONTROLLER</h3>
         <p>The controller of your personal data is:</p>
         <ul className="space-y-1 pl-5 list-disc">
-          <li>Company name: [Legal Entity Name, e.g., Trustora Tech S.R.L.]</li>
-          <li>Registered office: Otopeni, Ilfov County, Romania</li>
+          <li>Company name: PTECHIT S.R.L.</li>
+          <li>Registered office: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>
           <li>GDPR contact email: contact@trustora.ro</li>
           <li>Representative: Ion Arsene Claudiu</li>
         </ul>

@@ -26,7 +26,7 @@ function TermsContentRo({ className, headingClassName }: Omit<TermsContentProps,
           (&quot;Clienți&quot;) și Profesioniști independenți sau Agenții (&quot;Furnizori&quot; sau &quot;Provideri&quot;).
         </p>
         <p>
-          Accesând sau utilizând site-ul nostru (trustora.ro / trustora.com) și serviciile asociate, sunteți de acord să
+          Accesând sau utilizând site-ul nostru (trustora.ro) și serviciile asociate, sunteți de acord să
           respectați acești Termeni și Condiții (&quot;Termenii&quot;). Dacă nu sunteți de acord, vă rugăm să nu utilizați
           Platforma.
         </p>
@@ -176,7 +176,7 @@ function TermsContentEn({ className, headingClassName }: Omit<TermsContentProps,
           independent Professionals or Agencies (&quot;Providers&quot;).
         </p>
         <p>
-          By accessing or using our website (trustora.ro / trustora.com) and related services, you agree to comply with
+          By accessing or using our website (trustora.ro) and related services, you agree to comply with
           these Terms and Conditions (&quot;Terms&quot;). If you do not agree, please do not use the Platform.
         </p>
       </section>
