@@ -179,6 +179,51 @@ function isEarlyAccessEnabled() {
   );
 }
 
+function isBasicAuthEnabled() {
+  return process.env.BASIC_AUTH_ENABLED === 'true' || process.env.BASIC_AUTH === 'true';
+}
+
+function getBasicAuthCredentials() {
+  const users = (process.env.BASIC_AUTH_USERS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const passwords = (process.env.BASIC_AUTH_PASSWORDS || '')
+    .split(',')
+    .map((value) => value.trim());
+
+  return users
+    .map((user, index) => {
+      const password = passwords[index];
+      if (!password) return null;
+      return { user, password };
+    })
+    .filter(Boolean) as Array<{ user: string; password: string }>;
+}
+
+function isBasicAuthAuthorized(request: NextRequest) {
+  const credentials = getBasicAuthCredentials();
+  if (credentials.length === 0) return true;
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+
+  try {
+    const base64Credentials = authHeader.split(' ')[1] ?? '';
+    const decoded = atob(base64Credentials);
+    const separatorIndex = decoded.indexOf(':');
+    if (separatorIndex === -1) return false;
+    const username = decoded.slice(0, separatorIndex);
+    const password = decoded.slice(separatorIndex + 1);
+
+    return credentials.some(
+      (credential) => credential.user === username && credential.password === password
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ---- Middleware Main ----
 
 export default async function middleware(req: NextRequest) {
@@ -192,6 +237,15 @@ export default async function middleware(req: NextRequest) {
     pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
+  }
+
+  if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
+    return new NextResponse('Authentication required.', {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="Trustora"',
+      },
+    });
   }
 
   // 1. Locale Handling
