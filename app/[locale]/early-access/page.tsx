@@ -36,7 +36,7 @@ export default function EarlyAccessPage() {
                     </div>
 
                     <div className="mt-12 grid gap-6 lg:grid-cols-2">
-                        <Card className="glass-card border border-slate-200/60 bg-white/90 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
+                        <Card className="glass-card flex h-full flex-col border border-slate-200/60 bg-white/90 pb-6 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
                             <CardHeader className="space-y-4">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
                                     <UserRound className="h-6 w-6" />
@@ -48,13 +48,15 @@ export default function EarlyAccessPage() {
                                         scor ridicat.
                                     </CardDescription>
                                 </div>
-                                <Button asChild className="btn-primary text-white">
+                            </CardHeader>
+                            <div className="mt-auto px-6">
+                                <Button asChild className="w-full btn-primary text-white">
                                     <LocalizedLink href="/early-access/client">Încep formularul pentru client</LocalizedLink>
                                 </Button>
-                            </CardHeader>
+                            </div>
                         </Card>
 
-                        <Card className="glass-card border border-slate-200/60 bg-white/90 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
+                        <Card className="glass-card flex h-full flex-col border border-slate-200/60 bg-white/90 pb-6 shadow-xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
                             <CardHeader className="space-y-4">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
                                     <Briefcase className="h-6 w-6" />
@@ -65,10 +67,12 @@ export default function EarlyAccessPage() {
                                         Spune-ne experiența ta și setările preferate. Îți pregătim profilul pentru proiecte sigure.
                                     </CardDescription>
                                 </div>
-                                <Button asChild className="btn-primary text-white">
+                            </CardHeader>
+                            <div className="mt-auto px-6">
+                                <Button asChild className="w-full btn-primary text-white">
                                     <LocalizedLink href="/early-access/provider">Încep formularul pentru prestator</LocalizedLink>
                                 </Button>
-                            </CardHeader>
+                            </div>
                         </Card>
                     </div>
                 </div>
