@@ -9,7 +9,6 @@ import { TrustoraVisualLanguageSection } from "@/components/trustora/visual-lang
 import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
 import {Metadata} from "next";
-import { getTranslations } from 'next-intl/server';
 import {generateStructuredData} from "@/lib/seo";
 
 export const revalidate = 86400; // 24h
@@ -20,7 +19,6 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Homepage' });
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nexoraplatform.com'; // Înlocuiește cu domeniul tău real
 
     return {
