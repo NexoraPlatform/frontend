@@ -10,6 +10,7 @@ import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
+import { GoogleTagManager } from '@next/third-parties/google'
 
 const inter = Inter({
     subsets: ["latin"],
@@ -169,6 +170,7 @@ export default function RootLayout({
 
     return (
         <html lang="ro" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
+        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID as string} />
         <head>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
