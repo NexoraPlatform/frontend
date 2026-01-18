@@ -170,7 +170,31 @@ class ApiClient {
     wants_escrow?: boolean;
     profile_note?: string;
   }) {
-    return this.request<any>('/early-access', {
+    return this.request<{
+      email_exists: boolean;
+      application?: {
+        id: number;
+        user_type: 'client' | 'provider';
+        full_name: string | null;
+        contact_name: string | null;
+        company_name: string | null;
+        email: string;
+        country: string | null;
+        primary_skill: string | null;
+        years_experience: number | null;
+        has_clients: boolean | null;
+        unpaid_work: boolean | null;
+        wants_escrow: boolean | null;
+        hiring_needs: string | null;
+        typical_project_budget: number | null;
+        hire_frequency: string | null;
+        lost_money: boolean | null;
+        escrow_help: boolean | null;
+        score: number;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/early-access', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

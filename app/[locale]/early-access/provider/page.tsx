@@ -72,6 +72,11 @@ export default function EarlyAccessProviderPage() {
         "trustora.early_access.provider.error_skill",
         "Selectează skill-ul principal.",
     );
+    const emailExistsErrorText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.provider.error_email_exists",
+        "Adresa de email este deja folosită pentru un cont prestator.",
+    );
     const genericErrorText = useAsyncTranslation(
         locale,
         "trustora.early_access.common.error_generic",
@@ -239,7 +244,10 @@ export default function EarlyAccessProviderPage() {
                 wants_escrow: formData.wantsEscrow,
             };
 
-            await apiClient.createEarlyAccessApplication(payload);
+            const response = await apiClient.createEarlyAccessApplication(payload);
+            if (response?.email_exists) {
+                throw new Error(emailExistsErrorText);
+            }
 
             setSuccess(true);
             setFormData({
