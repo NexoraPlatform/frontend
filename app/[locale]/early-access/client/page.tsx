@@ -73,6 +73,11 @@ export default function EarlyAccessClientPage() {
         "trustora.early_access.client.error_frequency",
         "Selectează frecvența de recrutare.",
     );
+    const emailExistsErrorText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.client.error_email_exists",
+        "Adresa de email este deja folosită pentru un cont client.",
+    );
     const genericErrorText = useAsyncTranslation(
         locale,
         "trustora.early_access.common.error_generic",
@@ -201,6 +206,7 @@ export default function EarlyAccessClientPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -228,9 +234,13 @@ export default function EarlyAccessClientPage() {
                 escrow_help: formData.escrowHelp,
             };
 
-            await apiClient.createEarlyAccessApplication(payload);
+            const response = await apiClient.createEarlyAccessApplication(payload);
+            if (response?.email_exists) {
+                throw new Error(emailExistsErrorText);
+            }
 
             setSuccess(true);
+            scrollToTop();
             setFormData({
                 email: "",
                 contactName: "",
@@ -244,6 +254,7 @@ export default function EarlyAccessClientPage() {
             });
         } catch (submitError: any) {
             setError(submitError?.message ?? submitErrorText);
+            scrollToTop();
         } finally {
             setIsSubmitting(false);
         }

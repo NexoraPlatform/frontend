@@ -106,6 +106,7 @@
       "form_description": "All fields are required for early access.",
       "success": "Thank you! Your request has been sent. We'll follow up by email.",
       "error_frequency": "Select a hiring frequency.",
+      "error_email_exists": "This email address is already used for a client account.",
       "fields": {
         "email_label": "Company email",
         "email_placeholder": "company@example.com",
@@ -143,6 +144,7 @@
       "form_description": "Your details help us match you with relevant projects.",
       "success": "Thank you! Your request has been sent. We'll follow up by email.",
       "error_skill": "Select a primary skill.",
+      "error_email_exists": "This email address is already used for a provider account.",
       "fields": {
         "email_label": "Email",
         "email_placeholder": "freelancer@example.com",

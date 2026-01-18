@@ -106,6 +106,7 @@
       "form_description": "Toate câmpurile sunt obligatorii pentru accesul early access.",
       "success": "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
       "error_frequency": "Selectează frecvența de recrutare.",
+      "error_email_exists": "Adresa de email este deja folosită pentru un cont client.",
       "fields": {
         "email_label": "Email companie",
         "email_placeholder": "company@example.com",
@@ -143,6 +144,7 @@
       "form_description": "Datele tale ne ajută să te potrivim cu proiecte relevante.",
       "success": "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
       "error_skill": "Selectează skill-ul principal.",
+      "error_email_exists": "Adresa de email este deja folosită pentru un cont prestator.",
       "fields": {
         "email_label": "Email",
         "email_placeholder": "freelancer@example.com",
