@@ -236,6 +236,7 @@ export default function EarlyAccessProviderPage() {
             const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
                 user_type: "provider",
                 email: formData.email,
+                language: locale,
                 full_name: formData.fullName,
                 country: formData.country,
                 primary_skill: formData.primarySkill,

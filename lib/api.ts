@@ -154,6 +154,7 @@ class ApiClient {
   async createEarlyAccessApplication(payload: {
     user_type: 'client' | 'provider';
     email: string;
+    language?: string;
     contact_name?: string;
     company_name?: string;
     hiring_needs?: string;
