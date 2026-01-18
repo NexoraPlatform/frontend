@@ -225,6 +225,7 @@ export default function EarlyAccessClientPage() {
             const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
                 user_type: "client",
                 email: formData.email,
+                language: locale,
                 contact_name: formData.contactName,
                 company_name: formData.companyName,
                 hiring_needs: formData.hiringNeeds,
