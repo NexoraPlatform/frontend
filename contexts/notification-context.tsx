@@ -96,6 +96,13 @@ function urlBase64ToUint8Array(base64String: string) {
     return outputArray;
 }
 
+function getNotificationPermission(): NotificationPermission {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+        return 'default';
+    }
+    return Notification.permission;
+}
+
 let echoSingleton: Echo<any> | null = null;
 function getOrCreateEcho(token: string): Echo<any> {
     if (echoSingleton) return echoSingleton;
@@ -127,7 +134,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
     );
     const [webPushPermission, setWebPushPermission] = useState<NotificationPermission>(
-        typeof window === 'undefined' ? 'default' : Notification.permission
+        () => getNotificationPermission()
     );
     const [isWebPushEnabled, setIsWebPushEnabled] = useState(false);
     const privateChannelRef = useRef<Channel | null>(null);
@@ -216,7 +223,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const readPushStatus = useCallback(async () => {
         if (!isWebPushSupported) return;
         const reg = await navigator.serviceWorker.getRegistration();
-        setWebPushPermission(Notification.permission);
+        setWebPushPermission(getNotificationPermission());
         const sub = await reg?.pushManager.getSubscription();
         setIsWebPushEnabled(!!sub);
     }, [isWebPushSupported]);
@@ -267,7 +274,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         await sub?.unsubscribe();
         try { await apiClient.unsubscribeFromNotifications(); } catch {}
         setIsWebPushEnabled(false);
-        setWebPushPermission(Notification.permission);
+        setWebPushPermission(getNotificationPermission());
     }, [isWebPushSupported]);
 
     const value = useMemo<Ctx>(() => ({
