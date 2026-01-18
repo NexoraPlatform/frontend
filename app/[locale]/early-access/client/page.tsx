@@ -206,6 +206,7 @@ export default function EarlyAccessClientPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -239,6 +240,7 @@ export default function EarlyAccessClientPage() {
             }
 
             setSuccess(true);
+            scrollToTop();
             setFormData({
                 email: "",
                 contactName: "",
@@ -252,6 +254,7 @@ export default function EarlyAccessClientPage() {
             });
         } catch (submitError: any) {
             setError(submitError?.message ?? submitErrorText);
+            scrollToTop();
         } finally {
             setIsSubmitting(false);
         }
