@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
 import {Metadata} from "next";
 import {generateStructuredData} from "@/lib/seo";
+import { Partytown } from "@qwik.dev/partytown/react";
 
 export const revalidate = 86400; // 24h
 
@@ -116,12 +117,13 @@ export default async function Home(props: HomePageProps) {
 
     return (
         <>
+            <Partytown debug={true} forward={["dataLayer.push"]} />
             <script
-                type="application/ld+json"
+                type="text/partytown"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
             <script
-                type="application/ld+json"
+                type="text/partytown"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
             />
 
