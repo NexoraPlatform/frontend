@@ -471,7 +471,7 @@ export default function EarlyAccessProviderPage() {
                                                         variant="outline"
                                                         role="combobox"
                                                         aria-expanded={isCountryOpen}
-                                                        className="w-full justify-between pl-10"
+                                                        className="w-full justify-between pl-8 pr-4"
                                                     >
                                                         {formData.country ? (
                                                             <span className="flex items-center gap-2">
