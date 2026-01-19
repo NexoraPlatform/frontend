@@ -18,7 +18,7 @@ import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
 
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+import { EditorContent, EditorRoot } from "novel";
 
 const parseRecipients = (value: string) =>
   value
@@ -394,21 +394,16 @@ export default function AdminNewsletterPage() {
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
                   <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
-                    <ReactQuill
-                      theme="snow"
-                      value={dataMessage}
-                      onChange={setDataMessage}
-                      placeholder={dataMessagePlaceholder}
-                      readOnly={!isCustomTemplate}
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ["bold", "italic", "underline", "strike"],
-                          [{ list: "ordered" }, { list: "bullet" }],
-                          ["link", "clean"],
-                        ],
-                      }}
-                    />
+
+                    <EditorRoot>
+                      <EditorContent
+                          initialContent={dataMessage}
+                          onUpdate={({ editor }) => {
+                            const json = editor.getJSON();
+                            setDataMessage(json);
+                          }}
+                      />
+                    </EditorRoot>
                   </div>
                   {!isCustomTemplate && (
                     <p className="text-xs text-muted-foreground">{customOnlyNote}</p>

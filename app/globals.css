@@ -3,8 +3,6 @@
    Performance optimized for LCP < 2.5s
    ============================================== */
 
-@import "react-quill/dist/quill.snow.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
