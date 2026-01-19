@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useEarlyAccessGrouped } from "@/hooks/use-api";
@@ -161,157 +162,170 @@ export default function AdminEarlyAccessPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="glass-card shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                  <UserCheck className="w-5 h-5" />
-                  <span>{providersTitle}</span>
-                </CardTitle>
-                <CardDescription>
-                  {providersDescription.replace("{count}", providers.length.toString())}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                ) : error ? (
-                  <p className="text-sm text-red-500">{`${errorMessage} ${error}`}</p>
-                ) : providers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{providersEmpty}</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{nameLabel}</TableHead>
-                        <TableHead>{applicationIdLabel}</TableHead>
-                        <TableHead>{emailLabel}</TableHead>
-                        <TableHead>{languageLabel}</TableHead>
-                        <TableHead>{scoreLabel}</TableHead>
-                        <TableHead>{verificationLabel}</TableHead>
-                        <TableHead>{verificationSentLabel}</TableHead>
-                        <TableHead>{verificationExpiresLabel}</TableHead>
-                        <TableHead>{createdAtLabel}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {providers.map((provider) => (
-                        <TableRow key={provider.id}>
-                          <TableCell className="font-medium">{provider.full_name || "-"}</TableCell>
-                          <TableCell className="font-medium">{provider.application_id || "-"}</TableCell>
-                          <TableCell>{provider.email || "-"}</TableCell>
-                          <TableCell className="uppercase">{provider.language || "-"}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-                              {provider.score ?? 0}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                provider.email_verification
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+          <Tabs defaultValue="providers" className="w-full">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="providers" className="gap-2">
+                <UserCheck className="w-4 h-4" />
+                {providersTitle}
+              </TabsTrigger>
+              <TabsTrigger value="clients" className="gap-2">
+                <UserCheck className="w-4 h-4" />
+                {clientsTitle}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="providers">
+              <Card className="glass-card shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                    <UserCheck className="w-5 h-5" />
+                    <span>{providersTitle}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {providersDescription.replace("{count}", providers.length.toString())}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : error ? (
+                    <p className="text-sm text-red-500">{`${errorMessage} ${error}`}</p>
+                  ) : providers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{providersEmpty}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{nameLabel}</TableHead>
+                          <TableHead>{applicationIdLabel}</TableHead>
+                          <TableHead>{emailLabel}</TableHead>
+                          <TableHead>{languageLabel}</TableHead>
+                          <TableHead>{scoreLabel}</TableHead>
+                          <TableHead>{verificationLabel}</TableHead>
+                          <TableHead>{verificationSentLabel}</TableHead>
+                          <TableHead>{verificationExpiresLabel}</TableHead>
+                          <TableHead>{createdAtLabel}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {providers.map((provider) => (
+                          <TableRow key={provider.id}>
+                            <TableCell className="font-medium">{provider.full_name || "-"}</TableCell>
+                            <TableCell className="font-medium">{provider.application_id || "-"}</TableCell>
+                            <TableCell>{provider.email || "-"}</TableCell>
+                            <TableCell className="uppercase">{provider.language || "-"}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                {provider.score ?? 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  provider.email_verification
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                                    : provider.email_verification_expired
+                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+                                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200"
+                                }
+                              >
+                                {provider.email_verification
+                                  ? verifiedLabel
                                   : provider.email_verification_expired
-                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                                  : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200"
-                              }
-                            >
-                              {provider.email_verification
-                                ? verifiedLabel
-                                : provider.email_verification_expired
-                                ? expiredLabel
-                                : unverifiedLabel}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDateTime(provider.email_verification_sent_at, locale)}</TableCell>
-                          <TableCell>{formatDateTime(provider.email_verification_expires_at, locale)}</TableCell>
-                          <TableCell>{formatDate(provider.created_at, locale)}</TableCell>
+                                  ? expiredLabel
+                                  : unverifiedLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatDateTime(provider.email_verification_sent_at, locale)}</TableCell>
+                            <TableCell>{formatDateTime(provider.email_verification_expires_at, locale)}</TableCell>
+                            <TableCell>{formatDate(provider.created_at, locale)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="clients">
+              <Card className="glass-card shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                    <UserCheck className="w-5 h-5" />
+                    <span>{clientsTitle}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {clientsDescription.replace("{count}", clients.length.toString())}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : error ? (
+                    <p className="text-sm text-red-500">{`${errorMessage} ${error}`}</p>
+                  ) : clients.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{clientsEmpty}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{contactNameLabel}</TableHead>
+                          <TableHead>{companyNameLabel}</TableHead>
+                          <TableHead>{applicationIdLabel}</TableHead>
+                          <TableHead>{emailLabel}</TableHead>
+                          <TableHead>{languageLabel}</TableHead>
+                          <TableHead>{scoreLabel}</TableHead>
+                          <TableHead>{verificationLabel}</TableHead>
+                          <TableHead>{verificationSentLabel}</TableHead>
+                          <TableHead>{verificationExpiresLabel}</TableHead>
+                          <TableHead>{createdAtLabel}</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                  <UserCheck className="w-5 h-5" />
-                  <span>{clientsTitle}</span>
-                </CardTitle>
-                <CardDescription>
-                  {clientsDescription.replace("{count}", clients.length.toString())}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                ) : error ? (
-                  <p className="text-sm text-red-500">{`${errorMessage} ${error}`}</p>
-                ) : clients.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{clientsEmpty}</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{contactNameLabel}</TableHead>
-                        <TableHead>{companyNameLabel}</TableHead>
-                        <TableHead>{applicationIdLabel}</TableHead>
-                        <TableHead>{emailLabel}</TableHead>
-                        <TableHead>{languageLabel}</TableHead>
-                        <TableHead>{scoreLabel}</TableHead>
-                        <TableHead>{verificationLabel}</TableHead>
-                        <TableHead>{verificationSentLabel}</TableHead>
-                        <TableHead>{verificationExpiresLabel}</TableHead>
-                        <TableHead>{createdAtLabel}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {clients.map((client) => (
-                        <TableRow key={client.id}>
-                          <TableCell className="font-medium">{client.contact_name || "-"}</TableCell>
-                          <TableCell>{client.company_name || "-"}</TableCell>
-                          <TableCell className="font-medium">{client.application_id || "-"}</TableCell>
-                          <TableCell>{client.email || "-"}</TableCell>
-                          <TableCell className="uppercase">{client.language || "-"}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
-                              {client.score ?? 0}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                client.email_verification
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                      </TableHeader>
+                      <TableBody>
+                        {clients.map((client) => (
+                          <TableRow key={client.id}>
+                            <TableCell className="font-medium">{client.contact_name || "-"}</TableCell>
+                            <TableCell>{client.company_name || "-"}</TableCell>
+                            <TableCell className="font-medium">{client.application_id || "-"}</TableCell>
+                            <TableCell>{client.email || "-"}</TableCell>
+                            <TableCell className="uppercase">{client.language || "-"}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                {client.score ?? 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  client.email_verification
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                                    : client.email_verification_expired
+                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+                                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200"
+                                }
+                              >
+                                {client.email_verification
+                                  ? verifiedLabel
                                   : client.email_verification_expired
-                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                                  : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200"
-                              }
-                            >
-                              {client.email_verification
-                                ? verifiedLabel
-                                : client.email_verification_expired
-                                ? expiredLabel
-                                : unverifiedLabel}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDateTime(client.email_verification_sent_at, locale)}</TableCell>
-                          <TableCell>{formatDateTime(client.email_verification_expires_at, locale)}</TableCell>
-                          <TableCell>{formatDate(client.created_at, locale)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                                  ? expiredLabel
+                                  : unverifiedLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatDateTime(client.email_verification_sent_at, locale)}</TableCell>
+                            <TableCell>{formatDateTime(client.email_verification_expires_at, locale)}</TableCell>
+                            <TableCell>{formatDate(client.created_at, locale)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </>
