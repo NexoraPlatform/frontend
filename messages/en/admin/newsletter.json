@@ -21,6 +21,24 @@
     "send_button": "Send newsletter",
     "sending_button": "Sending...",
     "success_message": "Sent to {count} subscribers.",
-    "error_message": "We couldn’t send the newsletter."
+    "error_message": "We couldn’t send the newsletter.",
+    "list_title": "Newsletter subscribers",
+    "list_description": "Newsletter subscriber list.",
+    "list_loading": "Loading subscribers...",
+    "list_empty": "No subscribers available.",
+    "list_error": "We couldn’t load subscribers.",
+    "per_page_label": "Results per page",
+    "only_active_label": "Only active",
+    "columns": {
+      "email": "Email",
+      "name": "Name",
+      "user_type": "Type",
+      "company": "Company",
+      "language": "Language",
+      "subscribed_at": "Subscribed on",
+      "status": "Status"
+    },
+    "status_active": "Active",
+    "status_inactive": "Unsubscribed"
   }
 }

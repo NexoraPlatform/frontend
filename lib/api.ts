@@ -289,6 +289,45 @@ class ApiClient {
     });
   }
 
+  async getNewsletterSubscribers(params?: { per_page?: number; only_active?: boolean }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      if (typeof value === 'boolean') {
+        searchParams.append(key, value ? 'true' : 'false');
+      } else {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/newsletter?${query}` : '/newsletter';
+
+    return this.request<{
+      data: Array<{
+        id: number;
+        email: string;
+        name: string | null;
+        user_type: 'client' | 'provider';
+        company: string | null;
+        language: 'ro' | 'en';
+        unsubscribe_token: string;
+        subscribed_at: string;
+        unsubscribed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+      pagination?: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+      };
+    }>(endpoint);
+  }
+
   // Early access endpoints
   async getEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
     const searchParams = new URLSearchParams();

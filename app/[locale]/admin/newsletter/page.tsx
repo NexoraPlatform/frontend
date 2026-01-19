@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
@@ -27,6 +29,20 @@ export default function AdminNewsletterPage() {
   const [templates, setTemplates] = useState<string[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [subscribers, setSubscribers] = useState<{
+    id: number;
+    email: string;
+    name: string | null;
+    user_type: "client" | "provider";
+    company: string | null;
+    language: "ro" | "en";
+    subscribed_at: string;
+    unsubscribed_at: string | null;
+  }[]>([]);
+  const [subscribersLoading, setSubscribersLoading] = useState(true);
+  const [subscribersError, setSubscribersError] = useState<string | null>(null);
+  const [perPage, setPerPage] = useState("50");
+  const [onlyActive, setOnlyActive] = useState(true);
   const [template, setTemplate] = useState("");
   const [subject, setSubject] = useState("");
   const [dataTitle, setDataTitle] = useState("");
@@ -91,6 +107,26 @@ export default function AdminNewsletterPage() {
     "admin.newsletter.error_message",
     "Nu am putut trimite newsletterul.",
   );
+  const listTitle = useAsyncTranslation(locale, "admin.newsletter.list_title", "Abonați newsletter");
+  const listDescription = useAsyncTranslation(
+    locale,
+    "admin.newsletter.list_description",
+    "Lista abonaților activi.",
+  );
+  const listLoading = useAsyncTranslation(locale, "admin.newsletter.list_loading", "Se încarcă abonații...");
+  const listEmpty = useAsyncTranslation(locale, "admin.newsletter.list_empty", "Nu există abonați disponibili.");
+  const listError = useAsyncTranslation(locale, "admin.newsletter.list_error", "Nu am putut încărca abonații.");
+  const perPageLabel = useAsyncTranslation(locale, "admin.newsletter.per_page_label", "Rezultate per pagină");
+  const onlyActiveLabel = useAsyncTranslation(locale, "admin.newsletter.only_active_label", "Doar activi");
+  const columnEmail = useAsyncTranslation(locale, "admin.newsletter.columns.email", "Email");
+  const columnName = useAsyncTranslation(locale, "admin.newsletter.columns.name", "Nume");
+  const columnUserType = useAsyncTranslation(locale, "admin.newsletter.columns.user_type", "Tip");
+  const columnCompany = useAsyncTranslation(locale, "admin.newsletter.columns.company", "Companie");
+  const columnLanguage = useAsyncTranslation(locale, "admin.newsletter.columns.language", "Limba");
+  const columnSubscribedAt = useAsyncTranslation(locale, "admin.newsletter.columns.subscribed_at", "Abonat la");
+  const columnStatus = useAsyncTranslation(locale, "admin.newsletter.columns.status", "Status");
+  const statusActive = useAsyncTranslation(locale, "admin.newsletter.status_active", "Activ");
+  const statusInactive = useAsyncTranslation(locale, "admin.newsletter.status_inactive", "Dezabonat");
 
   useEffect(() => {
     let active = true;
@@ -120,6 +156,34 @@ export default function AdminNewsletterPage() {
       active = false;
     };
   }, [templateEmptyText]);
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchSubscribers = async () => {
+      setSubscribersLoading(true);
+      setSubscribersError(null);
+      try {
+        const response = await apiClient.getNewsletterSubscribers({
+          per_page: Number(perPage),
+          only_active: onlyActive,
+        });
+        if (!active) return;
+        setSubscribers(response?.data ?? []);
+      } catch (error) {
+        if (!active) return;
+        setSubscribersError(error instanceof Error ? error.message : listError);
+      } finally {
+        if (active) setSubscribersLoading(false);
+      }
+    };
+
+    fetchSubscribers();
+
+    return () => {
+      active = false;
+    };
+  }, [perPage, onlyActive, listError]);
 
   const canSend = useMemo(() => template && subject && !isSending, [template, subject, isSending]);
 
@@ -288,6 +352,80 @@ export default function AdminNewsletterPage() {
                   {isSending ? sendingButton : sendButton}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card shadow-sm mt-10">
+            <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-slate-900 dark:text-white">{listTitle}</CardTitle>
+                <CardDescription>{listDescription}</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <div className="space-y-1">
+                  <Label>{perPageLabel}</Label>
+                  <Select value={perPage} onValueChange={setPerPage}>
+                    <SelectTrigger className="w-32 bg-white/80 dark:bg-slate-900/60">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 pt-6">
+                  <Switch checked={onlyActive} onCheckedChange={setOnlyActive} />
+                  <span className="text-sm text-muted-foreground">{onlyActiveLabel}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {subscribersLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{listLoading}</span>
+                </div>
+              ) : subscribersError ? (
+                <p className="text-sm text-red-500">{subscribersError}</p>
+              ) : subscribers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{listEmpty}</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{columnEmail}</TableHead>
+                      <TableHead>{columnName}</TableHead>
+                      <TableHead>{columnUserType}</TableHead>
+                      <TableHead>{columnCompany}</TableHead>
+                      <TableHead>{columnLanguage}</TableHead>
+                      <TableHead>{columnSubscribedAt}</TableHead>
+                      <TableHead>{columnStatus}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {subscribers.map((subscriber) => (
+                      <TableRow key={subscriber.id}>
+                        <TableCell className="font-medium">{subscriber.email}</TableCell>
+                        <TableCell>{subscriber.name || "-"}</TableCell>
+                        <TableCell>{subscriber.user_type}</TableCell>
+                        <TableCell>{subscriber.company || "-"}</TableCell>
+                        <TableCell className="uppercase">{subscriber.language}</TableCell>
+                        <TableCell>
+                          {new Date(subscriber.subscribed_at).toLocaleDateString(
+                            locale === "en" ? "en-US" : "ro-RO",
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {subscriber.unsubscribed_at ? statusInactive : statusActive}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>
