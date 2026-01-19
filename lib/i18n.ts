@@ -166,8 +166,8 @@ export async function getTranslation(locale: Locale, key: string): Promise<strin
         const loaders = Array.isArray(loadNamespace) ? loadNamespace : [loadNamespace];
         const loaded = await Promise.all(
             loaders.map(async (loader) => {
-                const module = await loader();
-                return module?.default ?? module;
+                const loadedModule = await loader();
+                return loadedModule?.default ?? loadedModule;
             }),
         );
 

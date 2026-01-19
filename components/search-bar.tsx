@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -41,18 +41,37 @@ export function SearchBar({
   const clearRecentSearchesText = useAsyncTranslation(locale, "common.search_bar.clear_recent_searches");
   const trendingTitleText = useAsyncTranslation(locale, "common.search_bar.trending_title");
   const noSuggestionsTemplate = useAsyncTranslation(locale, "common.search_bar.no_suggestions");
-  const trendingDefaults = [
-    useAsyncTranslation(locale, "common.search_bar.trending_defaults.web_development"),
-    useAsyncTranslation(locale, "common.search_bar.trending_defaults.logo_design"),
-    useAsyncTranslation(locale, "common.search_bar.trending_defaults.seo"),
-    useAsyncTranslation(locale, "common.search_bar.trending_defaults.mobile_app"),
-    useAsyncTranslation(locale, "common.search_bar.trending_defaults.digital_marketing")
-  ];
+  const trendingDefaultWeb = useAsyncTranslation(locale, "common.search_bar.trending_defaults.web_development");
+  const trendingDefaultLogo = useAsyncTranslation(locale, "common.search_bar.trending_defaults.logo_design");
+  const trendingDefaultSeo = useAsyncTranslation(locale, "common.search_bar.trending_defaults.seo");
+  const trendingDefaultMobile = useAsyncTranslation(locale, "common.search_bar.trending_defaults.mobile_app");
+  const trendingDefaultMarketing = useAsyncTranslation(locale, "common.search_bar.trending_defaults.digital_marketing");
+  const trendingDefaults = useMemo(
+    () => ([
+      trendingDefaultWeb,
+      trendingDefaultLogo,
+      trendingDefaultSeo,
+      trendingDefaultMobile,
+      trendingDefaultMarketing,
+    ]),
+    [trendingDefaultWeb, trendingDefaultLogo, trendingDefaultSeo, trendingDefaultMobile, trendingDefaultMarketing],
+  );
   const resolvedPlaceholder = placeholder ?? placeholderText;
 
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+
+  const loadTrendingSearches = useCallback(async () => {
+    try {
+      const response = await apiClient.getTrendingSearches();
+      setTrending(response.trending || []);
+    } catch (error) {
+      console.error('Failed to load trending searches:', error);
+      // Set fallback trending searches
+      setTrending(trendingDefaults);
+    }
+  }, [trendingDefaults]);
 
   useEffect(() => {
     // Load recent searches from localStorage
@@ -69,7 +88,7 @@ export function SearchBar({
 
     // Load trending searches
     loadTrendingSearches();
-  }, []);
+  }, [loadTrendingSearches]);
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -82,17 +101,6 @@ export function SearchBar({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const loadTrendingSearches = async () => {
-    try {
-      const response = await apiClient.getTrendingSearches();
-      setTrending(response.trending || []);
-    } catch (error) {
-      console.error('Failed to load trending searches:', error);
-      // Set fallback trending searches
-      setTrending(trendingDefaults);
-    }
-  };
 
   const loadSuggestions = async (searchQuery: string) => {
     if (!searchQuery.trim() || searchQuery.length < 2) {

@@ -37,9 +37,6 @@ export function NotificationBell() {
     const noNotificationsText = useAsyncTranslation(locale, 'common.notifications.empty');
     const endOfListText = useAsyncTranslation(locale, 'common.notifications.end_of_list');
     const seeAllText = useAsyncTranslation(locale, 'common.notifications.see_all');
-    const distanceLocale = locale === 'en' ? enUS : roLocale;
-    const unreadCountText = unreadCountTemplate.replace('{count}', String(unreadCount));
-
     const {
         notifications,
         unreadCount,
@@ -56,6 +53,8 @@ export function NotificationBell() {
         refresh,
         loadMore,
     } = useNotifications();
+    const distanceLocale = locale === 'en' ? enUS : roLocale;
+    const unreadCountText = unreadCountTemplate.replace('{count}', String(unreadCount));
 
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);
