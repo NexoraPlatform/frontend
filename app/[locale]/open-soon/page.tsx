@@ -230,10 +230,10 @@ export default function OpenSoonPage() {
                     <span className="text-emerald-300">const</span> transaction = <span className="text-amber-300">await</span>{" "}
                     Trustora.create({"{"})
                   </p>
-                  <p className="mb-1 pl-4">client: <span className="text-emerald-200">'verified_id_99'</span>,</p>
-                  <p className="mb-1 pl-4">provider: <span className="text-emerald-200">'dev_expert_01'</span>,</p>
+                  <p className="mb-1 pl-4">client: <span className="text-emerald-200">&apos;verified_id_99&apos;</span>,</p>
+                  <p className="mb-1 pl-4">provider: <span className="text-emerald-200">&apos;dev_expert_01&apos;</span>,</p>
                   <p className="mb-1 pl-4">amount: <span className="text-blue-300">2450.00</span>,</p>
-                  <p className="mb-1 pl-4">condition: <span className="text-emerald-200">'milestone_delivery'</span></p>
+                  <p className="mb-1 pl-4">condition: <span className="text-emerald-200">&apos;milestone_delivery&apos;</span></p>
                   <p className="mb-1">{"});"}</p>
                   <p className="mt-2 text-slate-400">{content.contractWaiting}</p>
                 </div>
