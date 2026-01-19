@@ -74,6 +74,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/admin/settings.json"),
             () => import("@/locales/ro/admin/tests.json"),
             () => import("@/locales/ro/admin/users.json"),
+            () => import("@/locales/ro/admin/newsletter.json"),
         ],
         auth: [
             () => import("@/locales/ro/auth/signin.json"),
@@ -136,6 +137,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/admin/settings.json"),
             () => import("@/locales/en/admin/tests.json"),
             () => import("@/locales/en/admin/users.json"),
+            () => import("@/locales/en/admin/newsletter.json"),
         ],
         auth: [
             () => import("@/locales/en/auth/signin.json"),

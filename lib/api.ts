@@ -272,6 +272,23 @@ class ApiClient {
     });
   }
 
+  async getNewsletterTemplates() {
+    return this.request<{ templates: string[] }>('/newsletter/templates');
+  }
+
+  async sendNewsletter(payload: {
+    template: string;
+    subject: string;
+    data?: Record<string, string>;
+    user_type?: 'client' | 'provider';
+    recipients?: string[];
+  }) {
+    return this.request<{ sent: number }>('/newsletter/send', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Early access endpoints
   async getEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
     const searchParams = new URLSearchParams();
