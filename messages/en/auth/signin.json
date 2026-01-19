@@ -1,0 +1,26 @@
+{
+  "signin": {
+    "badge": "Trustora Secure Access",
+    "title_prefix": "Welcome back to",
+    "title_brand": "Trustora",
+    "subtitle": "Access your secure workspace and manage projects with trust, transparency, and automated escrow.",
+    "benefits": {
+      "verified_contracts": "Verified contracts",
+      "automated_escrow": "Automated escrow",
+      "project_timeline": "Live project timeline",
+      "support": "Dedicated 24/7 support"
+    },
+    "card_title": "Sign in",
+    "card_description": "Enter your details to continue in the Trustora platform.",
+    "email_label": "Email",
+    "email_placeholder": "email@example.com",
+    "password_label": "Password",
+    "password_placeholder": "Your password",
+    "forgot_password": "Forgot your password?",
+    "loading": "Signing in...",
+    "submit": "Sign in",
+    "no_account": "Don't have an account?",
+    "register": "Sign up",
+    "generic_error": "Something went wrong. Please try again."
+  }
+}

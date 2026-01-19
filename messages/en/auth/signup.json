@@ -1,0 +1,43 @@
+{
+  "signup": {
+    "badge": "Get started with Trustora",
+    "title_prefix": "Create your",
+    "title_brand": "Trustora account",
+    "subtitle": "Set up your profile and prepare your projects for secure, transparent collaboration.",
+    "benefits": {
+      "digital_contracts": "Digital contracts with automated escrow",
+      "fast_verifications": "Fast verification for clients and providers",
+      "unified_dashboard": "Unified dashboard for projects and payments"
+    },
+    "card_title": "Sign up",
+    "card_description": "Fill in your details to create your Trustora account.",
+    "first_name_label": "First name",
+    "first_name_placeholder": "John",
+    "last_name_label": "Last name",
+    "last_name_placeholder": "Doe",
+    "email_label": "Email",
+    "email_placeholder": "email@example.com",
+    "phone_label": "Phone",
+    "phone_placeholder": "+1 555 123 456",
+    "role_label": "Account type",
+    "role_client": "Client - I need IT services",
+    "role_provider": "Provider - I offer IT services",
+    "company_label": "Company (optional)",
+    "company_placeholder": "Company name",
+    "password_label": "Password",
+    "password_placeholder": "Minimum 8 characters",
+    "confirm_password_label": "Confirm password",
+    "confirm_password_placeholder": "Repeat password",
+    "terms_prefix": "I agree to the",
+    "terms_and": "and",
+    "terms_link": "Terms and Conditions",
+    "privacy_link": "Privacy Policy",
+    "loading": "Creating account...",
+    "submit": "Create account",
+    "has_account": "Already have an account?",
+    "signin": "Sign in",
+    "error_password_mismatch": "Passwords do not match",
+    "error_terms_required": "You must accept the terms and conditions",
+    "generic_error": "Something went wrong. Please try again."
+  }
+}

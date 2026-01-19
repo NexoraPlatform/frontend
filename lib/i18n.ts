@@ -74,6 +74,10 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/admin/tests.json"),
             () => import("@/locales/ro/admin/users.json"),
         ],
+        auth: [
+            () => import("@/locales/ro/auth/signin.json"),
+            () => import("@/locales/ro/auth/signup.json"),
+        ],
     },
     en: {
         navigation: [
@@ -130,6 +134,10 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/admin/settings.json"),
             () => import("@/locales/en/admin/tests.json"),
             () => import("@/locales/en/admin/users.json"),
+        ],
+        auth: [
+            () => import("@/locales/en/auth/signin.json"),
+            () => import("@/locales/en/auth/signup.json"),
         ],
     },
 };

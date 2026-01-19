@@ -1,0 +1,26 @@
+{
+  "signin": {
+    "badge": "Trustora Secure Access",
+    "title_prefix": "Bun venit înapoi la",
+    "title_brand": "Trustora",
+    "subtitle": "Intră în workspace-ul tău securizat și gestionează proiectele cu încredere, transparență și escrow automatizat.",
+    "benefits": {
+      "verified_contracts": "Contracte verificate",
+      "automated_escrow": "Escrow automatizat",
+      "project_timeline": "Timeline live proiecte",
+      "support": "Suport dedicat 24/7"
+    },
+    "card_title": "Conectare",
+    "card_description": "Introdu datele tale pentru a continua în platforma Trustora.",
+    "email_label": "Email",
+    "email_placeholder": "email@exemplu.ro",
+    "password_label": "Parola",
+    "password_placeholder": "Parola ta",
+    "forgot_password": "Ai uitat parola?",
+    "loading": "Se conectează...",
+    "submit": "Conectează-te",
+    "no_account": "Nu ai cont?",
+    "register": "Înregistrează-te",
+    "generic_error": "A apărut o eroare. Încearcă din nou."
+  }
+}

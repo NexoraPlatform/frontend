@@ -1,0 +1,43 @@
+{
+  "signup": {
+    "badge": "Începe cu Trustora",
+    "title_prefix": "Creează-ți contul",
+    "title_brand": "Trustora",
+    "subtitle": "Configurează profilul tău și pregătește-ți proiectele pentru colaborări sigure și transparente.",
+    "benefits": {
+      "digital_contracts": "Contracte digitale cu escrow automatizat",
+      "fast_verifications": "Verificări rapide pentru clienți și prestatori",
+      "unified_dashboard": "Dashboard unificat pentru proiecte și plăți"
+    },
+    "card_title": "Înregistrare",
+    "card_description": "Completează datele pentru a-ți crea contul Trustora.",
+    "first_name_label": "Prenume",
+    "first_name_placeholder": "Ion",
+    "last_name_label": "Nume",
+    "last_name_placeholder": "Popescu",
+    "email_label": "Email",
+    "email_placeholder": "email@exemplu.ro",
+    "phone_label": "Telefon",
+    "phone_placeholder": "+40 123 456 789",
+    "role_label": "Tip cont",
+    "role_client": "Client - Caut servicii IT",
+    "role_provider": "Prestator - Ofer servicii IT",
+    "company_label": "Companie (opțional)",
+    "company_placeholder": "Numele companiei",
+    "password_label": "Parola",
+    "password_placeholder": "Minim 8 caractere",
+    "confirm_password_label": "Confirmă parola",
+    "confirm_password_placeholder": "Repetă parola",
+    "terms_prefix": "Sunt de acord cu",
+    "terms_and": "și",
+    "terms_link": "Termenii și Condițiile",
+    "privacy_link": "Politica de Confidențialitate",
+    "loading": "Se creează contul...",
+    "submit": "Creează contul",
+    "has_account": "Ai deja cont?",
+    "signin": "Conectează-te",
+    "error_password_mismatch": "Parolele nu se potrivesc",
+    "error_terms_required": "Trebuie să accepți termenii și condițiile",
+    "generic_error": "A apărut o eroare. Încearcă din nou."
+  }
+}
