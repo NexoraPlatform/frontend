@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle, Mail, UserRound, Building2, ClipboardList } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, CheckCircle, Mail, UserRound, Building2, ClipboardList, Globe2, ChevronsUpDown } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Footer } from "@/components/footer";
@@ -20,6 +22,31 @@ import { apiClient } from "@/lib/api";
 import { usePathname } from "next/navigation";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { Locale } from "@/types/locale";
+
+const COUNTRY_CODES = [
+    "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
+    "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BA", "BW", "BR", "IO",
+    "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CN", "CO", "KM",
+    "CG", "CD", "CR", "CI", "HR", "CU", "CY", "CZ", "DK", "DJ", "DM", "DO", "EC", "EG", "SV",
+    "GQ", "ER", "EE", "ET", "FJ", "FI", "FR", "GF", "PF", "GA", "GM", "GE", "DE", "GH", "GI",
+    "GR", "GL", "GD", "GP", "GU", "GT", "GN", "GW", "GY", "HT", "HN", "HK", "HU", "IS", "IN",
+    "ID", "IR", "IQ", "IE", "IL", "IT", "JM", "JP", "JO", "KZ", "KE", "KI", "KP", "KR", "KW",
+    "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MO", "MG", "MW", "MY", "MV",
+    "ML", "MT", "MH", "MQ", "MR", "MU", "MX", "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ",
+    "MM", "NA", "NR", "NP", "NL", "NZ", "NI", "NE", "NG", "NO", "OM", "PK", "PW", "PA", "PG",
+    "PY", "PE", "PH", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "KN", "LC", "VC", "WS",
+    "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SK", "SI", "SB", "SO", "ZA", "ES", "LK",
+    "SD", "SR", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TG", "TO", "TT", "TN", "TR", "TM",
+    "TC", "UG", "UA", "AE", "GB", "US", "UY", "UZ", "VU", "VA", "VE", "VN", "VG", "VI", "YE",
+    "ZM", "ZW"
+];
+
+const getFlagEmoji = (code: string) =>
+    code
+        .toUpperCase()
+        .split("")
+        .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+        .join("");
 
 export default function EarlyAccessClientPage() {
     const pathname = usePathname();
@@ -73,6 +100,11 @@ export default function EarlyAccessClientPage() {
         "trustora.early_access.client.error_frequency",
         "Selectează frecvența de recrutare.",
     );
+    const countryErrorText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.client.error_country",
+        "Selectează țara.",
+    );
     const emailExistsErrorText = useAsyncTranslation(
         locale,
         "trustora.early_access.client.error_email_exists",
@@ -82,6 +114,11 @@ export default function EarlyAccessClientPage() {
         locale,
         "trustora.early_access.common.error_generic",
         "A apărut o eroare. Încearcă din nou.",
+    );
+    const termsRequiredErrorText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.common.error_terms_required",
+        "Trebuie să accepți termenii și condițiile.",
     );
     const termsAcknowledgementText = useAsyncTranslation(
         locale,
@@ -121,6 +158,22 @@ export default function EarlyAccessClientPage() {
         locale,
         "trustora.early_access.client.fields.company_placeholder",
         "Numele companiei",
+    );
+    const countryLabel = useAsyncTranslation(locale, "trustora.early_access.client.fields.country_label", "Țara");
+    const countryPlaceholder = useAsyncTranslation(
+        locale,
+        "trustora.early_access.client.fields.country_placeholder",
+        "Selectează țara",
+    );
+    const countrySearchPlaceholder = useAsyncTranslation(
+        locale,
+        "trustora.early_access.client.fields.country_search_placeholder",
+        "Caută țara",
+    );
+    const countryEmptyText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.client.fields.country_empty",
+        "Nu am găsit nicio țară.",
     );
     const needsLabel = useAsyncTranslation(
         locale,
@@ -196,6 +249,7 @@ export default function EarlyAccessClientPage() {
         email: "",
         contactName: "",
         companyName: "",
+        country: "",
         hiringNeeds: "",
         typicalProjectBudget: "",
         hireFrequency: "",
@@ -206,7 +260,20 @@ export default function EarlyAccessClientPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const [isCountryOpen, setIsCountryOpen] = useState(false);
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+    const countries = useMemo(() => {
+        const displayNames = typeof Intl !== "undefined" && "DisplayNames" in Intl
+            ? new Intl.DisplayNames([locale], { type: "region" })
+            : null;
+        return COUNTRY_CODES
+            .map((code) => ({
+                code,
+                label: displayNames?.of(code) ?? code,
+                flag: getFlagEmoji(code),
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label, locale));
+    }, [locale]);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -218,8 +285,11 @@ export default function EarlyAccessClientPage() {
             if (!formData.hireFrequency) {
                 throw new Error(frequencyErrorText);
             }
+            if (!formData.country) {
+                throw new Error(countryErrorText);
+            }
             if (!formData.agreeToTerms) {
-                throw new Error("Trebuie să accepți termenii și condițiile.");
+                throw new Error(termsRequiredErrorText);
             }
 
             const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
@@ -228,6 +298,7 @@ export default function EarlyAccessClientPage() {
                 language: locale,
                 contact_name: formData.contactName,
                 company_name: formData.companyName,
+                country: formData.country,
                 hiring_needs: formData.hiringNeeds,
                 typical_project_budget: Number(formData.typicalProjectBudget),
                 hire_frequency: formData.hireFrequency,
@@ -246,6 +317,7 @@ export default function EarlyAccessClientPage() {
                 email: "",
                 contactName: "",
                 companyName: "",
+                country: "",
                 hiringNeeds: "",
                 typicalProjectBudget: "",
                 hireFrequency: "",
@@ -371,6 +443,63 @@ export default function EarlyAccessClientPage() {
                                                 className="pl-10"
                                                 required
                                             />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="country">{countryLabel}</Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                                {formData.country
+                                                    ? countries.find((country) => country.label === formData.country)?.flag
+                                                    : <Globe2 className="h-4 w-4" />}
+                                            </span>
+                                            <Popover open={isCountryOpen} onOpenChange={setIsCountryOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        id="country"
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        aria-expanded={isCountryOpen}
+                                                        className="w-full justify-between !pl-8 !pr-4"
+                                                    >
+                                                        {formData.country ? (
+                                                            <span className="flex items-center gap-2">
+                                                                <span>{formData.country}</span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">{countryPlaceholder}</span>
+                                                        )}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder={countrySearchPlaceholder} />
+                                                        <CommandList>
+                                                            <CommandEmpty>{countryEmptyText}</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {countries.map((country) => (
+                                                                    <CommandItem
+                                                                        key={country.code}
+                                                                        value={country.label}
+                                                                        onSelect={() => {
+                                                                            setFormData({ ...formData, country: country.label });
+                                                                            setIsCountryOpen(false);
+                                                                        }}
+                                                                    >
+                                                                        <span className="mr-2">{country.flag}</span>
+                                                                        <span>{country.label}</span>
+                                                                        {formData.country === country.label && (
+                                                                            <Check className="ml-auto h-4 w-4" />
+                                                                        )}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
                                         </div>
                                     </div>
 

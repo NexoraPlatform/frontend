@@ -1,0 +1,16 @@
+{
+  "notifications": {
+    "open_aria": "Deschide notificările",
+    "title": "Notificări",
+    "unread_count": "{count} notificări necitite",
+    "all_read": "Toate notificările sunt citite",
+    "web_push_title": "Notificări Web Push",
+    "web_push_unsupported": "Nu sunt suportate de browser",
+    "web_push_denied": "Permisiunea a fost refuzată",
+    "web_push_enabled_hint": "Primește notificări chiar și când site-ul este închis",
+    "list_aria": "Lista notificări",
+    "empty": "Nu ai notificări",
+    "end_of_list": "Ai ajuns la capăt",
+    "see_all": "Vezi Toate Notificările"
+  }
+}

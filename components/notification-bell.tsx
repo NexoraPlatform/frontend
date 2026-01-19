@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
+import { enUS, ro as roLocale } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,9 +18,25 @@ import {
 
 import { useNotifications } from '@/contexts/notification-context';
 import type { AppNotification } from '@/contexts/notification-context';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import type { Locale } from '@/types/locale';
 
 export function NotificationBell() {
     const router = useRouter();
+    const pathname = usePathname();
+    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const notificationsTitle = useAsyncTranslation(locale, 'common.notifications.title');
+    const openNotificationsAria = useAsyncTranslation(locale, 'common.notifications.open_aria');
+    const unreadCountTemplate = useAsyncTranslation(locale, 'common.notifications.unread_count');
+    const allReadText = useAsyncTranslation(locale, 'common.notifications.all_read');
+    const webPushTitle = useAsyncTranslation(locale, 'common.notifications.web_push_title');
+    const webPushUnsupported = useAsyncTranslation(locale, 'common.notifications.web_push_unsupported');
+    const webPushDenied = useAsyncTranslation(locale, 'common.notifications.web_push_denied');
+    const webPushEnabledHint = useAsyncTranslation(locale, 'common.notifications.web_push_enabled_hint');
+    const notificationsListLabel = useAsyncTranslation(locale, 'common.notifications.list_aria');
+    const noNotificationsText = useAsyncTranslation(locale, 'common.notifications.empty');
+    const endOfListText = useAsyncTranslation(locale, 'common.notifications.end_of_list');
+    const seeAllText = useAsyncTranslation(locale, 'common.notifications.see_all');
     const {
         notifications,
         unreadCount,
@@ -37,6 +53,8 @@ export function NotificationBell() {
         refresh,
         loadMore,
     } = useNotifications();
+    const distanceLocale = locale === 'en' ? enUS : roLocale;
+    const unreadCountText = unreadCountTemplate.replace('{count}', String(unreadCount));
 
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);
@@ -114,7 +132,7 @@ export function NotificationBell() {
         >
             <PopoverTrigger asChild>
                 <Button
-                    aria-label="Deschide notificarile"
+                    aria-label={openNotificationsAria}
                     variant="ghost"
                     size="icon"
                     className="relative w-11 h-11 rounded-xl text-[#0B1C2D] transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
@@ -133,9 +151,9 @@ export function NotificationBell() {
                     <CardHeader className="pb-3 border-b border-emerald-100/60 dark:border-emerald-500/20">
                         <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg text-[#0B1C2D] dark:text-white">Notificări</CardTitle>
+                                <CardTitle className="text-lg text-[#0B1C2D] dark:text-white">{notificationsTitle}</CardTitle>
                                 <CardDescription>
-                                    {unreadCount > 0 ? `${unreadCount} notificări necitite` : 'Toate notificările sunt citite'}
+                                    {unreadCount > 0 ? unreadCountText : allReadText}
                                 </CardDescription>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -156,13 +174,13 @@ export function NotificationBell() {
                             <CardContent className="py-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <div className="font-medium">Notificări Web Push</div>
+                                        <div className="font-medium">{webPushTitle}</div>
                                         <div className="text-sm text-muted-foreground">
                                             {!isWebPushSupported
-                                                ? 'Nu sunt suportate de browser'
+                                                ? webPushUnsupported
                                                 : webPushPermission === 'denied'
-                                                    ? 'Permisiunea a fost refuzată'
-                                                    : 'Primește notificări chiar și când site-ul este închis'}
+                                                    ? webPushDenied
+                                                    : webPushEnabledHint}
                                         </div>
                                     </div>
                                     <Switch
@@ -183,7 +201,7 @@ export function NotificationBell() {
                             className="h-72 overflow-auto"
                             onScroll={handleScroll}
                             role="list"
-                            aria-label="Lista notificări"
+                            aria-label={notificationsListLabel}
                         >
                             {loading ? (
                                 <div className="flex items-center justify-center py-8">
@@ -192,7 +210,7 @@ export function NotificationBell() {
                             ) : notifications.length === 0 ? (
                                 <div className="text-center py-8 px-4">
                                     <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                                    <p className="text-muted-foreground">Nu ai notificări</p>
+                                    <p className="text-muted-foreground">{noNotificationsText}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-1">
@@ -220,7 +238,7 @@ export function NotificationBell() {
                                                             <div className="flex items-center space-x-2 mt-2">
                                                                 <Clock className="w-3 h-3 text-muted-foreground" />
                                                                 <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: ro })}
+                                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: distanceLocale })}
                                 </span>
                                                             </div>
                                                         </div>
@@ -248,7 +266,7 @@ export function NotificationBell() {
 
                                     {!hasMore && (
                                         <div className="py-3 text-center text-xs text-muted-foreground">
-                                            Ai ajuns la capăt
+                                            {endOfListText}
                                         </div>
                                     )}
                                 </div>
@@ -262,7 +280,7 @@ export function NotificationBell() {
                             <CardContent className="py-3">
                                 <Button variant="outline" className="w-full" size="sm" onClick={() => router.push('/notifications')}>
                                     <Eye className="w-4 h-4 mr-2" />
-                                    Vezi Toate Notificările
+                                    {seeAllText}
                                 </Button>
                             </CardContent>
                         </>

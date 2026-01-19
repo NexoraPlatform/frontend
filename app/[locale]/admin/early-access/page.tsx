@@ -18,6 +18,7 @@ type ProviderEntry = {
   user_type: "provider";
   full_name: string;
   email: string;
+  country?: string | null;
   score: number;
   language: "ro" | "en";
   email_verification: boolean;
@@ -35,6 +36,7 @@ type ClientEntry = {
   contact_name: string;
   company_name: string;
   email: string;
+  country?: string | null;
   score: number;
   language: "ro" | "en";
   email_verification: boolean;
@@ -113,6 +115,7 @@ export default function AdminEarlyAccessPage() {
   const contactNameLabel = useAsyncTranslation(locale, "admin.early_access.columns.contact_name");
   const companyNameLabel = useAsyncTranslation(locale, "admin.early_access.columns.company_name");
   const emailLabel = useAsyncTranslation(locale, "admin.early_access.columns.email");
+  const countryLabel = useAsyncTranslation(locale, "admin.early_access.columns.country");
   const applicationIdLabel = useAsyncTranslation(locale, "admin.early_access.columns.application_id");
   const languageLabel = useAsyncTranslation(locale, "admin.early_access.columns.language");
   const scoreLabel = useAsyncTranslation(locale, "admin.early_access.columns.score");
@@ -200,6 +203,7 @@ export default function AdminEarlyAccessPage() {
                           <TableHead>{nameLabel}</TableHead>
                           <TableHead>{applicationIdLabel}</TableHead>
                           <TableHead>{emailLabel}</TableHead>
+                          <TableHead>{countryLabel}</TableHead>
                           <TableHead>{languageLabel}</TableHead>
                           <TableHead>{scoreLabel}</TableHead>
                           <TableHead>{verificationLabel}</TableHead>
@@ -214,6 +218,7 @@ export default function AdminEarlyAccessPage() {
                             <TableCell className="font-medium">{provider.full_name || "-"}</TableCell>
                             <TableCell className="font-medium">{provider.application_id || "-"}</TableCell>
                             <TableCell>{provider.email || "-"}</TableCell>
+                            <TableCell>{provider.country || "-"}</TableCell>
                             <TableCell className="uppercase">{provider.language || "-"}</TableCell>
                             <TableCell>
                               <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
@@ -276,6 +281,7 @@ export default function AdminEarlyAccessPage() {
                           <TableHead>{companyNameLabel}</TableHead>
                           <TableHead>{applicationIdLabel}</TableHead>
                           <TableHead>{emailLabel}</TableHead>
+                          <TableHead>{countryLabel}</TableHead>
                           <TableHead>{languageLabel}</TableHead>
                           <TableHead>{scoreLabel}</TableHead>
                           <TableHead>{verificationLabel}</TableHead>
@@ -291,6 +297,7 @@ export default function AdminEarlyAccessPage() {
                             <TableCell>{client.company_name || "-"}</TableCell>
                             <TableCell className="font-medium">{client.application_id || "-"}</TableCell>
                             <TableCell>{client.email || "-"}</TableCell>
+                            <TableCell>{client.country || "-"}</TableCell>
                             <TableCell className="uppercase">{client.language || "-"}</TableCell>
                             <TableCell>
                               <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">

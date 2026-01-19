@@ -1,0 +1,16 @@
+{
+  "notifications": {
+    "open_aria": "Open notifications",
+    "title": "Notifications",
+    "unread_count": "{count} unread notifications",
+    "all_read": "All notifications are read",
+    "web_push_title": "Web Push Notifications",
+    "web_push_unsupported": "Not supported by the browser",
+    "web_push_denied": "Permission was denied",
+    "web_push_enabled_hint": "Receive notifications even when the site is closed",
+    "list_aria": "Notifications list",
+    "empty": "You have no notifications",
+    "end_of_list": "You've reached the end",
+    "see_all": "See all notifications"
+  }
+}

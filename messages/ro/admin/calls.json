@@ -1,0 +1,57 @@
+{
+  "calls": {
+    "manage_title": "Gestionare Apeluri de verificare",
+    "manage_subtitle": "Administrează apelurile de verificare pentru servicii",
+    "search_placeholder": "Caută apeluri după participant, data...",
+    "filters": {
+      "passed": {
+        "label": "Filtru nivel",
+        "all": "Toate Rezultatele",
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "status": {
+        "label": "Filtru status",
+        "all": "Toate statusurile",
+        "WAITING": "În așteptare",
+        "ACCEPTED": "Acceptat",
+        "FINISHED": "Finalizat",
+        "REFUSED": "Refuzat",
+        "NO_SHOW": "Nu a intrat"
+      },
+      "date": {
+        "placeholder": "Selectează perioada"
+      }
+    },
+    "list_title": "Lista Apeluri",
+    "list_description": "{count} apeluri găsite",
+    "link_test_details": "Vezi detalii test",
+    "scheduled_at_prefix": "Programat la",
+    "passing_score_prefix": "Nota de trecere:",
+    "category_prefix": "Categorie:",
+    "created_prefix": "Creat:",
+    "results_label": "{count} rezultate",
+    "dropdown": {
+      "connect": "Conectează-te la interviu",
+      "move_waiting": "Mută în Așteptare",
+      "move_finished": "Mută Finalizat",
+      "move_accepted": "Mută în Acceptat",
+      "move_refused": "Mută în Refuzat",
+      "move_no_show": "Mută în Nu s-a prezentat",
+      "refuse_reason_label": "Motiv refuz",
+      "refuse_reason_placeholder": "Scrie un motiv...",
+      "cancel": "Anulează",
+      "confirm": "Confirmă"
+    },
+    "statuses": {
+      "WAITING": "În așteptare",
+      "ACCEPTED": "Acceptat",
+      "FINISHED": "Finalizat",
+      "REFUSED": "Refuzat",
+      "NO_SHOW": "Nu a intrat"
+    },
+    "no_calls_title": "Nu s-au găsit call-uri",
+    "no_calls_description": "Încearcă să modifici filtrele sau termenii de căutare",
+    "error_prefix": "Eroare: "
+  }
+}
