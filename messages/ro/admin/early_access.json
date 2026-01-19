@@ -18,6 +18,7 @@
       "company_name": "Companie",
       "application_id": "ID aplicație",
       "email": "Email",
+      "country": "Țară",
       "language": "Limbă",
       "score": "Scor",
       "verification": "Verificare email",

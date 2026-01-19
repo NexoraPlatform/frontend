@@ -18,6 +18,7 @@
       "company_name": "Company",
       "application_id": "Application ID",
       "email": "Email",
+      "country": "Country",
       "language": "Language",
       "score": "Score",
       "verification": "Email verification",
