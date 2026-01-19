@@ -19,6 +19,9 @@ interface LocaleSwitcherProps {
     className?: string;
 }
 
+const LOCALE_COOKIE_NAME = 'preferred_locale';
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
 export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps) {
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
@@ -32,6 +35,10 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
     const getLocalizedPath = (locale: Locale) => {
         const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}/, '') || '/';
         return `/${locale}${pathWithoutLocale}`;
+    };
+
+    const setLocaleCookie = (locale: Locale) => {
+        document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
     };
 
     const currentConfig = localeConfig[currentLocale];
@@ -59,6 +66,7 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
                                 href={getLocalizedPath(locale)}
                                 aria-current={isCurrent ? 'true' : undefined}
                                 hrefLang={locale}
+                                onClick={() => setLocaleCookie(locale)}
                                 className={`flex items-center gap-2 text-sm w-full ${isCurrent ? 'font-semibold text-primary' : ''}`}
                             >
                                 <span className="text-[18px] leading-none relative top-[1px]"
