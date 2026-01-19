@@ -69,6 +69,11 @@
         "description": "Resolve user disputes",
         "stats": "Disputes and complaints"
       },
+      "newsletter": {
+        "title": "Newsletter",
+        "description": "Send updates to subscribers",
+        "stats": "Email campaigns"
+      },
       "roles": {
         "title": "Role Management",
         "description": "Create or edit roles",
