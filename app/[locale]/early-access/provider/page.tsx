@@ -178,7 +178,11 @@ export default function EarlyAccessProviderPage() {
         "trustora.early_access.provider.skills.backend",
         "Backend development",
     );
-    const skillFullstack = useAsyncTranslation(locale, "trustora.early_access.provider.skills.fullstack", "Full-stack");
+    const skillFullstack = useAsyncTranslation(
+        locale,
+        "trustora.early_access.provider.skills.fullstack",
+        "Full-stack",
+    );
     const skillProduct = useAsyncTranslation(
         locale,
         "trustora.early_access.provider.skills.product",
@@ -191,6 +195,27 @@ export default function EarlyAccessProviderPage() {
         "trustora.early_access.provider.skills.mobile",
         "Mobile development",
     );
+    const skillMarketing = useAsyncTranslation(
+        locale,
+        "trustora.early_access.provider.skills.marketing",
+        "Marketing",
+    );
+    const skillDigitalServices = useAsyncTranslation(
+        locale,
+        "trustora.early_access.provider.skills.digital_services",
+        "Digital services",
+    );
+    const skillOther = useAsyncTranslation(locale, "trustora.early_access.provider.skills.other", "Other");
+    const otherSkillLabel = useAsyncTranslation(
+        locale,
+        "trustora.early_access.provider.skills.other_label",
+        "Specify other skill",
+    );
+    const otherSkillPlaceholder = useAsyncTranslation(
+        locale,
+        "trustora.early_access.provider.skills.other_placeholder",
+        "Ex: Legal consulting",
+    );
 
     const primarySkillOptions = [
         skillDesign,
@@ -201,6 +226,9 @@ export default function EarlyAccessProviderPage() {
         skillQa,
         skillDevops,
         skillMobile,
+        skillMarketing,
+        skillDigitalServices,
+        skillOther,
     ] as const;
 
     const [formData, setFormData] = useState({
@@ -208,6 +236,7 @@ export default function EarlyAccessProviderPage() {
         fullName: "",
         country: "",
         primarySkill: "",
+        otherPrimarySkill: "",
         yearsExperience: "",
         hasClients: false,
         unpaidWork: false,
@@ -226,7 +255,10 @@ export default function EarlyAccessProviderPage() {
         setIsSubmitting(true);
 
         try {
-            if (!formData.primarySkill) {
+            const isOtherSkill = formData.primarySkill === skillOther;
+            const resolvedPrimarySkill = isOtherSkill ? formData.otherPrimarySkill.trim() : formData.primarySkill;
+
+            if (!resolvedPrimarySkill) {
                 throw new Error(skillErrorText);
             }
             if (!formData.agreeToTerms) {
@@ -239,7 +271,7 @@ export default function EarlyAccessProviderPage() {
                 language: locale,
                 full_name: formData.fullName,
                 country: formData.country,
-                primary_skill: formData.primarySkill,
+                primary_skill: resolvedPrimarySkill,
                 years_experience: Number(formData.yearsExperience),
                 has_clients: formData.hasClients,
                 unpaid_work: formData.unpaidWork,
@@ -258,6 +290,7 @@ export default function EarlyAccessProviderPage() {
                 fullName: "",
                 country: "",
                 primarySkill: "",
+                otherPrimarySkill: "",
                 yearsExperience: "",
                 hasClients: false,
                 unpaidWork: false,
@@ -390,7 +423,13 @@ export default function EarlyAccessProviderPage() {
                                             <Label htmlFor="primarySkill">{skillLabel}</Label>
                                             <Select
                                                 value={formData.primarySkill}
-                                                onValueChange={(value) => setFormData({ ...formData, primarySkill: value })}
+                                                onValueChange={(value) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        primarySkill: value,
+                                                        otherPrimarySkill: value === skillOther ? formData.otherPrimarySkill : "",
+                                                    })
+                                                }
                                             >
                                                 <SelectTrigger id="primarySkill">
                                                     <SelectValue placeholder={skillPlaceholder} />
@@ -404,6 +443,21 @@ export default function EarlyAccessProviderPage() {
                                                 </SelectContent>
                                             </Select>
                                         </div>
+
+                                        {formData.primarySkill === skillOther && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="otherPrimarySkill">{otherSkillLabel}</Label>
+                                                <Input
+                                                    id="otherPrimarySkill"
+                                                    placeholder={otherSkillPlaceholder}
+                                                    value={formData.otherPrimarySkill}
+                                                    onChange={(event) =>
+                                                        setFormData({ ...formData, otherPrimarySkill: event.target.value })
+                                                    }
+                                                    required
+                                                />
+                                            </div>
+                                        )}
 
                                         <div className="space-y-2">
                                             <Label htmlFor="yearsExperience">{yearsLabel}</Label>

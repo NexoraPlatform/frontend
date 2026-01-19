@@ -159,13 +159,18 @@
       },
       "skills": {
         "design": "Design",
-        "frontend": "Frontend development",
-        "backend": "Backend development",
+        "frontend": "Dezvoltare frontend",
+        "backend": "Dezvoltare backend",
         "fullstack": "Full-stack",
-        "product": "Product management",
-        "qa": "QA & testing",
+        "product": "Management de produs",
+        "qa": "QA și testare",
         "devops": "DevOps",
-        "mobile": "Mobile development"
+        "mobile": "Dezvoltare mobile",
+        "marketing": "Marketing",
+        "digital_services": "Servicii digitale",
+        "other": "Altele",
+        "other_label": "Specifică alt skill",
+        "other_placeholder": "Ex: Consultanță juridică"
       },
       "checkboxes": {
         "has_clients": "Am deja clienți activi.",
