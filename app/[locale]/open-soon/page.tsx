@@ -43,7 +43,7 @@ export default function OpenSoonPage() {
   const subtitleHighlight = useAsyncTranslation(
     locale,
     "trustora.open_soon.subtitle_highlight",
-    "Early Access începe în curând.",
+    "Early Access registration începe în curând.",
   );
   const support = useAsyncTranslation(locale, "trustora.open_soon.support", "Contact suport");
   const languageLabel = useAsyncTranslation(locale, "trustora.open_soon.language_label", "Limba");
