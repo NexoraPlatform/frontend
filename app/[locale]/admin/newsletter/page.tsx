@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,12 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const parseRecipients = (value: string) =>
   value
@@ -393,23 +391,12 @@ export default function AdminNewsletterPage() {
 
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
-                  <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
-                    <ReactQuill
-                      theme="snow"
-                      value={dataMessage}
-                      onChange={setDataMessage}
-                      placeholder={dataMessagePlaceholder}
-                      readOnly={!isCustomTemplate}
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ["bold", "italic", "underline", "strike"],
-                          [{ list: "ordered" }, { list: "bullet" }],
-                          ["link", "clean"],
-                        ],
-                      }}
-                    />
-                  </div>
+                  <SimpleEditor
+                    value={dataMessage}
+                    onChange={setDataMessage}
+                    placeholder={dataMessagePlaceholder}
+                    readOnly={!isCustomTemplate}
+                  />
                   {!isCustomTemplate && (
                     <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
                   )}
