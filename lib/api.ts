@@ -201,7 +201,7 @@ class ApiClient {
     });
   }
 
-  async verifyEarlyAccessApplication(code: string) {
+  async verifyEarlyAccessApplication(payload: { code: string; language?: 'en' | 'ro' }) {
     return this.request<{
       verified: boolean;
       expired?: boolean;
@@ -215,7 +215,7 @@ class ApiClient {
       };
     }>('/early-access/verify', {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify(payload),
     });
   }
 
