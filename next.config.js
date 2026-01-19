@@ -64,8 +64,8 @@ const nextConfig = {
   // Experimental features for performance
   experimental: {
     // CSS optimization
-    optimizeCss: true,
-    reactCompiler: true,
+    optimizeCss: process.env.NEXT_OPTIMIZE_CSS === 'true',
+    reactCompiler: process.env.NEXT_REACT_COMPILER === 'true',
 
     // Package imports optimization
     optimizePackageImports: [
