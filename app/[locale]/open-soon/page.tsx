@@ -256,55 +256,82 @@ export default function OpenSoonPage() {
         </p>
 
 
-        <div
-            className="w-full max-w-lg bg-white p-6 rounded-2xl border border-slate-200 shadow-soft mb-16 text-left relative z-20">
+        <div className="relative z-20 mb-16 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-soft transition-colors dark:border-slate-800 dark:bg-slate-900">
           <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+              {/* Câmp Nume */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{formNameLabel}</label>
-                <input
-                       type="text"
-                       placeholder={formNamePlaceholder}
-                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight placeholder:text-slate-400 text-sm"
-                       value={fullName}
-                       onChange={(event) => setFullName(event.target.value)}
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {formNameLabel}
+                </label>
+                <Input
+                    type="text"
+                    placeholder={formNamePlaceholder}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
+          dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
                 />
               </div>
+
+              {/* Câmp Rol */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{formRoleLabel}</label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {formRoleLabel}
+                </Label>
                 <Select value={userType} onValueChange={(value) => setUserType(value as "client" | "provider")}>
-                  <SelectTrigger className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight text-sm">
+                  <SelectTrigger className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
+          dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-400">
                     <SelectValue placeholder={formRolePlaceholder} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="client">{formRoleClient}</SelectItem>
-                    <SelectItem value="provider">{formRoleProvider}</SelectItem>
+                  <SelectContent className="dark:border-slate-800 dark:bg-slate-900">
+                    <SelectItem value="client" className="dark:text-slate-100 dark:focus:bg-slate-800">
+                      {formRoleClient}
+                    </SelectItem>
+                    <SelectItem value="provider" className="dark:text-slate-100 dark:focus:bg-slate-800">
+                      {formRoleProvider}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
+            {/* Câmp Email */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{formEmailLabel}</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {formEmailLabel}
+              </Label>
               <Input
-                     type="email"
-                     placeholder={formEmailPlaceholder}
-                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight placeholder:text-slate-400 text-sm"
-                     value={email}
-                     onChange={(event) => setEmail(event.target.value)}
-                     required
+                  type="email"
+                  placeholder={formEmailPlaceholder}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
+        dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
               />
             </div>
 
-            <Button type="submit"
-                    disabled={isSubmitDisabled}
-                    className="w-full !bg-secondary hover:!bg-slate-800 !text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg group">
+            {/* Buton Submit */}
+            <Button
+                type="submit"
+                disabled={isSubmitDisabled}
+                className="group flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-6 py-3 font-medium text-white shadow-lg transition-all duration-200 hover:bg-slate-800
+      dark:bg-primary dark:text-slate-900 dark:hover:bg-slate-200"
+            >
               {formSubmit}
-              <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform animate-pulse" />
+              <ArrowRightIcon className="h-4 w-4 animate-pulse transition-transform group-hover:translate-x-1" />
             </Button>
           </form>
-          <p className="mt-4 text-xs text-center text-slate-400">
-            {formTermsPrefix} <a href="#" className="underline hover:text-midnight">{formTermsLink}</a>{formTermsSuffix}
+
+          {/* Footer */}
+          <p className="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
+            {formTermsPrefix}{" "}
+            <a href="#" className="underline hover:text-slate-900 dark:hover:text-slate-200">
+              {formTermsLink}
+            </a>
+            {formTermsSuffix}
           </p>
         </div>
 
