@@ -214,6 +214,11 @@ export default function AdminNewsletterPage() {
       return "";
     }
 
+    const stripBladePhp = (html: string) =>
+      html
+        .replace(/@php\([\s\S]*?\)/g, "")
+        .replace(/@php[\s\S]*?@endphp/g, "");
+
     const defaultVariables: Record<string, string> = {
       "$subscriber->company": "Trustora SRL",
       "$unsubscribeUrl": "https://trustora.ro/unsubscribe",
@@ -232,7 +237,7 @@ export default function AdminNewsletterPage() {
 
     return Object.entries(defaultVariables).reduce(
       (current, [key, value]) => replaceBladeVariable(current, key, value),
-      templateContent,
+      stripBladePhp(templateContent),
     );
   }, [templateContent, subject, dataMessage, language]);
 
