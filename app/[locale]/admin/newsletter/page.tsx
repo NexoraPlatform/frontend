@@ -599,7 +599,7 @@ export default function AdminNewsletterPage() {
                         <TableCell className="font-medium">{subscriber.email}</TableCell>
                         <TableCell>{subscriber.name || "-"}</TableCell>
                         <TableCell>{subscriber.user_type}</TableCell>
-                        <TableCell>{subscriber.company || "-"}</TableCell>
+                        className="simple-editor tiptap prose prose-sm max-w-none dark:prose-invert"
                         <TableCell className="uppercase">{subscriber.language}</TableCell>
                         <TableCell>
                           {new Date(subscriber.subscribed_at).toLocaleDateString(
