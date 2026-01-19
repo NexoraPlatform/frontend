@@ -170,7 +170,7 @@
         "digital_services": "Digital services",
         "other": "Other",
         "other_label": "Specify other skill",
-        "other_placeholder": "Ex: Legal consulting"
+        "other_placeholder": "Ex: Digital Marketing"
       },
       "checkboxes": {
         "has_clients": "I already have active clients.",

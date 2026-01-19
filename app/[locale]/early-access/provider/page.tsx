@@ -200,11 +200,6 @@ export default function EarlyAccessProviderPage() {
         "trustora.early_access.provider.skills.marketing",
         "Marketing",
     );
-    const skillDigitalServices = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.digital_services",
-        "Digital services",
-    );
     const skillOther = useAsyncTranslation(locale, "trustora.early_access.provider.skills.other", "Other");
     const otherSkillLabel = useAsyncTranslation(
         locale,
@@ -214,7 +209,7 @@ export default function EarlyAccessProviderPage() {
     const otherSkillPlaceholder = useAsyncTranslation(
         locale,
         "trustora.early_access.provider.skills.other_placeholder",
-        "Ex: Legal consulting",
+        "Ex: Digital Marketing",
     );
 
     const primarySkillOptions = [
@@ -227,7 +222,6 @@ export default function EarlyAccessProviderPage() {
         skillDevops,
         skillMobile,
         skillMarketing,
-        skillDigitalServices,
         skillOther,
     ] as const;
 
