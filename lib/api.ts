@@ -201,9 +201,68 @@ class ApiClient {
     });
   }
 
+  async verifyEarlyAccessApplication(code: string) {
+    return this.request<{
+      verified: boolean;
+      expired?: boolean;
+      message?: string;
+      application?: {
+        id: number;
+        user_type: 'client' | 'provider';
+        email: string;
+        email_verification: boolean;
+        email_verification_expired: boolean;
+      };
+    }>('/early-access/verify', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async resendEarlyAccessVerification(payload: {
+    application_id: string;
+    language?: 'en' | 'ro';
+  }) {
+    return this.request<{
+      resent: boolean;
+      verified?: boolean;
+      message?: string;
+      application?: {
+        id: number;
+        user_type: 'client' | 'provider';
+        email: string;
+        application_id: string;
+        email_verification: boolean;
+      };
+    }>('/early-access/resend', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Early access endpoints
-  async getEarlyAccessGrouped() {
-    return this.request<{ providers: any[]; clients: any[] }>('/early-access/grouped');
+  async getEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
+    const searchParams = new URLSearchParams();
+
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/early-access/grouped?${query}` : '/early-access/grouped';
+
+    return this.request<{
+      providers: any[];
+      clients: any[];
+      pagination?: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+      };
+    }>(endpoint);
   }
 
   // Services endpoints

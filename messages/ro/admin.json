@@ -127,10 +127,21 @@
       "name": "Nume complet",
       "contact_name": "Persoană de contact",
       "company_name": "Companie",
+      "application_id": "ID aplicație",
       "email": "Email",
+      "language": "Limbă",
       "score": "Scor",
+      "verification": "Verificare email",
+      "verification_sent": "Email trimis",
+      "verification_expires": "Expiră",
       "created_at": "Înscris la"
     },
+    "status": {
+      "verified": "Verificat",
+      "unverified": "Neconfirmat",
+      "expired": "Expirat"
+    },
+    "pagination": "Pagina {current} din {last} • {total} total • {per_page} / pagină",
     "error": "Nu am putut încărca înscrierile."
   },
   "categories": {
