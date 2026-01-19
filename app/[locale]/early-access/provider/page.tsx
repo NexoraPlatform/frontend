@@ -463,7 +463,11 @@ export default function EarlyAccessProviderPage() {
                                     <div className="space-y-2">
                                         <Label htmlFor="country">{countryLabel}</Label>
                                         <div className="relative">
-                                            <Globe2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                                {formData.country
+                                                    ? countries.find((country) => country.label === formData.country)?.flag
+                                                    : <Globe2 className="h-4 w-4" />}
+                                            </span>
                                             <Popover open={isCountryOpen} onOpenChange={setIsCountryOpen}>
                                                 <PopoverTrigger asChild>
                                                     <Button
@@ -471,7 +475,7 @@ export default function EarlyAccessProviderPage() {
                                                         variant="outline"
                                                         role="combobox"
                                                         aria-expanded={isCountryOpen}
-                                                        className="w-full justify-between pl-8 pr-4"
+                                                        className="w-full justify-between !pl-8 !pr-4"
                                                     >
                                                         {formData.country ? (
                                                             <span className="flex items-center gap-2">
