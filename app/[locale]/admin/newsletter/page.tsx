@@ -7,6 +7,15 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import TextAlign from "@tiptap/extension-text-align";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { common, createLowlight } from "lowlight";
+import MarkdownIt from "markdown-it";
+import TurndownService from "turndown";
+import { Extension } from "@tiptap/core";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -148,14 +157,63 @@ export default function AdminNewsletterPage() {
   const statusActive = useAsyncTranslation(locale, "admin.newsletter.status_active", "Activ");
   const statusInactive = useAsyncTranslation(locale, "admin.newsletter.status_inactive", "Dezabonat");
 
+  const TextDirectionExtension = Extension.create({
+    name: "textDirection",
+    addGlobalAttributes() {
+      return [
+        {
+          types: ["heading", "paragraph"],
+          attributes: {
+            dir: {
+              default: null,
+              parseHTML: (element) => element.getAttribute("dir"),
+              renderHTML: (attributes) => (attributes.dir ? { dir: attributes.dir } : {}),
+            },
+          },
+        },
+      ];
+    },
+    addCommands() {
+      return {
+        setTextDirection:
+          (direction: "ltr" | "rtl") =>
+          ({ chain }) =>
+            chain().updateAttributes("paragraph", { dir: direction }).updateAttributes("heading", { dir: direction }).run(),
+        unsetTextDirection:
+          () =>
+          ({ chain }) =>
+            chain().updateAttributes("paragraph", { dir: null }).updateAttributes("heading", { dir: null }).run(),
+      };
+    },
+  });
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2],
+          levels: [1, 2, 3],
         },
       }),
       Underline,
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+      }),
+      TaskList.configure({
+        HTMLAttributes: {
+          class: "task-list",
+        },
+      }),
+      TaskItem.configure({
+        nested: true,
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      TextDirectionExtension,
+      CodeBlockLowlight.configure({
+        lowlight: createLowlight(common),
+      }),
       Placeholder.configure({
         placeholder: dataMessagePlaceholder,
       }),
@@ -180,6 +238,39 @@ export default function AdminNewsletterPage() {
       editor.commands.setContent(dataMessage || "", false);
     }
   }, [dataMessage, editor]);
+
+  const handleSetImage = () => {
+    if (!editor) return;
+    const url = window.prompt("Image URL");
+    if (!url) return;
+    editor.chain().focus().setImage({ src: url }).run();
+  };
+
+  const handleInsertMarkdown = () => {
+    if (!editor) return;
+    const markdown = window.prompt("Markdown");
+    if (!markdown) return;
+    const markdownIt = new MarkdownIt({ breaks: true, linkify: true });
+    const html = markdownIt.render(markdown);
+    editor.commands.setContent(html, false);
+  };
+
+  const handleCopyMarkdown = async () => {
+    if (!editor) return;
+    const html = editor.getHTML();
+    const turndownService = new TurndownService({
+      codeBlockStyle: "fenced",
+      emDelimiter: "_",
+    });
+    const markdown = turndownService.turndown(html);
+    if (!markdown) return;
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(markdown);
+    }
+  };
+
+  const currentTextDirection =
+    editor?.getAttributes("paragraph")?.dir ?? editor?.getAttributes("heading")?.dir;
 
   useEffect(() => {
     let active = true;
@@ -451,6 +542,15 @@ export default function AdminNewsletterPage() {
                         type="button"
                         variant={editor?.isActive("bold") ? "default" : "outline"}
                         size="sm"
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("heading", { level: 3 }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Long text
+                      </Button>
                         onClick={() => editor?.chain().focus().toggleBold().run()}
                         disabled={!editor || !isCustomTemplate}
                       >
@@ -505,7 +605,97 @@ export default function AdminNewsletterPage() {
                       <span>{previewLoading}</span>
                     </div>
                   ) : templateContentError ? (
-                    <p className="text-sm text-red-500">{templateContentError}</p>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("taskList") ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleTaskList().run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Tasks
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive({ textAlign: "left" }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Align left
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive({ textAlign: "center" }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Align center
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive({ textAlign: "right" }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Align right
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive({ textAlign: "justify" }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().setTextAlign("justify").run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Align justify
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={currentTextDirection === "ltr" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().setTextDirection("ltr").run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        LTR
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={currentTextDirection === "rtl" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().setTextDirection("rtl").run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        RTL
+                      </Button>
+                        Syntax highlight
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSetImage}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Image
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleInsertMarkdown}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Markdown
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyMarkdown}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Copy Markdown
+                      </Button>
                   ) : !templateContent ? (
                     <p className="text-sm text-muted-foreground">{previewEmpty}</p>
                   ) : (
