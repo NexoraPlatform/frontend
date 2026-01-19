@@ -99,10 +99,10 @@ export default function OpenSoonPage() {
   const isDark = currentTheme === "dark";
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+    <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3] overflow-hidden">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(#CBD5E1_1px,transparent_1px)] [background-size:24px_24px] opacity-40 dark:bg-[radial-gradient(#1E293B_1px,transparent_1px)]" />
       <div className="pointer-events-none absolute left-[-100px] top-0 h-96 w-96 rounded-full bg-emerald-400/40 blur-[80px]" />
-      <div className="pointer-events-none absolute bottom-0 right-[-100px] h-80 w-80 rounded-full bg-[#0B1C2D]/30 blur-[80px] dark:bg-[#0B1C2D]/60" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#0B1C2D]/30 blur-[80px] dark:bg-[#0B1C2D]/60" />
 
       <nav className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2">
