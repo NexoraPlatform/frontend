@@ -265,6 +265,13 @@ class ApiClient {
     });
   }
 
+  async unsubscribeFromNewsletter(token: string) {
+    return this.request<{ unsubscribed: boolean }>('/newsletter/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
   // Early access endpoints
   async getEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
     const searchParams = new URLSearchParams();
