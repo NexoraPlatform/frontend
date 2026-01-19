@@ -83,6 +83,11 @@ export default function EarlyAccessClientPage() {
         "trustora.early_access.common.error_generic",
         "A apărut o eroare. Încearcă din nou.",
     );
+    const termsRequiredErrorText = useAsyncTranslation(
+        locale,
+        "trustora.early_access.common.error_terms_required",
+        "Trebuie să accepți termenii și condițiile.",
+    );
     const termsAcknowledgementText = useAsyncTranslation(
         locale,
         "trustora.early_access.common.terms_acknowledgement",
@@ -219,7 +224,7 @@ export default function EarlyAccessClientPage() {
                 throw new Error(frequencyErrorText);
             }
             if (!formData.agreeToTerms) {
-                throw new Error("Trebuie să accepți termenii și condițiile.");
+                throw new Error(termsRequiredErrorText);
             }
 
             const payload: Parameters<typeof apiClient.createEarlyAccessApplication>[0] = {
