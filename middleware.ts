@@ -157,7 +157,7 @@ function getLocale(request: NextRequest): string {
   }
 
   const country =
-    request.geo?.country ||
+    (request as NextRequest & { geo?: { country?: string } }).geo?.country ||
     request.headers.get('x-vercel-ip-country') ||
     request.headers.get('x-country');
   if (country) {
