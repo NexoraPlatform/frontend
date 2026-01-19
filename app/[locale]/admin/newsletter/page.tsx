@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Placeholder from "@tiptap/extension-placeholder";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,11 +16,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const parseRecipients = (value: string) =>
   value
@@ -127,6 +131,28 @@ export default function AdminNewsletterPage() {
   const columnStatus = useAsyncTranslation(locale, "admin.newsletter.columns.status", "Status");
   const statusActive = useAsyncTranslation(locale, "admin.newsletter.status_active", "Activ");
   const statusInactive = useAsyncTranslation(locale, "admin.newsletter.status_inactive", "Dezabonat");
+
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({
+          heading: {
+            levels: [2, 3],
+          },
+        }),
+        Underline,
+        Placeholder.configure({
+          placeholder: dataMessagePlaceholder,
+        }),
+      ],
+      content: dataMessage,
+      onUpdate: ({ editor }) => {
+        const text = editor.getText().trim();
+        setDataMessage(text ? editor.getHTML() : "");
+      },
+    },
+    [dataMessagePlaceholder],
+  );
 
   useEffect(() => {
     let active = true;
@@ -314,12 +340,79 @@ export default function AdminNewsletterPage() {
 
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
-                  <Textarea
-                    value={dataMessage}
-                    onChange={(event) => setDataMessage(event.target.value)}
-                    placeholder={dataMessagePlaceholder}
-                    className="min-h-[120px] bg-white/80 dark:bg-slate-900/60"
-                  />
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                        className={cn(
+                          "bg-white/80 dark:bg-slate-900/60",
+                          editor?.isActive("heading", { level: 2 }) &&
+                            "bg-slate-100 text-slate-900 dark:bg-slate-800/80",
+                        )}
+                      >
+                        Heading
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+                        className={cn(
+                          "bg-white/80 dark:bg-slate-900/60",
+                          editor?.isActive("heading", { level: 3 }) &&
+                            "bg-slate-100 text-slate-900 dark:bg-slate-800/80",
+                        )}
+                      >
+                        Subheading
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => editor?.chain().focus().toggleBold().run()}
+                        className={cn(
+                          "bg-white/80 dark:bg-slate-900/60",
+                          editor?.isActive("bold") && "bg-slate-100 text-slate-900 dark:bg-slate-800/80",
+                        )}
+                      >
+                        Bold
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => editor?.chain().focus().toggleItalic().run()}
+                        className={cn(
+                          "bg-white/80 dark:bg-slate-900/60",
+                          editor?.isActive("italic") && "bg-slate-100 text-slate-900 dark:bg-slate-800/80",
+                        )}
+                      >
+                        Italic
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                        className={cn(
+                          "bg-white/80 dark:bg-slate-900/60",
+                          editor?.isActive("underline") &&
+                            "bg-slate-100 text-slate-900 dark:bg-slate-800/80",
+                        )}
+                      >
+                        Underline
+                      </Button>
+                    </div>
+                    <div className="rounded-md border border-input bg-white/80 dark:bg-slate-900/60">
+                      <EditorContent
+                        editor={editor}
+                        className="min-h-[120px] px-3 py-2 text-sm text-slate-900 dark:text-slate-100 [&_.ProseMirror]:min-h-[120px] [&_.ProseMirror]:outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
