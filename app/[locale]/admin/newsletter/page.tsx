@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,11 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const parseRecipients = (value: string) =>
   value
@@ -29,6 +31,9 @@ export default function AdminNewsletterPage() {
   const [templates, setTemplates] = useState<string[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [templateContent, setTemplateContent] = useState("");
+  const [templateContentLoading, setTemplateContentLoading] = useState(false);
+  const [templateContentError, setTemplateContentError] = useState<string | null>(null);
   const [subscribers, setSubscribers] = useState<{
     id: number;
     email: string;
@@ -45,13 +50,14 @@ export default function AdminNewsletterPage() {
   const [onlyActive, setOnlyActive] = useState(true);
   const [template, setTemplate] = useState("");
   const [subject, setSubject] = useState("");
-  const [dataTitle, setDataTitle] = useState("");
   const [dataMessage, setDataMessage] = useState("");
   const [userType, setUserType] = useState<"all" | "client" | "provider">("all");
+  const [language, setLanguage] = useState<"ro" | "en">("ro");
   const [recipients, setRecipients] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [sendCount, setSendCount] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const isCustomTemplate = template === "custom";
 
   const titleText = useAsyncTranslation(locale, "admin.newsletter.title", "Newsletter");
   const subtitleText = useAsyncTranslation(
@@ -71,10 +77,6 @@ export default function AdminNewsletterPage() {
     "admin.newsletter.template_empty",
     "Nu există template-uri disponibile.",
   );
-  const subjectLabel = useAsyncTranslation(locale, "admin.newsletter.subject_label", "Subiect");
-  const subjectPlaceholder = useAsyncTranslation(locale, "admin.newsletter.subject_placeholder", "Ex: Bine ai venit!");
-  const dataTitleLabel = useAsyncTranslation(locale, "admin.newsletter.data_title_label", "Titlu mesaj");
-  const dataTitlePlaceholder = useAsyncTranslation(locale, "admin.newsletter.data_title_placeholder", "Ex: Salut!");
   const dataMessageLabel = useAsyncTranslation(locale, "admin.newsletter.data_message_label", "Mesaj");
   const dataMessagePlaceholder = useAsyncTranslation(
     locale,
@@ -85,6 +87,23 @@ export default function AdminNewsletterPage() {
   const userTypeAll = useAsyncTranslation(locale, "admin.newsletter.user_type_all", "Toți abonații");
   const userTypeClient = useAsyncTranslation(locale, "admin.newsletter.user_type_client", "Clienți");
   const userTypeProvider = useAsyncTranslation(locale, "admin.newsletter.user_type_provider", "Prestatori");
+  const languageLabel = useAsyncTranslation(locale, "admin.newsletter.language_label", "Limba");
+  const languageRo = useAsyncTranslation(locale, "admin.newsletter.language_ro", "Română");
+  const languageEn = useAsyncTranslation(locale, "admin.newsletter.language_en", "Engleză");
+  const previewTitle = useAsyncTranslation(locale, "admin.newsletter.preview_title", "Previzualizare live");
+  const previewLoading = useAsyncTranslation(locale, "admin.newsletter.preview_loading", "Se încarcă preview-ul...");
+  const previewEmpty = useAsyncTranslation(locale, "admin.newsletter.preview_empty", "Selectează un template pentru preview.");
+  const previewError = useAsyncTranslation(locale, "admin.newsletter.preview_error", "Nu am putut încărca preview-ul.");
+  const previewNote = useAsyncTranslation(
+    locale,
+    "admin.newsletter.preview_note",
+    "Variabilele sunt înlocuite cu valori de test în preview.",
+  );
+  const customOnlyNote = useAsyncTranslation(
+    locale,
+    "admin.newsletter.custom_only_note",
+    "Subiectul și mesajul pot fi editate doar pentru template-ul custom.",
+  );
   const recipientsLabel = useAsyncTranslation(
     locale,
     "admin.newsletter.recipients_label",
@@ -187,6 +206,72 @@ export default function AdminNewsletterPage() {
 
   const canSend = useMemo(() => template && subject && !isSending, [template, subject, isSending]);
 
+  const previewHtml = useMemo(() => {
+    if (!templateContent) {
+      return "";
+    }
+
+    const stripBladePhp = (html: string) =>
+      html
+        .replace(/@php[\s\S]*?@endphp/g, "")
+        .replace(/@php[\s\S]*?(?:\n|$)/g, "");
+
+    const defaultVariables: Record<string, string> = {
+      "$subscriber->company": "Trustora SRL",
+      "$unsubscribeUrl": "https://trustora.ro/unsubscribe",
+      "$language": language,
+      "$payload['title']": subject || "Newsletter",
+      "$subscriber->name": "Ion Popescu",
+      "$payload['message']": dataMessage || "Acesta este mesajul scris de mine.",
+    };
+
+    const replaceBladeVariable = (html: string, key: string, value: string) => {
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regexBlade = new RegExp(`\\{\\{\\s*${escapedKey}\\s*\\}\\}`, "g");
+      const regexBladeRaw = new RegExp(`\\{!!\\s*${escapedKey}\\s*!!\\}`, "g");
+      return html.replace(regexBlade, value).replace(regexBladeRaw, value);
+    };
+
+    return Object.entries(defaultVariables).reduce(
+      (current, [key, value]) => replaceBladeVariable(current, key, value),
+      stripBladePhp(templateContent),
+    );
+  }, [templateContent, subject, dataMessage, language]);
+
+  useEffect(() => {
+    if (!template) {
+      setTemplateContent("");
+      setTemplateContentError(null);
+      return;
+    }
+
+    let active = true;
+    const fetchTemplateContent = async () => {
+      setTemplateContentLoading(true);
+      setTemplateContentError(null);
+      try {
+        const response = await apiClient.getNewsletterTemplateContent(template);
+        if (!active) return;
+        setTemplateContent(response?.content ?? "");
+      } catch (error) {
+        if (!active) return;
+        setTemplateContentError(error instanceof Error ? error.message : previewError);
+      } finally {
+        if (active) setTemplateContentLoading(false);
+      }
+    };
+
+    fetchTemplateContent();
+
+    return () => {
+      active = false;
+    };
+  }, [template, previewError]);
+
+  useEffect(() => {
+    setSubject(template || "Newsletter");
+  }, [template]);
+
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canSend) return;
@@ -199,9 +284,10 @@ export default function AdminNewsletterPage() {
     const payload: Parameters<typeof apiClient.sendNewsletter>[0] = {
       template,
       subject,
-      data: dataTitle || dataMessage ? { title: dataTitle, message: dataMessage } : undefined,
+      data: dataMessage ? { message: dataMessage } : undefined,
       user_type: userType === "all" ? undefined : userType,
       recipients: recipientList.length > 0 ? recipientList : undefined,
+      language,
     };
 
     try {
@@ -276,28 +362,6 @@ export default function AdminNewsletterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>{subjectLabel}</Label>
-                    <Input
-                      value={subject}
-                      onChange={(event) => setSubject(event.target.value)}
-                      placeholder={subjectPlaceholder}
-                      className="bg-white/80 dark:bg-slate-900/60"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{dataTitleLabel}</Label>
-                    <Input
-                      value={dataTitle}
-                      onChange={(event) => setDataTitle(event.target.value)}
-                      placeholder={dataTitlePlaceholder}
-                      className="bg-white/80 dark:bg-slate-900/60"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>{userTypeLabel}</Label>
                     <Select value={userType} onValueChange={(value) => setUserType(value as typeof userType)}>
                       <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
@@ -312,14 +376,43 @@ export default function AdminNewsletterPage() {
                   </div>
                 </div>
 
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>{languageLabel}</Label>
+                    <Select value={language} onValueChange={(value) => setLanguage(value as typeof language)}>
+                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ro">{languageRo}</SelectItem>
+                        <SelectItem value="en">{languageEn}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
-                  <Textarea
-                    value={dataMessage}
-                    onChange={(event) => setDataMessage(event.target.value)}
-                    placeholder={dataMessagePlaceholder}
-                    className="min-h-[120px] bg-white/80 dark:bg-slate-900/60"
-                  />
+                  <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <ReactQuill
+                      theme="snow"
+                      value={dataMessage}
+                      onChange={setDataMessage}
+                      placeholder={dataMessagePlaceholder}
+                      readOnly={!isCustomTemplate}
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ["bold", "italic", "underline", "strike"],
+                          [{ list: "ordered" }, { list: "bullet" }],
+                          ["link", "clean"],
+                        ],
+                      }}
+                    />
+                  </div>
+                  {!isCustomTemplate && (
+                    <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -330,6 +423,29 @@ export default function AdminNewsletterPage() {
                     placeholder={recipientsPlaceholder}
                     className="bg-white/80 dark:bg-slate-900/60"
                   />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>{previewTitle}</Label>
+                  {templateContentLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{previewLoading}</span>
+                    </div>
+                  ) : templateContentError ? (
+                    <p className="text-sm text-red-500">{templateContentError}</p>
+                  ) : !templateContent ? (
+                    <p className="text-sm text-muted-foreground">{previewEmpty}</p>
+                  ) : (
+                    <div className="rounded-xl border border-border/60 bg-white/80 p-2 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/70">
+                      <iframe
+                        srcDoc={previewHtml}
+                        className="h-[480px] w-full rounded-lg bg-white"
+                        title="Newsletter preview"
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">{previewNote}</p>
                 </div>
 
                 {sendCount !== null && (

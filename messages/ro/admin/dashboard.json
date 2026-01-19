@@ -67,6 +67,11 @@
         "description": "Rezolvă disputele între utilizatori",
         "stats": "Dispute și reclamații"
       },
+      "newsletter": {
+        "title": "Newsletter",
+        "description": "Trimite actualizări către abonați",
+        "stats": "Campanii email"
+      },
       "roles": {
         "title": "Gestionare Roluri",
         "description": "Creează sau editează roluri",
