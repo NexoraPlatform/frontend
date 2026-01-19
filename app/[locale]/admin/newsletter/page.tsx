@@ -48,6 +48,7 @@ export default function AdminNewsletterPage() {
   const [dataTitle, setDataTitle] = useState("");
   const [dataMessage, setDataMessage] = useState("");
   const [userType, setUserType] = useState<"all" | "client" | "provider">("all");
+  const [language, setLanguage] = useState<"ro" | "en">("ro");
   const [recipients, setRecipients] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [sendCount, setSendCount] = useState<number | null>(null);
@@ -85,6 +86,9 @@ export default function AdminNewsletterPage() {
   const userTypeAll = useAsyncTranslation(locale, "admin.newsletter.user_type_all", "Toți abonații");
   const userTypeClient = useAsyncTranslation(locale, "admin.newsletter.user_type_client", "Clienți");
   const userTypeProvider = useAsyncTranslation(locale, "admin.newsletter.user_type_provider", "Prestatori");
+  const languageLabel = useAsyncTranslation(locale, "admin.newsletter.language_label", "Limba");
+  const languageRo = useAsyncTranslation(locale, "admin.newsletter.language_ro", "Română");
+  const languageEn = useAsyncTranslation(locale, "admin.newsletter.language_en", "Engleză");
   const recipientsLabel = useAsyncTranslation(
     locale,
     "admin.newsletter.recipients_label",
@@ -202,6 +206,7 @@ export default function AdminNewsletterPage() {
       data: dataTitle || dataMessage ? { title: dataTitle, message: dataMessage } : undefined,
       user_type: userType === "all" ? undefined : userType,
       recipients: recipientList.length > 0 ? recipientList : undefined,
+      language,
     };
 
     try {
@@ -287,7 +292,7 @@ export default function AdminNewsletterPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className="grid gap-5 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label>{dataTitleLabel}</Label>
                     <Input
@@ -307,6 +312,18 @@ export default function AdminNewsletterPage() {
                         <SelectItem value="all">{userTypeAll}</SelectItem>
                         <SelectItem value="client">{userTypeClient}</SelectItem>
                         <SelectItem value="provider">{userTypeProvider}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{languageLabel}</Label>
+                    <Select value={language} onValueChange={(value) => setLanguage(value as typeof language)}>
+                      <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ro">{languageRo}</SelectItem>
+                        <SelectItem value="en">{languageEn}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

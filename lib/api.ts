@@ -282,6 +282,7 @@ class ApiClient {
     data?: Record<string, string>;
     user_type?: 'client' | 'provider';
     recipients?: string[];
+    language?: 'ro' | 'en';
   }) {
     return this.request<{ sent: number }>('/newsletter/send', {
       method: 'POST',

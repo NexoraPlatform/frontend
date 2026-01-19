@@ -112,6 +112,9 @@ export default function AdminDashboard() {
   const disputesSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.disputes.title');
   const disputesSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.disputes.description');
   const disputesSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.disputes.stats');
+  const newsletterSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.newsletter.title');
+  const newsletterSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.newsletter.description');
+  const newsletterSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.newsletter.stats');
   const rolesSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.roles.title');
   const rolesSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.roles.description');
   const rolesSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.roles.stats');
@@ -302,6 +305,15 @@ export default function AdminDashboard() {
       role: 'admin'
     },
     {
+      title: newsletterSectionTitle,
+      description: newsletterSectionDescription,
+      icon: Bell,
+      href: '/admin/newsletter',
+      stats: newsletterSectionStats,
+      pending: 0,
+      role: 'admin'
+    },
+    {
       title: rolesSectionTitle,
       description: rolesSectionDescription,
       icon: IdCardLanyard,
@@ -341,6 +353,9 @@ export default function AdminDashboard() {
     disputesSectionTitle,
     disputesSectionDescription,
     disputesSectionStats,
+    newsletterSectionTitle,
+    newsletterSectionDescription,
+    newsletterSectionStats,
     rolesSectionTitle,
     rolesSectionDescription,
     rolesSectionStats,
