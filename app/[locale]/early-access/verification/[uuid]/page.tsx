@@ -71,7 +71,10 @@ export default function EarlyAccessVerificationPage() {
             }
 
             try {
-                const payload = (await apiClient.verifyEarlyAccessApplication(code)) as VerificationResponse;
+                const payload = (await apiClient.verifyEarlyAccessApplication({
+                    code,
+                    language: locale === "en" ? "en" : "ro",
+                })) as VerificationResponse;
 
                 if (!active) {
                     return;
@@ -114,7 +117,7 @@ export default function EarlyAccessVerificationPage() {
         return () => {
             active = false;
         };
-    }, [code]);
+    }, [code, locale]);
 
     const statusMeta = useMemo(() => {
         switch (status) {

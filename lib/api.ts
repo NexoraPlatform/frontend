@@ -201,7 +201,7 @@ class ApiClient {
     });
   }
 
-  async verifyEarlyAccessApplication(code: string) {
+  async verifyEarlyAccessApplication(payload: { code: string; language?: 'en' | 'ro' }) {
     return this.request<{
       verified: boolean;
       expired?: boolean;
@@ -215,7 +215,7 @@ class ApiClient {
       };
     }>('/early-access/verify', {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -238,6 +238,94 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  }
+
+  async subscribeToNewsletter(payload: {
+    email: string;
+    user_type: 'client' | 'provider';
+    name?: string;
+    company?: string;
+    language?: 'ro' | 'en';
+  }) {
+    return this.request<{
+      data: {
+        id: number;
+        email: string;
+        name: string | null;
+        user_type: 'client' | 'provider';
+        company: string | null;
+        subscribed_at: string;
+        unsubscribed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/newsletter/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async unsubscribeFromNewsletter(token: string) {
+    return this.request<{ unsubscribed: boolean }>('/newsletter/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async getNewsletterTemplates() {
+    return this.request<{ templates: string[] }>('/newsletter/templates');
+  }
+
+  async sendNewsletter(payload: {
+    template: string;
+    subject: string;
+    data?: Record<string, string>;
+    user_type?: 'client' | 'provider';
+    recipients?: string[];
+  }) {
+    return this.request<{ sent: number }>('/newsletter/send', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getNewsletterSubscribers(params?: { per_page?: number; only_active?: boolean }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      if (typeof value === 'boolean') {
+        searchParams.append(key, value ? 'true' : 'false');
+      } else {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/newsletter?${query}` : '/newsletter';
+
+    return this.request<{
+      data: Array<{
+        id: number;
+        email: string;
+        name: string | null;
+        user_type: 'client' | 'provider';
+        company: string | null;
+        language: 'ro' | 'en';
+        unsubscribe_token: string;
+        subscribed_at: string;
+        unsubscribed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+      pagination?: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+      };
+    }>(endpoint);
   }
 
   // Early access endpoints
