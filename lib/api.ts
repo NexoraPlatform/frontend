@@ -245,6 +245,7 @@ class ApiClient {
     user_type: 'client' | 'provider';
     name?: string;
     company?: string;
+    language?: 'ro' | 'en';
   }) {
     return this.request<{
       data: {

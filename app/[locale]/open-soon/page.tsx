@@ -174,6 +174,7 @@ export default function OpenSoonPage() {
         email,
         user_type: userType,
         name: fullName || undefined,
+        language: locale,
       });
       setFullName("");
       setEmail("");
