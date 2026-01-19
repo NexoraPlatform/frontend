@@ -205,6 +205,25 @@ export default function AdminNewsletterPage() {
   const canSend = useMemo(() => template && subject && !isSending, [template, subject, isSending]);
 
   const previewHtml = useMemo(() => {
+    if (template === "custom") {
+      if (!dataMessage) {
+        return "";
+      }
+
+      return `<!doctype html>
+<html lang="${language}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; margin: 0; padding: 24px; color: #0f172a; }
+      a { color: #2563eb; }
+    </style>
+  </head>
+  <body>${dataMessage}</body>
+</html>`;
+    }
+
     if (!templateContent) {
       return "";
     }
@@ -234,7 +253,7 @@ export default function AdminNewsletterPage() {
       (current, [key, value]) => replaceBladeVariable(current, key, value),
       stripBladePhp(templateContent),
     );
-  }, [templateContent, subject, dataMessage, language]);
+  }, [template, templateContent, subject, dataMessage, language]);
 
   useEffect(() => {
     if (!template) {
