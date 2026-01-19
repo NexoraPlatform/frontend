@@ -1,0 +1,16 @@
+{
+  "messaging": {
+    "clients_badge": "PENTRU CLIENȚI",
+    "clients_title": "„Plătesc doar când primesc livrarea.”",
+    "clients_body": "Banii tăi sunt protejați prin escrow. Nicio plată nu părăsește platforma fără confirmarea ta explicită a calității muncii.",
+    "clients_benefit_one": "Zero risc de pierdere financiară",
+    "clients_benefit_two": "Profesioniști pre-verificați video",
+    "clients_link": "Începe să angajezi în siguranță →",
+    "pros_badge": "PENTRU PROFESIONIȘTI",
+    "pros_title": "„Banii sunt blocați înainte să încep.”",
+    "pros_body": "Nu mai lucrezi pe promisiuni. Plata pentru fiecare milestone este deja blocată în sistem înainte ca tu să scrii prima linie de cod.",
+    "pros_benefit_one": "Garanția plății 100%",
+    "pros_benefit_two": "Dispute rezolvate prin arbitraj tehnic",
+    "pros_link": "Intră în infrastructură →"
+  }
+}

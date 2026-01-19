@@ -1,0 +1,36 @@
+{
+  "early_access": {
+    "manage_title": "Early Access Applications",
+    "manage_subtitle": "View all pre-early stage applications",
+    "providers": {
+      "title": "Signed-up Providers",
+      "description": "{count} providers registered",
+      "empty": "There are no providers registered yet."
+    },
+    "clients": {
+      "title": "Signed-up Clients",
+      "description": "{count} clients registered",
+      "empty": "There are no clients registered yet."
+    },
+    "columns": {
+      "name": "Full name",
+      "contact_name": "Contact name",
+      "company_name": "Company",
+      "application_id": "Application ID",
+      "email": "Email",
+      "language": "Language",
+      "score": "Score",
+      "verification": "Email verification",
+      "verification_sent": "Email sent",
+      "verification_expires": "Expires",
+      "created_at": "Signed up on"
+    },
+    "status": {
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "expired": "Expired"
+    },
+    "pagination": "Page {current} of {last} • {total} total • {per_page} / page",
+    "error": "We couldn't load the applications."
+  }
+}

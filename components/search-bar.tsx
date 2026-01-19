@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, TrendingUp, Clock, X } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import type { Locale } from '@/types/locale';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -17,7 +19,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
-  placeholder = "Caută servicii, experți sau categorii...",
+  placeholder,
   className = "",
   showSuggestions = true,
   onSearch
@@ -28,6 +30,25 @@ export function SearchBar({
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  const pathname = usePathname();
+  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+  const placeholderText = useAsyncTranslation(locale, "common.search_bar.placeholder");
+  const searchButtonText = useAsyncTranslation(locale, "common.search_bar.search_button");
+  const loadingSuggestionsText = useAsyncTranslation(locale, "common.search_bar.loading_suggestions");
+  const suggestionsTitleText = useAsyncTranslation(locale, "common.search_bar.suggestions_title");
+  const recentSearchesTitleText = useAsyncTranslation(locale, "common.search_bar.recent_searches_title");
+  const clearRecentSearchesText = useAsyncTranslation(locale, "common.search_bar.clear_recent_searches");
+  const trendingTitleText = useAsyncTranslation(locale, "common.search_bar.trending_title");
+  const noSuggestionsTemplate = useAsyncTranslation(locale, "common.search_bar.no_suggestions");
+  const trendingDefaults = [
+    useAsyncTranslation(locale, "common.search_bar.trending_defaults.web_development"),
+    useAsyncTranslation(locale, "common.search_bar.trending_defaults.logo_design"),
+    useAsyncTranslation(locale, "common.search_bar.trending_defaults.seo"),
+    useAsyncTranslation(locale, "common.search_bar.trending_defaults.mobile_app"),
+    useAsyncTranslation(locale, "common.search_bar.trending_defaults.digital_marketing")
+  ];
+  const resolvedPlaceholder = placeholder ?? placeholderText;
 
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
@@ -69,13 +90,7 @@ export function SearchBar({
     } catch (error) {
       console.error('Failed to load trending searches:', error);
       // Set fallback trending searches
-      setTrending([
-        'Dezvoltare website',
-        'Design logo',
-        'SEO',
-        'Aplicație mobilă',
-        'Marketing digital'
-      ]);
+      setTrending(trendingDefaults);
     }
   };
 
@@ -162,7 +177,7 @@ export function SearchBar({
             value={query}
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={() => setShowDropdown(true)}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             className="pl-10 pr-20 h-12 text-lg border-2 focus:border-primary"
           />
           <Button
@@ -170,7 +185,7 @@ export function SearchBar({
             size="sm"
             className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4"
           >
-            Caută
+            {searchButtonText}
           </Button>
         </div>
       </form>
@@ -182,7 +197,7 @@ export function SearchBar({
             {/* Loading */}
             {loading && (
               <div className="p-4 text-center text-muted-foreground">
-                Se încarcă sugestii...
+                {loadingSuggestionsText}
               </div>
             )}
 
@@ -190,7 +205,7 @@ export function SearchBar({
             {suggestions.length > 0 && (
               <div className="border-b">
                 <div className="p-3 text-sm font-medium text-muted-foreground bg-muted/50">
-                  Sugestii
+                  {suggestionsTitleText}
                 </div>
                 {suggestions.map((suggestion, index) => (
                   <button
@@ -209,12 +224,12 @@ export function SearchBar({
             {recentSearches.length > 0 && !query && (
               <div className="border-b">
                 <div className="p-3 text-sm font-medium text-muted-foreground bg-muted/50 flex items-center justify-between">
-                  <span>Căutări recente</span>
+                  <span>{recentSearchesTitleText}</span>
                   <button
                     onClick={clearRecentSearches}
                     className="text-xs text-primary hover:underline"
                   >
-                    Șterge tot
+                    {clearRecentSearchesText}
                   </button>
                 </div>
                 {recentSearches.map((search, index) => (
@@ -245,7 +260,7 @@ export function SearchBar({
               <div>
                 <div className="p-3 text-sm font-medium text-muted-foreground bg-muted/50 flex items-center space-x-2">
                   <TrendingUp className="w-4 h-4" />
-                  <span>Căutări populare</span>
+                  <span>{trendingTitleText}</span>
                 </div>
                 <div className="p-4">
                   <div className="flex flex-wrap gap-2">
@@ -267,7 +282,7 @@ export function SearchBar({
             {/* No results */}
             {!loading && query && suggestions.length === 0 && (
               <div className="p-4 text-center text-muted-foreground">
-                Nu am găsit sugestii pentru &quot;{query}&quot;
+                {noSuggestionsTemplate.replace('{query}', query)}
               </div>
             )}
           </CardContent>

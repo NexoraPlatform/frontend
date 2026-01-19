@@ -1,0 +1,127 @@
+{
+  "dashboard": {
+    "title": "Panou de Administrare",
+    "subtitle": "Gestionează platforma Trustora cu tarife flexibile și teste de competență",
+    "stats": {
+      "users": "Utilizatori Înregistrați",
+      "services": "Servicii Active",
+      "revenue": "Venituri Totale",
+      "projects": "Proiecte Procesate",
+      "change_template": "{percent}% această lună"
+    },
+    "quick_actions": {
+      "title": "Acțiuni Rapide",
+      "description": "Acțiuni frecvente pentru administrarea platformei",
+      "add_user": {
+        "title": "Adaugă Utilizator",
+        "description": "Creează un cont nou pentru un utilizator"
+      },
+      "add_category": {
+        "title": "Adaugă Categorie",
+        "description": "Creează o categorie nouă pentru servicii"
+      },
+      "add_test": {
+        "title": "Adaugă Test",
+        "description": "Creează un test de competență nou"
+      },
+      "view_reports": {
+        "title": "Vezi Rapoarte",
+        "description": "Analizează performanța platformei"
+      }
+    },
+    "sections": {
+      "title": "Secțiuni Administrare",
+      "description": "Accesează toate secțiunile de administrare",
+      "users": {
+        "title": "Gestionare Utilizatori",
+        "description": "Administrează utilizatorii platformei",
+        "stats_template": "{count} utilizatori"
+      },
+      "services": {
+        "title": "Gestionare Servicii",
+        "description": "Administrează serviciile cu tarife personalizate",
+        "stats_template": "{count} servicii active"
+      },
+      "categories": {
+        "title": "Gestionare Categorii",
+        "description": "Organizează categoriile de servicii",
+        "stats": "Categorii și subcategorii"
+      },
+      "tests": {
+        "title": "Gestionare Teste",
+        "description": "Administrează testele de competență",
+        "stats": "Teste pentru toate nivelurile"
+      },
+      "calls": {
+        "title": "Gestionare Call-uri",
+        "description": "Administrează call-urile de verificare",
+        "stats_template": "{count} call-uri programate"
+      },
+      "projects": {
+        "title": "Gestionare Proiecte",
+        "description": "Monitorizează proiectele și plățile",
+        "stats_template": "{count} proiecte procesate"
+      },
+      "disputes": {
+        "title": "Gestionare Dispute",
+        "description": "Rezolvă disputele între utilizatori",
+        "stats": "Dispute și reclamații"
+      },
+      "roles": {
+        "title": "Gestionare Roluri",
+        "description": "Creează sau editează roluri",
+        "stats": "Roluri și permisiuni"
+      },
+      "analytics": {
+        "title": "Analytics & Rapoarte",
+        "description": "Analizează performanța platformei",
+        "stats": "Statistici detaliate"
+      },
+      "early_access": {
+        "title": "Înscrieri Early Access",
+        "description": "Vezi toți aplicanții din pre-early stage",
+        "stats": "Aplicații grupate pe tip"
+      }
+    },
+    "pending_template": "{count} în așteptare",
+    "activity": {
+      "title": "Activitate Recentă",
+      "entries": {
+        "user": {
+          "message": "Utilizator nou înregistrat",
+          "time": "Acum 5 minute"
+        },
+        "order": {
+          "message": "Comandă nouă finalizată",
+          "time": "Acum 12 minute"
+        },
+        "service": {
+          "message": "Serviciu nou cu tarif personalizat",
+          "time": "Acum 25 minute"
+        },
+        "test": {
+          "message": "Test nou de competență creat",
+          "time": "Acum 45 minute"
+        },
+        "dispute": {
+          "message": "Dispută nouă raportată",
+          "time": "Acum 1 oră"
+        }
+      },
+      "view_all": "Vezi Toată Activitatea"
+    },
+    "system_status": {
+      "title": "Status Sistem",
+      "server_status": "Status Server",
+      "database": "Bază de date",
+      "api_response": "Răspuns API",
+      "provider_rates": "Tarife Prestatori",
+      "competency_tests": "Teste Competență",
+      "online": "Online",
+      "healthy": "Funcțională",
+      "fast": "Rapid",
+      "flexible": "Flexibile",
+      "active": "Active"
+    }
+  }
+}

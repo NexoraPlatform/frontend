@@ -1,0 +1,104 @@
+{
+  "users": {
+    "manage_title": "Manage Users",
+    "manage_subtitle": "Administer platform users",
+    "add_user": "Add User",
+    "search_placeholder": "Search users by name or email...",
+    "filter_role": "Role filter",
+    "filter_all": "All users",
+    "filter_clients": "Clients",
+    "filter_providers": "Providers",
+    "filter_admins": "Administrators",
+    "list_title": "User List",
+    "list_description": "{count} users found",
+    "statuses": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "PENDING_VERIFICATION": "Pending"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "PROVIDER": "Provider",
+      "CLIENT": "Client",
+      "SUPERUSER": "SuperUser"
+    },
+    "actions": {
+      "modify_profile": "Edit profile",
+      "view_profile": "View Profile",
+      "verify": "Verify",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "delete": "Delete",
+      "set_superuser": "Set SuperUser",
+      "remove_superuser": "Remove SuperUser",
+      "confirm_delete": "Are you sure you want to delete this user?",
+      "error_prefix": "Error: "
+    },
+    "reviews_label": "{count} reviews",
+    "registered_prefix": "Registered: {date}",
+    "no_users_title": "No users found",
+    "no_users_description": "Try adjusting filters or search terms",
+    "new": {
+      "title": "Add New User",
+      "subtitle": "Create a new user account",
+      "info_title": "User Information",
+      "info_description": "Fill in all fields to create the account",
+      "error_occurred": "An error occurred",
+      "first_name_label": "First Name *",
+      "last_name_label": "Last Name *",
+      "email_label": "Email *",
+      "password_label": "Password *",
+      "password_hint": "Password must be at least 6 characters",
+      "role_label": "Role *",
+      "phone_label": "Phone",
+      "phone_placeholder": "+40 123 456 789",
+      "creating": "Creating...",
+      "create_user": "Create User",
+      "cancel": "Cancel",
+      "roles": {
+        "CLIENT": "Client",
+        "PROVIDER": "Provider",
+        "ADMIN": "Administrator"
+      }
+    },
+    "edit": {
+      "cannot_edit": "You cannot edit this user.",
+      "passwords_not_match": "Passwords do not match.",
+      "error_saving": "Error saving.",
+      "fetch_user_error": "Error fetching user data: ",
+      "fetch_permissions_error": "Error fetching permissions: ",
+      "admin": {
+        "title": "Edit admin {name}",
+        "subtitle": "Modify account for an existing administrator",
+        "info_title": "Admin Information",
+        "info_description": "Fill in all fields to create the account",
+        "first_name_label": "First Name *",
+        "last_name_label": "Last Name *",
+        "email_label": "Email *",
+        "role_label": "Role *",
+        "phone_label": "Phone *",
+        "change_password": "Change Password",
+        "password_optional": "Leave fields empty to keep the password",
+        "password_label": "Password",
+        "confirm_password_label": "Confirm Password",
+        "saving": "Saving...",
+        "save_admin": "Save Administrator",
+        "permissions": "Permissions",
+        "edit_permissions": "Edit Permissions",
+        "select_permissions": "Select Permissions",
+        "no_permission_selected": "No permissions selected.",
+        "allow": "Allow",
+        "deny": "Deny"
+      }
+    },
+    "detail_card": {
+      "provider_title": "Provider Details",
+      "client_title": "Client Details",
+      "id": "ID:",
+      "name": "Name:",
+      "email": "Email:",
+      "role": "Role:",
+      "phone": "Phone:"
+    }
+  }
+}

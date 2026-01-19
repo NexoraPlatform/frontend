@@ -1,0 +1,110 @@
+{
+  "settings": {
+    "title": "Platform Settings",
+    "subtitle": "Configure general settings for the Trustora platform",
+    "saving": "Saving...",
+    "save_all": "Save All",
+    "saved_success": "Settings saved successfully!",
+    "tabs": {
+      "general": "General",
+      "platform": "Platform",
+      "payments": "Payments",
+      "email": "Email",
+      "security": "Security",
+      "notifications": "Notifications"
+    },
+    "general": {
+      "site_info_title": "Site Information",
+      "site_info_desc": "Configure basic site information",
+      "site_name_label": "Site Name",
+      "site_description_label": "Site Description",
+      "site_url_label": "Site URL",
+      "contact_title": "Contact",
+      "contact_desc": "Contact email addresses",
+      "admin_email_label": "Administrator Email",
+      "support_email_label": "Support Email"
+    },
+    "platform": {
+      "financial_title": "Financial Settings",
+      "financial_desc": "Configure commissions and price limits",
+      "commission_label": "Platform Commission (%)",
+      "min_price_label": "Minimum Service Price (RON)",
+      "max_price_label": "Maximum Service Price (RON)",
+      "currency_label": "Default Currency",
+      "currency_options": {
+        "RON": "RON - Romanian Leu",
+        "EUR": "EUR - Euro",
+        "USD": "USD - US Dollar"
+      },
+      "user_title": "User Settings",
+      "user_desc": "Configure user behavior",
+      "guest_browsing_label": "Allow guest browsing",
+      "guest_browsing_desc": "Users can view services without registering",
+      "email_verification_label": "Email verification required",
+      "email_verification_desc": "Users must verify their email address",
+      "auto_approve_label": "Auto-approve services",
+      "auto_approve_desc": "Services are automatically approved",
+      "registration_open_label": "Registrations open",
+      "registration_open_desc": "Allow new user registrations"
+    },
+    "payments": {
+      "methods_title": "Payment Methods",
+      "methods_desc": "Enable or disable payment methods",
+      "stripe_label": "Stripe",
+      "stripe_desc": "Credit and debit cards",
+      "paypal_label": "PayPal",
+      "paypal_desc": "Payments via PayPal",
+      "bank_transfer_label": "Bank Transfer",
+      "bank_transfer_desc": "Payments via bank transfer",
+      "active": "Active",
+      "inactive": "Inactive",
+      "security_title": "Payment Security",
+      "security_desc": "Configure payment security",
+      "escrow_label": "Escrow System",
+      "escrow_desc": "Funds are held securely until project completion",
+      "escrow_alert": "Escrow is recommended for protecting both clients and providers."
+    },
+    "email": {
+      "config_title": "Email Configuration",
+      "config_desc": "Configure email sending settings",
+      "provider_label": "Email Provider",
+      "provider_options": {
+        "sendgrid": "SendGrid",
+        "mailgun": "Mailgun",
+        "smtp": "Custom SMTP"
+      },
+      "smtp": {
+        "host_label": "SMTP Host",
+        "host_placeholder": "smtp.gmail.com",
+        "port_label": "SMTP Port",
+        "port_placeholder": "587",
+        "user_label": "SMTP User",
+        "password_label": "SMTP Password"
+      }
+    },
+    "security": {
+      "auth_title": "Authentication",
+      "auth_desc": "Configure authentication security",
+      "two_factor_label": "Two-factor authentication required",
+      "two_factor_desc": "All users must enable 2FA",
+      "password_length_label": "Minimum password length",
+      "max_attempts_label": "Maximum login attempts",
+      "sessions_title": "Sessions",
+      "sessions_desc": "Configure session duration",
+      "session_timeout_label": "Session timeout (hours)",
+      "session_timeout_desc": "Users will be automatically logged out after this period of inactivity"
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "desc": "Configure enabled notification types",
+      "email_label": "Email Notifications",
+      "email_desc": "Send email notifications for important events",
+      "sms_label": "SMS Notifications",
+      "sms_desc": "Send SMS notifications for critical events",
+      "push_label": "Push Notifications",
+      "push_desc": "Send push notifications in the browser",
+      "marketing_label": "Marketing Emails",
+      "marketing_desc": "Allow sending promotional emails"
+    }
+  }
+}
