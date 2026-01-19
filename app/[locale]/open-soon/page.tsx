@@ -6,7 +6,8 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/hooks/use-locale";
 import { useTheme } from "next-themes";
 import {
-  CheckCircle2,
+  ArrowRightIcon,
+  CheckCircle2, ChevronDown,
   Code2,
   FileCheck,
   Lock,
@@ -17,6 +18,10 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {useAsyncTranslation} from "@/hooks/use-async-translation";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Label} from "@/components/ui/label";
 
 const copy = {
   ro: {
@@ -83,6 +88,7 @@ const copy = {
   },
 };
 
+
 export default function OpenSoonPage() {
   const locale = useLocale();
   const content = useMemo(() => copy[locale] ?? copy.ro, [locale]);
@@ -140,39 +146,88 @@ export default function OpenSoonPage() {
       </nav>
 
       <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-20 pt-12 text-center">
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-mono font-medium text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/80 dark:text-slate-200">
+        <div
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-mono font-medium text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/80 dark:text-slate-200">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"/>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400"/>
           </span>
           {content.badge}
         </div>
 
         <h1 className="mb-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-[#0B1C2D] dark:text-white md:text-6xl">
           {content.title}
-          <br className="hidden md:block" />
-          <span className="bg-gradient-to-r from-[#0B1C2D] via-slate-500 to-emerald-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-emerald-300">
+          <br className="hidden md:block"/>
+          <span
+              className="bg-gradient-to-r from-[#0B1C2D] via-slate-500 to-emerald-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-emerald-300">
             {content.titleAccent}
           </span>
         </h1>
 
         <p className="mb-12 max-w-2xl text-lg text-slate-600 dark:text-slate-300 md:text-xl">
           {content.subtitle}
-          <br />
+          <br/>
           <span className="font-medium text-[#0B1C2D] dark:text-white">
             {content.subtitleHighlight}
           </span>
         </p>
 
-        <div className="group relative w-full max-w-4xl cursor-default">
-          <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-slate-200 via-emerald-300/30 to-slate-200 blur opacity-75 transition duration-1000 group-hover:opacity-100 dark:from-[#1E2A3D] dark:via-emerald-400/30 dark:to-[#1E2A3D]" />
 
-          <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-xl dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-            <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-[#1E2A3D] dark:bg-[#111B2D]">
+        <div
+            className="w-full max-w-lg bg-white p-6 rounded-2xl border border-slate-200 shadow-soft mb-16 text-left relative z-20">
+          <form className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nume Complet</label>
+                <input type="text" placeholder="Ex: Andrei Popa"
+                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight placeholder:text-slate-400 text-sm"
+                       required/>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</label>
+                <div className="relative">
+                  <select
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight appearance-none cursor-pointer text-sm"
+                      required>
+                    <option value="" disabled selected>Selectează...</option>
+                    <option value="client">Client (Angajez)</option>
+                    <option value="provider">Prestator (Lucrez)</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Adresă de Email</Label>
+              <Input type="email" placeholder="andrei@companie.ro"
+                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight placeholder:text-slate-400 text-sm"
+                     required />
+            </div>
+
+            <Button type="submit"
+                    className="w-full !bg-secondary hover:!bg-slate-800 !text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg group">
+              Mă înscriu
+              <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform animate-pulse" />
+            </Button>
+          </form>
+          <p className="mt-4 text-xs text-center text-slate-400">
+            Prin înscriere, accepți <a href="#" className="underline hover:text-midnight">Termenii și Condițiile</a>.
+          </p>
+        </div>
+
+        <div className="group relative w-full max-w-4xl cursor-default">
+          <div
+              className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-slate-200 via-emerald-300/30 to-slate-200 blur opacity-75 transition duration-1000 group-hover:opacity-100 dark:from-[#1E2A3D] dark:via-emerald-400/30 dark:to-[#1E2A3D]"/>
+
+          <div
+              className="relative overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-xl dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+            <div
+                className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-[#1E2A3D] dark:bg-[#111B2D]">
               <div className="flex gap-1.5">
-                <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600"/>
+                <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600"/>
+                <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600"/>
               </div>
               <div className="ml-4 font-mono text-xs text-slate-400">trustora_core_v1.0.tsx</div>
             </div>
@@ -180,17 +235,19 @@ export default function OpenSoonPage() {
             <div className="grid grid-cols-1 gap-8 p-6 md:grid-cols-3 md:p-10">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
-                  <Lock className="h-4 w-4" />
+                  <Lock className="h-4 w-4"/>
                   <span className="text-xs font-bold uppercase tracking-wider">{content.escrowTitle}</span>
                 </div>
-                <div className="rounded-lg border border-slate-200 bg-[#F5F7FA] p-4 dark:border-[#1E2A3D] dark:bg-[#070C14]">
+                <div
+                    className="rounded-lg border border-slate-200 bg-[#F5F7FA] p-4 dark:border-[#1E2A3D] dark:bg-[#070C14]">
                   <div className="mb-2 flex items-end justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-300">{content.escrowTotal}</span>
-                    <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                    <ShieldCheck className="h-4 w-4 text-emerald-500"/>
                   </div>
                   <div className="font-mono text-2xl font-bold text-[#0B1C2D] dark:text-white">€2,450.00</div>
-                  <div className="mt-2 flex items-center gap-1 text-xs font-mono text-emerald-600 dark:text-emerald-300">
-                    <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  <div
+                      className="mt-2 flex items-center gap-1 text-xs font-mono text-emerald-600 dark:text-emerald-300">
+                    <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"/>
                     {content.escrowStatus}
                   </div>
                 </div>
@@ -198,36 +255,42 @@ export default function OpenSoonPage() {
 
               <div className="space-y-4 md:col-span-2">
                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
-                  <FileCheck className="h-4 w-4" />
+                  <FileCheck className="h-4 w-4"/>
                   <span className="text-xs font-bold uppercase tracking-wider">{content.contractTitle}</span>
                 </div>
-                <div className="relative overflow-hidden rounded-lg bg-[#0B1C2D] p-4 font-mono text-xs text-slate-200 md:text-sm">
+                <div
+                    className="relative overflow-hidden rounded-lg bg-[#0B1C2D] p-4 font-mono text-xs text-slate-200 md:text-sm">
                   <div className="absolute right-0 top-0 p-2 opacity-20">
-                    <Code2 className="h-12 w-12" />
+                    <Code2 className="h-12 w-12"/>
                   </div>
                   <p className="mb-1">
-                    <span className="text-emerald-300">const</span> transaction = <span className="text-amber-300">await</span>{" "}
+                    <span className="text-emerald-300">const</span> transaction = <span
+                      className="text-amber-300">await</span>{" "}
                     Trustora.create({"{"})
                   </p>
-                  <p className="mb-1 pl-4">client: <span className="text-emerald-200">&apos;verified_id_99&apos;</span>,</p>
-                  <p className="mb-1 pl-4">provider: <span className="text-emerald-200">&apos;dev_expert_01&apos;</span>,</p>
+                  <p className="mb-1 pl-4">client: <span className="text-emerald-200">&apos;verified_id_99&apos;</span>,
+                  </p>
+                  <p className="mb-1 pl-4">provider: <span className="text-emerald-200">&apos;dev_expert_01&apos;</span>,
+                  </p>
                   <p className="mb-1 pl-4">amount: <span className="text-blue-300">2450.00</span>,</p>
-                  <p className="mb-1 pl-4">condition: <span className="text-emerald-200">&apos;milestone_delivery&apos;</span></p>
+                  <p className="mb-1 pl-4">condition: <span
+                      className="text-emerald-200">&apos;milestone_delivery&apos;</span></p>
                   <p className="mb-1">{"});"}</p>
                   <p className="mt-2 text-slate-400">{content.contractWaiting}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4 text-xs font-medium text-slate-500 dark:border-[#1E2A3D] dark:bg-[#111B2D] dark:text-slate-300">
+            <div
+                className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4 text-xs font-medium text-slate-500 dark:border-[#1E2A3D] dark:bg-[#111B2D] dark:text-slate-300">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" /> {content.trustIdentity}
+                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {content.trustIdentity}
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" /> {content.trustPayment}
+                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {content.trustPayment}
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" /> {content.trustDispute}
+                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {content.trustDispute}
               </div>
             </div>
           </div>
@@ -236,9 +299,11 @@ export default function OpenSoonPage() {
 
       <section className="mx-auto w-full max-w-7xl border-t border-slate-200 px-6 py-12 dark:border-[#1E2A3D]">
         <div className="grid grid-cols-1 gap-8 text-center md:grid-cols-3 md:text-left">
-          <div className="rounded-xl border border-transparent p-6 transition-all duration-300 hover:border-slate-100 hover:bg-white hover:shadow-sm dark:hover:border-[#1E2A3D] dark:hover:bg-[#0B1220]">
-            <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#0B1C2D] md:mx-0 dark:bg-blue-500/10 dark:text-blue-200">
-              <Users className="h-5 w-5" />
+          <div
+              className="rounded-xl border border-transparent p-6 transition-all duration-300 hover:border-slate-100 hover:bg-white hover:shadow-sm dark:hover:border-[#1E2A3D] dark:hover:bg-[#0B1220]">
+            <div
+                className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#0B1C2D] md:mx-0 dark:bg-blue-500/10 dark:text-blue-200">
+              <Users className="h-5 w-5"/>
             </div>
             <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{content.featureVerifiedTitle}</h3>
             <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
@@ -246,9 +311,11 @@ export default function OpenSoonPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-transparent p-6 transition-all duration-300 hover:border-slate-100 hover:bg-white hover:shadow-sm dark:hover:border-[#1E2A3D] dark:hover:bg-[#0B1220]">
-            <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 md:mx-0 dark:bg-emerald-500/10 dark:text-emerald-300">
-              <Lock className="h-5 w-5" />
+          <div
+              className="rounded-xl border border-transparent p-6 transition-all duration-300 hover:border-slate-100 hover:bg-white hover:shadow-sm dark:hover:border-[#1E2A3D] dark:hover:bg-[#0B1220]">
+            <div
+                className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 md:mx-0 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <Lock className="h-5 w-5"/>
             </div>
             <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{content.featureEscrowTitle}</h3>
             <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
@@ -256,9 +323,11 @@ export default function OpenSoonPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-transparent p-6 transition-all duration-300 hover:border-slate-100 hover:bg-white hover:shadow-sm dark:hover:border-[#1E2A3D] dark:hover:bg-[#0B1220]">
-            <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-amber-600 md:mx-0 dark:bg-amber-500/10 dark:text-amber-200">
-              <Scale className="h-5 w-5" />
+          <div
+              className="rounded-xl border border-transparent p-6 transition-all duration-300 hover:border-slate-100 hover:bg-white hover:shadow-sm dark:hover:border-[#1E2A3D] dark:hover:bg-[#0B1220]">
+            <div
+                className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-amber-600 md:mx-0 dark:bg-amber-500/10 dark:text-amber-200">
+              <Scale className="h-5 w-5"/>
             </div>
             <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{content.featureContractsTitle}</h3>
             <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
