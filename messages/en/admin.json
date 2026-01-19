@@ -129,10 +129,21 @@
       "name": "Full name",
       "contact_name": "Contact name",
       "company_name": "Company",
+      "application_id": "Application ID",
       "email": "Email",
+      "language": "Language",
       "score": "Score",
+      "verification": "Email verification",
+      "verification_sent": "Email sent",
+      "verification_expires": "Expires",
       "created_at": "Signed up on"
     },
+    "status": {
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "expired": "Expired"
+    },
+    "pagination": "Page {current} of {last} • {total} total • {per_page} / page",
     "error": "We couldn't load the applications."
   },
   "categories": {
