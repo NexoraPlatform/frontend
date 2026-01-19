@@ -94,7 +94,7 @@
         "full_name_label": "Full name",
         "full_name_placeholder": "Ana Popescu",
         "country_label": "Country",
-        "country_placeholder": "Romania",
+        "country_placeholder": "Select country",
         "country_search_placeholder": "Search country",
         "country_empty": "No countries found.",
         "skill_label": "Primary skill",
