@@ -165,7 +165,12 @@
         "product": "Product management",
         "qa": "QA & testing",
         "devops": "DevOps",
-        "mobile": "Mobile development"
+        "mobile": "Mobile development",
+        "marketing": "Marketing",
+        "digital_services": "Digital services",
+        "other": "Other",
+        "other_label": "Specify other skill",
+        "other_placeholder": "Ex: Legal consulting"
       },
       "checkboxes": {
         "has_clients": "I already have active clients.",
