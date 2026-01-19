@@ -156,6 +156,14 @@ function getLocale(request: NextRequest): string {
     return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
   }
 
+  const country =
+    request.geo?.country ||
+    request.headers.get('x-vercel-ip-country') ||
+    request.headers.get('x-country');
+  if (country) {
+    return country.toUpperCase() === 'RO' ? 'ro' : 'en';
+  }
+
   // Get from headers
   const acceptLanguage = request.headers.get('Accept-Language');
   if (acceptLanguage) {
