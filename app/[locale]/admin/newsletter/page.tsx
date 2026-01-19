@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,11 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const parseRecipients = (value: string) =>
   value
@@ -48,7 +50,6 @@ export default function AdminNewsletterPage() {
   const [onlyActive, setOnlyActive] = useState(true);
   const [template, setTemplate] = useState("");
   const [subject, setSubject] = useState("");
-  const [dataTitle, setDataTitle] = useState("");
   const [dataMessage, setDataMessage] = useState("");
   const [userType, setUserType] = useState<"all" | "client" | "provider">("all");
   const [language, setLanguage] = useState<"ro" | "en">("ro");
@@ -76,10 +77,6 @@ export default function AdminNewsletterPage() {
     "admin.newsletter.template_empty",
     "Nu există template-uri disponibile.",
   );
-  const subjectLabel = useAsyncTranslation(locale, "admin.newsletter.subject_label", "Subiect");
-  const subjectPlaceholder = useAsyncTranslation(locale, "admin.newsletter.subject_placeholder", "Ex: Bine ai venit!");
-  const dataTitleLabel = useAsyncTranslation(locale, "admin.newsletter.data_title_label", "Titlu mesaj");
-  const dataTitlePlaceholder = useAsyncTranslation(locale, "admin.newsletter.data_title_placeholder", "Ex: Salut!");
   const dataMessageLabel = useAsyncTranslation(locale, "admin.newsletter.data_message_label", "Mesaj");
   const dataMessagePlaceholder = useAsyncTranslation(
     locale,
@@ -272,14 +269,8 @@ export default function AdminNewsletterPage() {
   }, [template, previewError]);
 
   useEffect(() => {
-    if (!template || isCustomTemplate) {
-      return;
-    }
-
-    if (!subject) {
-      setSubject(template);
-    }
-  }, [template, isCustomTemplate, subject]);
+    setSubject(template || "Newsletter");
+  }, [template]);
 
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -293,7 +284,7 @@ export default function AdminNewsletterPage() {
     const payload: Parameters<typeof apiClient.sendNewsletter>[0] = {
       template,
       subject,
-      data: dataTitle || dataMessage ? { title: dataTitle, message: dataMessage } : undefined,
+      data: dataMessage ? { message: dataMessage } : undefined,
       user_type: userType === "all" ? undefined : userType,
       recipients: recipientList.length > 0 ? recipientList : undefined,
       language,
@@ -371,32 +362,6 @@ export default function AdminNewsletterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>{subjectLabel}</Label>
-                    <Input
-                      value={subject}
-                      onChange={(event) => setSubject(event.target.value)}
-                      placeholder={subjectPlaceholder}
-                      className="bg-white/80 dark:bg-slate-900/60"
-                      disabled={!isCustomTemplate}
-                      required
-                    />
-                    {!isCustomTemplate && (
-                      <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid gap-5 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>{dataTitleLabel}</Label>
-                    <Input
-                      value={dataTitle}
-                      onChange={(event) => setDataTitle(event.target.value)}
-                      placeholder={dataTitlePlaceholder}
-                      className="bg-white/80 dark:bg-slate-900/60"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>{userTypeLabel}</Label>
                     <Select value={userType} onValueChange={(value) => setUserType(value as typeof userType)}>
                       <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
@@ -409,6 +374,9 @@ export default function AdminNewsletterPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>{languageLabel}</Label>
                     <Select value={language} onValueChange={(value) => setLanguage(value as typeof language)}>
@@ -425,13 +393,23 @@ export default function AdminNewsletterPage() {
 
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
-                  <Textarea
-                    value={dataMessage}
-                    onChange={(event) => setDataMessage(event.target.value)}
-                    placeholder={dataMessagePlaceholder}
-                    className="min-h-[120px] bg-white/80 dark:bg-slate-900/60"
-                    disabled={!isCustomTemplate}
-                  />
+                  <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
+                    <ReactQuill
+                      theme="snow"
+                      value={dataMessage}
+                      onChange={setDataMessage}
+                      placeholder={dataMessagePlaceholder}
+                      readOnly={!isCustomTemplate}
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ["bold", "italic", "underline", "strike"],
+                          [{ list: "ordered" }, { list: "bullet" }],
+                          ["link", "clean"],
+                        ],
+                      }}
+                    />
+                  </div>
                   {!isCustomTemplate && (
                     <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
                   )}
