@@ -179,6 +179,15 @@ function isEarlyAccessEnabled() {
   );
 }
 
+function isOpenSoonEnabled() {
+  return (
+    process.env.NEXT_PUBLIC_OPEN_SOON === 'true' ||
+    process.env.OPEN_SOON === 'true' ||
+    process.env.NEXT_PUBLIC_OPEN_SOON_ENABLED === 'true' ||
+    process.env.OPEN_SOON_ENABLED === 'true'
+  );
+}
+
 function isBasicAuthEnabled() {
   return process.env.BASIC_AUTH_ENABLED === 'true' || process.env.BASIC_AUTH === 'true';
 }
@@ -278,6 +287,44 @@ export default async function middleware(req: NextRequest) {
     req.cookies.get('auth_token')?.value ||
     req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
     undefined;
+
+  if (isOpenSoonEnabled()) {
+    const openSoonRoutes = new Set([
+      '/open-soon',
+      '/auth/signin',
+      '/auth/signup',
+      '/privacy',
+      '/terms',
+      '/cookies',
+    ]);
+
+    const isOpenSoonRoute =
+      normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
+
+    if (isOpenSoonRoute) {
+      return NextResponse.next();
+    }
+
+    let adminBypass = false;
+    if (token) {
+      let user = tryDecodeUserFromJwt(token);
+      if (!user || !user.roles?.length) {
+        const fetchedUser = await fetchUserFromApi(token);
+        if (fetchedUser) {
+          user = fetchedUser;
+        }
+      }
+      adminBypass = isAdminUser(user);
+    }
+
+    if (!adminBypass) {
+      const url = new URL(`/${locale}/open-soon`, req.url);
+      if (normalizedPath === '/') {
+        return NextResponse.rewrite(url);
+      }
+      return NextResponse.redirect(url);
+    }
+  }
 
   if (isEarlyAccessEnabled()) {
     const earlyAccessRoutes = new Set([
