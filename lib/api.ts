@@ -276,6 +276,10 @@ class ApiClient {
     return this.request<{ templates: string[] }>('/newsletter/templates');
   }
 
+  async getNewsletterTemplateContent(template: string) {
+    return this.request<{ template: string; content: string }>(`/newsletter/templates/${template}`);
+  }
+
   async sendNewsletter(payload: {
     template: string;
     subject: string;

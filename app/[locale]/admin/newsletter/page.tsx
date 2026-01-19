@@ -29,6 +29,9 @@ export default function AdminNewsletterPage() {
   const [templates, setTemplates] = useState<string[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [templateContent, setTemplateContent] = useState("");
+  const [templateContentLoading, setTemplateContentLoading] = useState(false);
+  const [templateContentError, setTemplateContentError] = useState<string | null>(null);
   const [subscribers, setSubscribers] = useState<{
     id: number;
     email: string;
@@ -53,6 +56,7 @@ export default function AdminNewsletterPage() {
   const [isSending, setIsSending] = useState(false);
   const [sendCount, setSendCount] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const isCustomTemplate = template === "custom";
 
   const titleText = useAsyncTranslation(locale, "admin.newsletter.title", "Newsletter");
   const subtitleText = useAsyncTranslation(
@@ -89,6 +93,20 @@ export default function AdminNewsletterPage() {
   const languageLabel = useAsyncTranslation(locale, "admin.newsletter.language_label", "Limba");
   const languageRo = useAsyncTranslation(locale, "admin.newsletter.language_ro", "Română");
   const languageEn = useAsyncTranslation(locale, "admin.newsletter.language_en", "Engleză");
+  const previewTitle = useAsyncTranslation(locale, "admin.newsletter.preview_title", "Previzualizare live");
+  const previewLoading = useAsyncTranslation(locale, "admin.newsletter.preview_loading", "Se încarcă preview-ul...");
+  const previewEmpty = useAsyncTranslation(locale, "admin.newsletter.preview_empty", "Selectează un template pentru preview.");
+  const previewError = useAsyncTranslation(locale, "admin.newsletter.preview_error", "Nu am putut încărca preview-ul.");
+  const previewNote = useAsyncTranslation(
+    locale,
+    "admin.newsletter.preview_note",
+    "Variabilele sunt înlocuite cu valori de test în preview.",
+  );
+  const customOnlyNote = useAsyncTranslation(
+    locale,
+    "admin.newsletter.custom_only_note",
+    "Subiectul și mesajul pot fi editate doar pentru template-ul custom.",
+  );
   const recipientsLabel = useAsyncTranslation(
     locale,
     "admin.newsletter.recipients_label",
@@ -191,6 +209,73 @@ export default function AdminNewsletterPage() {
 
   const canSend = useMemo(() => template && subject && !isSending, [template, subject, isSending]);
 
+  const previewHtml = useMemo(() => {
+    if (!templateContent) {
+      return "";
+    }
+
+    const defaultVariables: Record<string, string> = {
+      "$subscriber->company": "Trustora SRL",
+      "$unsubscribeUrl": "https://trustora.ro/unsubscribe",
+      "$language": language,
+      "$payload['title']": subject || "Newsletter",
+      "$subscriber->name": "Ion Popescu",
+      "$payload['message']": dataMessage || "Acesta este mesajul scris de mine.",
+    };
+
+    const replaceBladeVariable = (html: string, key: string, value: string) => {
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regexBlade = new RegExp(`\\{\\{\\s*${escapedKey}\\s*\\}\\}`, "g");
+      const regexBladeRaw = new RegExp(`\\{!!\\s*${escapedKey}\\s*!!\\}`, "g");
+      return html.replace(regexBlade, value).replace(regexBladeRaw, value);
+    };
+
+    return Object.entries(defaultVariables).reduce(
+      (current, [key, value]) => replaceBladeVariable(current, key, value),
+      templateContent,
+    );
+  }, [templateContent, subject, dataMessage, language]);
+
+  useEffect(() => {
+    if (!template) {
+      setTemplateContent("");
+      setTemplateContentError(null);
+      return;
+    }
+
+    let active = true;
+    const fetchTemplateContent = async () => {
+      setTemplateContentLoading(true);
+      setTemplateContentError(null);
+      try {
+        const response = await apiClient.getNewsletterTemplateContent(template);
+        if (!active) return;
+        setTemplateContent(response?.content ?? "");
+      } catch (error) {
+        if (!active) return;
+        setTemplateContentError(error instanceof Error ? error.message : previewError);
+      } finally {
+        if (active) setTemplateContentLoading(false);
+      }
+    };
+
+    fetchTemplateContent();
+
+    return () => {
+      active = false;
+    };
+  }, [template, previewError]);
+
+  useEffect(() => {
+    if (!template || isCustomTemplate) {
+      return;
+    }
+
+    if (!subject) {
+      setSubject(template);
+    }
+  }, [template, isCustomTemplate, subject]);
+
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canSend) return;
@@ -287,8 +372,12 @@ export default function AdminNewsletterPage() {
                       onChange={(event) => setSubject(event.target.value)}
                       placeholder={subjectPlaceholder}
                       className="bg-white/80 dark:bg-slate-900/60"
+                      disabled={!isCustomTemplate}
                       required
                     />
+                    {!isCustomTemplate && (
+                      <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
+                    )}
                   </div>
                 </div>
 
@@ -336,7 +425,11 @@ export default function AdminNewsletterPage() {
                     onChange={(event) => setDataMessage(event.target.value)}
                     placeholder={dataMessagePlaceholder}
                     className="min-h-[120px] bg-white/80 dark:bg-slate-900/60"
+                    disabled={!isCustomTemplate}
                   />
+                  {!isCustomTemplate && (
+                    <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -347,6 +440,29 @@ export default function AdminNewsletterPage() {
                     placeholder={recipientsPlaceholder}
                     className="bg-white/80 dark:bg-slate-900/60"
                   />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>{previewTitle}</Label>
+                  {templateContentLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{previewLoading}</span>
+                    </div>
+                  ) : templateContentError ? (
+                    <p className="text-sm text-red-500">{templateContentError}</p>
+                  ) : !templateContent ? (
+                    <p className="text-sm text-muted-foreground">{previewEmpty}</p>
+                  ) : (
+                    <div className="rounded-xl border border-border/60 bg-white/80 p-2 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/70">
+                      <iframe
+                        srcDoc={previewHtml}
+                        className="h-[480px] w-full rounded-lg bg-white"
+                        title="Newsletter preview"
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">{previewNote}</p>
                 </div>
 
                 {sendCount !== null && (
