@@ -42,6 +42,25 @@ export function Footer() {
   const allRightsReservedText = useAsyncTranslation(locale, "common.all_rights_reserved");
   const cookiePolicyText = useAsyncTranslation(locale, "common.cookie_policy", "Politica de cookie-uri");
   const readCookiePolicyText = useAsyncTranslation(locale, "common.read_cookie_policy", "Citește politica de cookie-uri");
+  const trustoraTaglineText = useAsyncTranslation(locale, "common.trustora_tagline", "Where work meets trust.");
+  const contactTitleText = useAsyncTranslation(locale, "common.contact_title", "Contact");
+  const contactDescriptionText = useAsyncTranslation(
+    locale,
+    "common.contact_description",
+    "Suntem aici dacă ai nevoie de ajutor sau informații suplimentare.",
+  );
+  const newsletterTitleText = useAsyncTranslation(locale, "common.newsletter_title", "Newsletter");
+  const newsletterDescriptionText = useAsyncTranslation(
+    locale,
+    "common.newsletter_description",
+    "Primești update-uri despre Trustora și acces la noutăți.",
+  );
+  const legalDocumentsText = useAsyncTranslation(locale, "common.legal_documents", "Documente legale");
+  const locationText = useAsyncTranslation(locale, "common.location_label", "București, România");
+  const popularServiceWebText = useAsyncTranslation(locale, "common.popular_service_web", "Dezvoltare Web");
+  const popularServiceMobileText = useAsyncTranslation(locale, "common.popular_service_mobile", "Aplicații Mobile");
+  const popularServiceDesignText = useAsyncTranslation(locale, "common.popular_service_design", "Design UI/UX");
+  const popularServiceMarketingText = useAsyncTranslation(locale, "common.popular_service_marketing", "Marketing Digital");
   const privacyHref = `/${locale}/privacy`;
   const termsHref = `/${locale}/terms`;
   const cookiesHref = `/${locale}/cookies`;
@@ -59,9 +78,9 @@ export function Footer() {
               <div className="grid gap-10 md:grid-cols-2 md:items-start">
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-lg font-semibold" id="contact-heading">Contact</h2>
+                    <h2 className="text-lg font-semibold" id="contact-heading">{contactTitleText}</h2>
                     <p className="text-sm text-muted-foreground">
-                      Suntem aici dacă ai nevoie de ajutor sau informații suplimentare.
+                      {contactDescriptionText}
                     </p>
                   </div>
                   <div className="space-y-3" aria-labelledby="contact-heading">
@@ -79,16 +98,16 @@ export function Footer() {
                     </div>
                     <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
                       <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                      <span className="font-medium">București, România</span>
+                      <span className="font-medium">{locationText}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-semibold" id="newsletter-heading">Newsletter</h3>
+                    <h3 className="text-lg font-semibold" id="newsletter-heading">{newsletterTitleText}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Primești update-uri despre Trustora și acces la noutăți.
+                      {newsletterDescriptionText}
                     </p>
                   </div>
                   <form
@@ -116,7 +135,7 @@ export function Footer() {
                     </Button>
                   </form>
                   <div className="space-y-2 text-sm text-muted-foreground">
-                    <p className="font-semibold text-slate-900 dark:text-white">Documente legale</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{legalDocumentsText}</p>
                     <div className="flex flex-wrap gap-x-3 gap-y-1">
                       <Link href={privacyHref} className="hover:text-primary transition-colors">
                         {privacyPolicyText}
@@ -163,7 +182,7 @@ export function Footer() {
                   <div className="flex flex-col items-start ps-4">
                       <span className="text-xl font-bold text-primary">Trustora</span>
                       <span className="text-xs text-muted-foreground font-medium">
-                        Where work meets trust.
+                        {trustoraTaglineText}
                       </span>
                   </div>
 
@@ -225,22 +244,22 @@ export function Footer() {
                 <h2 className="text-lg font-semibold" id="popular-services-heading">{popularServicesText}</h2>
                 <nav className="space-y-2" aria-labelledby="popular-services-heading">
                   <Link href={`/${locale}/services?category=web-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Dezvoltare Web
+                    {popularServiceWebText}
                   </Link>
                   <Link href={`/${locale}/services?category=mobile-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Aplicații Mobile
+                    {popularServiceMobileText}
                   </Link>
                   <Link href={`/${locale}/services?category=design`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Design UI/UX
+                    {popularServiceDesignText}
                   </Link>
                   <Link href={`/${locale}/services?category=marketing`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Marketing Digital
+                    {popularServiceMarketingText}
                   </Link>
                 </nav>
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold" id="contact-heading">Contact</h2>
+                <h2 className="text-lg font-semibold" id="contact-heading">{contactTitleText}</h2>
                 <div className="space-y-2" aria-labelledby="contact-heading">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Mail className="h-4 w-4" />
@@ -256,11 +275,11 @@ export function Footer() {
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    <span>București, România</span>
+                    <span>{locationText}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium" id="newsletter-heading">Newsletter</h3>
+                  <h3 className="text-sm font-medium" id="newsletter-heading">{newsletterTitleText}</h3>
                   <form className="flex space-x-2" aria-labelledby="newsletter-heading">
                     <Input
                         placeholder={yourEmailText}
