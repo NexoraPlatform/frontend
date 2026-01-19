@@ -479,7 +479,6 @@ export default function EarlyAccessProviderPage() {
                                                     >
                                                         {formData.country ? (
                                                             <span className="flex items-center gap-2">
-                                                                <span>{countries.find((country) => country.label === formData.country)?.flag}</span>
                                                                 <span>{formData.country}</span>
                                                             </span>
                                                         ) : (
