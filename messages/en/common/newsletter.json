@@ -2,5 +2,10 @@
   "newsletter_email_address": "Email address for newsletter",
   "your_email": "Your Email",
   "subscribe_to_newsletter": "Subscribe to newsletter",
-  "subscribe": "Subscribe"
+  "subscribe": "Subscribe",
+  "unsubscribe_title": "Newsletter unsubscribe",
+  "unsubscribe_success": "You have successfully unsubscribed.",
+  "unsubscribe_description": "You will no longer receive emails from Trustora.",
+  "unsubscribe_loading": "Processing your unsubscribe request...",
+  "unsubscribe_error": "We could not process your unsubscribe request."
 }
