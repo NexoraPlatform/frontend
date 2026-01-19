@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { useLocale } from "@/hooks/use-locale";
 import { useTheme } from "next-themes";
 import {
   CheckCircle2,
@@ -17,7 +17,6 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Locale } from "@/types/locale";
 
 const copy = {
   ro: {
@@ -85,18 +84,9 @@ const copy = {
 };
 
 export default function OpenSoonPage() {
-  const pathname = usePathname();
-  const locale = (pathname.split("/")[1] as Locale) || "ro";
+  const locale = useLocale();
   const content = useMemo(() => copy[locale] ?? copy.ro, [locale]);
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const currentTheme = mounted ? resolvedTheme : "light";
-  const isDark = currentTheme === "dark";
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3] overflow-hidden">
@@ -118,38 +108,19 @@ export default function OpenSoonPage() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
+          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
             <span className="px-2 py-1 text-[10px] uppercase tracking-wider">{content.languageLabel}</span>
-            <Link
-              href="/ro/open-soon"
-              className={`rounded-full px-2 py-1 ${
-                locale === "ro"
-                  ? "bg-emerald-500 text-white"
-                  : "text-slate-500 hover:text-[#0B1C2D] dark:text-slate-300 dark:hover:text-white"
-              }`}
-            >
-              RO
-            </Link>
-            <Link
-              href="/en/open-soon"
-              className={`rounded-full px-2 py-1 ${
-                locale === "en"
-                  ? "bg-emerald-500 text-white"
-                  : "text-slate-500 hover:text-[#0B1C2D] dark:text-slate-300 dark:hover:text-white"
-              }`}
-            >
-              EN
-            </Link>
+            <LocaleSwitcher currentLocale={locale} className="h-8 w-8 px-2" />
           </div>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="gap-2 rounded-full border-slate-200 bg-white/80 px-4 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200"
-            aria-label={`${content.themeLabel} ${isDark ? content.themeLight : content.themeDark}`}
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="h-11 w-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
+            aria-label={`${content.themeLabel} ${theme === "dark" ? content.themeLight : content.themeDark}`}
           >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            {isDark ? content.themeLight : content.themeDark}
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
           <a
             href="mailto:contact@trustora.com"
