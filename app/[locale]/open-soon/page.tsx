@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/hooks/use-locale";
@@ -86,7 +86,14 @@ const copy = {
 export default function OpenSoonPage() {
   const locale = useLocale();
   const content = useMemo(() => copy[locale] ?? copy.ro, [locale]);
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? resolvedTheme === "dark" : false;
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3] overflow-hidden">
@@ -115,9 +122,10 @@ export default function OpenSoonPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
             className="h-11 w-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
-            aria-label={`${content.themeLabel} ${theme === "dark" ? content.themeLight : content.themeDark}`}
+            aria-label={`${content.themeLabel} ${isDark ? content.themeLight : content.themeDark}`}
+            suppressHydrationWarning
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
