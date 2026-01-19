@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,6 +17,7 @@ import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
 import {Textarea} from "@/components/ui/textarea";
+import Editor from 'react-simple-wysiwyg';
 
 const parseRecipients = (value: string) =>
   value
@@ -394,12 +394,8 @@ export default function AdminNewsletterPage() {
                   <Label>{dataMessageLabel}</Label>
                   <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
 
-                    <Textarea
-                        value={dataMessage}
-                        onChange={(event) => setDataMessage(event.target.value)}
-                        placeholder={dataMessagePlaceholder}
-                        className="min-h-[120px] bg-white/80 dark:bg-slate-900/60"
-                    />
+                    <Editor value={dataMessage} onChange={(e) => setDataMessage(e.target.value)} />
+
                   </div>
                   {!isCustomTemplate && (
                     <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
