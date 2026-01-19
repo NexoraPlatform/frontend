@@ -18,7 +18,9 @@ import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
 
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+const TinyMCEEditor = dynamic(() => import("@tinymce/tinymce-react").then((mod) => mod.Editor), {
+  ssr: false,
+});
 
 const parseRecipients = (value: string) =>
   value
@@ -394,19 +396,41 @@ export default function AdminNewsletterPage() {
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
                   <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
-                    <ReactQuill
-                      theme="snow"
+                    <TinyMCEEditor
+                      apiKey="no-api-key"
                       value={dataMessage}
-                      onChange={setDataMessage}
-                      placeholder={dataMessagePlaceholder}
-                      readOnly={!isCustomTemplate}
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ["bold", "italic", "underline", "strike"],
-                          [{ list: "ordered" }, { list: "bullet" }],
-                          ["link", "clean"],
+                      onEditorChange={(value) => setDataMessage(value)}
+                      disabled={!isCustomTemplate}
+                      init={{
+                        height: 280,
+                        menubar: false,
+                        statusbar: false,
+                        placeholder: dataMessagePlaceholder,
+                        plugins: [
+                          "advlist",
+                          "autolink",
+                          "lists",
+                          "link",
+                          "image",
+                          "charmap",
+                          "preview",
+                          "anchor",
+                          "searchreplace",
+                          "visualblocks",
+                          "code",
+                          "fullscreen",
+                          "insertdatetime",
+                          "media",
+                          "table",
+                          "help",
+                          "wordcount",
+                          "mediaembed",
                         ],
+                        toolbar:
+                          "undo redo | blocks | " +
+                          "bold italic backcolor | alignleft aligncenter " +
+                          "alignright alignjustify | bullist numlist outdent indent | " +
+                          "removeformat | help",
                       }}
                     />
                   </div>
