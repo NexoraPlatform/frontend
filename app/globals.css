@@ -3,11 +3,21 @@
    Performance optimized for LCP < 2.5s
    ============================================== */
 
-@import "react-quill/dist/quill.snow.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.tiptap {
+    outline: none;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+    color: hsl(var(--muted-foreground));
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
 
 /* Essential CSS Variables */
 :root {

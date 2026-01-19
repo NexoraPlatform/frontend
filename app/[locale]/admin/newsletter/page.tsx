@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Placeholder from "@tiptap/extension-placeholder";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,8 +20,6 @@ import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const parseRecipients = (value: string) =>
   value
@@ -146,6 +147,39 @@ export default function AdminNewsletterPage() {
   const columnStatus = useAsyncTranslation(locale, "admin.newsletter.columns.status", "Status");
   const statusActive = useAsyncTranslation(locale, "admin.newsletter.status_active", "Activ");
   const statusInactive = useAsyncTranslation(locale, "admin.newsletter.status_inactive", "Dezabonat");
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2],
+        },
+      }),
+      Underline,
+      Placeholder.configure({
+        placeholder: dataMessagePlaceholder,
+      }),
+    ],
+    content: dataMessage,
+    editable: isCustomTemplate,
+    onUpdate: ({ editor }) => {
+      setDataMessage(editor.getHTML());
+    },
+  });
+
+  useEffect(() => {
+    if (editor && editor.isEditable !== isCustomTemplate) {
+      editor.setEditable(isCustomTemplate);
+    }
+  }, [editor, isCustomTemplate]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    if (dataMessage !== currentHtml) {
+      editor.commands.setContent(dataMessage || "", false);
+    }
+  }, [dataMessage, editor]);
 
   useEffect(() => {
     let active = true;
@@ -394,21 +428,59 @@ export default function AdminNewsletterPage() {
                 <div className="space-y-2">
                   <Label>{dataMessageLabel}</Label>
                   <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
-                    <ReactQuill
-                      theme="snow"
-                      value={dataMessage}
-                      onChange={setDataMessage}
-                      placeholder={dataMessagePlaceholder}
-                      readOnly={!isCustomTemplate}
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ["bold", "italic", "underline", "strike"],
-                          [{ list: "ordered" }, { list: "bullet" }],
-                          ["link", "clean"],
-                        ],
-                      }}
-                    />
+                    <div className="flex flex-wrap gap-2 border-b border-border/60 px-3 py-2 dark:border-slate-700/60">
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("heading", { level: 1 }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Heading
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("heading", { level: 2 }) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Subheading
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("bold") ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleBold().run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Bold
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("italic") ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleItalic().run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Italic
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editor?.isActive("underline") ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                        disabled={!editor || !isCustomTemplate}
+                      >
+                        Underline
+                      </Button>
+                    </div>
+                    <div className="min-h-[160px] px-3 py-2">
+                      <EditorContent
+                        editor={editor}
+                        className="tiptap prose prose-sm max-w-none dark:prose-invert"
+                      />
+                    </div>
                   </div>
                   {!isCustomTemplate && (
                     <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
