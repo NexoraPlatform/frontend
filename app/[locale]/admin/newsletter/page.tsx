@@ -216,8 +216,8 @@ export default function AdminNewsletterPage() {
 
     const stripBladePhp = (html: string) =>
       html
-        .replace(/@php\([\s\S]*?\)/g, "")
-        .replace(/@php[\s\S]*?@endphp/g, "");
+        .replace(/@php[\s\S]*?@endphp/g, "")
+        .replace(/@php[\s\S]*?(?:\n|$)/g, "");
 
     const defaultVariables: Record<string, string> = {
       "$subscriber->company": "Trustora SRL",
