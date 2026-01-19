@@ -14,6 +14,9 @@ const API_BASE_URL =
   process.env.API_URL ||
   'https://backend.trustora.ro/api';
 
+const LOCALE_COOKIE_NAME = 'preferred_locale';
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
 type RouteRule = { pattern: RegExp; require: Requirement | 'auth-only' };
 
 // Define protections
@@ -156,6 +159,11 @@ function getLocale(request: NextRequest): string {
     return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
   }
 
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
+  if (cookieLocale && locales.includes(cookieLocale as (typeof locales)[number])) {
+    return cookieLocale;
+  }
+
   const country =
     (request as NextRequest & { geo?: { country?: string } }).geo?.country ||
     request.headers.get('x-vercel-ip-country') ||
@@ -178,6 +186,16 @@ function getLocale(request: NextRequest): string {
   }
 
   return defaultLocale;
+}
+
+function applyLocaleCookie(response: NextResponse, locale: string) {
+  if (locales.includes(locale as (typeof locales)[number])) {
+    response.cookies.set(LOCALE_COOKIE_NAME, locale, {
+      path: '/',
+      maxAge: LOCALE_COOKIE_MAX_AGE,
+    });
+  }
+  return response;
 }
 
 function isEarlyAccessEnabled() {
@@ -282,7 +300,7 @@ export default async function middleware(req: NextRequest) {
     const locale = getLocale(req);
     const url = new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url);
     url.search = req.nextUrl.search;
-    return NextResponse.redirect(url);
+    return applyLocaleCookie(NextResponse.redirect(url), locale);
   }
 
   const segments = pathname.split('/');
@@ -310,7 +328,7 @@ export default async function middleware(req: NextRequest) {
       normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
 
     if (isOpenSoonRoute) {
-      return NextResponse.next();
+      return applyLocaleCookie(NextResponse.next(), locale);
     }
 
     let adminBypass = false;
@@ -328,9 +346,9 @@ export default async function middleware(req: NextRequest) {
     if (!adminBypass) {
       const url = new URL(`/${locale}/open-soon`, req.url);
       if (normalizedPath === '/') {
-        return NextResponse.rewrite(url);
+        return applyLocaleCookie(NextResponse.rewrite(url), locale);
       }
-      return NextResponse.redirect(url);
+      return applyLocaleCookie(NextResponse.redirect(url), locale);
     }
   }
 
@@ -348,7 +366,7 @@ export default async function middleware(req: NextRequest) {
       normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
     if (isEarlyAccessRoute) {
-      return NextResponse.next();
+      return applyLocaleCookie(NextResponse.next(), locale);
     }
 
     let adminBypass = false;
@@ -366,9 +384,9 @@ export default async function middleware(req: NextRequest) {
     if (!adminBypass) {
       const url = new URL(`/${locale}/early-access`, req.url);
       if (normalizedPath === '/') {
-        return NextResponse.rewrite(url);
+        return applyLocaleCookie(NextResponse.rewrite(url), locale);
       }
-      return NextResponse.redirect(url);
+      return applyLocaleCookie(NextResponse.redirect(url), locale);
     }
   }
 
@@ -391,7 +409,7 @@ export default async function middleware(req: NextRequest) {
     if (AUTH_PAGES.has(normalizedPath)) {
       const url = new URL('/dashboard', req.url);
       url.search = req.nextUrl.search;
-      return NextResponse.redirect(url);
+      return applyLocaleCookie(NextResponse.redirect(url), locale);
       // Ideally clean this to be localized dashboard: already handled by localized router or just let it redirect to default
     }
   }
@@ -409,12 +427,12 @@ export default async function middleware(req: NextRequest) {
   // Also check if the raw pathname matched (old behavior fallback) if strict strip failed? 
   // Actually, standard practice is to define rules on non-localized paths.
 
-  if (!requirement) return NextResponse.next();
+  if (!requirement) return applyLocaleCookie(NextResponse.next(), locale);
 
   // 4. Token & Permission Checks
-  if (!token) return redirectToSignin(req);
+  if (!token) return applyLocaleCookie(redirectToSignin(req), locale);
 
-  if (requirement === 'auth-only') return NextResponse.next();
+  if (requirement === 'auth-only') return applyLocaleCookie(NextResponse.next(), locale);
 
   let user = tryDecodeUserFromJwt(token);
 
@@ -434,7 +452,7 @@ export default async function middleware(req: NextRequest) {
     user = await fetchUserFromApi(token);
   }
 
-  if (!user) return redirectToSignin(req);
+  if (!user) return applyLocaleCookie(redirectToSignin(req), locale);
 
   const allowed = checkRequirement(user, requirement);
   if (!allowed) {
@@ -444,10 +462,10 @@ export default async function middleware(req: NextRequest) {
     // usually we just want to know where they came from.
     // clone() keeps the search params.
     url.searchParams.set('from', req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return applyLocaleCookie(NextResponse.redirect(url), locale);
   }
 
-  return NextResponse.next();
+  return applyLocaleCookie(NextResponse.next(), locale);
 }
 
 export const config = {
