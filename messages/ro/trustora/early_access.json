@@ -48,6 +48,7 @@
       "form_description": "Toate câmpurile sunt obligatorii pentru accesul early access.",
       "success": "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
       "error_frequency": "Selectează frecvența de recrutare.",
+      "error_country": "Selectează țara.",
       "error_email_exists": "Adresa de email este deja folosită pentru un cont client.",
       "fields": {
         "email_label": "Email companie",
@@ -56,6 +57,10 @@
         "contact_placeholder": "Nume și prenume",
         "company_label": "Companie",
         "company_placeholder": "Numele companiei",
+        "country_label": "Țara",
+        "country_placeholder": "Selectează țara",
+        "country_search_placeholder": "Caută țara",
+        "country_empty": "Nu am găsit nicio țară.",
         "needs_label": "Nevoi de recrutare",
         "needs_placeholder": "Ex: dezvoltare web, UI/UX, QA automation",
         "budget_label": "Buget tipic proiect (€)",

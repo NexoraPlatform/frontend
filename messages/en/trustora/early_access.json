@@ -48,6 +48,7 @@
       "form_description": "All fields are required for early access.",
       "success": "Thank you! Your request has been sent. We'll follow up by email.",
       "error_frequency": "Select a hiring frequency.",
+      "error_country": "Select a country.",
       "error_email_exists": "This email address is already used for a client account.",
       "fields": {
         "email_label": "Company email",
@@ -56,6 +57,10 @@
         "contact_placeholder": "Full name",
         "company_label": "Company",
         "company_placeholder": "Company name",
+        "country_label": "Country",
+        "country_placeholder": "Select country",
+        "country_search_placeholder": "Search country",
+        "country_empty": "No countries found.",
         "needs_label": "Hiring needs",
         "needs_placeholder": "Ex: web development, UI/UX, QA automation",
         "budget_label": "Typical project budget (€)",
