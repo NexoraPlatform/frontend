@@ -240,6 +240,30 @@ class ApiClient {
     });
   }
 
+  async subscribeToNewsletter(payload: {
+    email: string;
+    user_type: 'client' | 'provider';
+    name?: string;
+    company?: string;
+  }) {
+    return this.request<{
+      data: {
+        id: number;
+        email: string;
+        name: string | null;
+        user_type: 'client' | 'provider';
+        company: string | null;
+        subscribed_at: string;
+        unsubscribed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/newsletter/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Early access endpoints
   async getEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
     const searchParams = new URLSearchParams();

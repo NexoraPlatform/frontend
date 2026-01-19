@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/hooks/use-locale";
 import { useTheme } from "next-themes";
 import {
   ArrowRightIcon,
-  CheckCircle2, ChevronDown,
+  CheckCircle2,
   Code2,
   FileCheck,
   Lock,
@@ -18,88 +18,170 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {useAsyncTranslation} from "@/hooks/use-async-translation";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {Label} from "@/components/ui/label";
-
-const copy = {
-  ro: {
-    title: "Infrastructura de încredere pentru",
-    titleAccent: "economia digitală.",
-    badge: "Infrastructura se încarcă...",
-    subtitle:
-      "Trustora securizează banii și munca prin escrow automatizat, contracte legale și profesioniști verificați.",
-    subtitleHighlight: "Early Access începe în curând.",
-    support: "Contact suport",
-    languageLabel: "Limba",
-    themeLabel: "Temă",
-    themeLight: "Lumină",
-    themeDark: "Întuneric",
-    escrowTitle: "Escrow Vault",
-    escrowTotal: "Total securizat",
-    escrowStatus: "FONDURI_BLOCATE",
-    contractTitle: "Logică smart contract",
-    contractWaiting: "// Așteptăm confirmarea livrării...",
-    trustIdentity: "Identitate verificată",
-    trustPayment: "Plată protejată",
-    trustDispute: "Rezolvare dispute",
-    featureVerifiedTitle: "Doar conturi verificate",
-    featureVerifiedBody:
-      "Fără conturi false. Fiecare utilizator trece printr-o verificare riguroasă de identitate.",
-    featureEscrowTitle: "Escrow protejat",
-    featureEscrowBody:
-      "Banii sunt blocați la începutul proiectului și eliberați doar la livrare.",
-    featureContractsTitle: "Contracte legale",
-    featureContractsBody:
-      "Nu doar un chat. Fiecare proiect generează un contract legal opozabil.",
-    footerCopy: "© 2026 Trustora Systems. Infrastructură de încredere digitală.",
-  },
-  en: {
-    title: "Trusted infrastructure for",
-    titleAccent: "the digital economy.",
-    badge: "Infrastructure loading...",
-    subtitle:
-      "Trustora secures money and work through automated escrow, legal contracts, and verified professionals.",
-    subtitleHighlight: "Early Access starts soon.",
-    support: "Contact support",
-    languageLabel: "Language",
-    themeLabel: "Theme",
-    themeLight: "Light",
-    themeDark: "Dark",
-    escrowTitle: "Escrow Vault",
-    escrowTotal: "Total secured",
-    escrowStatus: "FUNDS_LOCKED",
-    contractTitle: "Smart contract logic",
-    contractWaiting: "// Waiting for delivery confirmation...",
-    trustIdentity: "Identity verified",
-    trustPayment: "Payment protected",
-    trustDispute: "Dispute resolution",
-    featureVerifiedTitle: "Verified only",
-    featureVerifiedBody:
-      "No fake accounts. Every user goes through rigorous identity verification.",
-    featureEscrowTitle: "Escrow protected",
-    featureEscrowBody:
-      "Funds are locked at project start and released only on delivery.",
-    featureContractsTitle: "Legal contracts",
-    featureContractsBody:
-      "Not just a chat. Each project generates a legally binding contract.",
-    footerCopy: "© 2026 Trustora Systems. Digital trust infrastructure.",
-  },
-};
-
+import { Input } from "@/components/ui/input";
+import { useAsyncTranslation } from "@/hooks/use-async-translation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import apiClient from "@/lib/api";
 
 export default function OpenSoonPage() {
   const locale = useLocale();
-  const content = useMemo(() => copy[locale] ?? copy.ro, [locale]);
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [userType, setUserType] = useState<"client" | "provider" | "">("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const title = useAsyncTranslation(locale, "trustora.open_soon.title", "Infrastructura de încredere pentru");
+  const titleAccent = useAsyncTranslation(locale, "trustora.open_soon.title_accent", "economia digitală.");
+  const badge = useAsyncTranslation(locale, "trustora.open_soon.badge", "Infrastructura se încarcă...");
+  const subtitle = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.subtitle",
+    "Trustora securizează banii și munca prin escrow automatizat, contracte legale și profesioniști verificați.",
+  );
+  const subtitleHighlight = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.subtitle_highlight",
+    "Early Access începe în curând.",
+  );
+  const support = useAsyncTranslation(locale, "trustora.open_soon.support", "Contact suport");
+  const languageLabel = useAsyncTranslation(locale, "trustora.open_soon.language_label", "Limba");
+  const themeLabel = useAsyncTranslation(locale, "trustora.open_soon.theme_label", "Temă");
+  const themeLight = useAsyncTranslation(locale, "trustora.open_soon.theme_light", "Lumină");
+  const themeDark = useAsyncTranslation(locale, "trustora.open_soon.theme_dark", "Întuneric");
+  const formNameLabel = useAsyncTranslation(locale, "trustora.open_soon.form.full_name_label", "Nume Complet");
+  const formNamePlaceholder = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.full_name_placeholder",
+    "Ex: Andrei Popa",
+  );
+  const formRoleLabel = useAsyncTranslation(locale, "trustora.open_soon.form.role_label", "Rol");
+  const formRolePlaceholder = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.role_placeholder",
+    "Selectează...",
+  );
+  const formRoleClient = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.role_client",
+    "Client (Angajez)",
+  );
+  const formRoleProvider = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.role_provider",
+    "Prestator (Lucrez)",
+  );
+  const formEmailLabel = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.email_label",
+    "Adresă de Email",
+  );
+  const formEmailPlaceholder = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.email_placeholder",
+    "andrei@companie.ro",
+  );
+  const formSubmit = useAsyncTranslation(locale, "trustora.open_soon.form.submit", "Mă înscriu");
+  const formTermsPrefix = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.terms_prefix",
+    "Prin înscriere, accepți",
+  );
+  const formTermsLink = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.form.terms_link",
+    "Termenii și Condițiile",
+  );
+  const formTermsSuffix = useAsyncTranslation(locale, "trustora.open_soon.form.terms_suffix", ".");
+  const escrowTitle = useAsyncTranslation(locale, "trustora.open_soon.escrow_title", "Escrow Vault");
+  const escrowTotal = useAsyncTranslation(locale, "trustora.open_soon.escrow_total", "Total securizat");
+  const escrowStatus = useAsyncTranslation(locale, "trustora.open_soon.escrow_status", "FONDURI_BLOCATE");
+  const contractTitle = useAsyncTranslation(locale, "trustora.open_soon.contract_title", "Logică smart contract");
+  const contractWaiting = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.contract_waiting",
+    "// Așteptăm confirmarea livrării...",
+  );
+  const trustIdentity = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.trust_identity",
+    "Identitate verificată",
+  );
+  const trustPayment = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.trust_payment",
+    "Plată protejată",
+  );
+  const trustDispute = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.trust_dispute",
+    "Rezolvare dispute",
+  );
+  const featureVerifiedTitle = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.feature_verified_title",
+    "Doar conturi verificate",
+  );
+  const featureVerifiedBody = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.feature_verified_body",
+    "Fără conturi false. Fiecare utilizator trece printr-o verificare riguroasă de identitate.",
+  );
+  const featureEscrowTitle = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.feature_escrow_title",
+    "Escrow protejat",
+  );
+  const featureEscrowBody = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.feature_escrow_body",
+    "Banii sunt blocați la începutul proiectului și eliberați doar la livrare.",
+  );
+  const featureContractsTitle = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.feature_contracts_title",
+    "Contracte legale",
+  );
+  const featureContractsBody = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.feature_contracts_body",
+    "Nu doar un chat. Fiecare proiect generează un contract legal opozabil.",
+  );
+  const footerCopy = useAsyncTranslation(
+    locale,
+    "trustora.open_soon.footer_copy",
+    "© 2026 Trustora Systems. Infrastructură de încredere digitală.",
+  );
+  const fileLabel = useAsyncTranslation(locale, "trustora.open_soon.file_label", "trustora_core_v1.0.tsx");
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const isDark = mounted ? resolvedTheme === "dark" : false;
+  const isSubmitDisabled = isSubmitting || !email || !userType;
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email || !userType || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiClient.subscribeToNewsletter({
+        email,
+        user_type: userType,
+        name: fullName || undefined,
+      });
+      setFullName("");
+      setEmail("");
+      setUserType("");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3] overflow-hidden">
@@ -122,7 +204,7 @@ export default function OpenSoonPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
-            <span className="px-2 py-1 text-[10px] uppercase tracking-wider">{content.languageLabel}</span>
+            <span className="px-2 py-1 text-[10px] uppercase tracking-wider">{languageLabel}</span>
             <LocaleSwitcher currentLocale={locale} className="h-8 w-8 px-2" />
           </div>
           <Button
@@ -130,7 +212,7 @@ export default function OpenSoonPage() {
             size="icon"
             onClick={() => setTheme(isDark ? "light" : "dark")}
             className="h-11 w-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
-            aria-label={`${content.themeLabel} ${isDark ? content.themeLight : content.themeDark}`}
+            aria-label={`${themeLabel} ${isDark ? themeLight : themeDark}`}
             suppressHydrationWarning
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -140,7 +222,7 @@ export default function OpenSoonPage() {
             href="mailto:contact@trustora.com"
             className="text-sm font-medium text-slate-500 transition-colors hover:text-[#0B1C2D] dark:text-slate-300 dark:hover:text-white"
           >
-            {content.support}
+            {support}
           </a>
         </div>
       </nav>
@@ -152,67 +234,76 @@ export default function OpenSoonPage() {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"/>
             <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400"/>
           </span>
-          {content.badge}
+          {badge}
         </div>
 
         <h1 className="mb-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-[#0B1C2D] dark:text-white md:text-6xl">
-          {content.title}
+          {title}
           <br className="hidden md:block"/>
           <span
               className="bg-gradient-to-r from-[#0B1C2D] via-slate-500 to-emerald-500 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-emerald-300">
-            {content.titleAccent}
+            {titleAccent}
           </span>
         </h1>
 
         <p className="mb-12 max-w-2xl text-lg text-slate-600 dark:text-slate-300 md:text-xl">
-          {content.subtitle}
+          {subtitle}
           <br/>
           <span className="font-medium text-[#0B1C2D] dark:text-white">
-            {content.subtitleHighlight}
+            {subtitleHighlight}
           </span>
         </p>
 
 
         <div
             className="w-full max-w-lg bg-white p-6 rounded-2xl border border-slate-200 shadow-soft mb-16 text-left relative z-20">
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nume Complet</label>
-                <input type="text" placeholder="Ex: Andrei Popa"
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{formNameLabel}</label>
+                <input
+                       type="text"
+                       placeholder={formNamePlaceholder}
                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight placeholder:text-slate-400 text-sm"
-                       required/>
+                       value={fullName}
+                       onChange={(event) => setFullName(event.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</label>
-                <div className="relative">
-                  <select
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight appearance-none cursor-pointer text-sm"
-                      required>
-                    <option value="" disabled selected>Selectează...</option>
-                    <option value="client">Client (Angajez)</option>
-                    <option value="provider">Prestator (Lucrez)</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
-                </div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{formRoleLabel}</label>
+                <Select value={userType} onValueChange={(value) => setUserType(value as "client" | "provider")}>
+                  <SelectTrigger className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight text-sm">
+                    <SelectValue placeholder={formRolePlaceholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">{formRoleClient}</SelectItem>
+                    <SelectItem value="provider">{formRoleProvider}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Adresă de Email</Label>
-              <Input type="email" placeholder="andrei@companie.ro"
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{formEmailLabel}</Label>
+              <Input
+                     type="email"
+                     placeholder={formEmailPlaceholder}
                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-midnight focus:ring-1 focus:ring-midnight transition-all text-midnight placeholder:text-slate-400 text-sm"
-                     required />
+                     value={email}
+                     onChange={(event) => setEmail(event.target.value)}
+                     required
+              />
             </div>
 
             <Button type="submit"
+                    disabled={isSubmitDisabled}
                     className="w-full !bg-secondary hover:!bg-slate-800 !text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg group">
-              Mă înscriu
+              {formSubmit}
               <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform animate-pulse" />
             </Button>
           </form>
           <p className="mt-4 text-xs text-center text-slate-400">
-            Prin înscriere, accepți <a href="#" className="underline hover:text-midnight">Termenii și Condițiile</a>.
+            {formTermsPrefix} <a href="#" className="underline hover:text-midnight">{formTermsLink}</a>{formTermsSuffix}
           </p>
         </div>
 
@@ -229,26 +320,26 @@ export default function OpenSoonPage() {
                 <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600"/>
                 <div className="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-600"/>
               </div>
-              <div className="ml-4 font-mono text-xs text-slate-400">trustora_core_v1.0.tsx</div>
+              <div className="ml-4 font-mono text-xs text-slate-400">{fileLabel}</div>
             </div>
 
             <div className="grid grid-cols-1 gap-8 p-6 md:grid-cols-3 md:p-10">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
                   <Lock className="h-4 w-4"/>
-                  <span className="text-xs font-bold uppercase tracking-wider">{content.escrowTitle}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{escrowTitle}</span>
                 </div>
                 <div
                     className="rounded-lg border border-slate-200 bg-[#F5F7FA] p-4 dark:border-[#1E2A3D] dark:bg-[#070C14]">
                   <div className="mb-2 flex items-end justify-between">
-                    <span className="text-sm text-slate-500 dark:text-slate-300">{content.escrowTotal}</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-300">{escrowTotal}</span>
                     <ShieldCheck className="h-4 w-4 text-emerald-500"/>
                   </div>
                   <div className="font-mono text-2xl font-bold text-[#0B1C2D] dark:text-white">€2,450.00</div>
                   <div
                       className="mt-2 flex items-center gap-1 text-xs font-mono text-emerald-600 dark:text-emerald-300">
                     <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"/>
-                    {content.escrowStatus}
+                    {escrowStatus}
                   </div>
                 </div>
               </div>
@@ -256,7 +347,7 @@ export default function OpenSoonPage() {
               <div className="space-y-4 md:col-span-2">
                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
                   <FileCheck className="h-4 w-4"/>
-                  <span className="text-xs font-bold uppercase tracking-wider">{content.contractTitle}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{contractTitle}</span>
                 </div>
                 <div
                     className="relative overflow-hidden rounded-lg bg-[#0B1C2D] p-4 font-mono text-xs text-slate-200 md:text-sm">
@@ -276,7 +367,7 @@ export default function OpenSoonPage() {
                   <p className="mb-1 pl-4">condition: <span
                       className="text-emerald-200">&apos;milestone_delivery&apos;</span></p>
                   <p className="mb-1">{"});"}</p>
-                  <p className="mt-2 text-slate-400">{content.contractWaiting}</p>
+                  <p className="mt-2 text-slate-400">{contractWaiting}</p>
                 </div>
               </div>
             </div>
@@ -284,13 +375,13 @@ export default function OpenSoonPage() {
             <div
                 className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4 text-xs font-medium text-slate-500 dark:border-[#1E2A3D] dark:bg-[#111B2D] dark:text-slate-300">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {content.trustIdentity}
+                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {trustIdentity}
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {content.trustPayment}
+                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {trustPayment}
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {content.trustDispute}
+                <CheckCircle2 className="h-4 w-4 text-emerald-500"/> {trustDispute}
               </div>
             </div>
           </div>
@@ -305,9 +396,9 @@ export default function OpenSoonPage() {
                 className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#0B1C2D] md:mx-0 dark:bg-blue-500/10 dark:text-blue-200">
               <Users className="h-5 w-5"/>
             </div>
-            <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{content.featureVerifiedTitle}</h3>
+            <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{featureVerifiedTitle}</h3>
             <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
-              {content.featureVerifiedBody}
+              {featureVerifiedBody}
             </p>
           </div>
 
@@ -317,9 +408,9 @@ export default function OpenSoonPage() {
                 className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 md:mx-0 dark:bg-emerald-500/10 dark:text-emerald-300">
               <Lock className="h-5 w-5"/>
             </div>
-            <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{content.featureEscrowTitle}</h3>
+            <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{featureEscrowTitle}</h3>
             <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
-              {content.featureEscrowBody}
+              {featureEscrowBody}
             </p>
           </div>
 
@@ -329,15 +420,15 @@ export default function OpenSoonPage() {
                 className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-amber-600 md:mx-0 dark:bg-amber-500/10 dark:text-amber-200">
               <Scale className="h-5 w-5"/>
             </div>
-            <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{content.featureContractsTitle}</h3>
+            <h3 className="mb-2 font-bold text-[#0B1C2D] dark:text-white">{featureContractsTitle}</h3>
             <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
-              {content.featureContractsBody}
+              {featureContractsBody}
             </p>
           </div>
         </div>
 
         <div className="mt-16 text-center">
-          <p className="text-xs font-mono text-slate-400 dark:text-slate-500">{content.footerCopy}</p>
+          <p className="text-xs font-mono text-slate-400 dark:text-slate-500">{footerCopy}</p>
         </div>
       </section>
     </div>

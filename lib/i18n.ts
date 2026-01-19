@@ -57,6 +57,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/trustora/visual.json"),
             () => import("@/locales/ro/trustora/final_cta.json"),
             () => import("@/locales/ro/trustora/early_access.json"),
+            () => import("@/locales/ro/trustora/open_soon.json"),
         ],
         errors: [() => import("@/locales/ro/errors/page.json")],
         admin: [
@@ -118,6 +119,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/trustora/visual.json"),
             () => import("@/locales/en/trustora/final_cta.json"),
             () => import("@/locales/en/trustora/early_access.json"),
+            () => import("@/locales/en/trustora/open_soon.json"),
         ],
         errors: [() => import("@/locales/en/errors/page.json")],
         admin: [
