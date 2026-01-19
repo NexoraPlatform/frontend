@@ -17,8 +17,7 @@ import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { useLocale } from "@/hooks/use-locale";
 import apiClient from "@/lib/api";
-
-import { EditorContent, EditorRoot } from "novel";
+import {Textarea} from "@/components/ui/textarea";
 
 const parseRecipients = (value: string) =>
   value
@@ -395,15 +394,12 @@ export default function AdminNewsletterPage() {
                   <Label>{dataMessageLabel}</Label>
                   <div className="rounded-lg border border-border/60 bg-white/80 dark:border-slate-700/60 dark:bg-slate-900/60">
 
-                    <EditorRoot>
-                      <EditorContent
-                          initialContent={dataMessage}
-                          onUpdate={({ editor }) => {
-                            const json = editor.getJSON();
-                            setDataMessage(json);
-                          }}
-                      />
-                    </EditorRoot>
+                    <Textarea
+                        value={dataMessage}
+                        onChange={(event) => setDataMessage(event.target.value)}
+                        placeholder={dataMessagePlaceholder}
+                        className="min-h-[120px] bg-white/80 dark:bg-slate-900/60"
+                    />
                   </div>
                   {!isCustomTemplate && (
                     <p className="text-xs text-muted-foreground">{customOnlyNote}</p>
