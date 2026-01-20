@@ -221,6 +221,65 @@ export default function NewProjectPage() {
         ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
     ), [formData.deadline]);
 
+    const buildProviderMilestonesFromAi = useCallback(() => {
+        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
+            return {};
+        }
+
+        const providerMap = new Map(
+            selectedProviders.map((provider) => [
+                provider.id,
+                {
+                    ...provider,
+                    profile: suggestedProviders.find((p) => p.id === provider.id),
+                }
+            ])
+        );
+
+        const scoreProviderForRole = (providerId: string, role?: string) => {
+            const provider = providerMap.get(providerId);
+            if (!provider) {
+                return 0;
+            }
+            const baseScore = provider.matchScore ?? 0;
+            if (!role) {
+                return baseScore;
+            }
+            const roleLower = role.toLowerCase();
+            const skills = provider.profile?.skills ?? [];
+            const hasRoleMatch = skills.some((skill) => (
+                skill.toLowerCase().includes(roleLower) || roleLower.includes(skill.toLowerCase())
+            ));
+            return baseScore + (hasRoleMatch ? 50 : 0);
+        };
+
+        const sortedProviders = (role?: string) => {
+            return [...selectedProviders]
+                .sort((a, b) => scoreProviderForRole(b.id, role) - scoreProviderForRole(a.id, role));
+        };
+
+        const milestonesByProvider: Record<string, { title: string; amount: string }[]> = {};
+
+        aiSuggestedMilestones.forEach((group) => {
+            const providersByScore = sortedProviders(group.provider_role);
+            if (providersByScore.length === 0) {
+                return;
+            }
+            group.milestones.forEach((milestone, index) => {
+                const provider = providersByScore[index % providersByScore.length];
+                if (!milestonesByProvider[provider.id]) {
+                    milestonesByProvider[provider.id] = [];
+                }
+                milestonesByProvider[provider.id].push({
+                    title: milestone.title,
+                    amount: String(milestone.amount),
+                });
+            });
+        });
+
+        return milestonesByProvider;
+    }, [aiSuggestedMilestones, selectedProviders, suggestedProviders]);
+
     useEffect(() => {
         if (!isLongProject && Object.keys(providerMilestones).length > 0) {
             setProviderMilestones({});
@@ -236,17 +295,8 @@ export default function NewProjectPage() {
         if (hasAnyMilestones || selectedProviders.length === 0) {
             return;
         }
-        const flattened = aiSuggestedMilestones.flatMap((group) => group.milestones);
-        setProviderMilestones(Object.fromEntries(
-            selectedProviders.map((provider) => [
-                provider.id,
-                flattened.map((milestone) => ({
-                    title: milestone.title,
-                    amount: String(milestone.amount),
-                }))
-            ])
-        ));
-    }, [aiSuggestedMilestones, providerMilestones, selectedProviders]);
+        setProviderMilestones(buildProviderMilestonesFromAi());
+    }, [aiSuggestedMilestones, buildProviderMilestonesFromAi, providerMilestones, selectedProviders]);
 
     const router = useRouter();
     const { data: categoriesData } = useMainCategories();
@@ -522,6 +572,10 @@ export default function NewProjectPage() {
                     const { [providerId]: removed, ...rest } = prevBudgets;
                     return rest;
                 });
+                setProviderMilestones(prevMilestones => {
+                    const { [providerId]: removed, ...rest } = prevMilestones;
+                    return rest;
+                });
                 return prev.filter(p => p.id !== providerId);
             } else {
 
@@ -601,16 +655,7 @@ export default function NewProjectPage() {
         if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
             return;
         }
-        const flattened = aiSuggestedMilestones.flatMap((group) => group.milestones);
-        setProviderMilestones(Object.fromEntries(
-            selectedProviders.map((provider) => [
-                provider.id,
-                flattened.map((milestone) => ({
-                    title: milestone.title,
-                    amount: String(milestone.amount),
-                }))
-            ])
-        ));
+        setProviderMilestones(buildProviderMilestonesFromAi());
     };
 
     const getLastActiveText = (lastActiveAt: string): string => {
