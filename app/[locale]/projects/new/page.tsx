@@ -1310,6 +1310,14 @@ export default function NewProjectPage() {
                                                 </>
                                             )}
 
+                                            {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count) && (
+                                                <div>
+                                                    <span className="text-sm text-black font-bold">Plan de plată: </span>
+                                                    {generatedAiOutput?.payment_plan || 'Nespecificat'}
+                                                    {generatedAiOutput?.milestone_count ? ` • ${generatedAiOutput.milestone_count} milestones` : ''}
+                                                </div>
+                                            )}
+
                                             {generatedAiOutput?.milestones?.length > 0 && (
                                                 <>
                                                     <div>
