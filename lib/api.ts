@@ -1214,6 +1214,17 @@ export class ApiClient {
     return this.request<any>(`/stripe/capture/payment/${project_id}`);
   }
 
+  async updateOneSignalToken(token: string) {
+    return this.request<any>(`/user/update-push-token`, {
+      method: 'POST',
+      body: JSON.stringify({ push_token: token }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    })
+  }
+
   // Chat endpoints
   async getChatGroups() {
     return this.request<any>('/chat/groups');

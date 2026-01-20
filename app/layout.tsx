@@ -11,6 +11,16 @@ import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
 import { GoogleTagManager } from '@next/third-parties/google'
+import {Partytown} from "@qwik.dev/partytown/react";
+import {TrustoraThemeStyles} from "@/components/trustora/theme-styles";
+import {Header} from "@/components/header";
+import {TrustoraHeroSection} from "@/components/trustora/hero-section";
+import {TrustoraPillarsSection} from "@/components/trustora/pillars-section";
+import {TrustoraMessagingSection} from "@/components/trustora/messaging-section";
+import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-language-section";
+import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
+import {Footer} from "@/components/footer";
+import OneSignalInit from "@/components/OneSignalInit";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -160,13 +170,46 @@ export default function RootLayout({
                                    }: {
     children: React.ReactNode
 }) {
-    const organizationStructuredData = generateStructuredData({
-        type: "Organization",
-    })
 
-    const websiteStructuredData = generateStructuredData({
-        type: "WebSite",
-    })
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Trustora',
+        url: process.env.NEXT_PUBLIC_APP_URL,
+        potentialAction: {
+            '@type': 'SearchAction',
+            target: {
+                '@type': 'EntryPoint',
+                urlTemplate: `${process.env.NEXT_PUBLIC_APP_URL}/search?q={search_term_string}`
+            },
+            'query-input': 'required name=search_term_string'
+        },
+        publisher: {
+            '@type': 'Organization',
+            name: 'Trustora',
+            logo: {
+                '@type': 'ImageObject',
+                url: `${process.env.NEXT_PUBLIC_APP_URL}/trustora-logo2.svg`
+            }
+        }
+    };
+
+    const structuredData = generateStructuredData({
+        type: 'Organization',
+        name: 'Trustora',
+        url: process.env.NEXT_PUBLIC_SITE_URL || 'https://trustora.ro',
+        logo: `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`,
+        sameAs: [
+            "https://www.facebook.com/trustora",
+            "https://www.linkedin.com/company/trustora-platform"
+        ],
+        contactPoint: {
+            "@type": "ContactPoint",
+            "telephone": "+40700000000",
+            "contactType": "customer service",
+            "areaServed": "RO"
+        }
+    });
 
     return (
         <html lang="ro" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
@@ -232,11 +275,12 @@ export default function RootLayout({
             type="application/ld+json"
             strategy="afterInteractive"
             dangerouslySetInnerHTML={{
-                __html: JSON.stringify([organizationStructuredData, websiteStructuredData]),
+                __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
 
         <AuthProvider>
+            <OneSignalInit />
             <NotificationProvider>
                 <ChatProvider>
                     <ThemeProvider

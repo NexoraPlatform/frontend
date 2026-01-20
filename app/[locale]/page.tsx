@@ -9,8 +9,6 @@ import { TrustoraVisualLanguageSection } from "@/components/trustora/visual-lang
 import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
 import {Metadata} from "next";
-import {generateStructuredData} from "@/lib/seo";
-import { Partytown } from "@qwik.dev/partytown/react";
 
 export const revalidate = 86400; // 24h
 
@@ -75,58 +73,9 @@ export default async function Home(props: HomePageProps) {
     const { locale } = await props.params;
     const mainContentLabel = await t(locale, "common.main_content");
 
-    const jsonLd = {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: 'Trustora',
-        url: process.env.NEXT_PUBLIC_APP_URL,
-        potentialAction: {
-            '@type': 'SearchAction',
-            target: {
-                '@type': 'EntryPoint',
-                urlTemplate: `${process.env.NEXT_PUBLIC_APP_URL}/search?q={search_term_string}`
-            },
-            'query-input': 'required name=search_term_string'
-        },
-        publisher: {
-            '@type': 'Organization',
-            name: 'Trustora',
-            logo: {
-                '@type': 'ImageObject',
-                url: `${process.env.NEXT_PUBLIC_APP_URL}/trustora-logo2.svg`
-            }
-        }
-    };
-
-    const structuredData = generateStructuredData({
-        type: 'Organization',
-        name: 'Trustora',
-        url: process.env.NEXT_PUBLIC_SITE_URL || 'https://trustora.ro',
-        logo: `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`,
-        sameAs: [
-            "https://www.facebook.com/trustora",
-            "https://www.linkedin.com/company/trustora-platform"
-        ],
-        contactPoint: {
-            "@type": "ContactPoint",
-            "telephone": "+40700000000",
-            "contactType": "customer service",
-            "areaServed": "RO"
-        }
-    });
 
     return (
         <>
-            <Partytown debug={true} forward={["dataLayer.push"]} />
-            <script
-                type="text/partytown"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="text/partytown"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-            />
-
             <div className="bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
                 <TrustoraThemeStyles />
                 <Header />
