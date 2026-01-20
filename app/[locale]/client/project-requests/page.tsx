@@ -492,8 +492,16 @@ export default function ClientProjectRequestsPage() {
                                                             <span className="font-semibold">{project.title}</span>
                                                         </div>
                                                         <div className="flex items-center justify-between text-sm mt-2">
+                                                            <span className="text-blue-100">Valoare proiect:</span>
+                                                            <span className="font-bold text-lg">{Number(project.budget)?.toLocaleString()} RON</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-sm mt-2">
+                                                            <span className="text-blue-100">Comision platforma (12%):</span>
+                                                            <span className="font-bold text-lg">{Number(project.budget * 12/100)?.toLocaleString()} RON</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-sm mt-2">
                                                             <span className="text-blue-100">Valoare totală:</span>
-                                                            <span className="font-bold text-lg">{project.budget?.toLocaleString()} RON</span>
+                                                            <span className="font-bold text-lg">{(Number(project.budget) + (Number(project.budget) * (12/100)))?.toLocaleString()} RON</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -580,7 +588,7 @@ export default function ClientProjectRequestsPage() {
                                                             ) : (
                                                                 <>
                                                                     <Shield className="w-4 h-4 mr-2" />
-                                                                    Securizează {project.budget?.toLocaleString()} RON
+                                                                    Securizează {(Number(project.budget) + (Number(project.budget) * 12/100))?.toLocaleString()} RON
                                                                 </>
                                                             )}
                                                         </Button>
