@@ -1,6 +1,6 @@
 // middleware.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt } from 'jose';
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import {
   checkRequirement,
   type AccessUser,
@@ -8,11 +8,6 @@ import {
   type Requirement,
 } from '@/lib/access';
 import { locales, defaultLocale } from '@/lib/i18n';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.API_URL ||
-  'https://backend.trustora.ro/api';
 
 const LOCALE_COOKIE_NAME = 'preferred_locale';
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -32,7 +27,7 @@ const ROUTE_RULES: RouteRule[] = [
   { pattern: /\/provider\/services(\/|$)/i, require: { roles: ['provider'] } },
   { pattern: /^\/provider\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
   { pattern: /\/tests(\/|$)/i, require: { roles: ['provider'] } },
-  { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
+  // { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
   { pattern: /\/projects\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
 ];
@@ -46,108 +41,16 @@ function findRequirement(pathname: string): Requirement | 'auth-only' | null {
   return null;
 }
 
-// ---- Helper Functions (Consider moving to lib/auth.ts if reused) ----
+// ---- Helper Functions ----
 
-function normalizeRoles(input: any): AccessRole[] {
-  if (!input) return [];
-  if (Array.isArray(input)) {
-    return input.map((r) => {
-      if (typeof r === 'string') return { slug: r } as AccessRole;
-      if (r && typeof r === 'object') {
-        const slug = r.slug ?? r.name ?? r.code ?? '';
-        return {
-          id: r.id,
-          slug,
-          permissions: Array.isArray(r.permissions)
-            ? r.permissions.map((p: any) => {
-              if (typeof p === 'string') return { slug: p };
-              if (p && typeof p === 'object') return { id: p.id, slug: p.slug ?? p.name ?? '' };
-              return null;
-            }).filter(Boolean)
-            : [],
-        } as AccessRole;
-      }
-      return null;
-    }).filter(Boolean) as AccessRole[];
-  }
-  return [];
-}
-
-function buildUserFromPayload(payload: any): AccessUser {
-  return {
-    id: String(payload.id ?? payload.sub ?? payload.user?.id ?? ''),
-    email: String(payload.email ?? payload.user?.email ?? ''),
-    firstName: payload.firstName ?? payload.user?.firstName,
-    lastName: payload.lastName ?? payload.user?.lastName,
-    location: payload.location ?? payload.user?.location,
-    language: payload.language ?? payload.user?.language,
-    bio: payload.bio ?? payload.user?.bio,
-    avatar: payload.avatar ?? payload.user?.avatar,
-    testVerified: payload.testVerified ?? payload.user?.testVerified,
-    callVerified: payload.callVerified ?? payload.user?.callVerified,
-    stripe_account_id: payload.stripe_account_id ?? payload.user?.stripe_account_id,
-    roles: normalizeRoles(payload.roles ?? payload.user?.roles ?? []),
-    permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
-    is_superuser: payload.is_superuser ?? payload.superuser ?? payload.user?.isSuperUser ?? false,
-  };
-}
-
-function buildUserFromProfile(profile: any): AccessUser | null {
-  const data = profile?.user ?? profile;
-  if (!data?.id && !data?.email) return null;
-
-  return {
-    id: String(data.id ?? ''),
-    email: String(data.email ?? ''),
-    firstName: data.firstName,
-    lastName: data.lastName,
-    location: data.location,
-    language: data.language,
-    bio: data.bio,
-    avatar: data.avatar,
-    testVerified: data.testVerified,
-    callVerified: data.callVerified,
-    stripe_account_id: data.stripe_account_id,
-    roles: normalizeRoles(data.roles),
-    permissions: Array.isArray(data.permissions) ? data.permissions : [],
-    is_superuser: data.is_superuser ?? (Array.isArray(data.roles) && data.roles.some((r: any) => r.slug?.toLowerCase() === 'superuser')) ?? false,
-  };
-}
-
-function tryDecodeUserFromJwt(token?: string): AccessUser | null {
-  if (!token || !token.includes('.')) return null;
-  try {
-    const payload: any = decodeJwt(token);
-    const user = buildUserFromPayload(payload);
-    return (user.id || user.email) ? user : null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchUserFromApi(token: string): Promise<AccessUser | null> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      cache: 'no-store', // Important for middleware to not cache bad auth states
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return buildUserFromProfile(data);
-  } catch {
-    return null;
-  }
-}
-
-function redirectToSignin(req: NextRequest) {
+function redirectToSignin(req: any) {
   const url = req.nextUrl.clone();
   url.pathname = '/auth/signin';
   url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
   return NextResponse.redirect(url);
 }
 
-function getLocale(request: NextRequest): string {
+function getLocale(request: any): string {
   const pathname = request.nextUrl.pathname;
 
   // Check if pathname already has locale
@@ -165,7 +68,7 @@ function getLocale(request: NextRequest): string {
   }
 
   const country =
-    (request as NextRequest & { geo?: { country?: string } }).geo?.country ||
+    request.geo?.country ||
     request.headers.get('x-vercel-ip-country') ||
     request.headers.get('x-country');
   if (country) {
@@ -177,9 +80,10 @@ function getLocale(request: NextRequest): string {
   if (acceptLanguage) {
     const preferredLanguages = acceptLanguage
       .split(',')
-      .map(lang => lang.split(';')[0].trim().toLowerCase());
+      .map((lang: string) => lang.split(';')[0].trim().toLowerCase());
 
     for (const lang of preferredLanguages) {
+      // @ts-ignore
       const found = locales.find(l => lang.startsWith(l));
       if (found) return found;
     }
@@ -236,7 +140,7 @@ function getBasicAuthCredentials() {
     .filter(Boolean) as Array<{ user: string; password: string }>;
 }
 
-function isBasicAuthAuthorized(request: NextRequest) {
+function isBasicAuthAuthorized(request: any) {
   const credentials = getBasicAuthCredentials();
   if (credentials.length === 0) return true;
 
@@ -269,7 +173,7 @@ function isAdminUser(user: AccessUser | null) {
 
 // ---- Middleware Main ----
 
-export default async function middleware(req: NextRequest) {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
 
   // Ignore static files and API
@@ -309,10 +213,14 @@ export default async function middleware(req: NextRequest) {
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-  const token =
-    req.cookies.get('auth_token')?.value ||
-    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
-    undefined;
+  console.log(`[Middleware] Path: ${pathname}, Normalized: ${normalizedPath}`);
+
+  // req.auth is the session object
+  const session = req.auth;
+  const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
+  const isAuthenticated = !!user;
+
+  console.log(`[Middleware] Authenticated: ${isAuthenticated}, Roles: ${user?.roles?.map(r => r.slug).join(', ')}`);
 
   if (isOpenSoonEnabled()) {
     const openSoonRoutes = new Set([
@@ -332,15 +240,8 @@ export default async function middleware(req: NextRequest) {
     }
 
     let adminBypass = false;
-    if (token) {
-      let user = tryDecodeUserFromJwt(token);
-      if (!user || !user.roles?.length) {
-        const fetchedUser = await fetchUserFromApi(token);
-        if (fetchedUser) {
-          user = fetchedUser;
-        }
-      }
-      adminBypass = isAdminUser(user);
+    if (isAuthenticated) {
+      adminBypass = isAdminUser(user || null);
     }
 
     if (!adminBypass) {
@@ -370,15 +271,8 @@ export default async function middleware(req: NextRequest) {
     }
 
     let adminBypass = false;
-    if (token) {
-      let user = tryDecodeUserFromJwt(token);
-      if (!user || !user.roles?.length) {
-        const fetchedUser = await fetchUserFromApi(token);
-        if (fetchedUser) {
-          user = fetchedUser;
-        }
-      }
-      adminBypass = isAdminUser(user);
+    if (isAuthenticated) {
+      adminBypass = isAdminUser(user || null);
     }
 
     if (!adminBypass) {
@@ -392,84 +286,44 @@ export default async function middleware(req: NextRequest) {
 
   // 2. Auth Flow
   // Redirect authenticated users away from auth pages
-  if (AUTH_PAGES.has(pathname) && token) {
-    // Note: we might want to redirect to localized dashboard, but pathname encompasses locale now?
-    // Actually pathname includes locale because of step 1 check (or we wouldn't be here if we redirected).
-    // Wait, if we just redirected in step 1, this subsequent code doesn't run for THIS request.
-    // So here pathname DOES have locale.
-    // We need to strip locale to check if it matches /auth/signin strictly? 
-    // AUTH_PAGES above are defined as '/auth/signin'.
-    // But pathname is '/ro/auth/signin'.
-
-    // segments[0] is empty, segments[1] is locale
-    const pathWithoutLocale = '/' + segments.slice(2).join('/');
-    const normalizedPath =
-      pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
-
-    if (AUTH_PAGES.has(normalizedPath)) {
-      const url = new URL('/dashboard', req.url);
-      url.search = req.nextUrl.search;
-      return applyLocaleCookie(NextResponse.redirect(url), locale);
-      // Ideally clean this to be localized dashboard: already handled by localized router or just let it redirect to default
-    }
+  if (AUTH_PAGES.has(normalizedPath) && isAuthenticated) {
+    console.log('[Middleware] Redirecting authenticated user to dashboard');
+    const url = new URL('/dashboard', req.url);
+    url.search = req.nextUrl.search;
+    return applyLocaleCookie(NextResponse.redirect(url), locale);
   }
 
   // 3. Protected Routes
-  // We need to check requirement against the path WITHOUT locale?
-  // implementation check: ROUTE_RULES use regex.
-  // The regexes in original code: /\/admin(\/|$)/i matches /admin in any position?
-  // No, original code: pathname was potentially missing locale or having it?
-  // The original findRequirement used 'pathname' directly from req.nextUrl.
-
-  // Imrovement: Strip locale for routing checks to ensure consistence
   const requirement = findRequirement(normalizedPath);
+  console.log(`[Middleware] Requirement for ${normalizedPath}:`, requirement);
 
-  // Also check if the raw pathname matched (old behavior fallback) if strict strip failed? 
-  // Actually, standard practice is to define rules on non-localized paths.
-
-  if (!requirement) return applyLocaleCookie(NextResponse.next(), locale);
+  if (!requirement) {
+    console.log('[Middleware] No requirement, allowing.');
+    return applyLocaleCookie(NextResponse.next(), locale);
+  }
 
   // 4. Token & Permission Checks
-  if (!token) return applyLocaleCookie(redirectToSignin(req), locale);
+  if (!isAuthenticated) return applyLocaleCookie(redirectToSignin(req), locale);
 
   if (requirement === 'auth-only') return applyLocaleCookie(NextResponse.next(), locale);
 
-  let user = tryDecodeUserFromJwt(token);
+  const allowed = checkRequirement(user || null, requirement);
+  console.log(`[Middleware] Check Requirement Result: ${allowed}`);
 
-  const needsPerms = requirement.permissions && requirement.permissions.length > 0;
-  const needsRole = requirement.roles && requirement.roles.length > 0;
-  const needsSuper = !!requirement.superuser;
-
-  const hasEnoughClaims =
-    !!user &&
-    // Optimistic check: if we have roles, we assume permissions might be implicit, 
-    // but strictly we should check if token has them.
-    // Original code allowed permissive check if roles were present.
-    (!needsRole || (user.roles && user.roles.length > 0)) &&
-    (!needsSuper || user.is_superuser !== undefined);
-
-  if (!hasEnoughClaims && token) {
-    user = await fetchUserFromApi(token);
-  }
-
-  if (!user) return applyLocaleCookie(redirectToSignin(req), locale);
-
-  const allowed = checkRequirement(user, requirement);
   if (!allowed) {
+    console.log('[Middleware] Access Denied. Redirecting.');
     const url = req.nextUrl.clone();
     url.pathname = '/access-denied';
-    // Append 'from' but keep existing params if needed, or maybe clean them?
-    // usually we just want to know where they came from.
-    // clone() keeps the search params.
     url.searchParams.set('from', req.nextUrl.pathname);
     return applyLocaleCookie(NextResponse.redirect(url), locale);
   }
 
   return applyLocaleCookie(NextResponse.next(), locale);
-}
+});
 
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)',
   ],
 };
+
