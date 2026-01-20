@@ -148,6 +148,9 @@ type FormData = {
     additionalInfo: string;
     recommendedProviders: RecommendedProvider[];
     notes: string;
+    paymentPlan: string;
+    milestoneCount: number;
+    milestones: { title: string; amount: string }[];
 };
 
 
@@ -178,6 +181,9 @@ export default function NewProjectPage() {
         additionalInfo: '',
         recommendedProviders: [],
         notes: '',
+        paymentPlan: '',
+        milestoneCount: 0,
+        milestones: [],
     });
     const [generatedAiOutput, setGeneratedAiOutput] = useState({
         title: "",
@@ -212,6 +218,21 @@ export default function NewProjectPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [providersPerPage] = useState(6); // 6 providers per page for better layout
     const [availableServices, setAvailableServices] = useState<any[]>([]);
+
+    const isLongProject = useMemo(() => (
+        ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
+    ), [formData.deadline]);
+
+    useEffect(() => {
+        if (!isLongProject && formData.milestones.length > 0) {
+            setFormData(prev => ({
+                ...prev,
+                paymentPlan: '',
+                milestoneCount: 0,
+                milestones: [],
+            }));
+        }
+    }, [formData.milestones.length, isLongProject]);
 
     const router = useRouter();
     const { data: categoriesData } = useMainCategories();
@@ -292,6 +313,29 @@ export default function NewProjectPage() {
 
         if (formData.technologies.length === 0) {
             newErrors.technologies = 'Selecteaza minim o tehnologie';
+        }
+
+        if (isLongProject) {
+            if (formData.milestones.length === 0) {
+                newErrors.milestones = 'Adaugă cel puțin un milestone pentru proiecte mai lungi de o lună';
+            } else {
+                const hasInvalidMilestone = formData.milestones.some(
+                    (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
+                );
+                if (hasInvalidMilestone) {
+                    newErrors.milestones = 'Completează titlul și bugetul pentru fiecare milestone';
+                }
+
+                if (String(formData.budget).trim() !== '') {
+                    const milestoneTotal = formData.milestones.reduce(
+                        (sum, milestone) => sum + Number(milestone.amount || 0),
+                        0
+                    );
+                    if (milestoneTotal !== Number(formData.budget)) {
+                        newErrors.milestoneTotal = 'Suma milestone-urilor trebuie să fie egală cu bugetul total';
+                    }
+                }
+            }
         }
 
         // alte validări...
@@ -487,6 +531,35 @@ export default function NewProjectPage() {
         return Number(formData.budget) - getTotalAllocatedBudget();
     };
 
+    const getMilestoneTotal = () => {
+        return formData.milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0);
+    };
+
+    const addMilestone = () => {
+        setFormData(prev => ({
+            ...prev,
+            milestones: [...prev.milestones, { title: '', amount: '' }],
+            milestoneCount: prev.milestones.length + 1,
+        }));
+    };
+
+    const updateMilestoneField = (index: number, field: 'title' | 'amount', value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            milestones: prev.milestones.map((milestone, i) => (
+                i === index ? { ...milestone, [field]: value } : milestone
+            )),
+        }));
+    };
+
+    const removeMilestone = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            milestones: prev.milestones.filter((_, i) => i !== index),
+            milestoneCount: Math.max(prev.milestones.length - 1, 0),
+        }));
+    };
+
     const getLastActiveText = (lastActiveAt: string): string => {
         const time = dayjs.utc(lastActiveAt);
         return `${time.fromNow()}`;
@@ -495,6 +568,11 @@ export default function NewProjectPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         setSkipValidation(false);
         e.preventDefault();
+
+        if (!validate()) {
+            setError('Completează câmpurile obligatorii înainte de a trimite proiectul.');
+            return;
+        }
 
         if (selectedProviders.length === 0) {
             setError('Selectează cel puțin un prestator pentru a trimite proiectul');
@@ -512,11 +590,21 @@ export default function NewProjectPage() {
         setError('');
 
         try {
+            const milestonesPayload = isLongProject
+                ? formData.milestones.map((milestone) => ({
+                    title: milestone.title.trim(),
+                    amount: Number(milestone.amount),
+                }))
+                : [];
+
             const projectData = {
                 ...formData,
                 selectedProviders,
                 providerBudgets,
-                clientId: user?.id
+                clientId: user?.id,
+                paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
+                milestoneCount: isLongProject ? milestonesPayload.length : 0,
+                milestones: milestonesPayload,
             };
 
             const createdProject = await apiClient.createProject(projectData);
@@ -676,6 +764,18 @@ export default function NewProjectPage() {
                 technologies: [...existing, ...newTechs]
             };
         });
+    };
+
+    const handleUseGeneratedMilestones = (milestones: { title: string; amount: number }[]) => {
+        setFormData(prev => ({
+            ...prev,
+            paymentPlan: 'MILESTONE',
+            milestoneCount: milestones.length,
+            milestones: milestones.map((milestone) => ({
+                title: milestone.title,
+                amount: String(milestone.amount),
+            })),
+        }));
     };
 
     // const handleUpdateServicesByCategory = async (categoryId: string) => {
@@ -1024,6 +1124,73 @@ export default function NewProjectPage() {
                                                     </Select>
                                                 </div>
                                             </div>
+
+                                            {isLongProject && (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className={errors.milestones || errors.milestoneTotal ? "text-red-500" : ""}>
+                                                            Milestones (obligatoriu pentru proiecte mai lungi de o lună)
+                                                        </Label>
+                                                        <Button type="button" variant="outline" size="sm" onClick={addMilestone}>
+                                                            <Plus className="w-4 h-4 mr-2" />
+                                                            Adaugă milestone
+                                                        </Button>
+                                                    </div>
+
+                                                    {formData.milestones.length === 0 ? (
+                                                        <div className="text-sm text-muted-foreground">
+                                                            Adaugă milestones cu nume și buget pentru fiecare etapă.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {formData.milestones.map((milestone, index) => (
+                                                                <div key={`milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
+                                                                    <div>
+                                                                        <Label htmlFor={`milestone-title-${index}`}>Nume milestone</Label>
+                                                                        <Input
+                                                                            id={`milestone-title-${index}`}
+                                                                            value={milestone.title}
+                                                                            onChange={(e) => updateMilestoneField(index, 'title', e.target.value)}
+                                                                            placeholder="ex: Discovery"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <Label htmlFor={`milestone-amount-${index}`}>Buget milestone (RON)</Label>
+                                                                        <Input
+                                                                            id={`milestone-amount-${index}`}
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={milestone.amount}
+                                                                            onChange={(e) => updateMilestoneField(index, 'amount', e.target.value)}
+                                                                            placeholder="ex: 1500"
+                                                                        />
+                                                                    </div>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => removeMilestone(index)}
+                                                                        aria-label="Șterge milestone"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {(errors.milestones || errors.milestoneTotal) && (
+                                                        <div className="text-sm text-red-500">
+                                                            {errors.milestones || errors.milestoneTotal}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="text-sm text-muted-foreground">
+                                                        Total milestones: {getMilestoneTotal().toLocaleString()} RON •
+                                                        Diferență: {(Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString()} RON
+                                                    </div>
+                                                </div>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -1139,6 +1306,26 @@ export default function NewProjectPage() {
                                                        }}>
                                                         <EuroIcon />
                                                         Foloseste Bugetul
+                                                    </a>
+                                                </>
+                                            )}
+
+                                            {generatedAiOutput?.milestones?.length > 0 && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Milestones sugerate: </span>
+                                                        <ul className="ml-6 list-disc">
+                                                            {generatedAiOutput?.milestones.map((milestone: { title: string; amount: number }, index: number) => (
+                                                                <li key={index}>
+                                                                    {milestone.title} - {milestone.amount} RON
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                       onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones)}>
+                                                        <AddCircleIcon />
+                                                        Folosește Milestones
                                                     </a>
                                                 </>
                                             )}
@@ -1728,6 +1915,18 @@ export default function NewProjectPage() {
                                                     <div><strong>Buget:</strong> {formData.budget} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
                                                     {formData.deadline && (
                                                         <div><strong>Deadline:</strong> {formatDeadline(formData.deadline, locale)}</div>
+                                                    )}
+                                                    {isLongProject && formData.milestones.length > 0 && (
+                                                        <div className="space-y-1">
+                                                            <strong>Milestones:</strong>
+                                                            <ul className="list-disc ml-5">
+                                                                {formData.milestones.map((milestone, index) => (
+                                                                    <li key={`review-milestone-${index}`}>
+                                                                        {milestone.title} - {Number(milestone.amount || 0).toLocaleString()} RON
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
                                                     )}
                                                     {/*<div>*/}
                                                     {/*    <strong>Tip proiect:</strong>*/}
