@@ -10,8 +10,11 @@ export type ProjectClient = {
 };
 
 export type ProjectMilestone = {
-  title: string;
-  amount: number;
+  providerId: number;
+  milestones: {
+    title: string;
+    amount: number;
+  }[];
 };
 
 export type ProjectWithClient = {
@@ -49,9 +52,17 @@ const PROJECTS: ProjectWithClient[] = [
     payment_plan: 'MILESTONE',
     milestone_count: 3,
     milestones: [
-      { title: 'Discovery', amount: 1500 },
-      { title: 'Development', amount: 4000 },
-      { title: 'QA + launch', amount: 1500 },
+      {
+        providerId: 10,
+        milestones: [{ title: 'Discovery', amount: 1500 }],
+      },
+      {
+        providerId: 22,
+        milestones: [
+          { title: 'Development', amount: 4000 },
+          { title: 'QA + launch', amount: 1500 },
+        ],
+      },
     ],
     deadline: '2024-03-15',
     offers_count: 12,

@@ -6,9 +6,19 @@ export type RoleLite = {
   slug: string;
 };
 
-export type ProjectMilestonePayload = {
+export type MilestoneEntry = {
   title: string;
   amount: number;
+};
+
+export type ProviderMilestonePayload = {
+  providerId: number;
+  milestones: MilestoneEntry[];
+};
+
+export type ProviderRoleMilestonePayload = {
+  provider_role: string;
+  milestones: MilestoneEntry[];
 };
 
 export type CreateProjectPayload = {
@@ -18,7 +28,7 @@ export type CreateProjectPayload = {
   budgetType: 'FIXED' | 'HOURLY';
   paymentPlan?: string;
   milestoneCount?: number;
-  milestones?: ProjectMilestonePayload[];
+  milestones?: ProviderMilestonePayload[];
   [key: string]: unknown;
 };
 
@@ -33,7 +43,7 @@ export type GenerateProjectInformationResponse = {
   additional_services: string[];
   payment_plan?: string;
   milestone_count?: number;
-  milestones?: ProjectMilestonePayload[];
+  milestones?: ProviderRoleMilestonePayload[];
   notes?: string;
 };
 

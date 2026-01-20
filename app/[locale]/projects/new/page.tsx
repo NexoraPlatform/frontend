@@ -590,10 +590,15 @@ export default function NewProjectPage() {
         setError('');
 
         try {
+            const milestoneEntries = formData.milestones.map((milestone) => ({
+                title: milestone.title.trim(),
+                amount: Number(milestone.amount),
+            }));
+
             const milestonesPayload = isLongProject
-                ? formData.milestones.map((milestone) => ({
-                    title: milestone.title.trim(),
-                    amount: Number(milestone.amount),
+                ? selectedProviders.map((provider) => ({
+                    providerId: Number(provider.id),
+                    milestones: milestoneEntries,
                 }))
                 : [];
 
@@ -603,7 +608,7 @@ export default function NewProjectPage() {
                 providerBudgets,
                 clientId: user?.id,
                 paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
-                milestoneCount: isLongProject ? milestonesPayload.length : 0,
+                milestoneCount: isLongProject ? milestoneEntries.length : 0,
                 milestones: milestonesPayload,
             };
 
@@ -766,12 +771,13 @@ export default function NewProjectPage() {
         });
     };
 
-    const handleUseGeneratedMilestones = (milestones: { title: string; amount: number }[]) => {
+    const handleUseGeneratedMilestones = (milestones: { milestones: { title: string; amount: number }[] }[]) => {
+        const flattened = milestones.flatMap((group) => group.milestones);
         setFormData(prev => ({
             ...prev,
             paymentPlan: 'MILESTONE',
-            milestoneCount: milestones.length,
-            milestones: milestones.map((milestone) => ({
+            milestoneCount: flattened.length,
+            milestones: flattened.map((milestone) => ({
                 title: milestone.title,
                 amount: String(milestone.amount),
             })),
@@ -1323,9 +1329,15 @@ export default function NewProjectPage() {
                                                     <div>
                                                         <span className="text-sm text-black font-bold">Milestones sugerate: </span>
                                                         <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.milestones.map((milestone: { title: string; amount: number }, index: number) => (
+                                                            {generatedAiOutput?.milestones.map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
                                                                 <li key={index}>
-                                                                    {milestone.title} - {milestone.amount} RON
+                                                                    {group.provider_role ? `${group.provider_role}: ` : ''}
+                                                                    {group.milestones.map((milestone, milestoneIndex) => (
+                                                                        <span key={milestoneIndex}>
+                                                                            {milestone.title} - {milestone.amount} RON
+                                                                            {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
+                                                                        </span>
+                                                                    ))}
                                                                 </li>
                                                             ))}
                                                         </ul>
