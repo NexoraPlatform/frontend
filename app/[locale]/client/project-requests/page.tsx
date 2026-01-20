@@ -1,15 +1,15 @@
 "use client";
 
-import {useEffect, useRef, useState} from 'react';
-import {useRouter} from 'next/navigation';
-import {Header} from '@/components/header';
-import {Footer} from '@/components/footer';
-import {TrustoraThemeStyles} from '@/components/trustora/theme-styles';
-import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
-import {Badge} from '@/components/ui/badge';
-import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
-import {Alert, AlertDescription} from '@/components/ui/alert';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     AlertCircle,
     Calendar,
@@ -27,15 +27,14 @@ import {
     User,
     XCircle
 } from 'lucide-react';
-import {Dialog, DialogContent} from '@/components/ui/dialog';
-import {useAuth} from '@/contexts/auth-context';
-import {apiClient} from '@/lib/api';
-import {toast} from 'sonner';
-import {formatDistanceToNow} from 'date-fns';
-import {ro} from 'date-fns/locale';
-import {loadStripe} from "@stripe/stripe-js";
-import {DialogTitle} from "@mui/material";
-import {MuiIcon} from "@/components/MuiIcons";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/auth-context';
+import { apiClient } from '@/lib/api';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
+import { ro } from 'date-fns/locale';
+import { loadStripe } from "@stripe/stripe-js";
+import { MuiIcon } from "@/components/MuiIcons";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -61,7 +60,8 @@ export default function ClientProjectRequestsPage() {
         if (!loading && !user) {
             // router.push('/auth/signin');
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')) {
+
+        if (user && !user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')) {
             router.push('/dashboard');
         }
         if (user) {
@@ -208,13 +208,13 @@ export default function ClientProjectRequestsPage() {
 
     if (loading || loadingProjects) {
         return (
-            <div className="min-h-screen bg-white dark:bg-[#070C14] flex items-center justify-center">
+            <div className="min-h-screen bg-white dark:bg-[#070C14] flex flex-col items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-[#1BC47D]" />
             </div>
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')) {
+    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
         return null;
     }
 
@@ -296,7 +296,7 @@ export default function ClientProjectRequestsPage() {
                                             <div className="flex flex-wrap gap-2">
                                                 {Array.from(
                                                     new Map(
-                                                        project.existing_services.map((s:any) => [s.category.id, s.category])
+                                                        project.existing_services.map((s: any) => [s.category.id, s.category])
                                                     ).values()
                                                 ).map((category: any) => (
                                                     <Badge
@@ -431,9 +431,9 @@ export default function ClientProjectRequestsPage() {
                                                         {provider.respondedAt && (
                                                             <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
                                                                 Răspuns primit {formatDistanceToNow(new Date(provider.respondedAt), {
-                                                                addSuffix: true,
-                                                                locale: ro
-                                                            })}
+                                                                    addSuffix: true,
+                                                                    locale: ro
+                                                                })}
                                                             </div>
                                                         )}
                                                     </div>
@@ -480,9 +480,9 @@ export default function ClientProjectRequestsPage() {
                                                             <DialogTitle className="text-xl font-bold text-white">
                                                                 Securizează Plata
                                                             </DialogTitle>
-                                                            <p className="text-sm text-blue-100">
+                                                            <DialogDescription className="text-sm text-blue-100">
                                                                 Protejează-ți investiția cu escrow
-                                                            </p>
+                                                            </DialogDescription>
                                                         </div>
                                                     </div>
 
@@ -545,7 +545,7 @@ export default function ClientProjectRequestsPage() {
                                                         </label>
                                                         <div
                                                             id="card-element"
-                                                            className="border-2 border-slate-200 dark:border-[#1E2A3D] rounded-lg p-4 bg-white dark:bg-[#0B1220] focus-within:border-[#1BC47D] focus-within:ring-2 focus-within:ring-emerald-200 transition-all"
+                                                            className="border-2 border-slate-200 dark:border-[#1E2A3D] dark:!text-white rounded-lg p-4 bg-white dark:bg-[#0B1220] focus-within:border-[#1BC47D] focus-within:ring-2 focus-within:ring-emerald-200 transition-all"
                                                         />
                                                     </div>
 

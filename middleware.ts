@@ -27,7 +27,7 @@ const ROUTE_RULES: RouteRule[] = [
   { pattern: /\/provider\/services(\/|$)/i, require: { roles: ['provider'] } },
   { pattern: /^\/provider\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
   { pattern: /\/tests(\/|$)/i, require: { roles: ['provider'] } },
-  { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
+  // { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
   { pattern: /\/projects\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
 ];
@@ -213,10 +213,14 @@ export default auth(async (req) => {
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
+  console.log(`[Middleware] Path: ${pathname}, Normalized: ${normalizedPath}`);
+
   // req.auth is the session object
   const session = req.auth;
   const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
   const isAuthenticated = !!user;
+
+  console.log(`[Middleware] Authenticated: ${isAuthenticated}, Roles: ${user?.roles?.map(r => r.slug).join(', ')}`);
 
   if (isOpenSoonEnabled()) {
     const openSoonRoutes = new Set([
@@ -283,6 +287,7 @@ export default auth(async (req) => {
   // 2. Auth Flow
   // Redirect authenticated users away from auth pages
   if (AUTH_PAGES.has(normalizedPath) && isAuthenticated) {
+    console.log('[Middleware] Redirecting authenticated user to dashboard');
     const url = new URL('/dashboard', req.url);
     url.search = req.nextUrl.search;
     return applyLocaleCookie(NextResponse.redirect(url), locale);
@@ -290,8 +295,12 @@ export default auth(async (req) => {
 
   // 3. Protected Routes
   const requirement = findRequirement(normalizedPath);
+  console.log(`[Middleware] Requirement for ${normalizedPath}:`, requirement);
 
-  if (!requirement) return applyLocaleCookie(NextResponse.next(), locale);
+  if (!requirement) {
+    console.log('[Middleware] No requirement, allowing.');
+    return applyLocaleCookie(NextResponse.next(), locale);
+  }
 
   // 4. Token & Permission Checks
   if (!isAuthenticated) return applyLocaleCookie(redirectToSignin(req), locale);
@@ -299,7 +308,10 @@ export default auth(async (req) => {
   if (requirement === 'auth-only') return applyLocaleCookie(NextResponse.next(), locale);
 
   const allowed = checkRequirement(user || null, requirement);
+  console.log(`[Middleware] Check Requirement Result: ${allowed}`);
+
   if (!allowed) {
+    console.log('[Middleware] Access Denied. Redirecting.');
     const url = req.nextUrl.clone();
     url.pathname = '/access-denied';
     url.searchParams.set('from', req.nextUrl.pathname);
