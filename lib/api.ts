@@ -248,6 +248,7 @@ class ApiClient {
     language?: 'ro' | 'en';
   }) {
     return this.request<{
+      success: boolean,
       data: {
         id: number;
         email: string;

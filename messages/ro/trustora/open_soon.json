@@ -38,7 +38,9 @@
       "submit": "Mă înscriu",
       "terms_prefix": "Prin înscriere, accepți",
       "terms_link": "Termenii și Condițiile",
-      "terms_suffix": "."
+      "terms_suffix": ".",
+      "success": "Te-ai abonat cu succes! Vei primi noutăți în curând.",
+      "error": "A apărut o eroare. Te rugăm să încerci din nou."
     }
   }
 }

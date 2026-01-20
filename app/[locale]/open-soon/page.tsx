@@ -6,7 +6,7 @@ import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/hooks/use-locale";
 import { useTheme } from "next-themes";
 import {
-  ArrowRightIcon,
+  ArrowRightIcon, CheckCircle,
   CheckCircle2,
   Code2,
   FileCheck,
@@ -23,6 +23,7 @@ import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api";
+import {Alert, AlertDescription} from "@/components/ui/alert";
 
 export default function OpenSoonPage() {
   const locale = useLocale();
@@ -32,6 +33,7 @@ export default function OpenSoonPage() {
   const [email, setEmail] = useState("");
   const [userType, setUserType] = useState<"client" | "provider" | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successNewsletter, setSuccessNewsletter] = useState<boolean>(false);
   const title = useAsyncTranslation(locale, "trustora.open_soon.title", "Infrastructura de încredere pentru");
   const titleAccent = useAsyncTranslation(locale, "trustora.open_soon.title_accent", "economia digitală.");
   const badge = useAsyncTranslation(locale, "trustora.open_soon.badge", "Infrastructura se încarcă...");
@@ -93,6 +95,8 @@ export default function OpenSoonPage() {
     "trustora.open_soon.form.terms_link",
     "Termenii și Condițiile",
   );
+  const formSuccess = useAsyncTranslation(locale, "trustora.open_soon.form.success", "Success");
+
   const formTermsSuffix = useAsyncTranslation(locale, "trustora.open_soon.form.terms_suffix", ".");
   const escrowTitle = useAsyncTranslation(locale, "trustora.open_soon.escrow_title", "Escrow Vault");
   const escrowTotal = useAsyncTranslation(locale, "trustora.open_soon.escrow_total", "Total securizat");
@@ -170,7 +174,7 @@ export default function OpenSoonPage() {
 
     setIsSubmitting(true);
     try {
-      await apiClient.subscribeToNewsletter({
+      const response = await apiClient.subscribeToNewsletter({
         email,
         user_type: userType,
         name: fullName || undefined,
@@ -179,6 +183,7 @@ export default function OpenSoonPage() {
       setFullName("");
       setEmail("");
       setUserType("");
+      setSuccessNewsletter(response.success)
     } finally {
       setIsSubmitting(false);
     }
@@ -257,6 +262,14 @@ export default function OpenSoonPage() {
 
 
         <div className="relative z-20 mb-16 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-soft transition-colors dark:border-slate-800 dark:bg-slate-900">
+          {successNewsletter && (
+              <Alert className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {formSuccess}
+                </AlertDescription>
+              </Alert>
+          )}
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 

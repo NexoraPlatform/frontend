@@ -38,7 +38,9 @@
       "submit": "Join the list",
       "terms_prefix": "By signing up, you agree to",
       "terms_link": "Terms and Conditions",
-      "terms_suffix": "."
+      "terms_suffix": ".",
+      "success": "Successfully subscribed! You'll hear from us soon.",
+      "error": "Something went wrong. Please try again."
     }
   }
 }
