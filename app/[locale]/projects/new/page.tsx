@@ -149,8 +149,6 @@ type FormData = {
     recommendedProviders: RecommendedProvider[];
     notes: string;
     paymentPlan: string;
-    milestoneCount: number;
-    milestones: { title: string; amount: string }[];
 };
 
 
@@ -182,8 +180,6 @@ export default function NewProjectPage() {
         recommendedProviders: [],
         notes: '',
         paymentPlan: '',
-        milestoneCount: 0,
-        milestones: [],
     });
     const [generatedAiOutput, setGeneratedAiOutput] = useState({
         title: "",
@@ -218,21 +214,39 @@ export default function NewProjectPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [providersPerPage] = useState(6); // 6 providers per page for better layout
     const [availableServices, setAvailableServices] = useState<any[]>([]);
+    const [providerMilestones, setProviderMilestones] = useState<Record<string, { title: string; amount: string }[]>>({});
+    const [aiSuggestedMilestones, setAiSuggestedMilestones] = useState<{ provider_role?: string; milestones: { title: string; amount: number }[] }[]>([]);
 
     const isLongProject = useMemo(() => (
         ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
     ), [formData.deadline]);
 
     useEffect(() => {
-        if (!isLongProject && formData.milestones.length > 0) {
-            setFormData(prev => ({
-                ...prev,
-                paymentPlan: '',
-                milestoneCount: 0,
-                milestones: [],
-            }));
+        if (!isLongProject && Object.keys(providerMilestones).length > 0) {
+            setProviderMilestones({});
+            setAiSuggestedMilestones([]);
         }
-    }, [formData.milestones.length, isLongProject]);
+    }, [isLongProject, providerMilestones]);
+
+    useEffect(() => {
+        if (aiSuggestedMilestones.length === 0) {
+            return;
+        }
+        const hasAnyMilestones = Object.values(providerMilestones).some((milestones) => milestones.length > 0);
+        if (hasAnyMilestones || selectedProviders.length === 0) {
+            return;
+        }
+        const flattened = aiSuggestedMilestones.flatMap((group) => group.milestones);
+        setProviderMilestones(Object.fromEntries(
+            selectedProviders.map((provider) => [
+                provider.id,
+                flattened.map((milestone) => ({
+                    title: milestone.title,
+                    amount: String(milestone.amount),
+                }))
+            ])
+        ));
+    }, [aiSuggestedMilestones, providerMilestones, selectedProviders]);
 
     const router = useRouter();
     const { data: categoriesData } = useMainCategories();
@@ -315,26 +329,43 @@ export default function NewProjectPage() {
             newErrors.technologies = 'Selecteaza minim o tehnologie';
         }
 
-        if (isLongProject) {
-            if (formData.milestones.length === 0) {
-                newErrors.milestones = 'Adaugă cel puțin un milestone pentru proiecte mai lungi de o lună';
+        if (isLongProject && selectedProviders.length > 0) {
+            const hasMissingMilestones = selectedProviders.some((provider) => (
+                !providerMilestones[provider.id] || providerMilestones[provider.id].length === 0
+            ));
+            if (hasMissingMilestones) {
+                newErrors.milestones = 'Adaugă cel puțin un milestone pentru fiecare prestator';
             } else {
-                const hasInvalidMilestone = formData.milestones.some(
-                    (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
-                );
+                const hasInvalidMilestone = selectedProviders.some((provider) => (
+                    (providerMilestones[provider.id] ?? []).some(
+                        (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
+                    )
+                ));
                 if (hasInvalidMilestone) {
                     newErrors.milestones = 'Completează titlul și bugetul pentru fiecare milestone';
                 }
+            }
 
-                if (String(formData.budget).trim() !== '') {
-                    const milestoneTotal = formData.milestones.reduce(
-                        (sum, milestone) => sum + Number(milestone.amount || 0),
-                        0
-                    );
-                    if (milestoneTotal !== Number(formData.budget)) {
-                        newErrors.milestoneTotal = 'Suma milestone-urilor trebuie să fie egală cu bugetul total';
-                    }
+            if (String(formData.budget).trim() !== '') {
+                const milestoneTotal = getMilestoneTotal();
+                if (milestoneTotal !== Number(formData.budget)) {
+                    newErrors.milestoneTotal = 'Suma milestone-urilor trebuie să fie egală cu bugetul total';
                 }
+            }
+
+            const hasBudgetMismatch = selectedProviders.some((provider) => {
+                const allocated = Number(providerBudgets[provider.id] ?? 0);
+                if (allocated === 0) {
+                    return false;
+                }
+                const providerTotal = (providerMilestones[provider.id] ?? []).reduce(
+                    (sum, milestone) => sum + Number(milestone.amount || 0),
+                    0
+                );
+                return providerTotal !== allocated;
+            });
+            if (hasBudgetMismatch) {
+                newErrors.milestoneBudget = 'Bugetele milestone-urilor trebuie să fie egale cu bugetul alocat fiecărui prestator';
             }
         }
 
@@ -532,32 +563,54 @@ export default function NewProjectPage() {
     };
 
     const getMilestoneTotal = () => {
-        return formData.milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0);
+        return Object.values(providerMilestones).flat().reduce(
+            (sum, milestone) => sum + Number(milestone.amount || 0),
+            0
+        );
     };
 
-    const addMilestone = () => {
-        setFormData(prev => ({
+    const addProviderMilestone = (providerId: string) => {
+        setProviderMilestones(prev => ({
             ...prev,
-            milestones: [...prev.milestones, { title: '', amount: '' }],
-            milestoneCount: prev.milestones.length + 1,
+            [providerId]: [...(prev[providerId] ?? []), { title: '', amount: '' }],
         }));
     };
 
-    const updateMilestoneField = (index: number, field: 'title' | 'amount', value: string) => {
-        setFormData(prev => ({
+    const updateProviderMilestoneField = (
+        providerId: string,
+        index: number,
+        field: 'title' | 'amount',
+        value: string
+    ) => {
+        setProviderMilestones(prev => ({
             ...prev,
-            milestones: prev.milestones.map((milestone, i) => (
+            [providerId]: (prev[providerId] ?? []).map((milestone, i) => (
                 i === index ? { ...milestone, [field]: value } : milestone
             )),
         }));
     };
 
-    const removeMilestone = (index: number) => {
-        setFormData(prev => ({
+    const removeProviderMilestone = (providerId: string, index: number) => {
+        setProviderMilestones(prev => ({
             ...prev,
-            milestones: prev.milestones.filter((_, i) => i !== index),
-            milestoneCount: Math.max(prev.milestones.length - 1, 0),
+            [providerId]: (prev[providerId] ?? []).filter((_, i) => i !== index),
         }));
+    };
+
+    const applyAiMilestonesToProviders = () => {
+        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
+            return;
+        }
+        const flattened = aiSuggestedMilestones.flatMap((group) => group.milestones);
+        setProviderMilestones(Object.fromEntries(
+            selectedProviders.map((provider) => [
+                provider.id,
+                flattened.map((milestone) => ({
+                    title: milestone.title,
+                    amount: String(milestone.amount),
+                }))
+            ])
+        ));
     };
 
     const getLastActiveText = (lastActiveAt: string): string => {
@@ -590,15 +643,13 @@ export default function NewProjectPage() {
         setError('');
 
         try {
-            const milestoneEntries = formData.milestones.map((milestone) => ({
-                title: milestone.title.trim(),
-                amount: Number(milestone.amount),
-            }));
-
             const milestonesPayload = isLongProject
                 ? selectedProviders.map((provider) => ({
                     providerId: Number(provider.id),
-                    milestones: milestoneEntries,
+                    milestones: (providerMilestones[provider.id] ?? []).map((milestone) => ({
+                        title: milestone.title.trim(),
+                        amount: Number(milestone.amount),
+                    })),
                 }))
                 : [];
 
@@ -608,7 +659,9 @@ export default function NewProjectPage() {
                 providerBudgets,
                 clientId: user?.id,
                 paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
-                milestoneCount: isLongProject ? milestoneEntries.length : 0,
+                milestoneCount: isLongProject
+                    ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
+                    : 0,
                 milestones: milestonesPayload,
             };
 
@@ -771,17 +824,8 @@ export default function NewProjectPage() {
         });
     };
 
-    const handleUseGeneratedMilestones = (milestones: { milestones: { title: string; amount: number }[] }[]) => {
-        const flattened = milestones.flatMap((group) => group.milestones);
-        setFormData(prev => ({
-            ...prev,
-            paymentPlan: 'MILESTONE',
-            milestoneCount: flattened.length,
-            milestones: flattened.map((milestone) => ({
-                title: milestone.title,
-                amount: String(milestone.amount),
-            })),
-        }));
+    const handleUseGeneratedMilestones = (milestones: { provider_role?: string; milestones: { title: string; amount: number }[] }[]) => {
+        setAiSuggestedMilestones(milestones);
     };
 
     // const handleUpdateServicesByCategory = async (categoryId: string) => {
@@ -1131,72 +1175,6 @@ export default function NewProjectPage() {
                                                 </div>
                                             </div>
 
-                                            {isLongProject && (
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <Label className={errors.milestones || errors.milestoneTotal ? "text-red-500" : ""}>
-                                                            Milestones (obligatoriu pentru proiecte mai lungi de o lună)
-                                                        </Label>
-                                                        <Button type="button" variant="outline" size="sm" onClick={addMilestone}>
-                                                            <Plus className="w-4 h-4 mr-2" />
-                                                            Adaugă milestone
-                                                        </Button>
-                                                    </div>
-
-                                                    {formData.milestones.length === 0 ? (
-                                                        <div className="text-sm text-muted-foreground">
-                                                            Adaugă milestones cu nume și buget pentru fiecare etapă.
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-3">
-                                                            {formData.milestones.map((milestone, index) => (
-                                                                <div key={`milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
-                                                                    <div>
-                                                                        <Label htmlFor={`milestone-title-${index}`}>Nume milestone</Label>
-                                                                        <Input
-                                                                            id={`milestone-title-${index}`}
-                                                                            value={milestone.title}
-                                                                            onChange={(e) => updateMilestoneField(index, 'title', e.target.value)}
-                                                                            placeholder="ex: Discovery"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
-                                                                        <Label htmlFor={`milestone-amount-${index}`}>Buget milestone (RON)</Label>
-                                                                        <Input
-                                                                            id={`milestone-amount-${index}`}
-                                                                            type="number"
-                                                                            min="0"
-                                                                            value={milestone.amount}
-                                                                            onChange={(e) => updateMilestoneField(index, 'amount', e.target.value)}
-                                                                            placeholder="ex: 1500"
-                                                                        />
-                                                                    </div>
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => removeMilestone(index)}
-                                                                        aria-label="Șterge milestone"
-                                                                    >
-                                                                        <X className="w-4 h-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {(errors.milestones || errors.milestoneTotal) && (
-                                                        <div className="text-sm text-red-500">
-                                                            {errors.milestones || errors.milestoneTotal}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="text-sm text-muted-foreground">
-                                                        Total milestones: {getMilestoneTotal().toLocaleString()} RON •
-                                                        Diferență: {(Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString()} RON
-                                                    </div>
-                                                </div>
-                                            )}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -1936,18 +1914,6 @@ export default function NewProjectPage() {
                                                     {formData.deadline && (
                                                         <div><strong>Deadline:</strong> {formatDeadline(formData.deadline, locale)}</div>
                                                     )}
-                                                    {isLongProject && formData.milestones.length > 0 && (
-                                                        <div className="space-y-1">
-                                                            <strong>Milestones:</strong>
-                                                            <ul className="list-disc ml-5">
-                                                                {formData.milestones.map((milestone, index) => (
-                                                                    <li key={`review-milestone-${index}`}>
-                                                                        {milestone.title} - {Number(milestone.amount || 0).toLocaleString()} RON
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
                                                     {/*<div>*/}
                                                     {/*    <strong>Tip proiect:</strong>*/}
                                                     {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
@@ -2019,6 +1985,111 @@ export default function NewProjectPage() {
                                                         )}
                                                     </CardContent>
                                                 </Card>
+
+                                                {isLongProject && (
+                                                    <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
+                                                        <CardHeader>
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <CardTitle className="text-base">Milestones per prestator</CardTitle>
+                                                                    <CardDescription>
+                                                                        Adaugă milestones după selectarea prestatorilor pentru proiecte mai lungi de o lună.
+                                                                    </CardDescription>
+                                                                </div>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={applyAiMilestonesToProviders}
+                                                                    disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
+                                                                >
+                                                                    <AutoAwesomeIcon className="w-4 h-4 mr-2" />
+                                                                    Aplică milestones AI
+                                                                </Button>
+                                                            </div>
+                                                        </CardHeader>
+                                                        <CardContent className="space-y-4">
+                                                            {selectedProviders.map((selectedProvider) => {
+                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                                const milestones = providerMilestones[selectedProvider.id] ?? [];
+
+                                                                return (
+                                                                    <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="font-medium">
+                                                                                {provider ? `${provider.firstName} ${provider.lastName}` : `Prestator #${selectedProvider.id}`}
+                                                                            </div>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => addProviderMilestone(selectedProvider.id)}
+                                                                            >
+                                                                                <Plus className="w-4 h-4 mr-2" />
+                                                                                Adaugă milestone
+                                                                            </Button>
+                                                                        </div>
+                                                                        {milestones.length === 0 ? (
+                                                                            <div className="text-sm text-muted-foreground">
+                                                                                Nu există milestones încă pentru acest prestator.
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="space-y-3">
+                                                                                {milestones.map((milestone, index) => (
+                                                                                    <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
+                                                                                        <div>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>Nume milestone</Label>
+                                                                                            <Input
+                                                                                                id={`provider-${selectedProvider.id}-milestone-title-${index}`}
+                                                                                                value={milestone.title}
+                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
+                                                                                                placeholder="ex: Discovery"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>Buget milestone (RON)</Label>
+                                                                                            <Input
+                                                                                                id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                value={milestone.amount}
+                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
+                                                                                                placeholder="ex: 1500"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            variant="ghost"
+                                                                                            size="icon"
+                                                                                            onClick={() => removeProviderMilestone(selectedProvider.id, index)}
+                                                                                            aria-label="Șterge milestone"
+                                                                                        >
+                                                                                            <X className="w-4 h-4" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="text-sm text-muted-foreground">
+                                                                            Total milestones: {milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0).toLocaleString()} RON
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+
+                                                            {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
+                                                                <div className="text-sm text-red-500">
+                                                                    {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="text-sm text-muted-foreground">
+                                                                Total milestones: {getMilestoneTotal().toLocaleString()} RON •
+                                                                Diferență: {(Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString()} RON
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
 
                                                 <div className="space-y-3">
                                                     {selectedProviders.map(selectedProvider => {
