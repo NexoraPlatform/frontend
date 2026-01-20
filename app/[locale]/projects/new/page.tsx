@@ -700,6 +700,7 @@ export default function NewProjectPage() {
 
             const projectData = {
                 ...formData,
+                budget: Number(formData.budget),
                 selectedProviders,
                 providerBudgets,
                 clientId: user?.id,
