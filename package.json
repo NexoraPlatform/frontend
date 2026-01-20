@@ -84,7 +84,7 @@
     "lucide-react": "^0.539.0",
     "luxon": "^3.7.1",
     "next": "^15.3.6",
-    "next-auth": "^4.24.11",
+    "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.7.0",
     "next-themes": "^0.3.0",
     "postcss": "8.4.31",

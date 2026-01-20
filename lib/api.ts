@@ -6,33 +6,22 @@ export type RoleLite = {
   slug: string;
 };
 
-class ApiClient {
+export class ApiClient {
   private baseURL: string;
   private token: string | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-
-    // Get token from localStorage if available
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token');
-    }
   }
 
 
 
   setToken(token: string) {
     this.token = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', token);
-    }
   }
 
   removeToken() {
     this.token = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-    }
   }
 
   private getSelectedLanguageFromPathname(): string | null {
@@ -375,7 +364,7 @@ class ApiClient {
   }) {
     const searchParams = new URLSearchParams();
     const selectedLanguage =
-        params?.language ?? this.getSelectedLanguageFromPathname();
+      params?.language ?? this.getSelectedLanguageFromPathname();
 
     if (selectedLanguage) {
       searchParams.set('language', selectedLanguage);
@@ -555,30 +544,30 @@ class ApiClient {
   async allowUserPermission(userId: number, permissionSlug: string) {
     return this.request<any>(`/admin/access/${userId}/allow-permission`, {
       method: 'POST',
-      body: JSON.stringify({permission: permissionSlug}),
+      body: JSON.stringify({ permission: permissionSlug }),
     });
   }
 
   async denyUserPermission(userId: number, permissionSlug: string) {
     return this.request<any>(`/admin/access/${userId}/deny-permission`, {
       method: 'POST',
-      body: JSON.stringify({permission: permissionSlug}),
+      body: JSON.stringify({ permission: permissionSlug }),
     });
   }
 
-    async removeUserPermission(userId: number, slug: string) {
-        return this.request<any>(`/admin/access/${userId}/permissions`, {
-            method: 'DELETE',
-            body: JSON.stringify({permission: slug}),
-        });
+  async removeUserPermission(userId: number, slug: string) {
+    return this.request<any>(`/admin/access/${userId}/permissions`, {
+      method: 'DELETE',
+      body: JSON.stringify({ permission: slug }),
+    });
 
-    }
+  }
 
   async getRole(roleId: number) {
     return this.request<any>(`/admin/access/${roleId}`);
   }
 
-  async updateRole(roleId: number, data: any){
+  async updateRole(roleId: number, data: any) {
     return this.request<any>(`/admin/access/${roleId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -603,7 +592,7 @@ class ApiClient {
     return this.request<any>(`/admin/users/${userId}`)
   }
 
-  async updateUser(userId: number, userData: any){
+  async updateUser(userId: number, userData: any) {
     return this.request<any>(`/admin/users/${userId}`, {
       method: 'PATCH',
       body: JSON.stringify({ userData }),
@@ -769,9 +758,9 @@ class ApiClient {
     return this.request<any>('/admin/tests', {
       method: 'POST',
       headers: {
-      'Content-Type': 'application/json',
-    ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-    },
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
       body: JSON.stringify(testData),
     });
   }
@@ -1066,7 +1055,7 @@ class ApiClient {
   }
 
   async getSuggestedProviders(
-      services: { service: string; level: string }[]
+    services: { service: string; level: string }[]
   ) {
 
     return this.request<any>(`/providers/suggestions`, {
@@ -1100,18 +1089,18 @@ class ApiClient {
 
   async updateLastActive() {
     return this.request<any>('/users/active', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        }
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
     });
   }
 
   async handleStripeOnboarding(email: string) {
     return this.request<any>('/stripe/onboard-link', {
       method: 'POST',
-      body: JSON.stringify({email: email}),
+      body: JSON.stringify({ email: email }),
       headers: {
         'Content-Type': 'application/json',
         ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
