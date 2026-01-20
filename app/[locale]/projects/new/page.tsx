@@ -188,7 +188,10 @@ export default function NewProjectPage() {
         notes: "",
         deadline: "",
         additional_services: [],
-        team_structure: []
+        team_structure: [],
+        payment_plan: "",
+        milestone_count: 0,
+        milestones: []
     });
     const [aiLoading, setAiLoading] = useState(false);
 

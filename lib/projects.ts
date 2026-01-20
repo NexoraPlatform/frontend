@@ -9,14 +9,24 @@ export type ProjectClient = {
   total_reviews: number;
 };
 
+export type ProjectMilestone = {
+  title: string;
+  amount: number;
+};
+
 export type ProjectWithClient = {
   id: string;
   title: string;
   description: string;
   category: string;
   technologies: string[];
-  budget: number;
+  budget?: number;
+  budget_min?: number;
+  budget_max?: number;
   budget_type: 'fixed' | 'hourly';
+  payment_plan?: string;
+  milestone_count?: number;
+  milestones?: ProjectMilestone[];
   deadline: string;
   offers_count: number;
   created_at: string;
@@ -33,7 +43,16 @@ const PROJECTS: ProjectWithClient[] = [
     category: 'Dezvoltare Web',
     technologies: ['React', 'Node.js', 'MongoDB', 'Stripe', 'TypeScript'],
     budget: 5500,
+    budget_min: 4000,
+    budget_max: 7000,
     budget_type: 'fixed',
+    payment_plan: 'MILESTONE',
+    milestone_count: 3,
+    milestones: [
+      { title: 'Discovery', amount: 1500 },
+      { title: 'Development', amount: 4000 },
+      { title: 'QA + launch', amount: 1500 },
+    ],
     deadline: '2024-03-15',
     offers_count: 12,
     created_at: '2024-01-15',
@@ -309,6 +328,36 @@ export function formatCurrency(value: number) {
     currency: 'RON',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+export function formatBudgetRange({
+  budget,
+  budget_min,
+  budget_max,
+}: {
+  budget?: number;
+  budget_min?: number;
+  budget_max?: number;
+}) {
+  const minValue = budget_min ?? budget;
+  const maxValue = budget_max ?? budget;
+
+  if (minValue !== undefined && maxValue !== undefined) {
+    if (minValue === maxValue) {
+      return formatCurrency(minValue);
+    }
+    return `${formatCurrency(minValue)} - ${formatCurrency(maxValue)}`;
+  }
+
+  if (minValue !== undefined) {
+    return `de la ${formatCurrency(minValue)}`;
+  }
+
+  if (maxValue !== undefined) {
+    return `până la ${formatCurrency(maxValue)}`;
+  }
+
+  return 'Nespecificat';
 }
 
 export function formatDeadline(value: string, locale: Locale = 'ro') {

@@ -3,7 +3,7 @@
 import { Star, MapPin, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ProjectWithClient, formatCurrency, formatDeadline, formatDate } from '@/lib/projects';
+import { ProjectWithClient, formatBudgetRange, formatDeadline, formatDate } from '@/lib/projects';
 import { Locale } from '@/types/locale';
 
 interface ProjectCardProps {
@@ -93,7 +93,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div>
             <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">Buget</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
-              {formatCurrency(project.budget)}
+              {formatBudgetRange(project)}
             </p>
             <p className="text-xs text-slate-500 dark:text-[#7C8799]">
               {project.budget_type === 'fixed' ? 'Proiect fix' : 'Pe oră'}
