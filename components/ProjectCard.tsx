@@ -4,13 +4,14 @@ import { Star, MapPin, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { ProjectWithClient, formatBudgetRange, formatDeadline, formatDate } from '@/lib/projects';
 import { useLocale } from 'next-intl';
+import { Locale } from '@/types/locale';
 
 interface ProjectCardProps {
   project: ProjectWithClient;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
 
   return (
     <div
