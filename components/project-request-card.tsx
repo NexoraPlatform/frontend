@@ -33,10 +33,10 @@ import {
     DialogTitle,
     DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from '@/lib/navigation';
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
-import { Locale } from "@/types/locale";
+import { useLocale } from "next-intl";
 import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
 
@@ -62,8 +62,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
     const elementsRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
+    const locale = useLocale();
     const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
     const [newBudget, setNewBudget] = useState<number>(0);
 

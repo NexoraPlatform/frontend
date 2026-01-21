@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
+import { Link } from '@/lib/navigation';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, IdCardLanyard, Loader2 } from 'lucide-react';
 
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import {
     Accordion,
     AccordionContent,
@@ -47,6 +46,7 @@ type GroupPermissions = {
 
 export default function EditRoleClient({ id }: { id: number }) {
     const locale = useLocale();
+  const t = useTranslations();
     const [roleData, setRoleData] = useState<Role>({
         name: '',
         description: '',
@@ -63,25 +63,25 @@ export default function EditRoleClient({ id }: { id: number }) {
     const router = useRouter();
     const debounceRef = useRef<number | null>(null);
 
-    const title = useAsyncTranslation(locale, 'admin.roles.edit_role.title');
-    const subtitleTemplate = useAsyncTranslation(locale, 'admin.roles.edit_role.subtitle');
-    const infoTitle = useAsyncTranslation(locale, 'admin.roles.edit_role.info_title');
-    const infoDescription = useAsyncTranslation(locale, 'admin.roles.edit_role.info_description');
-    const nameLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.name_label');
-    const namePlaceholder = useAsyncTranslation(locale, 'admin.roles.edit_role.name_placeholder');
-    const descriptionLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.description_label');
-    const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.roles.edit_role.description_placeholder');
-    const sortOrderLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.sort_order_label');
-    const decreaseOrder = useAsyncTranslation(locale, 'admin.roles.edit_role.decrease_order');
-    const increaseOrder = useAsyncTranslation(locale, 'admin.roles.edit_role.increase_order');
-    const savingLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.saving');
-    const savedLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.saved');
-    const orderHint = useAsyncTranslation(locale, 'admin.roles.edit_role.order_hint');
-    const editButtonLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.edit_button');
-    const editingLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.editing');
-    const cancelLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.cancel');
-    const cannotEditLabel = useAsyncTranslation(locale, 'admin.roles.edit_role.cannot_edit');
-    const errorOccurred = useAsyncTranslation(locale, 'admin.roles.error_occurred');
+    const title = t('admin.roles.edit_role.title');
+    const subtitleTemplate = t('admin.roles.edit_role.subtitle');
+    const infoTitle = t('admin.roles.edit_role.info_title');
+    const infoDescription = t('admin.roles.edit_role.info_description');
+    const nameLabel = t('admin.roles.edit_role.name_label');
+    const namePlaceholder = t('admin.roles.edit_role.name_placeholder');
+    const descriptionLabel = t('admin.roles.edit_role.description_label');
+    const descriptionPlaceholder = t('admin.roles.edit_role.description_placeholder');
+    const sortOrderLabel = t('admin.roles.edit_role.sort_order_label');
+    const decreaseOrder = t('admin.roles.edit_role.decrease_order');
+    const increaseOrder = t('admin.roles.edit_role.increase_order');
+    const savingLabel = t('admin.roles.edit_role.saving');
+    const savedLabel = t('admin.roles.edit_role.saved');
+    const orderHint = t('admin.roles.edit_role.order_hint');
+    const editButtonLabel = t('admin.roles.edit_role.edit_button');
+    const editingLabel = t('admin.roles.edit_role.editing');
+    const cancelLabel = t('admin.roles.edit_role.cancel');
+    const cannotEditLabel = t('admin.roles.edit_role.cannot_edit');
+    const errorOccurred = t('admin.roles.error_occurred');
 
     // Load Role
     useEffect(() => {

@@ -1,22 +1,14 @@
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+import { getTranslations } from "next-intl/server";
 
 export async function TrustoraFinalCtaSection({ locale }: { locale: Locale }) {
-    const [
-        title,
-        subtitle,
-        ctaLabel,
-        escrowLabel,
-        verifiedLabel,
-        legalLabel,
-    ] = await Promise.all([
-        t(locale, "trustora.final_cta.title"),
-        t(locale, "trustora.final_cta.subtitle"),
-        t(locale, "trustora.final_cta.cta_label"),
-        t(locale, "trustora.final_cta.escrow_label"),
-        t(locale, "trustora.final_cta.verified_label"),
-        t(locale, "trustora.final_cta.legal_label"),
-    ]);
+    const t = await getTranslations({ locale, namespace: "trustora" });
+    const title = t("final_cta.title");
+    const subtitle = t("final_cta.subtitle");
+    const ctaLabel = t("final_cta.cta_label");
+    const escrowLabel = t("final_cta.escrow_label");
+    const verifiedLabel = t("final_cta.verified_label");
+    const legalLabel = t("final_cta.legal_label");
 
     return (
         <section className="py-32 px-6 bg-[#0B1C2D] text-white text-center dark:bg-[#0B1220]">

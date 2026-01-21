@@ -1,20 +1,20 @@
 "use client";
 
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, ArrowLeft } from 'lucide-react';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useLocale, useTranslations } from 'next-intl';
 
 export default function AdminDisputesPage() {
     const locale = useLocale();
-  const manageTitle = useAsyncTranslation(locale, 'admin.disputes.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.disputes.manage_subtitle');
-  const listTitle = useAsyncTranslation(locale, 'admin.disputes.list_title');
-  const listDescription = useAsyncTranslation(locale, 'admin.disputes.list_description');
-  const emptyTitle = useAsyncTranslation(locale, 'admin.disputes.empty_title');
-  const emptyDescription = useAsyncTranslation(locale, 'admin.disputes.empty_description');
+  const t = useTranslations();
+  const manageTitle = t('admin.disputes.manage_title');
+  const manageSubtitle = t('admin.disputes.manage_subtitle');
+  const listTitle = t('admin.disputes.list_title');
+  const listDescription = t('admin.disputes.list_description');
+  const emptyTitle = t('admin.disputes.empty_title');
+  const emptyDescription = t('admin.disputes.empty_description');
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">

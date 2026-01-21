@@ -1,6 +1,6 @@
 "use client";
 
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +21,7 @@ import {
     Square
 } from 'lucide-react';
 import { useTestStatistics } from '@/hooks/use-api';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useLocale, useTranslations } from 'next-intl';
 import {useMemo} from "react";
 
 interface QuestionStat {
@@ -37,31 +36,32 @@ interface QuestionStat {
 export default function TestStatisticsPage({ id }: {  id: string; }) {
     const { data: stats, loading: statsLoading, error: statsError } = useTestStatistics(id);
     const locale = useLocale();
-    const subtitle = useAsyncTranslation(locale, 'admin.tests.statistics.subtitle');
-    const titleSuffix = useAsyncTranslation(locale, 'admin.tests.statistics.title_suffix');
-    const userLabel = useAsyncTranslation(locale, 'admin.tests.statistics.user_label');
-    const passedLabel = useAsyncTranslation(locale, 'admin.tests.statistics.passed_label');
-    const passedYes = useAsyncTranslation(locale, 'admin.tests.statistics.passed_yes');
-    const passedNo = useAsyncTranslation(locale, 'admin.tests.statistics.passed_no');
-    const scoreLabel = useAsyncTranslation(locale, 'admin.tests.statistics.score_label');
-    const timeSpentLabel = useAsyncTranslation(locale, 'admin.tests.statistics.time_spent_label');
-    const questionStatsTitle = useAsyncTranslation(locale, 'admin.tests.statistics.question_stats_title');
-    const questionStatsDescription = useAsyncTranslation(locale, 'admin.tests.statistics.question_stats_description');
-    const questionLabelTemplate = useAsyncTranslation(locale, 'admin.tests.statistics.question_label');
-    const correctAnswerLabel = useAsyncTranslation(locale, 'admin.tests.statistics.correct_answer');
-    const userAnswerLabel = useAsyncTranslation(locale, 'admin.tests.statistics.user_answer');
-    const errorLoading = useAsyncTranslation(locale, 'admin.tests.statistics.error_loading');
-    const answerCorrect = useAsyncTranslation(locale, 'admin.tests.statistics.answer_correct');
-    const answerIncorrect = useAsyncTranslation(locale, 'admin.tests.statistics.answer_incorrect');
-    const questionTypeSingle = useAsyncTranslation(locale, 'admin.tests.question_types.SINGLE_CHOICE');
-    const questionTypeMultiple = useAsyncTranslation(locale, 'admin.tests.question_types.MULTIPLE_CHOICE');
-    const questionTypeCode = useAsyncTranslation(locale, 'admin.tests.question_types.CODE_WRITING');
-    const questionTypeText = useAsyncTranslation(locale, 'admin.tests.question_types.TEXT_INPUT');
-    const pointsTemplate = useAsyncTranslation(locale, 'admin.tests.points_template');
-    const levelJunior = useAsyncTranslation(locale, 'admin.tests.levels.JUNIOR');
-    const levelMediu = useAsyncTranslation(locale, 'admin.tests.levels.MEDIU');
-    const levelSenior = useAsyncTranslation(locale, 'admin.tests.levels.SENIOR');
-    const levelExpert = useAsyncTranslation(locale, 'admin.tests.levels.EXPERT');
+  const t = useTranslations();
+    const subtitle = t('admin.tests.statistics.subtitle');
+    const titleSuffix = t('admin.tests.statistics.title_suffix');
+    const userLabel = t('admin.tests.statistics.user_label');
+    const passedLabel = t('admin.tests.statistics.passed_label');
+    const passedYes = t('admin.tests.statistics.passed_yes');
+    const passedNo = t('admin.tests.statistics.passed_no');
+    const scoreLabel = t('admin.tests.statistics.score_label');
+    const timeSpentLabel = t('admin.tests.statistics.time_spent_label');
+    const questionStatsTitle = t('admin.tests.statistics.question_stats_title');
+    const questionStatsDescription = t('admin.tests.statistics.question_stats_description');
+    const questionLabelTemplate = t('admin.tests.statistics.question_label');
+    const correctAnswerLabel = t('admin.tests.statistics.correct_answer');
+    const userAnswerLabel = t('admin.tests.statistics.user_answer');
+    const errorLoading = t('admin.tests.statistics.error_loading');
+    const answerCorrect = t('admin.tests.statistics.answer_correct');
+    const answerIncorrect = t('admin.tests.statistics.answer_incorrect');
+    const questionTypeSingle = t('admin.tests.question_types.SINGLE_CHOICE');
+    const questionTypeMultiple = t('admin.tests.question_types.MULTIPLE_CHOICE');
+    const questionTypeCode = t('admin.tests.question_types.CODE_WRITING');
+    const questionTypeText = t('admin.tests.question_types.TEXT_INPUT');
+    const pointsTemplate = t('admin.tests.points_template');
+    const levelJunior = t('admin.tests.levels.JUNIOR');
+    const levelMediu = t('admin.tests.levels.MEDIU');
+    const levelSenior = t('admin.tests.levels.SENIOR');
+    const levelExpert = t('admin.tests.levels.EXPERT');
 
     const getQuestionTypeIcon = (type: string) => {
         switch (type) {

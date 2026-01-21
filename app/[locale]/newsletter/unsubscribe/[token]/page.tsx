@@ -1,42 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { apiClient } from "@/lib/api";
-import { Locale } from "@/types/locale";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from 'next/navigation';
 
 type UnsubscribeStatus = "loading" | "success" | "error";
 
 export default function NewsletterUnsubscribePage() {
-  const pathname = usePathname();
-  const locale = (pathname.split("/")[1] as Locale) || "ro";
+  const t = useTranslations();
   const params = useParams<{ token?: string | string[] }>();
   const [status, setStatus] = useState<UnsubscribeStatus>("loading");
 
-  const titleText = useAsyncTranslation(locale, "common.unsubscribe_title", "Dezabonare newsletter");
-  const successText = useAsyncTranslation(
-    locale,
-    "common.unsubscribe_success",
-    "Te-ai dezabonat cu succes.",
-  );
-  const descriptionText = useAsyncTranslation(
-    locale,
-    "common.unsubscribe_description",
-    "Nu vei mai primi emailuri de la Trustora.",
-  );
-  const loadingText = useAsyncTranslation(locale, "common.unsubscribe_loading", "Procesăm dezabonarea...");
-  const errorText = useAsyncTranslation(
-    locale,
-    "common.unsubscribe_error",
-    "Nu am putut procesa cererea de dezabonare.",
-  );
+  const titleText = t("common.unsubscribe_title");
+  const successText = t("common.unsubscribe_success");
+  const descriptionText = t("common.unsubscribe_description");
+  const loadingText = t("common.unsubscribe_loading");
+  const errorText = t("common.unsubscribe_error");
 
   const token = useMemo(() => {
     const value = params?.token;

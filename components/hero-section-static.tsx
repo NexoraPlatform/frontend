@@ -18,57 +18,34 @@ import {
     Clock,
     Globe,
 } from "lucide-react";
-import Link from "next/link";
-import { t } from "@/lib/i18n";
+import { Link } from '@/lib/navigation';
 import { Locale } from "@/types/locale";
+import { getTranslations } from "next-intl/server";
 
 const POPULAR_TAGS = ["React", "WordPress", "Logo Design", "SEO", "Mobile App", "E-commerce"];
 
 export async function HeroSectionStatic({ locale }: { locale: string }) {
-
-    const [
-        heroBadge,
-        heroTitleHtml,
-        subtitleBefore,
-        subtitleHighlight,
-        subtitleAfter,
-        subtitleExtra,
-        searchPlaceholder,
-        searchPlaceholderAria,
-        searchNow,
-        searchNowAria,
-        popularLabel,
-        searchServicesFor,
-        joinAsClient,
-        joinAsProvider,
-        platformStatistics,
-        verifiedExperts,
-        completedProjects,
-        satisfactionRate,
-        tehnicalSupport,
-        change
-    ] = await Promise.all([
-        t(locale as Locale, "homepage.hero.badge"),
-        t(locale as Locale, "homepage.hero.title"),
-        t(locale as Locale, "homepage.hero.subtitleParts.before"),
-        t(locale as Locale, "homepage.hero.subtitleParts.highlight"),
-        t(locale as Locale, "homepage.hero.subtitleParts.after"),
-        t(locale as Locale, "homepage.hero.subtitleParts.extra"),
-        t(locale as Locale, "common.search_placeholder"),
-        t(locale as Locale, "common.search_placeholder_aria_label"),
-        t(locale as Locale, "common.search_now"),
-        t(locale as Locale, "common.search_now_aria_label"),
-        t(locale as Locale, "common.popular"),
-        t(locale as Locale, "common.search_services_for"),
-        t(locale as Locale, "common.join_as_client"),
-        t(locale as Locale, "common.join_as_provider"),
-        t(locale as Locale, "common.platform_statistics"),
-        t(locale as Locale, "common.verified_experts"),
-        t(locale as Locale, "common.completed_projects"),
-        t(locale as Locale, "common.satisfaction_rate"),
-        t(locale as Locale, "common.tehnical_support"),
-        t(locale as Locale, "common.change")
-    ]);
+    const t = await getTranslations({ locale: locale as Locale });
+    const heroBadge = t("homepage.hero.badge");
+    const heroTitleHtml = t("homepage.hero.title");
+    const subtitleBefore = t("homepage.hero.subtitleParts.before");
+    const subtitleHighlight = t("homepage.hero.subtitleParts.highlight");
+    const subtitleAfter = t("homepage.hero.subtitleParts.after");
+    const subtitleExtra = t("homepage.hero.subtitleParts.extra");
+    const searchPlaceholder = t("common.search_placeholder");
+    const searchPlaceholderAria = t("common.search_placeholder_aria_label");
+    const searchNow = t("common.search_now");
+    const searchNowAria = t("common.search_now_aria_label");
+    const popularLabel = t("common.popular");
+    const searchServicesFor = t("common.search_services_for");
+    const joinAsClient = t("common.join_as_client");
+    const joinAsProvider = t("common.join_as_provider");
+    const platformStatistics = t("common.platform_statistics");
+    const verifiedExperts = t("common.verified_experts");
+    const completedProjects = t("common.completed_projects");
+    const satisfactionRate = t("common.satisfaction_rate");
+    const tehnicalSupport = t("common.tehnical_support");
+    const change = t("common.change");
 
     const STATS = [
         { number: "500+", label: verifiedExperts, icon: Users, change: "+12%" },
@@ -176,7 +153,7 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
                             className="px-12 py-8 text-xl font-bold bg-[#1BC47D] hover:bg-[#17b672] text-[#071A12] rounded-2xl shadow-xl transition-colors duration-200"
                             asChild
                         >
-                            <Link href={`/${locale}/auth/signup?type=client`}>
+                            <Link href="/auth/signup?type=client" locale={locale}>
                                 <Target className="mr-3 w-6 h-6" />
                                 {joinAsClient}
                             </Link>
@@ -187,7 +164,7 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
                             className="px-12 py-8 text-xl font-bold border-2 border-emerald-300 hover:border-emerald-400 text-emerald-700 hover:bg-emerald-50/70 dark:border-emerald-500/60 dark:hover:border-emerald-500/80 dark:text-emerald-200 dark:hover:bg-emerald-500/10 rounded-2xl shadow-lg transition-colors duration-200 bg-transparent"
                             asChild
                         >
-                            <Link href={`/${locale}/auth/signup?type=provider`}>
+                            <Link href="/auth/signup?type=provider" locale={locale}>
                                 <Play className="mr-3 w-6 h-6" />
                                 {joinAsProvider}
                             </Link>

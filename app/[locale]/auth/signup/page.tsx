@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from '@/lib/navigation';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,8 +17,6 @@ import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { TermsContent } from '@/components/terms-content';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import type { Locale } from '@/types/locale';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -35,85 +34,49 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+  const locale = useLocale();
+  const t = useTranslations();
   const router = useRouter();
   const { register } = useAuth();
   const termsHref = `/${locale}/terms`;
   const privacyHref = `/${locale}/privacy`;
-  const badgeText = useAsyncTranslation(locale, 'auth.signup.badge', 'Începe cu Trustora');
-  const titlePrefix = useAsyncTranslation(locale, 'auth.signup.title_prefix', 'Creează-ți contul');
-  const titleBrand = useAsyncTranslation(locale, 'auth.signup.title_brand', 'Trustora');
-  const subtitleText = useAsyncTranslation(
-    locale,
-    'auth.signup.subtitle',
-    'Configurează profilul tău și pregătește-ți proiectele pentru colaborări sigure și transparente.',
-  );
-  const benefitDigitalContracts = useAsyncTranslation(
-    locale,
-    'auth.signup.benefits.digital_contracts',
-    'Contracte digitale cu escrow automatizat',
-  );
-  const benefitFastVerifications = useAsyncTranslation(
-    locale,
-    'auth.signup.benefits.fast_verifications',
-    'Verificări rapide pentru clienți și prestatori',
-  );
-  const benefitUnifiedDashboard = useAsyncTranslation(
-    locale,
-    'auth.signup.benefits.unified_dashboard',
-    'Dashboard unificat pentru proiecte și plăți',
-  );
-  const cardTitle = useAsyncTranslation(locale, 'auth.signup.card_title', 'Înregistrare');
-  const cardDescription = useAsyncTranslation(
-    locale,
-    'auth.signup.card_description',
-    'Completează datele pentru a-ți crea contul Trustora.',
-  );
-  const firstNameLabel = useAsyncTranslation(locale, 'auth.signup.first_name_label', 'Prenume');
-  const firstNamePlaceholder = useAsyncTranslation(locale, 'auth.signup.first_name_placeholder', 'Ion');
-  const lastNameLabel = useAsyncTranslation(locale, 'auth.signup.last_name_label', 'Nume');
-  const lastNamePlaceholder = useAsyncTranslation(locale, 'auth.signup.last_name_placeholder', 'Popescu');
-  const emailLabel = useAsyncTranslation(locale, 'auth.signup.email_label', 'Email');
-  const emailPlaceholder = useAsyncTranslation(locale, 'auth.signup.email_placeholder', 'email@exemplu.ro');
-  const phoneLabel = useAsyncTranslation(locale, 'auth.signup.phone_label', 'Telefon');
-  const phonePlaceholder = useAsyncTranslation(locale, 'auth.signup.phone_placeholder', '+40 123 456 789');
-  const roleLabel = useAsyncTranslation(locale, 'auth.signup.role_label', 'Tip cont');
-  const roleClient = useAsyncTranslation(locale, 'auth.signup.role_client', 'Client - Caut servicii IT');
-  const roleProvider = useAsyncTranslation(locale, 'auth.signup.role_provider', 'Prestator - Ofer servicii IT');
-  const companyLabel = useAsyncTranslation(locale, 'auth.signup.company_label', 'Companie (opțional)');
-  const companyPlaceholder = useAsyncTranslation(locale, 'auth.signup.company_placeholder', 'Numele companiei');
-  const passwordLabel = useAsyncTranslation(locale, 'auth.signup.password_label', 'Parola');
-  const passwordPlaceholder = useAsyncTranslation(locale, 'auth.signup.password_placeholder', 'Minim 8 caractere');
-  const confirmPasswordLabel = useAsyncTranslation(locale, 'auth.signup.confirm_password_label', 'Confirmă parola');
-  const confirmPasswordPlaceholder = useAsyncTranslation(
-    locale,
-    'auth.signup.confirm_password_placeholder',
-    'Repetă parola',
-  );
-  const termsPrefix = useAsyncTranslation(locale, 'auth.signup.terms_prefix', 'Sunt de acord cu');
-  const termsAnd = useAsyncTranslation(locale, 'auth.signup.terms_and', 'și');
-  const termsLinkText = useAsyncTranslation(locale, 'auth.signup.terms_link', 'Termenii și Condițiile');
-  const privacyLinkText = useAsyncTranslation(locale, 'auth.signup.privacy_link', 'Politica de Confidențialitate');
-  const loadingText = useAsyncTranslation(locale, 'auth.signup.loading', 'Se creează contul...');
-  const submitText = useAsyncTranslation(locale, 'auth.signup.submit', 'Creează contul');
-  const hasAccountText = useAsyncTranslation(locale, 'auth.signup.has_account', 'Ai deja cont?');
-  const signinText = useAsyncTranslation(locale, 'auth.signup.signin', 'Conectează-te');
-  const errorPasswordMismatch = useAsyncTranslation(
-    locale,
-    'auth.signup.error_password_mismatch',
-    'Parolele nu se potrivesc',
-  );
-  const errorTermsRequired = useAsyncTranslation(
-    locale,
-    'auth.signup.error_terms_required',
-    'Trebuie să accepți termenii și condițiile',
-  );
-  const genericErrorText = useAsyncTranslation(
-    locale,
-    'auth.signup.generic_error',
-    'A apărut o eroare. Încearcă din nou.',
-  );
+  const badgeText = t('auth.signup.badge');
+  const titlePrefix = t('auth.signup.title_prefix');
+  const titleBrand = t('auth.signup.title_brand');
+  const subtitleText = t('auth.signup.subtitle');
+  const benefitDigitalContracts = t('auth.signup.benefits.digital_contracts');
+  const benefitFastVerifications = t('auth.signup.benefits.fast_verifications');
+  const benefitUnifiedDashboard = t('auth.signup.benefits.unified_dashboard');
+  const cardTitle = t('auth.signup.card_title');
+  const cardDescription = t('auth.signup.card_description');
+  const firstNameLabel = t('auth.signup.first_name_label');
+  const firstNamePlaceholder = t('auth.signup.first_name_placeholder');
+  const lastNameLabel = t('auth.signup.last_name_label');
+  const lastNamePlaceholder = t('auth.signup.last_name_placeholder');
+  const emailLabel = t('auth.signup.email_label');
+  const emailPlaceholder = t('auth.signup.email_placeholder');
+  const phoneLabel = t('auth.signup.phone_label');
+  const phonePlaceholder = t('auth.signup.phone_placeholder');
+  const roleLabel = t('auth.signup.role_label');
+  const roleClient = t('auth.signup.role_client');
+  const roleProvider = t('auth.signup.role_provider');
+  const companyLabel = t('auth.signup.company_label')');
+  const companyPlaceholder = t('auth.signup.company_placeholder');
+  const passwordLabel = t('auth.signup.password_label');
+  const passwordPlaceholder = t('auth.signup.password_placeholder');
+  const confirmPasswordLabel = t('auth.signup.confirm_password_label');
+  const confirmPasswordPlaceholder = t('auth.signup.confirm_password_placeholder');
+  const termsPrefix = t('auth.signup.terms_prefix');
+  const termsAnd = t('auth.signup.terms_and');
+  const termsLinkText = t('auth.signup.terms_link');
+  const privacyLinkText = t('auth.signup.privacy_link');
+  const loadingText = t('auth.signup.loading');
+  const submitText = t('auth.signup.submit');
+  const hasAccountText = t('auth.signup.has_account');
+  const signinText = t('auth.signup.signin');
+  const errorPasswordMismatch = t('auth.signup.error_password_mismatch');
+  const errorTermsRequired = t('auth.signup.error_terms_required');
+  const genericErrorText = t('auth.signup.generic_error');
   const benefits = [benefitDigitalContracts, benefitFastVerifications, benefitUnifiedDashboard];
 
   const handleSubmit = async (e: React.FormEvent) => {

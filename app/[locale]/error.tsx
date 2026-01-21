@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation'
-import { useAsyncTranslation } from '@/hooks/use-async-translation'
 import { Locale } from '@/types/locale'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,15 +19,16 @@ export default function PublicError({
 }) {
     const params = useParams()
     const locale = (params?.locale as Locale) || 'en'
+    const t = useTranslations();
 
     useEffect(() => {
         console.error('Public page error:', error)
     }, [error])
 
-    const title = useAsyncTranslation(locale, 'errors.title')
-    const description = useAsyncTranslation(locale, 'errors.description')
-    const tryAgain = useAsyncTranslation(locale, 'errors.try_again')
-    const goHome = useAsyncTranslation(locale, 'errors.go_home')
+    const title = t('errors.title')
+    const description = t('errors.description')
+    const tryAgain = t('errors.try_again')
+    const goHome = t('errors.go_home')
 
     return (
         <>

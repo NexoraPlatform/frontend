@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
-import Link from 'next/link';
+import { useRouter } from '@/lib/navigation';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 interface Question {
@@ -77,9 +76,9 @@ export default function NewTestPage() {
   const router = useRouter();
 
   const { data: servicesData } = useAdminServices();
-    const locale = useLocale();
-  const pageTitle = useAsyncTranslation(locale, 'admin.tests.new.title');
-  const pageSubtitle = useAsyncTranslation(locale, 'admin.tests.new.subtitle');
+  const t = useTranslations();
+  const pageTitle = t('admin.tests.new.title');
+  const pageSubtitle = t('admin.tests.new.subtitle');
 
   const questionTypes = [
     { value: 'SINGLE_CHOICE', label: 'Alegere Unică', icon: Square },

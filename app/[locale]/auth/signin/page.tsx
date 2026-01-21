@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/lib/navigation';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,8 +14,6 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import type { Locale } from '@/types/locale';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -22,54 +21,29 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+  const t = useTranslations();
   const router = useRouter();
   const { login } = useAuth();
-  const badgeText = useAsyncTranslation(locale, 'auth.signin.badge', 'Trustora Secure Access');
-  const titlePrefix = useAsyncTranslation(locale, 'auth.signin.title_prefix', 'Bun venit înapoi la');
-  const titleBrand = useAsyncTranslation(locale, 'auth.signin.title_brand', 'Trustora');
-  const subtitleText = useAsyncTranslation(
-    locale,
-    'auth.signin.subtitle',
-    'Intră în workspace-ul tău securizat și gestionează proiectele cu încredere, transparență și escrow automatizat.',
-  );
-  const benefitVerifiedContracts = useAsyncTranslation(
-    locale,
-    'auth.signin.benefits.verified_contracts',
-    'Contracte verificate',
-  );
-  const benefitAutomatedEscrow = useAsyncTranslation(
-    locale,
-    'auth.signin.benefits.automated_escrow',
-    'Escrow automatizat',
-  );
-  const benefitProjectTimeline = useAsyncTranslation(
-    locale,
-    'auth.signin.benefits.project_timeline',
-    'Timeline live proiecte',
-  );
-  const benefitSupport = useAsyncTranslation(locale, 'auth.signin.benefits.support', 'Suport dedicat 24/7');
-  const cardTitle = useAsyncTranslation(locale, 'auth.signin.card_title', 'Conectare');
-  const cardDescription = useAsyncTranslation(
-    locale,
-    'auth.signin.card_description',
-    'Introdu datele tale pentru a continua în platforma Trustora.',
-  );
-  const emailLabel = useAsyncTranslation(locale, 'auth.signin.email_label', 'Email');
-  const emailPlaceholder = useAsyncTranslation(locale, 'auth.signin.email_placeholder', 'email@exemplu.ro');
-  const passwordLabel = useAsyncTranslation(locale, 'auth.signin.password_label', 'Parola');
-  const passwordPlaceholder = useAsyncTranslation(locale, 'auth.signin.password_placeholder', 'Parola ta');
-  const forgotPassword = useAsyncTranslation(locale, 'auth.signin.forgot_password', 'Ai uitat parola?');
-  const loadingText = useAsyncTranslation(locale, 'auth.signin.loading', 'Se conectează...');
-  const submitText = useAsyncTranslation(locale, 'auth.signin.submit', 'Conectează-te');
-  const noAccountText = useAsyncTranslation(locale, 'auth.signin.no_account', 'Nu ai cont?');
-  const registerText = useAsyncTranslation(locale, 'auth.signin.register', 'Înregistrează-te');
-  const genericErrorText = useAsyncTranslation(
-    locale,
-    'auth.signin.generic_error',
-    'A apărut o eroare. Încearcă din nou.',
-  );
+  const badgeText = t('auth.signin.badge');
+  const titlePrefix = t('auth.signin.title_prefix');
+  const titleBrand = t('auth.signin.title_brand');
+  const subtitleText = t('auth.signin.subtitle');
+  const benefitVerifiedContracts = t('auth.signin.benefits.verified_contracts');
+  const benefitAutomatedEscrow = t('auth.signin.benefits.automated_escrow');
+  const benefitProjectTimeline = t('auth.signin.benefits.project_timeline');
+  const benefitSupport = t('auth.signin.benefits.support');
+  const cardTitle = t('auth.signin.card_title');
+  const cardDescription = t('auth.signin.card_description');
+  const emailLabel = t('auth.signin.email_label');
+  const emailPlaceholder = t('auth.signin.email_placeholder');
+  const passwordLabel = t('auth.signin.password_label');
+  const passwordPlaceholder = t('auth.signin.password_placeholder');
+  const forgotPassword = t('auth.signin.forgot_password');
+  const loadingText = t('auth.signin.loading');
+  const submitText = t('auth.signin.submit');
+  const noAccountText = t('auth.signin.no_account');
+  const registerText = t('auth.signin.register');
+  const genericErrorText = t('auth.signin.generic_error');
   const benefits = [benefitVerifiedContracts, benefitAutomatedEscrow, benefitProjectTimeline, benefitSupport];
 
   const handleSubmit = async (e: React.FormEvent) => {

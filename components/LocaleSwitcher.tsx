@@ -1,10 +1,10 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { locales, localeConfig } from '@/lib/i18n';
-import { Locale } from '@/types/locale';
+import { useLocale } from 'next-intl';
+import { locales } from '@/lib/navigation';
+import { localeConfig } from '@/lib/i18n';
+import { usePathname, useRouter } from '@/lib/navigation';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -15,15 +15,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface LocaleSwitcherProps {
-    currentLocale: Locale;
     className?: string;
 }
 
-const LOCALE_COOKIE_NAME = 'preferred_locale';
-const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-
-export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps) {
+export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
     const pathname = usePathname();
+    const router = useRouter();
+    const locale = useLocale();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -32,16 +30,7 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
 
     if (!mounted) return null;
 
-    const getLocalizedPath = (locale: Locale) => {
-        const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}/, '') || '/';
-        return `/${locale}${pathWithoutLocale}`;
-    };
-
-    const setLocaleCookie = (locale: Locale) => {
-        document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
-    };
-
-    const currentConfig = localeConfig[currentLocale];
+    const currentConfig = localeConfig[locale as keyof typeof localeConfig];
 
     return (
         <DropdownMenu>
@@ -56,23 +45,24 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-40" align="center" forceMount>
-                {locales.map((locale) => {
-                    const config = localeConfig[locale];
-                    const isCurrent = locale === currentLocale;
+                {locales.map((nextLocale) => {
+                    const config = localeConfig[nextLocale];
+                    const isCurrent = nextLocale === locale;
 
                     return (
-                        <DropdownMenuItem key={locale} asChild>
-                            <Link
-                                href={getLocalizedPath(locale)}
-                                aria-current={isCurrent ? 'true' : undefined}
-                                hrefLang={locale}
-                                onClick={() => setLocaleCookie(locale)}
-                                className={`flex items-center gap-2 text-sm w-full ${isCurrent ? 'font-semibold text-primary' : ''}`}
-                            >
-                                <span className="text-[18px] leading-none relative top-[1px]"
-                                      aria-hidden="true">{config.flag}</span>
-                                <span>{config.name}</span>
-                            </Link>
+                        <DropdownMenuItem
+                            key={nextLocale}
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                router.replace(pathname, { locale: nextLocale });
+                            }}
+                            aria-current={isCurrent ? 'true' : undefined}
+                            className={`flex items-center gap-2 text-sm w-full ${isCurrent ? 'font-semibold text-primary' : ''}`}
+                        >
+                            <span className="text-[18px] leading-none relative top-[1px]" aria-hidden="true">
+                                {config.flag}
+                            </span>
+                            <span>{config.name}</span>
                         </DropdownMenuItem>
                     );
                 })}

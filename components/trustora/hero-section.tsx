@@ -1,41 +1,23 @@
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+import { getTranslations } from "next-intl/server";
 export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
-    const [
-        badgeText,
-        title,
-        titleHighlight,
-        subtitle,
-        primaryCta,
-        secondaryCta,
-        trustedLabel,
-        dashboardLabel,
-        securedLabel,
-        contractName,
-        contractValue,
-        milestoneProgress,
-        milestoneEta,
-        nextMilestoneLabel,
-        payoutLabel,
-        payoutValue,
-    ] = await Promise.all([
-        t(locale, "trustora.hero.badge"),
-        t(locale, "trustora.hero.title"),
-        t(locale, "trustora.hero.title_highlight"),
-        t(locale, "trustora.hero.subtitle"),
-        t(locale, "trustora.hero.primary_cta"),
-        t(locale, "trustora.hero.secondary_cta"),
-        t(locale, "trustora.hero.trusted_label"),
-        t(locale, "trustora.hero.dashboard_label"),
-        t(locale, "trustora.hero.secured_label"),
-        t(locale, "trustora.hero.contract_name"),
-        t(locale, "trustora.hero.contract_value"),
-        t(locale, "trustora.hero.milestone_progress"),
-        t(locale, "trustora.hero.milestone_eta"),
-        t(locale, "trustora.hero.next_milestone"),
-        t(locale, "trustora.hero.payout_label"),
-        t(locale, "trustora.hero.payout_value"),
-    ]);
+    const t = await getTranslations({ locale, namespace: "trustora" });
+    const badgeText = t("hero.badge");
+    const title = t("hero.title");
+    const titleHighlight = t("hero.title_highlight");
+    const subtitle = t("hero.subtitle");
+    const primaryCta = t("hero.primary_cta");
+    const secondaryCta = t("hero.secondary_cta");
+    const trustedLabel = t("hero.trusted_label");
+    const dashboardLabel = t("hero.dashboard_label");
+    const securedLabel = t("hero.secured_label");
+    const contractName = t("hero.contract_name");
+    const contractValue = t("hero.contract_value");
+    const milestoneProgress = t("hero.milestone_progress");
+    const milestoneEta = t("hero.milestone_eta");
+    const nextMilestoneLabel = t("hero.next_milestone");
+    const payoutLabel = t("hero.payout_label");
+    const payoutValue = t("hero.payout_value");
 
     return (
         <section className="relative overflow-hidden pt-8 pb-20 px-6 bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">

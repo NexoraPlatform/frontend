@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro as roLocale } from 'date-fns/locale';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,25 +19,22 @@ import {
 
 import { useNotifications } from '@/contexts/notification-context';
 import type { AppNotification } from '@/contexts/notification-context';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import type { Locale } from '@/types/locale';
 
 export function NotificationBell() {
     const router = useRouter();
-    const pathname = usePathname();
-    const locale = (pathname.split('/')[1] as Locale) || 'ro';
-    const notificationsTitle = useAsyncTranslation(locale, 'common.notifications.title');
-    const openNotificationsAria = useAsyncTranslation(locale, 'common.notifications.open_aria');
-    const unreadCountTemplate = useAsyncTranslation(locale, 'common.notifications.unread_count');
-    const allReadText = useAsyncTranslation(locale, 'common.notifications.all_read');
-    const webPushTitle = useAsyncTranslation(locale, 'common.notifications.web_push_title');
-    const webPushUnsupported = useAsyncTranslation(locale, 'common.notifications.web_push_unsupported');
-    const webPushDenied = useAsyncTranslation(locale, 'common.notifications.web_push_denied');
-    const webPushEnabledHint = useAsyncTranslation(locale, 'common.notifications.web_push_enabled_hint');
-    const notificationsListLabel = useAsyncTranslation(locale, 'common.notifications.list_aria');
-    const noNotificationsText = useAsyncTranslation(locale, 'common.notifications.empty');
-    const endOfListText = useAsyncTranslation(locale, 'common.notifications.end_of_list');
-    const seeAllText = useAsyncTranslation(locale, 'common.notifications.see_all');
+    const locale = useLocale();
+    const t = useTranslations();
+    const notificationsTitle = t('common.notifications.title');
+    const openNotificationsAria = t('common.notifications.open_aria');
+    const allReadText = t('common.notifications.all_read');
+    const webPushTitle = t('common.notifications.web_push_title');
+    const webPushUnsupported = t('common.notifications.web_push_unsupported');
+    const webPushDenied = t('common.notifications.web_push_denied');
+    const webPushEnabledHint = t('common.notifications.web_push_enabled_hint');
+    const notificationsListLabel = t('common.notifications.list_aria');
+    const noNotificationsText = t('common.notifications.empty');
+    const endOfListText = t('common.notifications.end_of_list');
+    const seeAllText = t('common.notifications.see_all');
     const {
         notifications,
         unreadCount,
@@ -54,7 +52,7 @@ export function NotificationBell() {
         loadMore,
     } = useNotifications();
     const distanceLocale = locale === 'en' ? enUS : roLocale;
-    const unreadCountText = unreadCountTemplate.replace('{count}', String(unreadCount));
+    const unreadCountText = t('common.notifications.unread_count', { count: unreadCount });
 
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);

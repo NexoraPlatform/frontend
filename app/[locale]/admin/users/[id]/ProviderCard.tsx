@@ -1,6 +1,5 @@
 import React from "react";
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useTranslations } from 'next-intl';
 
 export default function ProviderCard({
                                          formData,
@@ -17,13 +16,13 @@ export default function ProviderCard({
     loading?: boolean;
     error?: string;
 }) {
-    const locale = useLocale();
-    const title = useAsyncTranslation(locale, 'admin.users.detail_card.provider_title');
-    const idLabel = useAsyncTranslation(locale, 'admin.users.detail_card.id');
-    const nameLabel = useAsyncTranslation(locale, 'admin.users.detail_card.name');
-    const emailLabel = useAsyncTranslation(locale, 'admin.users.detail_card.email');
-    const roleLabel = useAsyncTranslation(locale, 'admin.users.detail_card.role');
-    const phoneLabel = useAsyncTranslation(locale, 'admin.users.detail_card.phone');
+  const t = useTranslations();
+    const title = t('admin.users.detail_card.provider_title');
+    const idLabel = t('admin.users.detail_card.id');
+    const nameLabel = t('admin.users.detail_card.name');
+    const emailLabel = t('admin.users.detail_card.email');
+    const roleLabel = t('admin.users.detail_card.role');
+    const phoneLabel = t('admin.users.detail_card.phone');
 
     return (
         <div className="bg-white shadow-md rounded-lg p-6">

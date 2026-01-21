@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { LocalizedLink } from "@/components/LocalizedLink";
+import { Link } from '@/lib/navigation';
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { apiClient } from "@/lib/api";
-import { Locale } from "@/types/locale";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from 'next/navigation';
 
 type ResendStatus = "loading" | "success" | "not_found" | "verified" | "rate_limited" | "error";
 
@@ -31,24 +30,24 @@ type ResendResponse = {
 };
 
 export default function EarlyAccessResendPage() {
-    const pathname = usePathname();
-    const locale = (pathname.split("/")[1] as Locale) || "ro";
+    const locale = useLocale();
+    const t = useTranslations();
     const params = useParams<{ uuid?: string | string[] }>();
 
-    const titleText = useAsyncTranslation(locale, "trustora.early_access.resend.title");
-    const subtitleText = useAsyncTranslation(locale, "trustora.early_access.resend.subtitle");
-    const successTitle = useAsyncTranslation(locale, "trustora.early_access.resend.success_title");
-    const successDescription = useAsyncTranslation(locale, "trustora.early_access.resend.success_description");
-    const notFoundTitle = useAsyncTranslation(locale, "trustora.early_access.resend.not_found_title");
-    const notFoundDescription = useAsyncTranslation(locale, "trustora.early_access.resend.not_found_description");
-    const verifiedTitle = useAsyncTranslation(locale, "trustora.early_access.resend.verified_title");
-    const verifiedDescription = useAsyncTranslation(locale, "trustora.early_access.resend.verified_description");
-    const rateLimitedTitle = useAsyncTranslation(locale, "trustora.early_access.resend.rate_limited_title");
-    const rateLimitedDescription = useAsyncTranslation(locale, "trustora.early_access.resend.rate_limited_description");
-    const errorTitle = useAsyncTranslation(locale, "trustora.early_access.resend.error_title");
-    const errorDescription = useAsyncTranslation(locale, "trustora.early_access.resend.error_description");
-    const backToEarlyAccess = useAsyncTranslation(locale, "trustora.early_access.resend.back");
-    const loadingText = useAsyncTranslation(locale, "trustora.early_access.resend.loading");
+    const titleText = t("trustora.early_access.resend.title");
+    const subtitleText = t("trustora.early_access.resend.subtitle");
+    const successTitle = t("trustora.early_access.resend.success_title");
+    const successDescription = t("trustora.early_access.resend.success_description");
+    const notFoundTitle = t("trustora.early_access.resend.not_found_title");
+    const notFoundDescription = t("trustora.early_access.resend.not_found_description");
+    const verifiedTitle = t("trustora.early_access.resend.verified_title");
+    const verifiedDescription = t("trustora.early_access.resend.verified_description");
+    const rateLimitedTitle = t("trustora.early_access.resend.rate_limited_title");
+    const rateLimitedDescription = t("trustora.early_access.resend.rate_limited_description");
+    const errorTitle = t("trustora.early_access.resend.error_title");
+    const errorDescription = t("trustora.early_access.resend.error_description");
+    const backToEarlyAccess = t("trustora.early_access.resend.back");
+    const loadingText = t("trustora.early_access.resend.loading");
 
     const [status, setStatus] = useState<ResendStatus>("loading");
     const [response, setResponse] = useState<ResendResponse | null>(null);
@@ -220,7 +219,7 @@ export default function EarlyAccessResendPage() {
                             </CardHeader>
                             <CardContent>
                                 <Button asChild className="w-full btn-primary text-white">
-                                    <LocalizedLink href="/early-access">{backToEarlyAccess}</LocalizedLink>
+                                    <Link href="/early-access">{backToEarlyAccess}</Link>
                                 </Button>
                             </CardContent>
                         </Card>

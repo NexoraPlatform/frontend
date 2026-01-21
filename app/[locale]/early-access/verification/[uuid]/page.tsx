@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { LocalizedLink } from "@/components/LocalizedLink";
+import { Link } from '@/lib/navigation';
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { apiClient } from "@/lib/api";
-import { Locale } from "@/types/locale";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from 'next/navigation';
 
 type VerificationStatus = "loading" | "success" | "invalid" | "expired" | "error";
 
@@ -31,27 +30,27 @@ type VerificationResponse = {
 };
 
 export default function EarlyAccessVerificationPage() {
-    const pathname = usePathname();
-    const locale = (pathname.split("/")[1] as Locale) || "ro";
+    const locale = useLocale();
+    const t = useTranslations();
     const params = useParams<{ uuid?: string | string[] }>();
 
-    const titleText = useAsyncTranslation(locale, "trustora.early_access.verification.title");
-    const subtitleText = useAsyncTranslation(locale, "trustora.early_access.verification.subtitle");
-    const successTitle = useAsyncTranslation(locale, "trustora.early_access.verification.success_title");
-    const successDescription = useAsyncTranslation(locale, "trustora.early_access.verification.success_description");
-    const invalidTitle = useAsyncTranslation(locale, "trustora.early_access.verification.invalid_title");
-    const invalidDescription = useAsyncTranslation(locale, "trustora.early_access.verification.invalid_description");
-    const expiredTitle = useAsyncTranslation(locale, "trustora.early_access.verification.expired_title");
-    const expiredDescription = useAsyncTranslation(locale, "trustora.early_access.verification.expired_description");
-    const errorTitle = useAsyncTranslation(locale, "trustora.early_access.verification.error_title");
-    const errorDescription = useAsyncTranslation(locale, "trustora.early_access.verification.error_description");
-    const backToEarlyAccess = useAsyncTranslation(locale, "trustora.early_access.verification.back");
-    const loadingText = useAsyncTranslation(locale, "trustora.early_access.verification.loading");
-    const applicationLabel = useAsyncTranslation(locale, "trustora.early_access.verification.application_label");
-    const emailLabel = useAsyncTranslation(locale, "trustora.early_access.verification.email_label");
-    const typeLabel = useAsyncTranslation(locale, "trustora.early_access.verification.type_label");
-    const providerLabel = useAsyncTranslation(locale, "trustora.early_access.verification.user_type_provider");
-    const clientLabel = useAsyncTranslation(locale, "trustora.early_access.verification.user_type_client");
+    const titleText = t("trustora.early_access.verification.title");
+    const subtitleText = t("trustora.early_access.verification.subtitle");
+    const successTitle = t("trustora.early_access.verification.success_title");
+    const successDescription = t("trustora.early_access.verification.success_description");
+    const invalidTitle = t("trustora.early_access.verification.invalid_title");
+    const invalidDescription = t("trustora.early_access.verification.invalid_description");
+    const expiredTitle = t("trustora.early_access.verification.expired_title");
+    const expiredDescription = t("trustora.early_access.verification.expired_description");
+    const errorTitle = t("trustora.early_access.verification.error_title");
+    const errorDescription = t("trustora.early_access.verification.error_description");
+    const backToEarlyAccess = t("trustora.early_access.verification.back");
+    const loadingText = t("trustora.early_access.verification.loading");
+    const applicationLabel = t("trustora.early_access.verification.application_label");
+    const emailLabel = t("trustora.early_access.verification.email_label");
+    const typeLabel = t("trustora.early_access.verification.type_label");
+    const providerLabel = t("trustora.early_access.verification.user_type_provider");
+    const clientLabel = t("trustora.early_access.verification.user_type_client");
 
     const [status, setStatus] = useState<VerificationStatus>("loading");
     const [details, setDetails] = useState<VerificationResponse | null>(null);
@@ -227,7 +226,7 @@ export default function EarlyAccessVerificationPage() {
                             )}
                             <CardContent className="pt-4">
                                 <Button asChild className="w-full btn-primary text-white">
-                                    <LocalizedLink href="/early-access">{backToEarlyAccess}</LocalizedLink>
+                                    <Link href="/early-access">{backToEarlyAccess}</Link>
                                 </Button>
                             </CardContent>
                         </Card>

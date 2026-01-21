@@ -19,7 +19,7 @@ import {
     Search,
     XCircle,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from '@/lib/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,57 +37,56 @@ import PlaylistAddCheckCircleIcon from "@mui/icons-material/PlaylistAddCheckCirc
 import { VisibilityOff } from "@mui/icons-material";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
-import { useLocale } from "@/hooks/use-locale";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
+import { useLocale, useTranslations } from "next-intl";
 import { Locale } from "@/types/locale";
 
 /** Custom hook care grupează toate traducerile pentru pagina de Calls */
 function useCallsT(locale: Locale) {
     return {
-        title: useAsyncTranslation(locale, "admin.calls.manage_title"),
-        subtitle: useAsyncTranslation(locale, "admin.calls.manage_subtitle"),
-        searchPlaceholder: useAsyncTranslation(locale, "admin.calls.search_placeholder"),
+        title: t("admin.calls.manage_title"),
+        subtitle: t("admin.calls.manage_subtitle"),
+        searchPlaceholder: t("admin.calls.search_placeholder"),
 
-        passedFilterLabel: useAsyncTranslation(locale, "admin.calls.filters.passed.label"),
-        passedFilterAll: useAsyncTranslation(locale, "admin.calls.filters.passed.all"),
-        passedFilterYes: useAsyncTranslation(locale, "admin.calls.filters.passed.yes"),
-        passedFilterNo: useAsyncTranslation(locale, "admin.calls.filters.passed.no"),
+        passedFilterLabel: t("admin.calls.filters.passed.label"),
+        passedFilterAll: t("admin.calls.filters.passed.all"),
+        passedFilterYes: t("admin.calls.filters.passed.yes"),
+        passedFilterNo: t("admin.calls.filters.passed.no"),
 
-        statusFilterLabel: useAsyncTranslation(locale, "admin.calls.filters.status.label"),
-        statusFilterAll: useAsyncTranslation(locale, "admin.calls.filters.status.all"),
+        statusFilterLabel: t("admin.calls.filters.status.label"),
+        statusFilterAll: t("admin.calls.filters.status.all"),
 
         statuses: {
-            WAITING: useAsyncTranslation(locale, "admin.calls.statuses.WAITING"),
-            ACCEPTED: useAsyncTranslation(locale, "admin.calls.statuses.ACCEPTED"),
-            FINISHED: useAsyncTranslation(locale, "admin.calls.statuses.FINISHED"),
-            REFUSED: useAsyncTranslation(locale, "admin.calls.statuses.REFUSED"),
-            NO_SHOW: useAsyncTranslation(locale, "admin.calls.statuses.NO_SHOW"),
+            WAITING: t("admin.calls.statuses.WAITING"),
+            ACCEPTED: t("admin.calls.statuses.ACCEPTED"),
+            FINISHED: t("admin.calls.statuses.FINISHED"),
+            REFUSED: t("admin.calls.statuses.REFUSED"),
+            NO_SHOW: t("admin.calls.statuses.NO_SHOW"),
         },
 
-        dateFilterPlaceholder: useAsyncTranslation(locale, "admin.calls.filters.date.placeholder"),
-        listTitle: useAsyncTranslation(locale, "admin.calls.list_title"),
-        listDescriptionTemplate: useAsyncTranslation(locale, "admin.calls.list_description"),
-        viewTestDetails: useAsyncTranslation(locale, "admin.calls.link_test_details"),
-        scheduledAtPrefix: useAsyncTranslation(locale, "admin.calls.scheduled_at_prefix"),
-        passingScorePrefix: useAsyncTranslation(locale, "admin.calls.passing_score_prefix"),
-        categoryPrefix: useAsyncTranslation(locale, "admin.calls.category_prefix"),
-        createdPrefix: useAsyncTranslation(locale, "admin.calls.created_prefix"),
-        resultsLabelTemplate: useAsyncTranslation(locale, "admin.calls.results_label"),
+        dateFilterPlaceholder: t("admin.calls.filters.date.placeholder"),
+        listTitle: t("admin.calls.list_title"),
+        listDescriptionTemplate: t("admin.calls.list_description"),
+        viewTestDetails: t("admin.calls.link_test_details"),
+        scheduledAtPrefix: t("admin.calls.scheduled_at_prefix"),
+        passingScorePrefix: t("admin.calls.passing_score_prefix"),
+        categoryPrefix: t("admin.calls.category_prefix"),
+        createdPrefix: t("admin.calls.created_prefix"),
+        resultsLabelTemplate: t("admin.calls.results_label"),
 
-        connectToInterview: useAsyncTranslation(locale, "admin.calls.dropdown.connect"),
-        moveWaiting: useAsyncTranslation(locale, "admin.calls.dropdown.move_waiting"),
-        moveFinished: useAsyncTranslation(locale, "admin.calls.dropdown.move_finished"),
-        moveAccepted: useAsyncTranslation(locale, "admin.calls.dropdown.move_accepted"),
-        moveRefused: useAsyncTranslation(locale, "admin.calls.dropdown.move_refused"),
-        moveNoShow: useAsyncTranslation(locale, "admin.calls.dropdown.move_no_show"),
-        refuseReasonLabel: useAsyncTranslation(locale, "admin.calls.dropdown.refuse_reason_label"),
-        refuseReasonPlaceholder: useAsyncTranslation(locale, "admin.calls.dropdown.refuse_reason_placeholder"),
-        cancelLabel: useAsyncTranslation(locale, "admin.calls.dropdown.cancel"),
-        confirmLabel: useAsyncTranslation(locale, "admin.calls.dropdown.confirm"),
+        connectToInterview: t("admin.calls.dropdown.connect"),
+        moveWaiting: t("admin.calls.dropdown.move_waiting"),
+        moveFinished: t("admin.calls.dropdown.move_finished"),
+        moveAccepted: t("admin.calls.dropdown.move_accepted"),
+        moveRefused: t("admin.calls.dropdown.move_refused"),
+        moveNoShow: t("admin.calls.dropdown.move_no_show"),
+        refuseReasonLabel: t("admin.calls.dropdown.refuse_reason_label"),
+        refuseReasonPlaceholder: t("admin.calls.dropdown.refuse_reason_placeholder"),
+        cancelLabel: t("admin.calls.dropdown.cancel"),
+        confirmLabel: t("admin.calls.dropdown.confirm"),
 
-        noCallsTitle: useAsyncTranslation(locale, "admin.calls.no_calls_title"),
-        noCallsDescription: useAsyncTranslation(locale, "admin.calls.no_calls_description"),
-        errorPrefix: useAsyncTranslation(locale, "admin.calls.error_prefix"),
+        noCallsTitle: t("admin.calls.no_calls_title"),
+        noCallsDescription: t("admin.calls.no_calls_description"),
+        errorPrefix: t("admin.calls.error_prefix"),
     };
 }
 
@@ -108,6 +107,7 @@ export default function CallsPage() {
 
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
     const locale = useLocale();
+  const t = useTranslations();
 
     // Toate textele printr-un singur hook
     const t = useCallsT(locale);

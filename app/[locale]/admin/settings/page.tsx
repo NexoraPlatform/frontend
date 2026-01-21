@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,8 +27,7 @@ import {
     Loader2,
     Clock,
 } from 'lucide-react';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { useLocale } from '@/hooks/use-locale';
+import { useTranslations } from 'next-intl';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminSettingsPage() {
@@ -75,117 +74,117 @@ export default function AdminSettingsPage() {
         featuredServicesCount: '8',
         recentServicesCount: '12',
     });
-    const locale = useLocale();
+  const t = useTranslations();
     // ====== Traduceri (TOP-LEVEL, în ordine fixă) ======
     // Header
-    const pageTitle               = useAsyncTranslation(locale, 'admin.settings.title');
-    const pageSubtitle            = useAsyncTranslation(locale, 'admin.settings.subtitle');
-    const savingLabel             = useAsyncTranslation(locale, 'admin.settings.saving');
-    const saveAllLabel            = useAsyncTranslation(locale, 'admin.settings.save_all');
-    const savedSuccess            = useAsyncTranslation(locale, 'admin.settings.saved_success');
+    const pageTitle               = t('admin.settings.title');
+    const pageSubtitle            = t('admin.settings.subtitle');
+    const savingLabel             = t('admin.settings.saving');
+    const saveAllLabel            = t('admin.settings.save_all');
+    const savedSuccess            = t('admin.settings.saved_success');
 
     // Tabs
-    const generalTab              = useAsyncTranslation(locale, 'admin.settings.tabs.general');
-    const platformTab             = useAsyncTranslation(locale, 'admin.settings.tabs.platform');
-    const paymentsTab             = useAsyncTranslation(locale, 'admin.settings.tabs.payments');
-    const emailTab                = useAsyncTranslation(locale, 'admin.settings.tabs.email');
-    const securityTab             = useAsyncTranslation(locale, 'admin.settings.tabs.security');
-    const notificationsTab        = useAsyncTranslation(locale, 'admin.settings.tabs.notifications');
+    const generalTab              = t('admin.settings.tabs.general');
+    const platformTab             = t('admin.settings.tabs.platform');
+    const paymentsTab             = t('admin.settings.tabs.payments');
+    const emailTab                = t('admin.settings.tabs.email');
+    const securityTab             = t('admin.settings.tabs.security');
+    const notificationsTab        = t('admin.settings.tabs.notifications');
 
     // Common labels
-    const activeLabel             = useAsyncTranslation(locale, 'admin.settings.payments.active');
-    const inactiveLabel           = useAsyncTranslation(locale, 'admin.settings.payments.inactive');
+    const activeLabel             = t('admin.settings.payments.active');
+    const inactiveLabel           = t('admin.settings.payments.inactive');
 
     // General section
-    const general_site_info_title = useAsyncTranslation(locale, 'admin.settings.general.site_info_title');
-    const general_site_info_desc  = useAsyncTranslation(locale, 'admin.settings.general.site_info_desc');
-    const general_site_name_label = useAsyncTranslation(locale, 'admin.settings.general.site_name_label');
-    const general_site_desc_label = useAsyncTranslation(locale, 'admin.settings.general.site_description_label');
-    const general_site_url_label  = useAsyncTranslation(locale, 'admin.settings.general.site_url_label');
+    const general_site_info_title = t('admin.settings.general.site_info_title');
+    const general_site_info_desc  = t('admin.settings.general.site_info_desc');
+    const general_site_name_label = t('admin.settings.general.site_name_label');
+    const general_site_desc_label = t('admin.settings.general.site_description_label');
+    const general_site_url_label  = t('admin.settings.general.site_url_label');
 
-    const general_contact_title   = useAsyncTranslation(locale, 'admin.settings.general.contact_title');
-    const general_contact_desc    = useAsyncTranslation(locale, 'admin.settings.general.contact_desc');
-    const general_admin_email_lbl = useAsyncTranslation(locale, 'admin.settings.general.admin_email_label');
-    const general_support_email_lbl = useAsyncTranslation(locale, 'admin.settings.general.support_email_label');
+    const general_contact_title   = t('admin.settings.general.contact_title');
+    const general_contact_desc    = t('admin.settings.general.contact_desc');
+    const general_admin_email_lbl = t('admin.settings.general.admin_email_label');
+    const general_support_email_lbl = t('admin.settings.general.support_email_label');
 
     // Platform section
-    const platform_financial_title  = useAsyncTranslation(locale, 'admin.settings.platform.financial_title');
-    const platform_financial_desc   = useAsyncTranslation(locale, 'admin.settings.platform.financial_desc');
-    const platform_commission_label = useAsyncTranslation(locale, 'admin.settings.platform.commission_label');
-    const platform_min_price_label  = useAsyncTranslation(locale, 'admin.settings.platform.min_price_label');
-    const platform_max_price_label  = useAsyncTranslation(locale, 'admin.settings.platform.max_price_label');
-    const platform_currency_label   = useAsyncTranslation(locale, 'admin.settings.platform.currency_label');
+    const platform_financial_title  = t('admin.settings.platform.financial_title');
+    const platform_financial_desc   = t('admin.settings.platform.financial_desc');
+    const platform_commission_label = t('admin.settings.platform.commission_label');
+    const platform_min_price_label  = t('admin.settings.platform.min_price_label');
+    const platform_max_price_label  = t('admin.settings.platform.max_price_label');
+    const platform_currency_label   = t('admin.settings.platform.currency_label');
 
-    const platform_currency_opt_RON = useAsyncTranslation(locale, 'admin.settings.platform.currency_options.RON');
-    const platform_currency_opt_EUR = useAsyncTranslation(locale, 'admin.settings.platform.currency_options.EUR');
-    const platform_currency_opt_USD = useAsyncTranslation(locale, 'admin.settings.platform.currency_options.USD');
+    const platform_currency_opt_RON = t('admin.settings.platform.currency_options.RON');
+    const platform_currency_opt_EUR = t('admin.settings.platform.currency_options.EUR');
+    const platform_currency_opt_USD = t('admin.settings.platform.currency_options.USD');
 
-    const platform_user_title     = useAsyncTranslation(locale, 'admin.settings.platform.user_title');
-    const platform_user_desc      = useAsyncTranslation(locale, 'admin.settings.platform.user_desc');
-    const platform_guest_browse_label = useAsyncTranslation(locale, 'admin.settings.platform.guest_browsing_label');
-    const platform_guest_browse_desc  = useAsyncTranslation(locale, 'admin.settings.platform.guest_browsing_desc');
-    const platform_email_ver_label    = useAsyncTranslation(locale, 'admin.settings.platform.email_verification_label');
-    const platform_email_ver_desc     = useAsyncTranslation(locale, 'admin.settings.platform.email_verification_desc');
-    const platform_auto_approve_label = useAsyncTranslation(locale, 'admin.settings.platform.auto_approve_label');
-    const platform_auto_approve_desc  = useAsyncTranslation(locale, 'admin.settings.platform.auto_approve_desc');
-    const platform_reg_open_label     = useAsyncTranslation(locale, 'admin.settings.platform.registration_open_label');
-    const platform_reg_open_desc      = useAsyncTranslation(locale, 'admin.settings.platform.registration_open_desc');
+    const platform_user_title     = t('admin.settings.platform.user_title');
+    const platform_user_desc      = t('admin.settings.platform.user_desc');
+    const platform_guest_browse_label = t('admin.settings.platform.guest_browsing_label');
+    const platform_guest_browse_desc  = t('admin.settings.platform.guest_browsing_desc');
+    const platform_email_ver_label    = t('admin.settings.platform.email_verification_label');
+    const platform_email_ver_desc     = t('admin.settings.platform.email_verification_desc');
+    const platform_auto_approve_label = t('admin.settings.platform.auto_approve_label');
+    const platform_auto_approve_desc  = t('admin.settings.platform.auto_approve_desc');
+    const platform_reg_open_label     = t('admin.settings.platform.registration_open_label');
+    const platform_reg_open_desc      = t('admin.settings.platform.registration_open_desc');
 
     // Payments section
-    const payments_methods_title  = useAsyncTranslation(locale, 'admin.settings.payments.methods_title');
-    const payments_methods_desc   = useAsyncTranslation(locale, 'admin.settings.payments.methods_desc');
-    const payments_stripe_label   = useAsyncTranslation(locale, 'admin.settings.payments.stripe_label');
-    const payments_stripe_desc    = useAsyncTranslation(locale, 'admin.settings.payments.stripe_desc');
-    const payments_paypal_label   = useAsyncTranslation(locale, 'admin.settings.payments.paypal_label');
-    const payments_paypal_desc    = useAsyncTranslation(locale, 'admin.settings.payments.paypal_desc');
-    const payments_bank_label     = useAsyncTranslation(locale, 'admin.settings.payments.bank_transfer_label');
-    const payments_bank_desc      = useAsyncTranslation(locale, 'admin.settings.payments.bank_transfer_desc');
+    const payments_methods_title  = t('admin.settings.payments.methods_title');
+    const payments_methods_desc   = t('admin.settings.payments.methods_desc');
+    const payments_stripe_label   = t('admin.settings.payments.stripe_label');
+    const payments_stripe_desc    = t('admin.settings.payments.stripe_desc');
+    const payments_paypal_label   = t('admin.settings.payments.paypal_label');
+    const payments_paypal_desc    = t('admin.settings.payments.paypal_desc');
+    const payments_bank_label     = t('admin.settings.payments.bank_transfer_label');
+    const payments_bank_desc      = t('admin.settings.payments.bank_transfer_desc');
 
-    const payments_security_title = useAsyncTranslation(locale, 'admin.settings.payments.security_title');
-    const payments_security_desc  = useAsyncTranslation(locale, 'admin.settings.payments.security_desc');
-    const payments_escrow_label   = useAsyncTranslation(locale, 'admin.settings.payments.escrow_label');
-    const payments_escrow_desc    = useAsyncTranslation(locale, 'admin.settings.payments.escrow_desc');
-    const payments_escrow_alert   = useAsyncTranslation(locale, 'admin.settings.payments.escrow_alert');
+    const payments_security_title = t('admin.settings.payments.security_title');
+    const payments_security_desc  = t('admin.settings.payments.security_desc');
+    const payments_escrow_label   = t('admin.settings.payments.escrow_label');
+    const payments_escrow_desc    = t('admin.settings.payments.escrow_desc');
+    const payments_escrow_alert   = t('admin.settings.payments.escrow_alert');
 
     // Email config
-    const email_config_title      = useAsyncTranslation(locale, 'admin.settings.email.config_title');
-    const email_config_desc       = useAsyncTranslation(locale, 'admin.settings.email.config_desc');
-    const email_provider_label    = useAsyncTranslation(locale, 'admin.settings.email.provider_label');
-    const email_provider_sendgrid = useAsyncTranslation(locale, 'admin.settings.email.provider_options.sendgrid');
-    const email_provider_mailgun  = useAsyncTranslation(locale, 'admin.settings.email.provider_options.mailgun');
-    const email_provider_smtp     = useAsyncTranslation(locale, 'admin.settings.email.provider_options.smtp');
+    const email_config_title      = t('admin.settings.email.config_title');
+    const email_config_desc       = t('admin.settings.email.config_desc');
+    const email_provider_label    = t('admin.settings.email.provider_label');
+    const email_provider_sendgrid = t('admin.settings.email.provider_options.sendgrid');
+    const email_provider_mailgun  = t('admin.settings.email.provider_options.mailgun');
+    const email_provider_smtp     = t('admin.settings.email.provider_options.smtp');
 
-    const email_smtp_host_label   = useAsyncTranslation(locale, 'admin.settings.email.smtp.host_label');
-    const email_smtp_host_ph      = useAsyncTranslation(locale, 'admin.settings.email.smtp.host_placeholder');
-    const email_smtp_port_label   = useAsyncTranslation(locale, 'admin.settings.email.smtp.port_label');
-    const email_smtp_port_ph      = useAsyncTranslation(locale, 'admin.settings.email.smtp.port_placeholder');
-    const email_smtp_user_label   = useAsyncTranslation(locale, 'admin.settings.email.smtp.user_label');
-    const email_smtp_pass_label   = useAsyncTranslation(locale, 'admin.settings.email.smtp.password_label');
+    const email_smtp_host_label   = t('admin.settings.email.smtp.host_label');
+    const email_smtp_host_ph      = t('admin.settings.email.smtp.host_placeholder');
+    const email_smtp_port_label   = t('admin.settings.email.smtp.port_label');
+    const email_smtp_port_ph      = t('admin.settings.email.smtp.port_placeholder');
+    const email_smtp_user_label   = t('admin.settings.email.smtp.user_label');
+    const email_smtp_pass_label   = t('admin.settings.email.smtp.password_label');
 
     // Security
-    const security_auth_title     = useAsyncTranslation(locale, 'admin.settings.security.auth_title');
-    const security_auth_desc      = useAsyncTranslation(locale, 'admin.settings.security.auth_desc');
-    const security_2fa_label      = useAsyncTranslation(locale, 'admin.settings.security.two_factor_label');
-    const security_2fa_desc       = useAsyncTranslation(locale, 'admin.settings.security.two_factor_desc');
-    const security_pwd_len_label  = useAsyncTranslation(locale, 'admin.settings.security.password_length_label');
-    const security_max_attempts   = useAsyncTranslation(locale, 'admin.settings.security.max_attempts_label');
+    const security_auth_title     = t('admin.settings.security.auth_title');
+    const security_auth_desc      = t('admin.settings.security.auth_desc');
+    const security_2fa_label      = t('admin.settings.security.two_factor_label');
+    const security_2fa_desc       = t('admin.settings.security.two_factor_desc');
+    const security_pwd_len_label  = t('admin.settings.security.password_length_label');
+    const security_max_attempts   = t('admin.settings.security.max_attempts_label');
 
-    const security_sessions_title = useAsyncTranslation(locale, 'admin.settings.security.sessions_title');
-    const security_sessions_desc  = useAsyncTranslation(locale, 'admin.settings.security.sessions_desc');
-    const security_session_timeout_label = useAsyncTranslation(locale, 'admin.settings.security.session_timeout_label');
-    const security_session_timeout_desc  = useAsyncTranslation(locale, 'admin.settings.security.session_timeout_desc');
+    const security_sessions_title = t('admin.settings.security.sessions_title');
+    const security_sessions_desc  = t('admin.settings.security.sessions_desc');
+    const security_session_timeout_label = t('admin.settings.security.session_timeout_label');
+    const security_session_timeout_desc  = t('admin.settings.security.session_timeout_desc');
 
     // Notifications
-    const notif_title             = useAsyncTranslation(locale, 'admin.settings.notifications.title');
-    const notif_desc              = useAsyncTranslation(locale, 'admin.settings.notifications.desc');
-    const notif_email_label       = useAsyncTranslation(locale, 'admin.settings.notifications.email_label');
-    const notif_email_desc        = useAsyncTranslation(locale, 'admin.settings.notifications.email_desc');
-    const notif_sms_label         = useAsyncTranslation(locale, 'admin.settings.notifications.sms_label');
-    const notif_sms_desc          = useAsyncTranslation(locale, 'admin.settings.notifications.sms_desc');
-    const notif_push_label        = useAsyncTranslation(locale, 'admin.settings.notifications.push_label');
-    const notif_push_desc         = useAsyncTranslation(locale, 'admin.settings.notifications.push_desc');
-    const notif_marketing_label   = useAsyncTranslation(locale, 'admin.settings.notifications.marketing_label');
-    const notif_marketing_desc    = useAsyncTranslation(locale, 'admin.settings.notifications.marketing_desc');
+    const notif_title             = t('admin.settings.notifications.title');
+    const notif_desc              = t('admin.settings.notifications.desc');
+    const notif_email_label       = t('admin.settings.notifications.email_label');
+    const notif_email_desc        = t('admin.settings.notifications.email_desc');
+    const notif_sms_label         = t('admin.settings.notifications.sms_label');
+    const notif_sms_desc          = t('admin.settings.notifications.sms_desc');
+    const notif_push_label        = t('admin.settings.notifications.push_label');
+    const notif_push_desc         = t('admin.settings.notifications.push_desc');
+    const notif_marketing_label   = t('admin.settings.notifications.marketing_label');
+    const notif_marketing_desc    = t('admin.settings.notifications.marketing_desc');
     // ====== /Traduceri ======
 
     const handleSave = async () => {

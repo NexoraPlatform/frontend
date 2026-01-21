@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
-import Link from 'next/link';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { useTest } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import parseJson from "parse-json";
 
 // ---------- Helpers to parse/normalize ----------
@@ -183,8 +182,9 @@ export default function EditTestClient({ id }: { id: string }) {
 
     const { data: testData, loading: testLoading, error: testError } = useTest(id);
     const locale = useLocale();
-    const pageTitle = useAsyncTranslation(locale, 'admin.tests.edit.title');
-    const pageSubtitle = useAsyncTranslation(locale, 'admin.tests.edit.subtitle');
+  const t = useTranslations();
+    const pageTitle = t('admin.tests.edit.title');
+    const pageSubtitle = t('admin.tests.edit.subtitle');
 
     useEffect(() => {
         if (testData) {

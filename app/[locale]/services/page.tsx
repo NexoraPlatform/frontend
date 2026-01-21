@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocale } from '@/hooks/use-locale';
+import { useLocale, useTranslations } from 'next-intl';
 import { ChevronDown, Heart, Loader2, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import apiClient from '@/lib/api';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
 
 type LocalizedText = string | Record<string, string>;
@@ -178,6 +177,7 @@ function getServicesFromResponse(
 
 export default function ServicesPage() {
     const locale = useLocale();
+  const t = useTranslations();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [technologies, setTechnologies] = useState<Technology[]>([]);
@@ -194,26 +194,26 @@ export default function ServicesPage() {
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
-  const mainAriaLabel = useAsyncTranslation(locale, 'services.page.aria_label');
-  const pageTitle = useAsyncTranslation(locale, 'services.page.title');
-  const pageSubtitle = useAsyncTranslation(locale, 'services.page.subtitle');
-  const noServicesText = useAsyncTranslation(locale, 'services.results.no_services');
-  const filterTitle = useAsyncTranslation(locale, 'services.filters.title');
-  const serviceTypeLabel = useAsyncTranslation(locale, 'services.filters.service_type');
-  const technologiesLabel = useAsyncTranslation(locale, 'services.filters.technologies');
-  const allLabel = useAsyncTranslation(locale, 'services.filters.all');
-  const showMoreLabel = useAsyncTranslation(locale, 'services.filters.show_more');
-  const showLessLabel = useAsyncTranslation(locale, 'services.filters.show_less');
-  const otherCategoryLabel = useAsyncTranslation(locale, 'services.filters.other');
-  const recommendedLabel = useAsyncTranslation(locale, 'services.results.recommended');
-  const standardLabel = useAsyncTranslation(locale, 'services.results.standard');
-  const moreLabelTemplate = useAsyncTranslation(locale, 'services.results.more_label');
-  const providersAvailableTemplate = useAsyncTranslation(locale, 'services.results.providers_available');
-  const providersMoreLabelTemplate = useAsyncTranslation(locale, 'services.results.providers_more_label');
-  const noProvidersLabel = useAsyncTranslation(locale, 'services.results.no_providers');
-  const wishlistedLabel = useAsyncTranslation(locale, 'services.actions.wishlisted');
-  const addLabel = useAsyncTranslation(locale, 'services.actions.add');
-  const shareLabel = useAsyncTranslation(locale, 'services.actions.share');
+  const mainAriaLabel = t('services.page.aria_label');
+  const pageTitle = t('services.page.title');
+  const pageSubtitle = t('services.page.subtitle');
+  const noServicesText = t('services.results.no_services');
+  const filterTitle = t('services.filters.title');
+  const serviceTypeLabel = t('services.filters.service_type');
+  const technologiesLabel = t('services.filters.technologies');
+  const allLabel = t('services.filters.all');
+  const showMoreLabel = t('services.filters.show_more');
+  const showLessLabel = t('services.filters.show_less');
+  const otherCategoryLabel = t('services.filters.other');
+  const recommendedLabel = t('services.results.recommended');
+  const standardLabel = t('services.results.standard');
+  const moreLabelTemplate = t('services.results.more_label');
+  const providersAvailableTemplate = t('services.results.providers_available');
+  const providersMoreLabelTemplate = t('services.results.providers_more_label');
+  const noProvidersLabel = t('services.results.no_providers');
+  const wishlistedLabel = t('services.actions.wishlisted');
+  const addLabel = t('services.actions.add');
+  const shareLabel = t('services.actions.share');
 
   const fetchAllServices = useCallback(async () => {
     const firstResponse: ServicesResponse = await apiClient.getServices({

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GripVertical, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { Locale } from '@/types/locale';
 import {
     DndContext,
@@ -82,7 +82,7 @@ function SortableRow({
             <div className="flex items-center gap-3">
                 {/* drag handle */}
                 <button
-                    aria-label={useAsyncTranslation(locale, 'admin.roles.reorder_aria')}
+                    aria-label={t('admin.roles.reorder_aria')}
                     className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
                     {...attributes}
                     {...listeners}
@@ -99,10 +99,10 @@ function SortableRow({
                 {role.sortOrder != null && (
                     <span className="text-xs text-muted-foreground">#{role.sortOrder}</span>
                 )}
-                <Button size="icon" variant="ghost" onClick={() => onEdit(role.id)} aria-label={useAsyncTranslation(locale, 'admin.roles.edit')}>
+                <Button size="icon" variant="ghost" onClick={() => onEdit(role.id)} aria-label={t('admin.roles.edit')}>
                     <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => onDelete(role.id)} aria-label={useAsyncTranslation(locale, 'admin.roles.delete')}>
+                <Button size="icon" variant="ghost" onClick={() => onDelete(role.id)} aria-label={t('admin.roles.delete')}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </div>
@@ -119,20 +119,20 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
     const [loading, setLoading] = useState(false);
     const [savingOrder, setSavingOrder] = useState(false);
 
-    const searchPlaceholder = useAsyncTranslation(locale, 'admin.roles.search_placeholder');
-    const searchButton = useAsyncTranslation(locale, 'admin.roles.search_button');
-    const savingOrderLabel = useAsyncTranslation(locale, 'admin.roles.saving_order');
-    const loadingRoles = useAsyncTranslation(locale, 'admin.roles.loading_roles');
-    const noRolesShort = useAsyncTranslation(locale, 'admin.roles.no_roles_short');
-    const listTitle = useAsyncTranslation(locale, 'admin.roles.list_title');
-    const listDescriptionOne = useAsyncTranslation(locale, 'admin.roles.list_description_one');
-    const listDescriptionOther = useAsyncTranslation(locale, 'admin.roles.list_description_other');
-    const pageLabel = useAsyncTranslation(locale, 'admin.roles.pagination.page');
-    const ofLabel = useAsyncTranslation(locale, 'admin.roles.pagination.of');
-    const totalLabelTemplate = useAsyncTranslation(locale, 'admin.roles.pagination.total');
-    const previousLabel = useAsyncTranslation(locale, 'admin.roles.pagination.previous');
-    const nextLabel = useAsyncTranslation(locale, 'admin.roles.pagination.next');
-    const perPageLabel = useAsyncTranslation(locale, 'admin.roles.pagination.per_page');
+    const searchPlaceholder = t('admin.roles.search_placeholder');
+    const searchButton = t('admin.roles.search_button');
+    const savingOrderLabel = t('admin.roles.saving_order');
+    const loadingRoles = t('admin.roles.loading_roles');
+    const noRolesShort = t('admin.roles.no_roles_short');
+    const listTitle = t('admin.roles.list_title');
+    const listDescriptionOne = t('admin.roles.list_description_one');
+    const listDescriptionOther = t('admin.roles.list_description_other');
+    const pageLabel = t('admin.roles.pagination.page');
+    const ofLabel = t('admin.roles.pagination.of');
+    const totalLabelTemplate = t('admin.roles.pagination.total');
+    const previousLabel = t('admin.roles.pagination.previous');
+    const nextLabel = t('admin.roles.pagination.next');
+    const perPageLabel = t('admin.roles.pagination.per_page');
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })

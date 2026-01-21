@@ -134,7 +134,7 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">NEXT_LOCALE</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
-                      Reține limba selectată (RO/EN/DE) pentru a nu o schimba la fiecare pagină (hooks/use-locale.ts).
+                      Reține limba selectată (RO/EN/DE) pentru a nu o schimba la fiecare pagină (next-intl useLocale).
                     </td>
                   </tr>
                   <tr>
@@ -344,7 +344,7 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">NEXT_LOCALE</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
-                      Remembers the selected language (RO/EN/DE) to avoid switching it on every page (hooks/use-locale.ts).
+                      Remembers the selected language (RO/EN/DE) to avoid switching it on every page (next-intl useLocale).
                     </td>
                   </tr>
                   <tr>

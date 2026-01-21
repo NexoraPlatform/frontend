@@ -2,27 +2,27 @@
 
 import { useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { useLocale } from '@/hooks/use-locale';
+import { useLocale, useTranslations } from 'next-intl';
 import RolesListClient from './roles-list-client';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 const PermissionMatrix = dynamic(() => import('./PermissionMatrixTab'), { ssr: false });
 
 export default function RolesPage() {
   const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
     const locale = useLocale();
-  const rolesLabel = useAsyncTranslation(locale, 'admin.roles.tabs.roles');
-  const permissionsLabel = useAsyncTranslation(locale, 'admin.roles.tabs.permissions');
-  const loadingPermissions = useAsyncTranslation(locale, 'admin.roles.permissions_tab_loading');
-  const manageTitle = useAsyncTranslation(locale, 'admin.roles.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.roles.manage_subtitle');
-  const addRole = useAsyncTranslation(locale, 'admin.roles.add_role');
-  const permissionTitle = useAsyncTranslation(locale, 'admin.roles.permission_matrix.title');
-  const permissionSubtitle = useAsyncTranslation(locale, 'admin.roles.permission_matrix.subtitle');
+  const t = useTranslations();
+  const rolesLabel = t('admin.roles.tabs.roles');
+  const permissionsLabel = t('admin.roles.tabs.permissions');
+  const loadingPermissions = t('admin.roles.permissions_tab_loading');
+  const manageTitle = t('admin.roles.manage_title');
+  const manageSubtitle = t('admin.roles.manage_subtitle');
+  const addRole = t('admin.roles.add_role');
+  const permissionTitle = t('admin.roles.permission_matrix.title');
+  const permissionSubtitle = t('admin.roles.permission_matrix.subtitle');
 
   const headerTitle = tab === 'roles' ? manageTitle : permissionTitle;
   const headerSubtitle = tab === 'roles' ? manageSubtitle : permissionSubtitle;
