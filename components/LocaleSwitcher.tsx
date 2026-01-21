@@ -28,11 +28,21 @@ export function LocaleSwitcher({ className }: { className?: string }) {
     if (!mounted) return null;
 
     const currentConfig = localeConfig[currentLocale];
-    const normalizedPathname = (pathname ?? '/').replace(/^\/(ro|en)(?=\/|$)/, '') || '/';
+
+    const stripCurrentLocale = (path: string, locale: Locale) => {
+        const localePrefix = new RegExp(`^/${locale}(?=/|$)`);
+        const stripped = path.replace(localePrefix, '');
+        return stripped || '/';
+    };
 
     const handleLocaleChange = (nextLocale: Locale) => {
+        if (nextLocale === currentLocale) {
+            return;
+        }
+
         startTransition(() => {
-            router.replace(normalizedPathname, { locale: nextLocale });
+            const path = pathname ?? '/';
+            router.replace(stripCurrentLocale(path, currentLocale), { locale: nextLocale });
         });
     };
 
