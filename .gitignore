@@ -39,5 +39,3 @@ next-env.d.ts
 /.idea/*
 .idea/*
 !.idea/
-
-/app/[locale]/contracts/page.tsx
