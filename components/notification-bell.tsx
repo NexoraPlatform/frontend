@@ -26,7 +26,7 @@ export function NotificationBell() {
     const t = useTranslations();
     const notificationsTitle = t('common.notifications.title');
     const openNotificationsAria = t('common.notifications.open_aria');
-    const unreadCountTemplate = t('common.notifications.unread_count');
+    const unreadCountText = t('common.notifications.unread_count', {count: unreadCount});
     const allReadText = t('common.notifications.all_read');
     const webPushTitle = t('common.notifications.web_push_title');
     const webPushUnsupported = t('common.notifications.web_push_unsupported');
@@ -53,8 +53,6 @@ export function NotificationBell() {
         loadMore,
     } = useNotifications();
     const distanceLocale = locale === 'en' ? enUS : roLocale;
-    const unreadCountText = unreadCountTemplate.replace('{count}', String(unreadCount));
-
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);
 
