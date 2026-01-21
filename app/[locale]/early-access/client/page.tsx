@@ -20,6 +20,7 @@ import { Link } from '@/lib/navigation';
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { TermsContent } from "@/components/terms-content";
 import { apiClient } from "@/lib/api";
+import { Locale } from "@/types/locale";
 
 const COUNTRY_CODES = [
     "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
@@ -47,7 +48,7 @@ const getFlagEmoji = (code: string) =>
         .join("");
 
 export default function EarlyAccessClientPage() {
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
     const t = useTranslations();
     const badgeText = t("trustora.early_access.client.badge");
     const titleText = t("trustora.early_access.client.title");

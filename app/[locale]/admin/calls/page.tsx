@@ -108,10 +108,10 @@ export default function CallsPage() {
     ]);
 
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
 
     // Toate textele printr-un singur hook
-    const t = useCallsT(locale as Locale);
+    const t = useCallsT(locale);
 
     const handleCallAction = async (callId: string, action: string, noteTextParam: string | null) => {
         try {

@@ -17,6 +17,7 @@ import { useLocale, useTranslations } from "next-intl";
 import apiClient from "@/lib/api";
 import {Textarea} from "@/components/ui/textarea";
 import Editor from 'react-simple-wysiwyg';
+import { Locale } from "@/types/locale";
 
 const parseRecipients = (value: string) =>
   value
@@ -25,7 +26,7 @@ const parseRecipients = (value: string) =>
     .filter(Boolean);
 
 export default function AdminNewsletterPage() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const t = useTranslations();
   const [templates, setTemplates] = useState<string[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);

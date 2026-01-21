@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useLocale, useTranslations } from 'next-intl';
+import { Locale } from '@/types/locale';
 
 const STATUS_STYLE_MAP: Record<OrderStatus, { color: string; icon: LucideIcon }> = {
     PENDING: { color: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200', icon: Clock },
@@ -97,7 +98,7 @@ export type PaymentStatus =
     | 'PAID';
 
 export default function OrderDetailsPage({ id }: { id: string }) {
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
   const t = useTranslations();
     const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
