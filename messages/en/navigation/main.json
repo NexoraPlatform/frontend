@@ -5,5 +5,9 @@
   "about": "About",
   "help": "Help",
   "contact": "Contact",
-  "main_navigation": "Main Navigation"
+  "main_navigation": "Main Navigation",
+  "navigate_to": "Navigate to",
+  "change_theme": "Change theme",
+  "dark": "dark",
+  "light": "light"
 }

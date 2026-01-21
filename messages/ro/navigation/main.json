@@ -5,5 +5,9 @@
   "about": "Despre",
   "help": "Ajutor",
   "contact": "Contact",
-  "main_navigation": "Navigare principală"
+  "main_navigation": "Navigare principală",
+  "navigate_to": "Navighează la",
+  "change_theme": "Schimbă la tema",
+  "dark": "Închis",
+  "light": "Deschis"
 }
