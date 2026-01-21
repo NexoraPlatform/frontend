@@ -10,8 +10,7 @@ import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
-import {NextIntlClientProvider} from "next-intl";
-import {getLocale, getMessages} from "next-intl/server";
+import {getLocale} from "next-intl/server";
 import { GoogleTagManager } from '@next/third-parties/google'
 import {Partytown} from "@qwik.dev/partytown/react";
 import {TrustoraThemeStyles} from "@/components/trustora/theme-styles";
@@ -173,8 +172,6 @@ export default async function RootLayout({
     children: React.ReactNode
 }) {
     const locale = await getLocale();
-    const messages = await getMessages();
-
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
@@ -283,29 +280,27 @@ export default async function RootLayout({
             }}
         />
 
-        <NextIntlClientProvider locale={locale} messages={messages}>
-            <AuthProvider>
-                <OneSignalInit />
-                <NotificationProvider>
-                    <ChatProvider>
-                        <ThemeProvider
-                            attribute="class"
-                            defaultTheme="system"
-                            enableSystem
-                            disableTransitionOnChange
-                            storageKey="Trustora-theme"
-                        >
-                            <ActivityTracker />
+        <AuthProvider>
+            <OneSignalInit />
+            <NotificationProvider>
+                <ChatProvider>
+                    <ThemeProvider
+                        attribute="class"
+                        defaultTheme="system"
+                        enableSystem
+                        disableTransitionOnChange
+                        storageKey="Trustora-theme"
+                    >
+                        <ActivityTracker />
 
-                            {/* Main content */}
-                            <main id="main-content">{children}</main>
+                        {/* Main content */}
+                        <main id="main-content">{children}</main>
 
-                            <Toaster position="top-right" expand={false} richColors closeButton />
-                        </ThemeProvider>
-                    </ChatProvider>
-                </NotificationProvider>
-            </AuthProvider>
-        </NextIntlClientProvider>
+                        <Toaster position="top-right" expand={false} richColors closeButton />
+                    </ThemeProvider>
+                </ChatProvider>
+            </NotificationProvider>
+        </AuthProvider>
         </body>
         </html>
     )
