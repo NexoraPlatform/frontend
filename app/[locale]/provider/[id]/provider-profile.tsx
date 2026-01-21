@@ -42,6 +42,7 @@ import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages} from "@/hooks/use-api";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { normalizeImageSrc } from '@/lib/images';
 
 interface ProviderProfileProps {
     id: any;
@@ -801,7 +802,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                 <Card key={index} className="glass-card overflow-hidden hover:shadow-lg transition-shadow">
                                     <div className="aspect-video bg-muted relative overflow-hidden">
                                         <Image
-                                            src={project.image}
+                                            src={normalizeImageSrc(project.image)}
                                             alt={project.title}
                                             className="w-full h-full object-cover hover:scale-105 transition-transform"
                                         />

@@ -44,6 +44,7 @@ import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { normalizeImageSrc } from '@/lib/images';
 
 type Languages = {
     id: number;
@@ -1264,7 +1265,7 @@ export default function ProviderProfileEditPage() {
                                             <div className="aspect-video bg-muted">
                                                 {project.image && (
                                                     <Image
-                                                        src={project.image}
+                                                        src={normalizeImageSrc(project.image)}
                                                         alt={project.title}
                                                         className="w-full h-full object-cover"
                                                     />
