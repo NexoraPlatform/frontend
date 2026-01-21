@@ -1044,6 +1044,17 @@ export class ApiClient {
     });
   }
 
+  async markMilestoneAsComplete(projectId: number, milestone: number) {
+    return this.request<any>(`/projects/${projectId}/markMilestone`, {
+      method: 'POST',
+      body: JSON.stringify({ milestone: milestone }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    })
+  }
+
   async getClientProjectRequests() {
     return this.request<any>('/projects/my-requests', {
       method: 'GET',

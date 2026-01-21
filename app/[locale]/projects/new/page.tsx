@@ -457,7 +457,7 @@ export default function NewProjectPage() {
     useEffect(() => {
         const loadAvailableServices = async () => {
             try {
-                const response = await apiClient.getAllServices();
+                const response = await apiClient.getServices();
                 setAvailableServices(response.services || []);
             } catch (error) {
                 console.error('Failed to load services:', error);
@@ -1995,7 +1995,9 @@ export default function NewProjectPage() {
                                                 <div className="space-y-2 text-sm">
                                                     <div><strong>Titlu:</strong> {formData.title}</div>
                                                     <div><strong>Categorie:</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
-                                                    <div><strong>Buget:</strong> {formData.budget} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
+                                                    <div><strong>Buget:</strong> {formData.budget.toLocaleString()} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
+                                                    <div><strong>Comision platforma:</strong> {(Number(formData.budget ?? 0) * 12/100).toLocaleString()} RON</div>
+                                                    <div><strong>Total:</strong> {(Number(formData.budget ?? 0) + (Number(formData.budget ?? 0) * 12/100)).toLocaleString()} RON</div>
                                                     {formData.deadline && (
                                                         <div><strong>Deadline:</strong> {formatDeadline(formData.deadline, locale)}</div>
                                                     )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -277,6 +277,7 @@ export default function ClientProjectRequestsPage() {
                     ) : (
                         <div className="space-y-6">
                             {projects.map((project) => (
+
                                 <Card key={project.id} className="glass-card border-transparent shadow-sm">
                                     <CardHeader className="space-y-4">
                                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -351,7 +352,12 @@ export default function ClientProjectRequestsPage() {
                                                 Răspunsuri Prestatori
                                             </div>
                                             <div className="space-y-3">
-                                                {project.providers?.map((provider: any) => (
+                                                {project.providers?.map((provider: any) => {
+                                                    const providerMilestones =
+                                                        project.milestones
+                                                            ?.find((m: any) => m.providerId === provider.id)
+                                                            ?.milestones || [];
+                                                    return (
                                                     <div
                                                         key={provider.id}
                                                         className="border border-slate-100 rounded-xl p-4 bg-white/70 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
@@ -450,20 +456,45 @@ export default function ClientProjectRequestsPage() {
                                                                 })}
                                                             </div>
                                                         )}
+
+                                                        <div className="space-y-2 mt-2">
+                                                            {providerMilestones.map((milestone: any, index: number) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className={`flex items-center justify-between rounded-md border p-2 text-sm 
+                                                                    ${milestone.status === 'PENDING' && "bg-yellow-300"}
+                                                                    ${milestone.status === 'FINISHED' && "bg-green-300"}
+                                                                    ${milestone.status === 'PAID' && "bg-green-500"}
+                                                                    ${milestone.status === 'REJECTED' && "bg-red-700"}
+                                                                     `}
+                                                                >
+                                                                    <div className="flex items-center justify-between gap-6">
+                                                                        <span>{milestone.title}</span>
+                                                                        <span>/</span>
+                                                                        <span className="font-medium">
+                                                        Buget alocat: {milestone.amount.toLocaleString()} RON
+                                                    </span>
+                                                                    </div>
+
+                                                                    <span>{milestone.status}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                ))}
+                                                );
+                                                })}
                                             </div>
                                         </div>
 
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                                            <Button
+                                            {project.paymentStatus !== 'ESCROW' && (<Button
                                                 onClick={() => openCheckout(project)}
                                                 className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
                                                 size="lg"
                                             >
                                                 <Shield className="w-5 h-5 mr-2" />
                                                 Securizează Plata
-                                            </Button>
+                                            </Button>)}
                                             <div className="flex flex-col gap-2 sm:flex-row">
                                                 <Button
                                                     variant="outline"

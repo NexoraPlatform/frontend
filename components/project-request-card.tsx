@@ -156,8 +156,10 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         const response = await apiClient.finishProject(projectId);
 
         const stripe = await stripePromise;
+    }
 
-
+    const handleMarkMilestoneAsComplete = async (projectId: number, milestone: number) => {
+        const response = await apiClient.markMilestoneAsComplete(projectId, milestone);
     }
 
     const handleBudgetResponse = async (
@@ -207,18 +209,24 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         (project?.existing_services ?? []).map((s: any) => [s.id, s])
     );
 
+    const providerMilestones =
+        project.milestones
+            ?.find((m: any) => Number(m.providerId) === Number(user.id))
+            ?.milestones ?? [];
+
     return (
         <Card key={project.id} className="border-2">
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <div>
                         <CardTitle className="text-xl mb-2">
-                            {project.title[locale]}
+                            {project.title}
                             <span className="ms-2">{getStatusBadge(project.status)}</span>
                         </CardTitle>
                         <CardDescription className="line-clamp-2">
-                            {project.description[locale]}
+                            {project.description}
                         </CardDescription>
+
                         <div className="flex items-center space-x-4 mt-3 text-sm text-muted-foreground">
                             <div className="flex items-center space-x-1">
                                 <DollarSign className="w-4 h-4" />
@@ -318,49 +326,50 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                         </div>
                                     </div>
                                 </div>
-
-                                <Dialog
-                                    open={proposeNewBudgetProviderId === provider.id}
-                                    onOpenChange={(isOpen) => setProposeNewBudgetProviderId(isOpen ? provider.id : null)}
-                                >
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline">Propunere buget nou</Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-2xl">
-                                        <DialogHeader>
-                                            <DialogTitle>Propunere buget nou</DialogTitle>
-                                            <DialogDescription>
-                                                Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="flex flex-col flex-wrap gap-1">
-                                            <div>Buget original: {provider.allocatedBudget?.toLocaleString()} RON</div>
-                                            <div>Introdu propunerea de buget:</div>
-                                            <div>
-                                                <Input
-                                                    type="number"
-                                                    value={newBudget}
-                                                    onChange={(e) => setNewBudget(Number(e.target.value))}
-                                                />
+                                {(provider.provider_response === 'PENDING') && (
+                                    <Dialog
+                                        open={proposeNewBudgetProviderId === provider.id}
+                                        onOpenChange={(isOpen) => setProposeNewBudgetProviderId(isOpen ? provider.id : null)}
+                                    >
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline">Propunere buget nou</Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl">
+                                            <DialogHeader>
+                                                <DialogTitle>Propunere buget nou</DialogTitle>
+                                                <DialogDescription>
+                                                    Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex flex-col flex-wrap gap-1">
+                                                <div>Buget original: {provider.allocatedBudget?.toLocaleString()} RON</div>
+                                                <div>Introdu propunerea de buget:</div>
+                                                <div>
+                                                    <Input
+                                                        type="number"
+                                                        value={newBudget}
+                                                        onChange={(e) => setNewBudget(Number(e.target.value))}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <DialogFooter>
-                                            <DialogClose asChild>
-                                                <Button variant="outline">Anulează</Button>
-                                            </DialogClose>
-                                            <Button
-                                                variant="default"
-                                                onClick={() => {
-                                                    onResponse(project.id, 'NEW_PROPOSE', newBudget);
-                                                    setProposeNewBudgetProviderId(null);
-                                                }}
-                                            >
-                                                Salvează modificările
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">Anulează</Button>
+                                                </DialogClose>
+                                                <Button
+                                                    variant="default"
+                                                    onClick={() => {
+                                                        onResponse(project.id, 'NEW_PROPOSE', newBudget);
+                                                        setProposeNewBudgetProviderId(null);
+                                                    }}
+                                                >
+                                                    Salvează modificările
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
 
                                 {/* Budget Proposal */}
                                 {(provider.provider_response === 'PENDING') && (
@@ -417,6 +426,42 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                             addSuffix: true,
                                             locale: ro
                                         })}
+                                    </div>
+                                )}
+                                {providerMilestones.length > 0 && (
+                                    <div className="mt-4 border-t pt-3">
+                                        <div className="text-sm font-medium mb-2">
+                                            Milestone-uri proiect
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {providerMilestones.map((milestone: any, index: number) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between rounded-md border p-2 text-sm"
+                                                >
+                                                    <div className="flex items-center justify-between gap-6">
+                                                        <span>{milestone.title}</span>
+                                                        <span>/</span>
+                                                        <span className="font-medium">
+                                                        Buget alocat: {milestone.amount.toLocaleString()} RON
+                                                    </span>
+                                                    </div>
+
+                                                    <span>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="default"
+                                                            onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
+                                                            disabled={milestone.status !== 'PENDING'}
+                                                            >
+
+                                                            {milestone.status === 'PENDING' ? 'Marcheaza milestone ca finalizat' : milestone.status === 'PAID' ? 'Platit' : milestone.status === 'REJECTED' ? 'Refuzat' : 'In asteptare'}
+                                                        </Button>
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
