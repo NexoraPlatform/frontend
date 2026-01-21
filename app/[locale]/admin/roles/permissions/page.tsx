@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from '@/hooks/use-locale';
+import { useLocale } from 'next-intl';
 import PermissionMatrixTab from '../PermissionMatrixTab';
 
 export default function PermissionsPage() {

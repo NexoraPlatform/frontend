@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Link, useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,55 +25,54 @@ import {
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useRouter } from "next/navigation";
-import { useLocale } from "@/hooks/use-locale";
+import { useLocale, useTranslations } from 'next-intl';
 import {Can} from "@/components/Can";
-import {useAsyncTranslation} from "@/hooks/use-async-translation";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminUsersPage() {
+  const t = useTranslations();
   const [searchTerm, setSearchTerm] = useState('');
   const [userFilter, setUserFilter] = useState('all');
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
-    const locale = useLocale();
-  const manageTitle = useAsyncTranslation(locale, 'admin.users.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.users.manage_subtitle');
-  const addUser = useAsyncTranslation(locale, 'admin.users.add_user');
-  const searchPlaceholder = useAsyncTranslation(locale, 'admin.users.search_placeholder');
-  const filterRole = useAsyncTranslation(locale, 'admin.users.filter_role');
-  const filterAll = useAsyncTranslation(locale, 'admin.users.filter_all');
-  const filterClients = useAsyncTranslation(locale, 'admin.users.filter_clients');
-  const filterProviders = useAsyncTranslation(locale, 'admin.users.filter_providers');
-  const filterAdmins = useAsyncTranslation(locale, 'admin.users.filter_admins');
-  const listTitle = useAsyncTranslation(locale, 'admin.users.list_title');
-  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.users.list_description');
-  const confirmDeleteText = useAsyncTranslation(locale, 'admin.users.actions.confirm_delete');
-  const errorPrefix = useAsyncTranslation(locale, 'admin.users.actions.error_prefix');
-  const modifyProfile = useAsyncTranslation(locale, 'admin.users.actions.modify_profile');
-  const viewProfile = useAsyncTranslation(locale, 'admin.users.actions.view_profile');
-  const verifyLabel = useAsyncTranslation(locale, 'admin.users.actions.verify');
-  const suspendLabel = useAsyncTranslation(locale, 'admin.users.actions.suspend');
-  const activateLabel = useAsyncTranslation(locale, 'admin.users.actions.activate');
-  const deleteLabel = useAsyncTranslation(locale, 'admin.users.actions.delete');
-  const setSuperuser = useAsyncTranslation(locale, 'admin.users.actions.set_superuser');
-  const removeSuperuser = useAsyncTranslation(locale, 'admin.users.actions.remove_superuser');
-  const noUsersTitle = useAsyncTranslation(locale, 'admin.users.no_users_title');
-  const noUsersDescription = useAsyncTranslation(locale, 'admin.users.no_users_description');
-  const reviewsTemplate = useAsyncTranslation(locale, 'admin.users.reviews_label');
-  const registeredTemplate = useAsyncTranslation(locale, 'admin.users.registered_prefix');
-  const superuserBadge = useAsyncTranslation(locale, 'admin.users.roles.SUPERUSER');
+  const locale = useLocale();
+  const manageTitle = t('admin.users.manage_title');
+  const manageSubtitle = t('admin.users.manage_subtitle');
+  const addUser = t('admin.users.add_user');
+  const searchPlaceholder = t('admin.users.search_placeholder');
+  const filterRole = t('admin.users.filter_role');
+  const filterAll = t('admin.users.filter_all');
+  const filterClients = t('admin.users.filter_clients');
+  const filterProviders = t('admin.users.filter_providers');
+  const filterAdmins = t('admin.users.filter_admins');
+  const listTitle = t('admin.users.list_title');
+  const listDescriptionTemplate = t('admin.users.list_description');
+  const confirmDeleteText = t('admin.users.actions.confirm_delete');
+  const errorPrefix = t('admin.users.actions.error_prefix');
+  const modifyProfile = t('admin.users.actions.modify_profile');
+  const viewProfile = t('admin.users.actions.view_profile');
+  const verifyLabel = t('admin.users.actions.verify');
+  const suspendLabel = t('admin.users.actions.suspend');
+  const activateLabel = t('admin.users.actions.activate');
+  const deleteLabel = t('admin.users.actions.delete');
+  const setSuperuser = t('admin.users.actions.set_superuser');
+  const removeSuperuser = t('admin.users.actions.remove_superuser');
+  const noUsersTitle = t('admin.users.no_users_title');
+  const noUsersDescription = t('admin.users.no_users_description');
+  const reviewsTemplate = t('admin.users.reviews_label');
+  const registeredTemplate = t('admin.users.registered_prefix');
+  const superuserBadge = t('admin.users.roles.SUPERUSER');
 
   const statusLabels = {
-    ACTIVE: useAsyncTranslation(locale, 'admin.users.statuses.ACTIVE'),
-    SUSPENDED: useAsyncTranslation(locale, 'admin.users.statuses.SUSPENDED'),
-    PENDING_VERIFICATION: useAsyncTranslation(locale, 'admin.users.statuses.PENDING_VERIFICATION'),
+    ACTIVE: t('admin.users.statuses.ACTIVE'),
+    SUSPENDED: t('admin.users.statuses.SUSPENDED'),
+    PENDING_VERIFICATION: t('admin.users.statuses.PENDING_VERIFICATION'),
   } as const;
 
   const roleLabels = {
-    ADMIN: useAsyncTranslation(locale, 'admin.users.roles.ADMIN'),
-    PROVIDER: useAsyncTranslation(locale, 'admin.users.roles.PROVIDER'),
-    CLIENT: useAsyncTranslation(locale, 'admin.users.roles.CLIENT'),
+    ADMIN: t('admin.users.roles.ADMIN'),
+    PROVIDER: t('admin.users.roles.PROVIDER'),
+    CLIENT: t('admin.users.roles.CLIENT'),
   } as const;
 
   const handleUserAction = async (userId: string, action: string, isSuperuser?: boolean) => {

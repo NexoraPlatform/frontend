@@ -3,7 +3,7 @@
 import { Header } from "@/components/header";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useRouter } from "next/navigation";
+import { useRouter } from '@/lib/navigation';
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import Cal, { getCalApi } from "@calcom/embed-react";

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import {AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus, Verified} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
@@ -15,58 +15,57 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import apiClient from '@/lib/api';
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useTranslations } from 'next-intl';
 
 type PermissionState = {
     [slug: string]: { id: number; name: string; allowed: boolean };
 };
 
 export default function AdminCard({
-                                      formData,
-                                      setFormDataAction,
-                                      permissions,
-                                      submitAction,      // <- submit comes from parent
-                                      loading = false,   // <- UI state from parent
-                                      error = '',
-                                  }: {
-    formData: any;
-    setFormDataAction: React.Dispatch<React.SetStateAction<any>>;
-    permissions: any[];
-    submitAction: (e: React.FormEvent) => Promise<void>;
-    loading?: boolean;
-    error?: string;
+  formData,
+  setFormDataAction,
+  permissions,
+  submitAction, // <- submit comes from parent
+  loading = false, // <- UI state from parent
+  error = '',
+}: {
+  formData: any;
+  setFormDataAction: React.Dispatch<React.SetStateAction<any>>;
+  permissions: any[];
+  submitAction: (e: React.FormEvent) => Promise<void>;
+  loading?: boolean;
+  error?: string;
 }) {
+    const t = useTranslations();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
     const [selectedPermissions, setSelectedPermissions] = useState<PermissionState>({});
     const hasInitializedPermissions = useRef(false);
-    const locale = useLocale();
-    const editAdminTitleTemplate = useAsyncTranslation(locale, 'admin.users.edit.admin.title');
-    const editAdminSubtitle = useAsyncTranslation(locale, 'admin.users.edit.admin.subtitle');
-    const adminInfoTitle = useAsyncTranslation(locale, 'admin.users.edit.admin.info_title');
-    const adminInfoDescription = useAsyncTranslation(locale, 'admin.users.edit.admin.info_description');
-    const firstNameLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.first_name_label');
-    const lastNameLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.last_name_label');
-    const emailLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.email_label');
-    const roleLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.role_label');
-    const phoneLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.phone_label');
-    const roleClient = useAsyncTranslation(locale, 'admin.users.roles.CLIENT');
-    const roleProvider = useAsyncTranslation(locale, 'admin.users.roles.PROVIDER');
-    const roleAdmin = useAsyncTranslation(locale, 'admin.users.roles.ADMIN');
-    const changePassword = useAsyncTranslation(locale, 'admin.users.edit.admin.change_password');
-    const passwordOptional = useAsyncTranslation(locale, 'admin.users.edit.admin.password_optional');
-    const passwordLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.password_label');
-    const confirmPasswordLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.confirm_password_label');
-    const savingLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.saving');
-    const saveAdminLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.save_admin');
-    const permissionsLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.permissions');
-    const editPermissionsLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.edit_permissions');
-    const selectPermissionsLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.select_permissions');
-    const noPermissionsSelected = useAsyncTranslation(locale, 'admin.users.edit.admin.no_permission_selected');
-    const allowLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.allow');
-    const denyLabel = useAsyncTranslation(locale, 'admin.users.edit.admin.deny');
+    const editAdminTitleTemplate = t('admin.users.edit.admin.title');
+    const editAdminSubtitle = t('admin.users.edit.admin.subtitle');
+    const adminInfoTitle = t('admin.users.edit.admin.info_title');
+    const adminInfoDescription = t('admin.users.edit.admin.info_description');
+    const firstNameLabel = t('admin.users.edit.admin.first_name_label');
+    const lastNameLabel = t('admin.users.edit.admin.last_name_label');
+    const emailLabel = t('admin.users.edit.admin.email_label');
+    const roleLabel = t('admin.users.edit.admin.role_label');
+    const phoneLabel = t('admin.users.edit.admin.phone_label');
+    const roleClient = t('admin.users.roles.CLIENT');
+    const roleProvider = t('admin.users.roles.PROVIDER');
+    const roleAdmin = t('admin.users.roles.ADMIN');
+    const changePassword = t('admin.users.edit.admin.change_password');
+    const passwordOptional = t('admin.users.edit.admin.password_optional');
+    const passwordLabel = t('admin.users.edit.admin.password_label');
+    const confirmPasswordLabel = t('admin.users.edit.admin.confirm_password_label');
+    const savingLabel = t('admin.users.edit.admin.saving');
+    const saveAdminLabel = t('admin.users.edit.admin.save_admin');
+    const permissionsLabel = t('admin.users.edit.admin.permissions');
+    const editPermissionsLabel = t('admin.users.edit.admin.edit_permissions');
+    const selectPermissionsLabel = t('admin.users.edit.admin.select_permissions');
+    const noPermissionsSelected = t('admin.users.edit.admin.no_permission_selected');
+    const allowLabel = t('admin.users.edit.admin.allow');
+    const denyLabel = t('admin.users.edit.admin.deny');
 
     useEffect(() => {
         if (hasInitializedPermissions.current) return;

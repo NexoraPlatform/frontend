@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Link } from '@/lib/navigation';
 import { ArrowLeft, CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
-import { useLocale } from "@/hooks/use-locale";
+import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import apiClient from "@/lib/api";
 import {Textarea} from "@/components/ui/textarea";
 import Editor from 'react-simple-wysiwyg';
@@ -26,6 +26,7 @@ const parseRecipients = (value: string) =>
     .filter(Boolean);
 
 export default function AdminNewsletterPage() {
+  const t = useTranslations();
   const locale = useLocale();
   const [templates, setTemplates] = useState<string[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
@@ -58,93 +59,49 @@ export default function AdminNewsletterPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const isCustomTemplate = template === "custom";
 
-  const titleText = useAsyncTranslation(locale, "admin.newsletter.title", "Newsletter");
-  const subtitleText = useAsyncTranslation(
-    locale,
-    "admin.newsletter.subtitle",
-    "Trimite emailuri către abonați folosind template-uri predefinite.",
-  );
-  const templateLabel = useAsyncTranslation(locale, "admin.newsletter.template_label", "Template");
-  const templatePlaceholder = useAsyncTranslation(locale, "admin.newsletter.template_placeholder", "Selectează template");
-  const templateLoadingText = useAsyncTranslation(
-    locale,
-    "admin.newsletter.template_loading",
-    "Se încarcă template-urile...",
-  );
-  const templateEmptyText = useAsyncTranslation(
-    locale,
-    "admin.newsletter.template_empty",
-    "Nu există template-uri disponibile.",
-  );
-  const dataMessageLabel = useAsyncTranslation(locale, "admin.newsletter.data_message_label", "Mesaj");
-  const dataMessagePlaceholder = useAsyncTranslation(
-    locale,
-    "admin.newsletter.data_message_placeholder",
-    "Ex: Ne bucurăm că ești aici.",
-  );
-  const userTypeLabel = useAsyncTranslation(locale, "admin.newsletter.user_type_label", "Tip abonat");
-  const userTypeAll = useAsyncTranslation(locale, "admin.newsletter.user_type_all", "Toți abonații");
-  const userTypeClient = useAsyncTranslation(locale, "admin.newsletter.user_type_client", "Clienți");
-  const userTypeProvider = useAsyncTranslation(locale, "admin.newsletter.user_type_provider", "Prestatori");
-  const languageLabel = useAsyncTranslation(locale, "admin.newsletter.language_label", "Limba");
-  const languageRo = useAsyncTranslation(locale, "admin.newsletter.language_ro", "Română");
-  const languageEn = useAsyncTranslation(locale, "admin.newsletter.language_en", "Engleză");
-  const previewTitle = useAsyncTranslation(locale, "admin.newsletter.preview_title", "Previzualizare live");
-  const previewLoading = useAsyncTranslation(locale, "admin.newsletter.preview_loading", "Se încarcă preview-ul...");
-  const previewEmpty = useAsyncTranslation(locale, "admin.newsletter.preview_empty", "Selectează un template pentru preview.");
-  const previewError = useAsyncTranslation(locale, "admin.newsletter.preview_error", "Nu am putut încărca preview-ul.");
-  const previewNote = useAsyncTranslation(
-    locale,
-    "admin.newsletter.preview_note",
-    "Variabilele sunt înlocuite cu valori de test în preview.",
-  );
-  const customOnlyNote = useAsyncTranslation(
-    locale,
-    "admin.newsletter.custom_only_note",
-    "Subiectul și mesajul pot fi editate doar pentru template-ul custom.",
-  );
-  const recipientsLabel = useAsyncTranslation(
-    locale,
-    "admin.newsletter.recipients_label",
-    "Destinatari specifici (opțional)",
-  );
-  const recipientsPlaceholder = useAsyncTranslation(
-    locale,
-    "admin.newsletter.recipients_placeholder",
-    "ex: ana@example.com, ioan@example.com",
-  );
-  const sendButton = useAsyncTranslation(locale, "admin.newsletter.send_button", "Trimite newsletter");
-  const sendingButton = useAsyncTranslation(locale, "admin.newsletter.sending_button", "Se trimite...");
-  const successMessage = useAsyncTranslation(
-    locale,
-    "admin.newsletter.success_message",
-    "Trimis către {count} abonați.",
-  );
-  const errorMessage = useAsyncTranslation(
-    locale,
-    "admin.newsletter.error_message",
-    "Nu am putut trimite newsletterul.",
-  );
-  const listTitle = useAsyncTranslation(locale, "admin.newsletter.list_title", "Abonați newsletter");
-  const listDescription = useAsyncTranslation(
-    locale,
-    "admin.newsletter.list_description",
-    "Lista abonaților activi.",
-  );
-  const listLoading = useAsyncTranslation(locale, "admin.newsletter.list_loading", "Se încarcă abonații...");
-  const listEmpty = useAsyncTranslation(locale, "admin.newsletter.list_empty", "Nu există abonați disponibili.");
-  const listError = useAsyncTranslation(locale, "admin.newsletter.list_error", "Nu am putut încărca abonații.");
-  const perPageLabel = useAsyncTranslation(locale, "admin.newsletter.per_page_label", "Rezultate per pagină");
-  const onlyActiveLabel = useAsyncTranslation(locale, "admin.newsletter.only_active_label", "Doar activi");
-  const columnEmail = useAsyncTranslation(locale, "admin.newsletter.columns.email", "Email");
-  const columnName = useAsyncTranslation(locale, "admin.newsletter.columns.name", "Nume");
-  const columnUserType = useAsyncTranslation(locale, "admin.newsletter.columns.user_type", "Tip");
-  const columnCompany = useAsyncTranslation(locale, "admin.newsletter.columns.company", "Companie");
-  const columnLanguage = useAsyncTranslation(locale, "admin.newsletter.columns.language", "Limba");
-  const columnSubscribedAt = useAsyncTranslation(locale, "admin.newsletter.columns.subscribed_at", "Abonat la");
-  const columnStatus = useAsyncTranslation(locale, "admin.newsletter.columns.status", "Status");
-  const statusActive = useAsyncTranslation(locale, "admin.newsletter.status_active", "Activ");
-  const statusInactive = useAsyncTranslation(locale, "admin.newsletter.status_inactive", "Dezabonat");
+  const titleText = t("admin.newsletter.title", {defaultValue: "Newsletter"});
+  const subtitleText = t("admin.newsletter.subtitle", {defaultValue: "Trimite emailuri către abonați folosind template-uri predefinite."});
+  const templateLabel = t("admin.newsletter.template_label", {defaultValue: "Template"});
+  const templatePlaceholder = t("admin.newsletter.template_placeholder", {defaultValue: "Selectează template"});
+  const templateLoadingText = t("admin.newsletter.template_loading", {defaultValue: "Se încarcă template-urile..."});
+  const templateEmptyText = t("admin.newsletter.template_empty", {defaultValue: "Nu există template-uri disponibile."});
+  const dataMessageLabel = t("admin.newsletter.data_message_label", {defaultValue: "Mesaj"});
+  const dataMessagePlaceholder = t("admin.newsletter.data_message_placeholder", {defaultValue: "Ex: Ne bucurăm că ești aici."});
+  const userTypeLabel = t("admin.newsletter.user_type_label", {defaultValue: "Tip abonat"});
+  const userTypeAll = t("admin.newsletter.user_type_all", {defaultValue: "Toți abonații"});
+  const userTypeClient = t("admin.newsletter.user_type_client", {defaultValue: "Clienți"});
+  const userTypeProvider = t("admin.newsletter.user_type_provider", {defaultValue: "Prestatori"});
+  const languageLabel = t("admin.newsletter.language_label", {defaultValue: "Limba"});
+  const languageRo = t("admin.newsletter.language_ro", {defaultValue: "Română"});
+  const languageEn = t("admin.newsletter.language_en", {defaultValue: "Engleză"});
+  const previewTitle = t("admin.newsletter.preview_title", {defaultValue: "Previzualizare live"});
+  const previewLoading = t("admin.newsletter.preview_loading", {defaultValue: "Se încarcă preview-ul..."});
+  const previewEmpty = t("admin.newsletter.preview_empty", {defaultValue: "Selectează un template pentru preview."});
+  const previewError = t("admin.newsletter.preview_error", {defaultValue: "Nu am putut încărca preview-ul."});
+  const previewNote = t("admin.newsletter.preview_note", {defaultValue: "Variabilele sunt înlocuite cu valori de test în preview."});
+  const customOnlyNote = t("admin.newsletter.custom_only_note", {defaultValue: "Subiectul și mesajul pot fi editate doar pentru template-ul custom."});
+  const recipientsLabel = t("admin.newsletter.recipients_label", {defaultValue: "Destinatari specifici (opțional)"});
+  const recipientsPlaceholder = t("admin.newsletter.recipients_placeholder", {defaultValue: "ex: ana@example.com, ioan@example.com"});
+  const sendButton = t("admin.newsletter.send_button", {defaultValue: "Trimite newsletter"});
+  const sendingButton = t("admin.newsletter.sending_button", {defaultValue: "Se trimite..."});
+  const successMessage = t("admin.newsletter.success_message", {defaultValue: "Trimis către {count} abonați."});
+  const errorMessage = t("admin.newsletter.error_message", {defaultValue: "Nu am putut trimite newsletterul."});
+  const listTitle = t("admin.newsletter.list_title", {defaultValue: "Abonați newsletter"});
+  const listDescription = t("admin.newsletter.list_description", {defaultValue: "Lista abonaților activi."});
+  const listLoading = t("admin.newsletter.list_loading", {defaultValue: "Se încarcă abonații..."});
+  const listEmpty = t("admin.newsletter.list_empty", {defaultValue: "Nu există abonați disponibili."});
+  const listError = t("admin.newsletter.list_error", {defaultValue: "Nu am putut încărca abonații."});
+  const perPageLabel = t("admin.newsletter.per_page_label", {defaultValue: "Rezultate per pagină"});
+  const onlyActiveLabel = t("admin.newsletter.only_active_label", {defaultValue: "Doar activi"});
+  const columnEmail = t("admin.newsletter.columns.email", {defaultValue: "Email"});
+  const columnName = t("admin.newsletter.columns.name", {defaultValue: "Nume"});
+  const columnUserType = t("admin.newsletter.columns.user_type", {defaultValue: "Tip"});
+  const columnCompany = t("admin.newsletter.columns.company", {defaultValue: "Companie"});
+  const columnLanguage = t("admin.newsletter.columns.language", {defaultValue: "Limba"});
+  const columnSubscribedAt = t("admin.newsletter.columns.subscribed_at", {defaultValue: "Abonat la"});
+  const columnStatus = t("admin.newsletter.columns.status", {defaultValue: "Status"});
+  const statusActive = t("admin.newsletter.status_active", {defaultValue: "Activ"});
+  const statusInactive = t("admin.newsletter.status_inactive", {defaultValue: "Dezabonat"});
 
   useEffect(() => {
     let active = true;
@@ -212,7 +169,7 @@ export default function AdminNewsletterPage() {
 
     const stripBladePhp = (html: string) =>
       html
-        .replace(/@php[\s\S]*?@endphp/g, "")
+        .replace(/@php[\s\S]*?@endphp/g, ""})
         .replace(/@php[\s\S]*?(?:\n|$)/g, "");
 
     const defaultVariables: Record<string, string> = {

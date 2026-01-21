@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from '@/lib/navigation';
 import { ArrowLeft, Loader2, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { useEarlyAccessGrouped } from "@/hooks/use-api";
-import { useLocale } from "@/hooks/use-locale";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
+import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 type ProviderEntry = {
   id: number;
@@ -95,6 +95,7 @@ const formatDateTime = (value: string | null, locale: string) => {
 };
 
 export default function AdminEarlyAccessPage() {
+  const t = useTranslations();
   const locale = useLocale();
   const { data, loading, error } = useEarlyAccessGrouped() as {
     data: EarlyAccessResponse | null;
@@ -102,32 +103,32 @@ export default function AdminEarlyAccessPage() {
     error: string | null;
   };
 
-  const manageTitle = useAsyncTranslation(locale, "admin.early_access.manage_title");
-  const manageSubtitle = useAsyncTranslation(locale, "admin.early_access.manage_subtitle");
-  const providersTitle = useAsyncTranslation(locale, "admin.early_access.providers.title");
-  const providersDescription = useAsyncTranslation(locale, "admin.early_access.providers.description");
-  const providersEmpty = useAsyncTranslation(locale, "admin.early_access.providers.empty");
-  const clientsTitle = useAsyncTranslation(locale, "admin.early_access.clients.title");
-  const clientsDescription = useAsyncTranslation(locale, "admin.early_access.clients.description");
-  const clientsEmpty = useAsyncTranslation(locale, "admin.early_access.clients.empty");
-  const errorMessage = useAsyncTranslation(locale, "admin.early_access.error");
-  const nameLabel = useAsyncTranslation(locale, "admin.early_access.columns.name");
-  const contactNameLabel = useAsyncTranslation(locale, "admin.early_access.columns.contact_name");
-  const companyNameLabel = useAsyncTranslation(locale, "admin.early_access.columns.company_name");
-  const emailLabel = useAsyncTranslation(locale, "admin.early_access.columns.email");
-  const countryLabel = useAsyncTranslation(locale, "admin.early_access.columns.country");
-  const applicationIdLabel = useAsyncTranslation(locale, "admin.early_access.columns.application_id");
-  const languageLabel = useAsyncTranslation(locale, "admin.early_access.columns.language");
-  const scoreLabel = useAsyncTranslation(locale, "admin.early_access.columns.score");
-  const verificationLabel = useAsyncTranslation(locale, "admin.early_access.columns.verification");
-  const verificationSentLabel = useAsyncTranslation(locale, "admin.early_access.columns.verification_sent");
-  const verificationExpiresLabel = useAsyncTranslation(locale, "admin.early_access.columns.verification_expires");
-  const createdAtLabel = useAsyncTranslation(locale, "admin.early_access.columns.created_at");
-  const verifiedLabel = useAsyncTranslation(locale, "admin.early_access.status.verified");
-  const unverifiedLabel = useAsyncTranslation(locale, "admin.early_access.status.unverified");
-  const expiredLabel = useAsyncTranslation(locale, "admin.early_access.status.expired");
+  const manageTitle = t("admin.early_access.manage_title");
+  const manageSubtitle = t("admin.early_access.manage_subtitle");
+  const providersTitle = t("admin.early_access.providers.title");
+  const providersDescription = t("admin.early_access.providers.description");
+  const providersEmpty = t("admin.early_access.providers.empty");
+  const clientsTitle = t("admin.early_access.clients.title");
+  const clientsDescription = t("admin.early_access.clients.description");
+  const clientsEmpty = t("admin.early_access.clients.empty");
+  const errorMessage = t("admin.early_access.error");
+  const nameLabel = t("admin.early_access.columns.name");
+  const contactNameLabel = t("admin.early_access.columns.contact_name");
+  const companyNameLabel = t("admin.early_access.columns.company_name");
+  const emailLabel = t("admin.early_access.columns.email");
+  const countryLabel = t("admin.early_access.columns.country");
+  const applicationIdLabel = t("admin.early_access.columns.application_id");
+  const languageLabel = t("admin.early_access.columns.language");
+  const scoreLabel = t("admin.early_access.columns.score");
+  const verificationLabel = t("admin.early_access.columns.verification");
+  const verificationSentLabel = t("admin.early_access.columns.verification_sent");
+  const verificationExpiresLabel = t("admin.early_access.columns.verification_expires");
+  const createdAtLabel = t("admin.early_access.columns.created_at");
+  const verifiedLabel = t("admin.early_access.status.verified");
+  const unverifiedLabel = t("admin.early_access.status.unverified");
+  const expiredLabel = t("admin.early_access.status.expired");
 
-  const paginationLabel = useAsyncTranslation(locale, "admin.early_access.pagination");
+  const paginationLabel = t("admin.early_access.pagination");
 
   const providers = data?.providers ?? [];
   const clients = data?.clients ?? [];

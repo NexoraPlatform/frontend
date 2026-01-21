@@ -1,24 +1,15 @@
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+import { getTranslations } from "next-intl/server";
 
 export async function TrustoraVisualLanguageSection({ locale }: { locale: Locale }) {
-    const [
-        title,
-        moneyLabel,
-        moneySub,
-        contractsLabel,
-        contractsSub,
-        verificationLabel,
-        verificationSub,
-    ] = await Promise.all([
-        t(locale, "trustora.visual.title"),
-        t(locale, "trustora.visual.money_label"),
-        t(locale, "trustora.visual.money_subtitle"),
-        t(locale, "trustora.visual.contracts_label"),
-        t(locale, "trustora.visual.contracts_subtitle"),
-        t(locale, "trustora.visual.verification_label"),
-        t(locale, "trustora.visual.verification_subtitle"),
-    ]);
+    const t = await getTranslations({ locale });
+    const title = t("trustora.visual.title");
+    const moneyLabel = t("trustora.visual.money_label");
+    const moneySub = t("trustora.visual.money_subtitle");
+    const contractsLabel = t("trustora.visual.contracts_label");
+    const contractsSub = t("trustora.visual.contracts_subtitle");
+    const verificationLabel = t("trustora.visual.verification_label");
+    const verificationSub = t("trustora.visual.verification_subtitle");
 
     return (
         <section className="py-24 px-6 bg-white overflow-hidden dark:bg-[#070C14]">

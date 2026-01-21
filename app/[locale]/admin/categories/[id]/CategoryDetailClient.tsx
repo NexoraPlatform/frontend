@@ -1,9 +1,9 @@
 "use client";
 
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
-import Link from 'next/link';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/lib/navigation';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
@@ -15,9 +15,8 @@ import {AlertCircle, ArrowLeft, FolderEdit, Loader2} from 'lucide-react';
 import {useAdminCategories} from '@/hooks/use-api';
 import {apiClient} from '@/lib/api';
 import {IconSearchDropdown} from "@/components/IconSearchDropdown";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-
 export default function CategoryDetailPage({ id }: { id: string }) {
+  const t = useTranslations();
     const [formData, setFormData] = useState({
         name: '',
         slug: '',
@@ -33,28 +32,28 @@ export default function CategoryDetailPage({ id }: { id: string }) {
     const { data: categoriesData } = useAdminCategories();
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const modifyTitle = useAsyncTranslation(locale, 'admin.categories.modify_title');
-    const modifySubtitle = useAsyncTranslation(locale, 'admin.categories.modify_subtitle');
-    const infoTitle = useAsyncTranslation(locale, 'admin.categories.info_title');
-    const infoDescription = useAsyncTranslation(locale, 'admin.categories.info_description');
-    const errorOccurred = useAsyncTranslation(locale, 'admin.categories.error_occurred');
-    const nameLabel = useAsyncTranslation(locale, 'admin.categories.name_label');
-    const namePlaceholder = useAsyncTranslation(locale, 'admin.categories.name_placeholder');
-    const slugLabel = useAsyncTranslation(locale, 'admin.categories.slug_label');
-    const slugPlaceholder = useAsyncTranslation(locale, 'admin.categories.slug_placeholder');
-    const slugHelp = useAsyncTranslation(locale, 'admin.categories.slug_help');
-    const descriptionLabel = useAsyncTranslation(locale, 'admin.categories.description_label');
-    const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.categories.description_placeholder');
-    const iconLabel = useAsyncTranslation(locale, 'admin.categories.icon_label');
-    const sortOrderLabel = useAsyncTranslation(locale, 'admin.categories.sort_order_label');
-    const sortOrderPlaceholder = useAsyncTranslation(locale, 'admin.categories.sort_order_placeholder');
-    const parentCategoryLabel = useAsyncTranslation(locale, 'admin.categories.parent_category_label');
-    const parentCategoryPlaceholder = useAsyncTranslation(locale, 'admin.categories.parent_category_placeholder');
-    const noParent = useAsyncTranslation(locale, 'admin.categories.no_parent');
-    const noParentHelp = useAsyncTranslation(locale, 'admin.categories.no_parent_help');
-    const modifyButton = useAsyncTranslation(locale, 'admin.categories.modify_button');
-    const modifyingLabel = useAsyncTranslation(locale, 'admin.categories.modifying');
-    const cancelLabel = useAsyncTranslation(locale, 'admin.categories.cancel');
+    const modifyTitle = t('admin.categories.modify_title');
+    const modifySubtitle = t('admin.categories.modify_subtitle');
+    const infoTitle = t('admin.categories.info_title');
+    const infoDescription = t('admin.categories.info_description');
+    const errorOccurred = t('admin.categories.error_occurred');
+    const nameLabel = t('admin.categories.name_label');
+    const namePlaceholder = t('admin.categories.name_placeholder');
+    const slugLabel = t('admin.categories.slug_label');
+    const slugPlaceholder = t('admin.categories.slug_placeholder');
+    const slugHelp = t('admin.categories.slug_help');
+    const descriptionLabel = t('admin.categories.description_label');
+    const descriptionPlaceholder = t('admin.categories.description_placeholder');
+    const iconLabel = t('admin.categories.icon_label');
+    const sortOrderLabel = t('admin.categories.sort_order_label');
+    const sortOrderPlaceholder = t('admin.categories.sort_order_placeholder');
+    const parentCategoryLabel = t('admin.categories.parent_category_label');
+    const parentCategoryPlaceholder = t('admin.categories.parent_category_placeholder');
+    const noParent = t('admin.categories.no_parent');
+    const noParentHelp = t('admin.categories.no_parent_help');
+    const modifyButton = t('admin.categories.modify_button');
+    const modifyingLabel = t('admin.categories.modifying');
+    const cancelLabel = t('admin.categories.cancel');
 
     const handleSelect = (iconName: string) => {
         setFormData(prev => ({ ...prev, icon: iconName }));

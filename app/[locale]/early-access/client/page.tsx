@@ -15,13 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { LocalizedLink } from "@/components/LocalizedLink";
+import { Link } from "@/lib/navigation";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { TermsContent } from "@/components/terms-content";
 import { apiClient } from "@/lib/api";
-import { usePathname } from "next/navigation";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
-import { Locale } from "@/types/locale";
+import { useLocale, useTranslations } from 'next-intl';
 
 const COUNTRY_CODES = [
     "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
@@ -49,194 +47,54 @@ const getFlagEmoji = (code: string) =>
         .join("");
 
 export default function EarlyAccessClientPage() {
-    const pathname = usePathname();
-    const locale = (pathname.split("/")[1] as Locale) || "ro";
-    const badgeText = useAsyncTranslation(locale, "trustora.early_access.client.badge", "Formular client");
-    const titleText = useAsyncTranslation(locale, "trustora.early_access.client.title", "Înscriere");
-    const titleHighlightText = useAsyncTranslation(locale, "trustora.early_access.client.title_highlight", "client");
-    const titleSuffixText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.title_suffix",
-        "pentru early access",
-    );
-    const subtitleText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.subtitle",
-        "Spune-ne despre compania ta și nevoile de recrutare. Îți trimitem acces prioritar la prestatorii potriviți.",
-    );
-    const benefitOne = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.benefits.preselect",
-        "Preselectăm prestatori verificați pentru tine",
-    );
-    const benefitTwo = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.benefits.scoring",
-        "Primești un scoring transparent al aplicațiilor",
-    );
-    const benefitThree = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.benefits.escrow",
-        "Poți activa escrow automat din prima etapă",
-    );
-    const backLinkText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.back_link",
-        "← Înapoi la alegerea tipului de cont",
-    );
-    const formTitle = useAsyncTranslation(locale, "trustora.early_access.client.form_title", "Completează datele");
-    const formDescription = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.form_description",
-        "Toate câmpurile sunt obligatorii pentru accesul early access.",
-    );
-    const successText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.success",
-        "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
-    );
-    const frequencyErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.error_frequency",
-        "Selectează frecvența de recrutare.",
-    );
-    const countryErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.error_country",
-        "Selectează țara.",
-    );
-    const emailExistsErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.error_email_exists",
-        "Adresa de email este deja folosită pentru un cont client.",
-    );
-    const genericErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_generic",
-        "A apărut o eroare. Încearcă din nou.",
-    );
-    const termsRequiredErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_terms_required",
-        "Trebuie să accepți termenii și condițiile.",
-    );
-    const termsAcknowledgementText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.terms_acknowledgement",
-        "Am luat la cunoștință și sunt de acord cu",
-    );
-    const termsAndText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.terms_and",
-        "și",
-    );
-    const termsLinkText = useAsyncTranslation(locale, "common.terms_conditions", "Termenii și Condițiile");
-    const privacyLinkText = useAsyncTranslation(locale, "common.privacy_policy", "Politica de Confidențialitate");
-    const submitErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_submit",
-        "Nu am putut trimite formularul.",
-    );
-    const emailLabel = useAsyncTranslation(locale, "trustora.early_access.client.fields.email_label", "Email companie");
-    const emailPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.email_placeholder",
-        "company@example.com",
-    );
-    const contactLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.contact_label",
-        "Persoană de contact",
-    );
-    const contactPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.contact_placeholder",
-        "Nume și prenume",
-    );
-    const companyLabel = useAsyncTranslation(locale, "trustora.early_access.client.fields.company_label", "Companie");
-    const companyPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.company_placeholder",
-        "Numele companiei",
-    );
-    const countryLabel = useAsyncTranslation(locale, "trustora.early_access.client.fields.country_label", "Țara");
-    const countryPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.country_placeholder",
-        "Selectează țara",
-    );
-    const countrySearchPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.country_search_placeholder",
-        "Caută țara",
-    );
-    const countryEmptyText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.country_empty",
-        "Nu am găsit nicio țară.",
-    );
-    const needsLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.needs_label",
-        "Nevoi de recrutare",
-    );
-    const needsPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.needs_placeholder",
-        "Ex: dezvoltare web, UI/UX, QA automation",
-    );
-    const budgetLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.budget_label",
-        "Buget tipic proiect (€)",
-    );
-    const budgetPlaceholder = useAsyncTranslation(locale, "trustora.early_access.client.fields.budget_placeholder", "3500");
-    const frequencyLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.frequency_label",
-        "Frecvență recrutare",
-    );
-    const frequencyPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.frequency_placeholder",
-        "Alege frecvența",
-    );
-    const frequencyMonthly = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.frequency_monthly",
-        "O dată pe lună",
-    );
-    const frequencyQuarterly = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.frequency_quarterly",
-        "Trimestrial",
-    );
-    const frequencyOnDemand = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.frequency_on_demand",
-        "La nevoie",
-    );
-    const frequencyOneProject = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.fields.frequency_one_project",
-        "Proiect unic",
-    );
-    const lostMoneyLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.checkboxes.lost_money",
-        "Am avut proiecte în care am pierdut bani sau timp din cauza livrării slabe.",
-    );
-    const escrowHelpLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.client.checkboxes.escrow_help",
-        "Vreau să folosesc escrow pentru plăți sigure.",
-    );
-    const submitText = useAsyncTranslation(locale, "trustora.early_access.common.submit", "Trimite aplicația");
-    const submittingText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.submitting",
-        "Trimitem aplicația...",
-    );
+  const t = useTranslations();
+    const locale = useLocale();
+    const badgeText = t("trustora.early_access.client.badge", {defaultValue: "Formular client"});
+    const titleText = t("trustora.early_access.client.title", {defaultValue: "Înscriere"});
+    const titleHighlightText = t("trustora.early_access.client.title_highlight", {defaultValue: "client"});
+    const titleSuffixText = t("trustora.early_access.common.title_suffix", {defaultValue: "pentru early access"});
+    const subtitleText = t("trustora.early_access.client.subtitle", {defaultValue: "Spune-ne despre compania ta și nevoile de recrutare. Îți trimitem acces prioritar la prestatorii potriviți."});
+    const benefitOne = t("trustora.early_access.client.benefits.preselect", {defaultValue: "Preselectăm prestatori verificați pentru tine"});
+    const benefitTwo = t("trustora.early_access.client.benefits.scoring", {defaultValue: "Primești un scoring transparent al aplicațiilor"});
+    const benefitThree = t("trustora.early_access.client.benefits.escrow", {defaultValue: "Poți activa escrow automat din prima etapă"});
+    const backLinkText = t("trustora.early_access.common.back_link", {defaultValue: "← Înapoi la alegerea tipului de cont"});
+    const formTitle = t("trustora.early_access.client.form_title", {defaultValue: "Completează datele"});
+    const formDescription = t("trustora.early_access.client.form_description", {defaultValue: "Toate câmpurile sunt obligatorii pentru accesul early access."});
+    const successText = t("trustora.early_access.client.success", {defaultValue: "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email."});
+    const frequencyErrorText = t("trustora.early_access.client.error_frequency", {defaultValue: "Selectează frecvența de recrutare."});
+    const countryErrorText = t("trustora.early_access.client.error_country", {defaultValue: "Selectează țara."});
+    const emailExistsErrorText = t("trustora.early_access.client.error_email_exists", {defaultValue: "Adresa de email este deja folosită pentru un cont client."});
+    const genericErrorText = t("trustora.early_access.common.error_generic", {defaultValue: "A apărut o eroare. Încearcă din nou."});
+    const termsRequiredErrorText = t("trustora.early_access.common.error_terms_required", {defaultValue: "Trebuie să accepți termenii și condițiile."});
+    const termsAcknowledgementText = t("trustora.early_access.common.terms_acknowledgement", {defaultValue: "Am luat la cunoștință și sunt de acord cu"});
+    const termsAndText = t("trustora.early_access.common.terms_and", {defaultValue: "și"});
+    const termsLinkText = t("common.terms_conditions", {defaultValue: "Termenii și Condițiile"});
+    const privacyLinkText = t("common.privacy_policy", {defaultValue: "Politica de Confidențialitate"});
+    const submitErrorText = t("trustora.early_access.common.error_submit", {defaultValue: "Nu am putut trimite formularul."});
+    const emailLabel = t("trustora.early_access.client.fields.email_label", {defaultValue: "Email companie"});
+    const emailPlaceholder = t("trustora.early_access.client.fields.email_placeholder", {defaultValue: "company@example.com"});
+    const contactLabel = t("trustora.early_access.client.fields.contact_label", {defaultValue: "Persoană de contact"});
+    const contactPlaceholder = t("trustora.early_access.client.fields.contact_placeholder", {defaultValue: "Nume și prenume"});
+    const companyLabel = t("trustora.early_access.client.fields.company_label", {defaultValue: "Companie"});
+    const companyPlaceholder = t("trustora.early_access.client.fields.company_placeholder", {defaultValue: "Numele companiei"});
+    const countryLabel = t("trustora.early_access.client.fields.country_label", {defaultValue: "Țara"});
+    const countryPlaceholder = t("trustora.early_access.client.fields.country_placeholder", {defaultValue: "Selectează țara"});
+    const countrySearchPlaceholder = t("trustora.early_access.client.fields.country_search_placeholder", {defaultValue: "Caută țara"});
+    const countryEmptyText = t("trustora.early_access.client.fields.country_empty", {defaultValue: "Nu am găsit nicio țară."});
+    const needsLabel = t("trustora.early_access.client.fields.needs_label", {defaultValue: "Nevoi de recrutare"});
+    const needsPlaceholder = t("trustora.early_access.client.fields.needs_placeholder", {defaultValue: "Ex: dezvoltare web, UI/UX, QA automation"});
+    const budgetLabel = t("trustora.early_access.client.fields.budget_label", {defaultValue: "Buget tipic proiect (€)"});
+    const budgetPlaceholder = t("trustora.early_access.client.fields.budget_placeholder", {defaultValue: "3500"});
+    const frequencyLabel = t("trustora.early_access.client.fields.frequency_label", {defaultValue: "Frecvență recrutare"});
+    const frequencyPlaceholder = t("trustora.early_access.client.fields.frequency_placeholder", {defaultValue: "Alege frecvența"});
+    const frequencyMonthly = t("trustora.early_access.client.fields.frequency_monthly", {defaultValue: "O dată pe lună"});
+    const frequencyQuarterly = t("trustora.early_access.client.fields.frequency_quarterly", {defaultValue: "Trimestrial"});
+    const frequencyOnDemand = t("trustora.early_access.client.fields.frequency_on_demand", {defaultValue: "La nevoie"});
+    const frequencyOneProject = t("trustora.early_access.client.fields.frequency_one_project", {defaultValue: "Proiect unic"});
+    const lostMoneyLabel = t("trustora.early_access.client.checkboxes.lost_money", {defaultValue: "Am avut proiecte în care am pierdut bani sau timp din cauza livrării slabe."});
+    const escrowHelpLabel = t("trustora.early_access.client.checkboxes.escrow_help", {defaultValue: "Vreau să folosesc escrow pentru plăți sigure."});
+    const submitText = t("trustora.early_access.common.submit", {defaultValue: "Trimite aplicația"});
+    const submittingText = t("trustora.early_access.common.submitting", {defaultValue: "Trimitem aplicația..."});
 
     const hireFrequencyOptions = [
         frequencyMonthly,
@@ -258,7 +116,7 @@ export default function EarlyAccessClientPage() {
         agreeToTerms: false,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const [error, setError] = useState(""});
     const [success, setSuccess] = useState(false);
     const [isCountryOpen, setIsCountryOpen] = useState(false);
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
@@ -371,9 +229,9 @@ export default function EarlyAccessClientPage() {
                                 ))}
                             </div>
                             <div>
-                                <LocalizedLink href="/early-access" className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300">
+                                <Link href="/early-access" className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300">
                                     {backLinkText}
-                                </LocalizedLink>
+                                </Link>
                             </div>
                         </div>
 
@@ -598,19 +456,19 @@ export default function EarlyAccessClientPage() {
                                         />
                                         <Label htmlFor="terms" className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                                             {termsAcknowledgementText}{" "}
-                                            <LocalizedLink
+                                            <Link
                                                 href="/terms"
                                                 className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                                             >
                                                 {termsLinkText}
-                                            </LocalizedLink>{" "}
+                                            </Link>{" "}
                                             {termsAndText}{" "}
-                                            <LocalizedLink
+                                            <Link
                                                 href="/privacy"
                                                 className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                                             >
                                                 {privacyLinkText}
-                                            </LocalizedLink>
+                                            </Link>
                                             .
                                         </Label>
                                     </div>

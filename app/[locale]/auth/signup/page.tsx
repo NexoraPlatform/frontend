@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,10 +15,10 @@ import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { TermsContent } from '@/components/terms-content';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import type { Locale } from '@/types/locale';
+import { useLocale, useTranslations } from 'next-intl';
 
 export default function SignUpPage() {
+  const t = useTranslations();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -35,85 +34,48 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
+  const locale = useLocale();
   const router = useRouter();
   const { register } = useAuth();
   const termsHref = `/${locale}/terms`;
   const privacyHref = `/${locale}/privacy`;
-  const badgeText = useAsyncTranslation(locale, 'auth.signup.badge', 'Începe cu Trustora');
-  const titlePrefix = useAsyncTranslation(locale, 'auth.signup.title_prefix', 'Creează-ți contul');
-  const titleBrand = useAsyncTranslation(locale, 'auth.signup.title_brand', 'Trustora');
-  const subtitleText = useAsyncTranslation(
-    locale,
-    'auth.signup.subtitle',
-    'Configurează profilul tău și pregătește-ți proiectele pentru colaborări sigure și transparente.',
-  );
-  const benefitDigitalContracts = useAsyncTranslation(
-    locale,
-    'auth.signup.benefits.digital_contracts',
-    'Contracte digitale cu escrow automatizat',
-  );
-  const benefitFastVerifications = useAsyncTranslation(
-    locale,
-    'auth.signup.benefits.fast_verifications',
-    'Verificări rapide pentru clienți și prestatori',
-  );
-  const benefitUnifiedDashboard = useAsyncTranslation(
-    locale,
-    'auth.signup.benefits.unified_dashboard',
-    'Dashboard unificat pentru proiecte și plăți',
-  );
-  const cardTitle = useAsyncTranslation(locale, 'auth.signup.card_title', 'Înregistrare');
-  const cardDescription = useAsyncTranslation(
-    locale,
-    'auth.signup.card_description',
-    'Completează datele pentru a-ți crea contul Trustora.',
-  );
-  const firstNameLabel = useAsyncTranslation(locale, 'auth.signup.first_name_label', 'Prenume');
-  const firstNamePlaceholder = useAsyncTranslation(locale, 'auth.signup.first_name_placeholder', 'Ion');
-  const lastNameLabel = useAsyncTranslation(locale, 'auth.signup.last_name_label', 'Nume');
-  const lastNamePlaceholder = useAsyncTranslation(locale, 'auth.signup.last_name_placeholder', 'Popescu');
-  const emailLabel = useAsyncTranslation(locale, 'auth.signup.email_label', 'Email');
-  const emailPlaceholder = useAsyncTranslation(locale, 'auth.signup.email_placeholder', 'email@exemplu.ro');
-  const phoneLabel = useAsyncTranslation(locale, 'auth.signup.phone_label', 'Telefon');
-  const phonePlaceholder = useAsyncTranslation(locale, 'auth.signup.phone_placeholder', '+40 123 456 789');
-  const roleLabel = useAsyncTranslation(locale, 'auth.signup.role_label', 'Tip cont');
-  const roleClient = useAsyncTranslation(locale, 'auth.signup.role_client', 'Client - Caut servicii IT');
-  const roleProvider = useAsyncTranslation(locale, 'auth.signup.role_provider', 'Prestator - Ofer servicii IT');
-  const companyLabel = useAsyncTranslation(locale, 'auth.signup.company_label', 'Companie (opțional)');
-  const companyPlaceholder = useAsyncTranslation(locale, 'auth.signup.company_placeholder', 'Numele companiei');
-  const passwordLabel = useAsyncTranslation(locale, 'auth.signup.password_label', 'Parola');
-  const passwordPlaceholder = useAsyncTranslation(locale, 'auth.signup.password_placeholder', 'Minim 8 caractere');
-  const confirmPasswordLabel = useAsyncTranslation(locale, 'auth.signup.confirm_password_label', 'Confirmă parola');
-  const confirmPasswordPlaceholder = useAsyncTranslation(
-    locale,
-    'auth.signup.confirm_password_placeholder',
-    'Repetă parola',
-  );
-  const termsPrefix = useAsyncTranslation(locale, 'auth.signup.terms_prefix', 'Sunt de acord cu');
-  const termsAnd = useAsyncTranslation(locale, 'auth.signup.terms_and', 'și');
-  const termsLinkText = useAsyncTranslation(locale, 'auth.signup.terms_link', 'Termenii și Condițiile');
-  const privacyLinkText = useAsyncTranslation(locale, 'auth.signup.privacy_link', 'Politica de Confidențialitate');
-  const loadingText = useAsyncTranslation(locale, 'auth.signup.loading', 'Se creează contul...');
-  const submitText = useAsyncTranslation(locale, 'auth.signup.submit', 'Creează contul');
-  const hasAccountText = useAsyncTranslation(locale, 'auth.signup.has_account', 'Ai deja cont?');
-  const signinText = useAsyncTranslation(locale, 'auth.signup.signin', 'Conectează-te');
-  const errorPasswordMismatch = useAsyncTranslation(
-    locale,
-    'auth.signup.error_password_mismatch',
-    'Parolele nu se potrivesc',
-  );
-  const errorTermsRequired = useAsyncTranslation(
-    locale,
-    'auth.signup.error_terms_required',
-    'Trebuie să accepți termenii și condițiile',
-  );
-  const genericErrorText = useAsyncTranslation(
-    locale,
-    'auth.signup.generic_error',
-    'A apărut o eroare. Încearcă din nou.',
-  );
+  const badgeText = t('auth.signup.badge', {defaultValue: 'Începe cu Trustora'});
+  const titlePrefix = t('auth.signup.title_prefix', {defaultValue: 'Creează-ți contul'});
+  const titleBrand = t('auth.signup.title_brand', {defaultValue: 'Trustora'});
+  const subtitleText = t('auth.signup.subtitle', {defaultValue: 'Configurează profilul tău și pregătește-ți proiectele pentru colaborări sigure și transparente.'});
+  const benefitDigitalContracts = t('auth.signup.benefits.digital_contracts', {defaultValue: 'Contracte digitale cu escrow automatizat'});
+  const benefitFastVerifications = t('auth.signup.benefits.fast_verifications', {defaultValue: 'Verificări rapide pentru clienți și prestatori'});
+  const benefitUnifiedDashboard = t('auth.signup.benefits.unified_dashboard', {defaultValue: 'Dashboard unificat pentru proiecte și plăți'});
+  const cardTitle = t('auth.signup.card_title', {defaultValue: 'Înregistrare'});
+  const cardDescription = t('auth.signup.card_description', {defaultValue: 'Completează datele pentru a-ți crea contul Trustora.'});
+  const firstNameLabel = t('auth.signup.first_name_label', {defaultValue: 'Prenume'});
+  const firstNamePlaceholder = t('auth.signup.first_name_placeholder', {defaultValue: 'Ion'});
+  const lastNameLabel = t('auth.signup.last_name_label', {defaultValue: 'Nume'});
+  const lastNamePlaceholder = t('auth.signup.last_name_placeholder', {defaultValue: 'Popescu'});
+  const emailLabel = t('auth.signup.email_label', {defaultValue: 'Email'});
+  const emailPlaceholder = t('auth.signup.email_placeholder', {defaultValue: 'email@exemplu.ro'});
+  const phoneLabel = t('auth.signup.phone_label', {defaultValue: 'Telefon'});
+  const phonePlaceholder = t('auth.signup.phone_placeholder', {defaultValue: '+40 123 456 789'});
+  const roleLabel = t('auth.signup.role_label', {defaultValue: 'Tip cont'});
+  const roleClient = t('auth.signup.role_client', {defaultValue: 'Client - Caut servicii IT'});
+  const roleProvider = t('auth.signup.role_provider', {defaultValue: 'Prestator - Ofer servicii IT'});
+  const companyLabel = t('auth.signup.company_label', {defaultValue: 'Companie (opțional)'});
+  const companyPlaceholder = t('auth.signup.company_placeholder', {defaultValue: 'Numele companiei'});
+  const passwordLabel = t('auth.signup.password_label', {defaultValue: 'Parola'});
+  const passwordPlaceholder = t('auth.signup.password_placeholder', {defaultValue: 'Minim 8 caractere'});
+  const confirmPasswordLabel = t('auth.signup.confirm_password_label', {defaultValue: 'Confirmă parola'});
+  const confirmPasswordPlaceholder = t('auth.signup.confirm_password_placeholder', {defaultValue: 'Repetă parola'});
+  const termsPrefix = t('auth.signup.terms_prefix', {defaultValue: 'Sunt de acord cu'});
+  const termsAnd = t('auth.signup.terms_and', {defaultValue: 'și'});
+  const termsLinkText = t('auth.signup.terms_link', {defaultValue: 'Termenii și Condițiile'});
+  const privacyLinkText = t('auth.signup.privacy_link', {defaultValue: 'Politica de Confidențialitate'});
+  const loadingText = t('auth.signup.loading', {defaultValue: 'Se creează contul...'});
+  const submitText = t('auth.signup.submit', {defaultValue: 'Creează contul'});
+  const hasAccountText = t('auth.signup.has_account', {defaultValue: 'Ai deja cont?'});
+  const signinText = t('auth.signup.signin', {defaultValue: 'Conectează-te'});
+  const errorPasswordMismatch = t('auth.signup.error_password_mismatch', {defaultValue: 'Parolele nu se potrivesc'});
+  const errorTermsRequired = t('auth.signup.error_terms_required', {defaultValue: 'Trebuie să accepți termenii și condițiile'});
+  const genericErrorText = t('auth.signup.generic_error', {defaultValue: 'A apărut o eroare. Încearcă din nou.'});
   const benefits = [benefitDigitalContracts, benefitFastVerifications, benefitUnifiedDashboard];
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from '@/lib/navigation';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, IdCardLanyard, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,9 @@ import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import apiClient from "@/lib/api";
-import { useRouter } from "next/navigation";
-import { useLocale } from "@/hooks/use-locale";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useRouter } from '@/lib/navigation';
+import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import {
     Accordion,
     AccordionContent,
@@ -42,6 +42,7 @@ type GroupPermissions = {
 }
 
 export default function NewRolePage() {
+  const t = useTranslations();
     const [roleData, setRoleData] = useState<Role>({
         name: '',
         description: '',
@@ -52,18 +53,18 @@ export default function NewRolePage() {
     const [permissionGroups, setPermissionGroups] = useState<GroupPermissions[]>([]);
     const router = useRouter();
     const locale = useLocale();
-    const title = useAsyncTranslation(locale, 'admin.roles.new_role.title');
-    const subtitle = useAsyncTranslation(locale, 'admin.roles.new_role.subtitle');
-    const infoTitle = useAsyncTranslation(locale, 'admin.roles.new_role.info_title');
-    const infoDescription = useAsyncTranslation(locale, 'admin.roles.new_role.info_description');
-    const nameLabel = useAsyncTranslation(locale, 'admin.roles.new_role.name_label');
-    const namePlaceholder = useAsyncTranslation(locale, 'admin.roles.new_role.name_placeholder');
-    const descriptionLabel = useAsyncTranslation(locale, 'admin.roles.new_role.description_label');
-    const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.roles.new_role.description_placeholder');
-    const creatingLabel = useAsyncTranslation(locale, 'admin.roles.new_role.creating');
-    const createButtonLabel = useAsyncTranslation(locale, 'admin.roles.new_role.create_button');
-    const cancelLabel = useAsyncTranslation(locale, 'admin.roles.new_role.cancel');
-    const errorOccurred = useAsyncTranslation(locale, 'admin.roles.error_occurred');
+    const title = t('admin.roles.new_role.title');
+    const subtitle = t('admin.roles.new_role.subtitle');
+    const infoTitle = t('admin.roles.new_role.info_title');
+    const infoDescription = t('admin.roles.new_role.info_description');
+    const nameLabel = t('admin.roles.new_role.name_label');
+    const namePlaceholder = t('admin.roles.new_role.name_placeholder');
+    const descriptionLabel = t('admin.roles.new_role.description_label');
+    const descriptionPlaceholder = t('admin.roles.new_role.description_placeholder');
+    const creatingLabel = t('admin.roles.new_role.creating');
+    const createButtonLabel = t('admin.roles.new_role.create_button');
+    const cancelLabel = t('admin.roles.new_role.cancel');
+    const errorOccurred = t('admin.roles.error_occurred');
 
     useEffect(() => {
         const loadPermissions = async () => {

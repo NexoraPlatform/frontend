@@ -1,34 +1,20 @@
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+import { getTranslations } from "next-intl/server";
 
 export async function TrustoraMessagingSection({ locale }: { locale: Locale }) {
-    const [
-        clientsBadge,
-        clientsTitle,
-        clientsBody,
-        clientsBenefitOne,
-        clientsBenefitTwo,
-        clientsLink,
-        prosBadge,
-        prosTitle,
-        prosBody,
-        prosBenefitOne,
-        prosBenefitTwo,
-        prosLink,
-    ] = await Promise.all([
-        t(locale, "trustora.messaging.clients_badge"),
-        t(locale, "trustora.messaging.clients_title"),
-        t(locale, "trustora.messaging.clients_body"),
-        t(locale, "trustora.messaging.clients_benefit_one"),
-        t(locale, "trustora.messaging.clients_benefit_two"),
-        t(locale, "trustora.messaging.clients_link"),
-        t(locale, "trustora.messaging.pros_badge"),
-        t(locale, "trustora.messaging.pros_title"),
-        t(locale, "trustora.messaging.pros_body"),
-        t(locale, "trustora.messaging.pros_benefit_one"),
-        t(locale, "trustora.messaging.pros_benefit_two"),
-        t(locale, "trustora.messaging.pros_link"),
-    ]);
+    const t = await getTranslations({ locale });
+    const clientsBadge = t("trustora.messaging.clients_badge");
+    const clientsTitle = t("trustora.messaging.clients_title");
+    const clientsBody = t("trustora.messaging.clients_body");
+    const clientsBenefitOne = t("trustora.messaging.clients_benefit_one");
+    const clientsBenefitTwo = t("trustora.messaging.clients_benefit_two");
+    const clientsLink = t("trustora.messaging.clients_link");
+    const prosBadge = t("trustora.messaging.pros_badge");
+    const prosTitle = t("trustora.messaging.pros_title");
+    const prosBody = t("trustora.messaging.pros_body");
+    const prosBenefitOne = t("trustora.messaging.pros_benefit_one");
+    const prosBenefitTwo = t("trustora.messaging.pros_benefit_two");
+    const prosLink = t("trustora.messaging.pros_link");
 
     return (
         <section className="py-24 px-6 bg-white dark:bg-[#070C14]" id="how">

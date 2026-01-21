@@ -7,36 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
+import { useTranslations } from 'next-intl';
 import { apiClient } from "@/lib/api";
-import { Locale } from "@/types/locale";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 
 type UnsubscribeStatus = "loading" | "success" | "error";
 
 export default function NewsletterUnsubscribePage() {
-  const pathname = usePathname();
-  const locale = (pathname.split("/")[1] as Locale) || "ro";
+  const t = useTranslations();
   const params = useParams<{ token?: string | string[] }>();
   const [status, setStatus] = useState<UnsubscribeStatus>("loading");
 
-  const titleText = useAsyncTranslation(locale, "common.unsubscribe_title", "Dezabonare newsletter");
-  const successText = useAsyncTranslation(
-    locale,
-    "common.unsubscribe_success",
-    "Te-ai dezabonat cu succes.",
-  );
-  const descriptionText = useAsyncTranslation(
-    locale,
-    "common.unsubscribe_description",
-    "Nu vei mai primi emailuri de la Trustora.",
-  );
-  const loadingText = useAsyncTranslation(locale, "common.unsubscribe_loading", "Procesăm dezabonarea...");
-  const errorText = useAsyncTranslation(
-    locale,
-    "common.unsubscribe_error",
-    "Nu am putut procesa cererea de dezabonare.",
-  );
+  const titleText = t("common.unsubscribe_title", {defaultValue: "Dezabonare newsletter"});
+  const successText = t("common.unsubscribe_success", {defaultValue: "Te-ai dezabonat cu succes."});
+  const descriptionText = t("common.unsubscribe_description", {defaultValue: "Nu vei mai primi emailuri de la Trustora."});
+  const loadingText = t("common.unsubscribe_loading", {defaultValue: "Procesăm dezabonarea..."});
+  const errorText = t("common.unsubscribe_error", {defaultValue: "Nu am putut procesa cererea de dezabonare."});
 
   const token = useMemo(() => {
     const value = params?.token;

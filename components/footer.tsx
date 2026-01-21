@@ -1,15 +1,13 @@
 "use client";
 
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { useAuth } from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
-import { usePathname } from 'next/navigation';
-import { Locale } from "@/types/locale";
+import { useTranslations } from "next-intl";
 
 const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
   ssr: false,
@@ -18,52 +16,49 @@ const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
 
 export function Footer() {
   const { user } = useAuth();
-  const pathname = usePathname();
-  const locale = pathname.split('/')[1] as Locale || 'ro';
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
-  const footerInfoText = useAsyncTranslation(locale, "common.footer_info")
-  const followUsSocialText = useAsyncTranslation(locale, "common.follow_us_social");
-  const followUsOnText = useAsyncTranslation(locale, "common.follow_us_on");
-  const footerPlatformDescriptionText = useAsyncTranslation(locale, "common.footer_platform_description");
-  const quickLinksText = useAsyncTranslation(locale, "common.quick_links");
-  const servicesText = useAsyncTranslation(locale, "navigation.services")
-  const aboutText = useAsyncTranslation(locale, "navigation.about")
-  const helpText = useAsyncTranslation(locale, "navigation.help")
-  const contactText = useAsyncTranslation(locale, "navigation.contact")
-  const popularServicesText = useAsyncTranslation(locale, "common.popular_services");
-  const emailForNewsletterText = useAsyncTranslation(locale, "common.newsletter_email_address");
-  const yourEmailText = useAsyncTranslation(locale, "common.your_email");
-  const subscribeToNewsletterText = useAsyncTranslation(locale, "common.subscribe_to_newsletter");
-  const subscribeText = useAsyncTranslation(locale, "common.subscribe");
-  const privacyPolicyText = useAsyncTranslation(locale, "common.privacy_policy");
-  const readPrivacyPolicyText = useAsyncTranslation(locale, "common.read_privacy_policy");
-  const termsConditionsText = useAsyncTranslation(locale, "common.terms_conditions");
-  const readTermsConditionsText = useAsyncTranslation(locale, "common.read_terms_conditions");
-  const allRightsReservedText = useAsyncTranslation(locale, "common.all_rights_reserved");
-  const cookiePolicyText = useAsyncTranslation(locale, "common.cookie_policy", "Politica de cookie-uri");
-  const readCookiePolicyText = useAsyncTranslation(locale, "common.read_cookie_policy", "Citește politica de cookie-uri");
-  const trustoraTaglineText = useAsyncTranslation(locale, "common.trustora_tagline", "Where work meets trust.");
-  const contactTitleText = useAsyncTranslation(locale, "common.contact_title", "Contact");
-  const contactDescriptionText = useAsyncTranslation(
-    locale,
+  const t = useTranslations();
+  const footerInfoText = t("common.footer_info");
+  const followUsSocialText = t("common.follow_us_social");
+  const followUsOnText = t("common.follow_us_on");
+  const footerPlatformDescriptionText = t("common.footer_platform_description");
+  const quickLinksText = t("common.quick_links");
+  const servicesText = t("navigation.services");
+  const aboutText = t("navigation.about");
+  const helpText = t("navigation.help");
+  const contactText = t("navigation.contact");
+  const popularServicesText = t("common.popular_services");
+  const emailForNewsletterText = t("common.newsletter_email_address");
+  const yourEmailText = t("common.your_email");
+  const subscribeToNewsletterText = t("common.subscribe_to_newsletter");
+  const subscribeText = t("common.subscribe");
+  const privacyPolicyText = t("common.privacy_policy");
+  const readPrivacyPolicyText = t("common.read_privacy_policy");
+  const termsConditionsText = t("common.terms_conditions");
+  const readTermsConditionsText = t("common.read_terms_conditions");
+  const allRightsReservedText = t("common.all_rights_reserved");
+  const cookiePolicyText = t("common.cookie_policy", {defaultValue: "Politica de cookie-uri"});
+  const readCookiePolicyText = t("common.read_cookie_policy", {defaultValue: "Citește politica de cookie-uri"});
+  const trustoraTaglineText = t("common.trustora_tagline", {defaultValue: "Where work meets trust."});
+  const contactTitleText = t("common.contact_title", {defaultValue: "Contact"});
+  const contactDescriptionText = t(
     "common.contact_description",
-    "Suntem aici dacă ai nevoie de ajutor sau informații suplimentare.",
+    {defaultValue: "Suntem aici dacă ai nevoie de ajutor sau informații suplimentare."},
   );
-  const newsletterTitleText = useAsyncTranslation(locale, "common.newsletter_title", "Newsletter");
-  const newsletterDescriptionText = useAsyncTranslation(
-    locale,
+  const newsletterTitleText = t("common.newsletter_title", {defaultValue: "Newsletter"});
+  const newsletterDescriptionText = t(
     "common.newsletter_description",
-    "Primești update-uri despre Trustora și acces la noutăți.",
+    {defaultValue: "Primești update-uri despre Trustora și acces la noutăți."},
   );
-  const legalDocumentsText = useAsyncTranslation(locale, "common.legal_documents", "Documente legale");
-  const locationText = useAsyncTranslation(locale, "common.location_label", "București, România");
-  const popularServiceWebText = useAsyncTranslation(locale, "common.popular_service_web", "Dezvoltare Web");
-  const popularServiceMobileText = useAsyncTranslation(locale, "common.popular_service_mobile", "Aplicații Mobile");
-  const popularServiceDesignText = useAsyncTranslation(locale, "common.popular_service_design", "Design UI/UX");
-  const popularServiceMarketingText = useAsyncTranslation(locale, "common.popular_service_marketing", "Marketing Digital");
-  const privacyHref = `/${locale}/privacy`;
-  const termsHref = `/${locale}/terms`;
-  const cookiesHref = `/${locale}/cookies`;
+  const legalDocumentsText = t("common.legal_documents", {defaultValue: "Documente legale"});
+  const locationText = t("common.location_label", {defaultValue: "București, România"});
+  const popularServiceWebText = t("common.popular_service_web", {defaultValue: "Dezvoltare Web"});
+  const popularServiceMobileText = t("common.popular_service_mobile", {defaultValue: "Aplicații Mobile"});
+  const popularServiceDesignText = t("common.popular_service_design", {defaultValue: "Design UI/UX"});
+  const popularServiceMarketingText = t("common.popular_service_marketing", {defaultValue: "Marketing Digital"});
+  const privacyHref = "/privacy";
+  const termsHref = "/terms";
+  const cookiesHref = "/cookies";
 
   return (
       <footer

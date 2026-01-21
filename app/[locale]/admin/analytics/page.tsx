@@ -1,20 +1,21 @@
 "use client";
 
-import Link from 'next/link';
-import { useLocale } from '@/hooks/use-locale';
+import { Link } from '@/lib/navigation';
+import { useLocale } from 'next-intl';
 import { ArrowLeft, BarChart3, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useTranslations } from 'next-intl';
 
 export default function AdminAnalyticsPage() {
+  const t = useTranslations();
     const locale = useLocale();
-  const title = useAsyncTranslation(locale, 'admin.analytics.manage_title');
-  const subtitle = useAsyncTranslation(locale, 'admin.analytics.manage_subtitle');
-  const statsTitle = useAsyncTranslation(locale, 'admin.analytics.stats_title');
-  const statsDescription = useAsyncTranslation(locale, 'admin.analytics.stats_description');
-  const developmentTitle = useAsyncTranslation(locale, 'admin.analytics.in_development_title');
-  const developmentDescription = useAsyncTranslation(locale, 'admin.analytics.in_development_description');
+  const title = t('admin.analytics.manage_title');
+  const subtitle = t('admin.analytics.manage_subtitle');
+  const statsTitle = t('admin.analytics.stats_title');
+  const statsDescription = t('admin.analytics.stats_description');
+  const developmentTitle = t('admin.analytics.in_development_title');
+  const developmentDescription = t('admin.analytics.in_development_description');
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">

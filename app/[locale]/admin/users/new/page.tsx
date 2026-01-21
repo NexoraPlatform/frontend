@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
-import Link from 'next/link';
+import { useRouter } from '@/lib/navigation';
+import { useLocale } from 'next-intl';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useTranslations } from 'next-intl';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function NewUserPage() {
+  const t = useTranslations();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -28,25 +29,25 @@ export default function NewUserPage() {
   const [error, setError] = useState('');
   const router = useRouter();
     const locale = useLocale();
-  const addTitle = useAsyncTranslation(locale, 'admin.users.new.title');
-  const addSubtitle = useAsyncTranslation(locale, 'admin.users.new.subtitle');
-  const infoTitle = useAsyncTranslation(locale, 'admin.users.new.info_title');
-  const infoDescription = useAsyncTranslation(locale, 'admin.users.new.info_description');
-  const errorOccurred = useAsyncTranslation(locale, 'admin.users.new.error_occurred');
-  const firstNameLabel = useAsyncTranslation(locale, 'admin.users.new.first_name_label');
-  const lastNameLabel = useAsyncTranslation(locale, 'admin.users.new.last_name_label');
-  const emailLabel = useAsyncTranslation(locale, 'admin.users.new.email_label');
-  const passwordLabel = useAsyncTranslation(locale, 'admin.users.new.password_label');
-  const passwordHint = useAsyncTranslation(locale, 'admin.users.new.password_hint');
-  const roleLabel = useAsyncTranslation(locale, 'admin.users.new.role_label');
-  const phoneLabel = useAsyncTranslation(locale, 'admin.users.new.phone_label');
-  const phonePlaceholder = useAsyncTranslation(locale, 'admin.users.new.phone_placeholder');
-  const creatingLabel = useAsyncTranslation(locale, 'admin.users.new.creating');
-  const createUserLabel = useAsyncTranslation(locale, 'admin.users.new.create_user');
-  const cancelLabel = useAsyncTranslation(locale, 'admin.users.new.cancel');
-  const roleClient = useAsyncTranslation(locale, 'admin.users.new.roles.CLIENT');
-  const roleProvider = useAsyncTranslation(locale, 'admin.users.new.roles.PROVIDER');
-  const roleAdmin = useAsyncTranslation(locale, 'admin.users.new.roles.ADMIN');
+  const addTitle = t('admin.users.new.title');
+  const addSubtitle = t('admin.users.new.subtitle');
+  const infoTitle = t('admin.users.new.info_title');
+  const infoDescription = t('admin.users.new.info_description');
+  const errorOccurred = t('admin.users.new.error_occurred');
+  const firstNameLabel = t('admin.users.new.first_name_label');
+  const lastNameLabel = t('admin.users.new.last_name_label');
+  const emailLabel = t('admin.users.new.email_label');
+  const passwordLabel = t('admin.users.new.password_label');
+  const passwordHint = t('admin.users.new.password_hint');
+  const roleLabel = t('admin.users.new.role_label');
+  const phoneLabel = t('admin.users.new.phone_label');
+  const phonePlaceholder = t('admin.users.new.phone_placeholder');
+  const creatingLabel = t('admin.users.new.creating');
+  const createUserLabel = t('admin.users.new.create_user');
+  const cancelLabel = t('admin.users.new.cancel');
+  const roleClient = t('admin.users.new.roles.CLIENT');
+  const roleProvider = t('admin.users.new.roles.PROVIDER');
+  const roleAdmin = t('admin.users.new.roles.ADMIN');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

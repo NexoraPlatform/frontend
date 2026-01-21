@@ -1,26 +1,16 @@
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
+import { getTranslations } from "next-intl/server";
 
 export async function TrustoraPillarsSection({ locale }: { locale: Locale }) {
-    const [
-        verifiedTitle,
-        verifiedDescription,
-        protectedTitle,
-        protectedDescription,
-        deliveryTitle,
-        deliveryDescription,
-        legalTitle,
-        legalDescription,
-    ] = await Promise.all([
-        t(locale, "trustora.pillars.verified_title"),
-        t(locale, "trustora.pillars.verified_description"),
-        t(locale, "trustora.pillars.protected_title"),
-        t(locale, "trustora.pillars.protected_description"),
-        t(locale, "trustora.pillars.delivery_title"),
-        t(locale, "trustora.pillars.delivery_description"),
-        t(locale, "trustora.pillars.legal_title"),
-        t(locale, "trustora.pillars.legal_description"),
-    ]);
+    const t = await getTranslations({ locale });
+    const verifiedTitle = t("trustora.pillars.verified_title");
+    const verifiedDescription = t("trustora.pillars.verified_description");
+    const protectedTitle = t("trustora.pillars.protected_title");
+    const protectedDescription = t("trustora.pillars.protected_description");
+    const deliveryTitle = t("trustora.pillars.delivery_title");
+    const deliveryDescription = t("trustora.pillars.delivery_description");
+    const legalTitle = t("trustora.pillars.legal_title");
+    const legalDescription = t("trustora.pillars.legal_description");
 
     return (
         <section className="py-24 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]" id="pillars">

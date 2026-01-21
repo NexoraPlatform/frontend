@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import apiClient from '@/lib/api';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useTranslations } from 'next-intl';
 import { Locale } from '@/types/locale';
 
 type Permission = {
@@ -57,6 +57,7 @@ function normalizeSlugArray(input: unknown): string[] {
 }
 
 export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
+    const t = useTranslations();
     const [loading, setLoading] = useState(true);
     const [savingRoles, setSavingRoles] = useState<Set<string>>(new Set()); // roleSlug care salvează
     const [filter, setFilter] = useState('');
@@ -255,18 +256,18 @@ export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
         };
     };
 
-    const searchPlaceholder = useAsyncTranslation(locale, 'admin.roles.permission_matrix.search_placeholder');
-    const savingChanges = useAsyncTranslation(locale, 'admin.roles.permission_matrix.saving_changes');
-    const savedAuto = useAsyncTranslation(locale, 'admin.roles.permission_matrix.saved_auto');
-    const permissionsLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.permissions');
-    const hideLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.hide');
-    const showLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.show');
-    const loadingLabel = useAsyncTranslation(locale, 'admin.roles.permission_matrix.loading');
-    const noPermissions = useAsyncTranslation(locale, 'admin.roles.permission_matrix.no_permissions');
-    const savingShort = useAsyncTranslation(locale, 'admin.roles.permission_matrix.saving_short');
-    const selectAllForTemplate = useAsyncTranslation(locale, 'admin.roles.permission_matrix.select_all_for');
-    const permissionForRoleTemplate = useAsyncTranslation(locale, 'admin.roles.permission_matrix.permission_for_role');
-    const selectGroupForRoleTemplate = useAsyncTranslation(locale, 'admin.roles.permission_matrix.select_group_for_role');
+    const searchPlaceholder = t('admin.roles.permission_matrix.search_placeholder');
+    const savingChanges = t('admin.roles.permission_matrix.saving_changes');
+    const savedAuto = t('admin.roles.permission_matrix.saved_auto');
+    const permissionsLabel = t('admin.roles.permission_matrix.permissions');
+    const hideLabel = t('admin.roles.permission_matrix.hide');
+    const showLabel = t('admin.roles.permission_matrix.show');
+    const loadingLabel = t('admin.roles.permission_matrix.loading');
+    const noPermissions = t('admin.roles.permission_matrix.no_permissions');
+    const savingShort = t('admin.roles.permission_matrix.saving_short');
+    const selectAllForTemplate = t('admin.roles.permission_matrix.select_all_for');
+    const permissionForRoleTemplate = t('admin.roles.permission_matrix.permission_for_role');
+    const selectGroupForRoleTemplate = t('admin.roles.permission_matrix.select_group_for_role');
 
     if (loading) {
         return <div className="p-6 text-sm text-muted-foreground">{loadingLabel}</div>;

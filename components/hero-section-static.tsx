@@ -18,13 +18,13 @@ import {
     Clock,
     Globe,
 } from "lucide-react";
-import Link from "next/link";
-import { t } from "@/lib/i18n";
-import { Locale } from "@/types/locale";
+import { Link } from '@/lib/navigation';
+import { getTranslations } from "next-intl/server";
 
 const POPULAR_TAGS = ["React", "WordPress", "Logo Design", "SEO", "Mobile App", "E-commerce"];
 
 export async function HeroSectionStatic({ locale }: { locale: string }) {
+    const t = await getTranslations({ locale });
 
     const [
         heroBadge,
@@ -47,28 +47,28 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
         satisfactionRate,
         tehnicalSupport,
         change
-    ] = await Promise.all([
-        t(locale as Locale, "homepage.hero.badge"),
-        t(locale as Locale, "homepage.hero.title"),
-        t(locale as Locale, "homepage.hero.subtitleParts.before"),
-        t(locale as Locale, "homepage.hero.subtitleParts.highlight"),
-        t(locale as Locale, "homepage.hero.subtitleParts.after"),
-        t(locale as Locale, "homepage.hero.subtitleParts.extra"),
-        t(locale as Locale, "common.search_placeholder"),
-        t(locale as Locale, "common.search_placeholder_aria_label"),
-        t(locale as Locale, "common.search_now"),
-        t(locale as Locale, "common.search_now_aria_label"),
-        t(locale as Locale, "common.popular"),
-        t(locale as Locale, "common.search_services_for"),
-        t(locale as Locale, "common.join_as_client"),
-        t(locale as Locale, "common.join_as_provider"),
-        t(locale as Locale, "common.platform_statistics"),
-        t(locale as Locale, "common.verified_experts"),
-        t(locale as Locale, "common.completed_projects"),
-        t(locale as Locale, "common.satisfaction_rate"),
-        t(locale as Locale, "common.tehnical_support"),
-        t(locale as Locale, "common.change")
-    ]);
+    ] = [
+        t("homepage.hero.badge"),
+        t("homepage.hero.title"),
+        t("homepage.hero.subtitleParts.before"),
+        t("homepage.hero.subtitleParts.highlight"),
+        t("homepage.hero.subtitleParts.after"),
+        t("homepage.hero.subtitleParts.extra"),
+        t("common.search_placeholder"),
+        t("common.search_placeholder_aria_label"),
+        t("common.search_now"),
+        t("common.search_now_aria_label"),
+        t("common.popular"),
+        t("common.search_services_for"),
+        t("common.join_as_client"),
+        t("common.join_as_provider"),
+        t("common.platform_statistics"),
+        t("common.verified_experts"),
+        t("common.completed_projects"),
+        t("common.satisfaction_rate"),
+        t("common.tehnical_support"),
+        t("common.change")
+    ];
 
     const STATS = [
         { number: "500+", label: verifiedExperts, icon: Users, change: "+12%" },

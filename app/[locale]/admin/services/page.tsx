@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,43 +25,44 @@ import {
 } from 'lucide-react';
 import { useAdminServices } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminServicesPage() {
+  const t = useTranslations();
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const { data: servicesData, loading: servicesLoading, refetch: refetchServices } = useAdminServices();
     const locale = useLocale();
-  const manageTitle = useAsyncTranslation(locale, 'admin.services.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.services.manage_subtitle');
-  const addService = useAsyncTranslation(locale, 'admin.services.add_service');
-  const searchPlaceholder = useAsyncTranslation(locale, 'admin.services.search_placeholder');
-  const statusFilterPlaceholder = useAsyncTranslation(locale, 'admin.services.status_filter_placeholder');
-  const filterAll = useAsyncTranslation(locale, 'admin.services.filters.all');
-  const statusActive = useAsyncTranslation(locale, 'admin.services.statuses.ACTIVE');
-  const statusDraft = useAsyncTranslation(locale, 'admin.services.statuses.DRAFT');
-  const statusSuspended = useAsyncTranslation(locale, 'admin.services.statuses.SUSPENDED');
-  const listTitle = useAsyncTranslation(locale, 'admin.services.list_title');
-  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.services.list_description');
-  const recommendedLabel = useAsyncTranslation(locale, 'admin.services.recommended');
-  const slugPrefix = useAsyncTranslation(locale, 'admin.services.slug_prefix');
-  const categoryPrefix = useAsyncTranslation(locale, 'admin.services.category_prefix');
-  const reviewsLabelTemplate = useAsyncTranslation(locale, 'admin.services.reviews');
-  const ordersLabelTemplate = useAsyncTranslation(locale, 'admin.services.orders');
-  const viewsLabelTemplate = useAsyncTranslation(locale, 'admin.services.views');
-  const viewDetails = useAsyncTranslation(locale, 'admin.services.view_details');
-  const editLabel = useAsyncTranslation(locale, 'admin.services.edit');
-  const approveLabel = useAsyncTranslation(locale, 'admin.services.approve');
-  const featureLabel = useAsyncTranslation(locale, 'admin.services.feature');
-  const unfeatureLabel = useAsyncTranslation(locale, 'admin.services.unfeature');
-  const suspendLabel = useAsyncTranslation(locale, 'admin.services.suspend');
-  const deleteLabel = useAsyncTranslation(locale, 'admin.services.delete');
-  const confirmDeleteText = useAsyncTranslation(locale, 'admin.services.confirm_delete');
-  const errorPrefix = useAsyncTranslation(locale, 'admin.services.error_prefix');
-  const noServicesTitle = useAsyncTranslation(locale, 'admin.services.no_services_title');
-  const noServicesDescription = useAsyncTranslation(locale, 'admin.services.no_services_description');
+  const manageTitle = t('admin.services.manage_title');
+  const manageSubtitle = t('admin.services.manage_subtitle');
+  const addService = t('admin.services.add_service');
+  const searchPlaceholder = t('admin.services.search_placeholder');
+  const statusFilterPlaceholder = t('admin.services.status_filter_placeholder');
+  const filterAll = t('admin.services.filters.all');
+  const statusActive = t('admin.services.statuses.ACTIVE');
+  const statusDraft = t('admin.services.statuses.DRAFT');
+  const statusSuspended = t('admin.services.statuses.SUSPENDED');
+  const listTitle = t('admin.services.list_title');
+  const listDescriptionTemplate = t('admin.services.list_description');
+  const recommendedLabel = t('admin.services.recommended');
+  const slugPrefix = t('admin.services.slug_prefix');
+  const categoryPrefix = t('admin.services.category_prefix');
+  const reviewsLabelTemplate = t('admin.services.reviews');
+  const ordersLabelTemplate = t('admin.services.orders');
+  const viewsLabelTemplate = t('admin.services.views');
+  const viewDetails = t('admin.services.view_details');
+  const editLabel = t('admin.services.edit');
+  const approveLabel = t('admin.services.approve');
+  const featureLabel = t('admin.services.feature');
+  const unfeatureLabel = t('admin.services.unfeature');
+  const suspendLabel = t('admin.services.suspend');
+  const deleteLabel = t('admin.services.delete');
+  const confirmDeleteText = t('admin.services.confirm_delete');
+  const errorPrefix = t('admin.services.error_prefix');
+  const noServicesTitle = t('admin.services.no_services_title');
+  const noServicesDescription = t('admin.services.no_services_description');
 
   const handleServiceAction = async (serviceId: string, action: string) => {
     try {

@@ -6,9 +6,9 @@ import { TrustoraMessagingSection } from "@/components/trustora/messaging-sectio
 import { TrustoraPillarsSection } from "@/components/trustora/pillars-section";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { TrustoraVisualLanguageSection } from "@/components/trustora/visual-language-section";
-import { t } from "@/lib/i18n";
 import { Locale } from "@/types/locale";
 import {Metadata} from "next";
+import {getTranslations} from 'next-intl/server';
 
 export const revalidate = 86400; // 24h
 
@@ -71,7 +71,8 @@ interface HomePageProps {
 
 export default async function Home(props: HomePageProps) {
     const { locale } = await props.params;
-    const mainContentLabel = await t(locale, "common.main_content");
+    const t = await getTranslations();
+    const mainContentLabel = t("common.main_content");
 
 
     return (

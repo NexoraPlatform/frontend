@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,63 +12,37 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import type { Locale } from '@/types/locale';
+import { useTranslations } from 'next-intl';
 
 export default function SignInPage() {
+  const t = useTranslations();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
   const router = useRouter();
   const { login } = useAuth();
-  const badgeText = useAsyncTranslation(locale, 'auth.signin.badge', 'Trustora Secure Access');
-  const titlePrefix = useAsyncTranslation(locale, 'auth.signin.title_prefix', 'Bun venit înapoi la');
-  const titleBrand = useAsyncTranslation(locale, 'auth.signin.title_brand', 'Trustora');
-  const subtitleText = useAsyncTranslation(
-    locale,
-    'auth.signin.subtitle',
-    'Intră în workspace-ul tău securizat și gestionează proiectele cu încredere, transparență și escrow automatizat.',
-  );
-  const benefitVerifiedContracts = useAsyncTranslation(
-    locale,
-    'auth.signin.benefits.verified_contracts',
-    'Contracte verificate',
-  );
-  const benefitAutomatedEscrow = useAsyncTranslation(
-    locale,
-    'auth.signin.benefits.automated_escrow',
-    'Escrow automatizat',
-  );
-  const benefitProjectTimeline = useAsyncTranslation(
-    locale,
-    'auth.signin.benefits.project_timeline',
-    'Timeline live proiecte',
-  );
-  const benefitSupport = useAsyncTranslation(locale, 'auth.signin.benefits.support', 'Suport dedicat 24/7');
-  const cardTitle = useAsyncTranslation(locale, 'auth.signin.card_title', 'Conectare');
-  const cardDescription = useAsyncTranslation(
-    locale,
-    'auth.signin.card_description',
-    'Introdu datele tale pentru a continua în platforma Trustora.',
-  );
-  const emailLabel = useAsyncTranslation(locale, 'auth.signin.email_label', 'Email');
-  const emailPlaceholder = useAsyncTranslation(locale, 'auth.signin.email_placeholder', 'email@exemplu.ro');
-  const passwordLabel = useAsyncTranslation(locale, 'auth.signin.password_label', 'Parola');
-  const passwordPlaceholder = useAsyncTranslation(locale, 'auth.signin.password_placeholder', 'Parola ta');
-  const forgotPassword = useAsyncTranslation(locale, 'auth.signin.forgot_password', 'Ai uitat parola?');
-  const loadingText = useAsyncTranslation(locale, 'auth.signin.loading', 'Se conectează...');
-  const submitText = useAsyncTranslation(locale, 'auth.signin.submit', 'Conectează-te');
-  const noAccountText = useAsyncTranslation(locale, 'auth.signin.no_account', 'Nu ai cont?');
-  const registerText = useAsyncTranslation(locale, 'auth.signin.register', 'Înregistrează-te');
-  const genericErrorText = useAsyncTranslation(
-    locale,
-    'auth.signin.generic_error',
-    'A apărut o eroare. Încearcă din nou.',
-  );
+  const badgeText = t('auth.signin.badge', {defaultValue: 'Trustora Secure Access'});
+  const titlePrefix = t('auth.signin.title_prefix', {defaultValue: 'Bun venit înapoi la'});
+  const titleBrand = t('auth.signin.title_brand', {defaultValue: 'Trustora'});
+  const subtitleText = t('auth.signin.subtitle', {defaultValue: 'Intră în workspace-ul tău securizat și gestionează proiectele cu încredere, transparență și escrow automatizat.'});
+  const benefitVerifiedContracts = t('auth.signin.benefits.verified_contracts', {defaultValue: 'Contracte verificate'});
+  const benefitAutomatedEscrow = t('auth.signin.benefits.automated_escrow', {defaultValue: 'Escrow automatizat'});
+  const benefitProjectTimeline = t('auth.signin.benefits.project_timeline', {defaultValue: 'Timeline live proiecte'});
+  const benefitSupport = t('auth.signin.benefits.support', {defaultValue: 'Suport dedicat 24/7'});
+  const cardTitle = t('auth.signin.card_title', {defaultValue: 'Conectare'});
+  const cardDescription = t('auth.signin.card_description', {defaultValue: 'Introdu datele tale pentru a continua în platforma Trustora.'});
+  const emailLabel = t('auth.signin.email_label', {defaultValue: 'Email'});
+  const emailPlaceholder = t('auth.signin.email_placeholder', {defaultValue: 'email@exemplu.ro'});
+  const passwordLabel = t('auth.signin.password_label', {defaultValue: 'Parola'});
+  const passwordPlaceholder = t('auth.signin.password_placeholder', {defaultValue: 'Parola ta'});
+  const forgotPassword = t('auth.signin.forgot_password', {defaultValue: 'Ai uitat parola?'});
+  const loadingText = t('auth.signin.loading', {defaultValue: 'Se conectează...'});
+  const submitText = t('auth.signin.submit', {defaultValue: 'Conectează-te'});
+  const noAccountText = t('auth.signin.no_account', {defaultValue: 'Nu ai cont?'});
+  const registerText = t('auth.signin.register', {defaultValue: 'Înregistrează-te'});
+  const genericErrorText = t('auth.signin.generic_error', {defaultValue: 'A apărut o eroare. Încearcă din nou.'});
   const benefits = [benefitVerifiedContracts, benefitAutomatedEscrow, benefitProjectTimeline, benefitSupport];
 
   const handleSubmit = async (e: React.FormEvent) => {

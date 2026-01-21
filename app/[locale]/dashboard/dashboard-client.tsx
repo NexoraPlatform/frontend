@@ -1,8 +1,8 @@
 "use client";
 
 import {useState, useEffect, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
+import { useRouter } from '@/lib/navigation';
+import { useLocale } from 'next-intl';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import {SiStripe} from "react-icons/si";
 import {Can} from "@/components/Can";
 

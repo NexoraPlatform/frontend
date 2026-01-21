@@ -1,10 +1,10 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { locales, localeConfig } from '@/lib/i18n';
 import { Locale } from '@/types/locale';
+import { Link, usePathname, useRouter } from '@/lib/navigation';
+import { useLocale } from 'next-intl';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -14,16 +14,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface LocaleSwitcherProps {
-    currentLocale: Locale;
-    className?: string;
-}
-
 const LOCALE_COOKIE_NAME = 'preferred_locale';
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps) {
+export function LocaleSwitcher({ className }: { className?: string }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const currentLocale = useLocale() as Locale;
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -32,16 +29,16 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
 
     if (!mounted) return null;
 
-    const getLocalizedPath = (locale: Locale) => {
-        const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}/, '') || '/';
-        return `/${locale}${pathWithoutLocale}`;
-    };
-
     const setLocaleCookie = (locale: Locale) => {
         document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
     };
 
     const currentConfig = localeConfig[currentLocale];
+
+    const handleLocaleChange = (locale: Locale) => {
+        setLocaleCookie(locale);
+        router.replace(pathname, { locale });
+    };
 
     return (
         <DropdownMenu>
@@ -63,10 +60,11 @@ export function LocaleSwitcher({ currentLocale, className }: LocaleSwitcherProps
                     return (
                         <DropdownMenuItem key={locale} asChild>
                             <Link
-                                href={getLocalizedPath(locale)}
+                                href={pathname}
+                                locale={locale}
                                 aria-current={isCurrent ? 'true' : undefined}
                                 hrefLang={locale}
-                                onClick={() => setLocaleCookie(locale)}
+                                onClick={() => handleLocaleChange(locale)}
                                 className={`flex items-center gap-2 text-sm w-full ${isCurrent ? 'font-semibold text-primary' : ''}`}
                             >
                                 <span className="text-[18px] leading-none relative top-[1px]"

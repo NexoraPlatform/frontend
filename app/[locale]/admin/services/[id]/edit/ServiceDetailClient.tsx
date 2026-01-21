@@ -1,9 +1,9 @@
 "use client";
 
 import {useState, useEffect, useCallback, useMemo} from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
-import Link from 'next/link';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,10 +16,10 @@ import { ArrowLeft, Save, AlertCircle, Loader2, X, Plus } from 'lucide-react';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {InputAdornment, TextField} from "@mui/material";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
-export default function ServiceDetailClient({ id }: { id: string;}) {
+export default function ServiceDetailClient({ id }: { id: string }) {
+  const t = useTranslations();
     const [formData, setFormData] = useState({
         name: '',
         slug: '',
@@ -40,34 +40,34 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
     const locale = useLocale();
     const { data: categoriesData } = useCategories();
 
-    const pageTitle = useAsyncTranslation(locale, 'admin.services.edit_service.title');
-    const pageSubtitle = useAsyncTranslation(locale, 'admin.services.edit_service.subtitle');
-    const infoTitle = useAsyncTranslation(locale, 'admin.services.info_title');
-    const titleLabel = useAsyncTranslation(locale, 'admin.services.title_label');
-    const slugLabel = useAsyncTranslation(locale, 'admin.services.slug_label');
-    const slugPlaceholder = useAsyncTranslation(locale, 'admin.services.slug_placeholder');
-    const slugHelp = useAsyncTranslation(locale, 'admin.services.slug_help');
-    const descriptionLabel = useAsyncTranslation(locale, 'admin.services.description_label');
-    const requirementsLabel = useAsyncTranslation(locale, 'admin.services.requirements_label');
-    const categoryLabel = useAsyncTranslation(locale, 'admin.services.category_label');
-    const categoryPlaceholder = useAsyncTranslation(locale, 'admin.services.category_placeholder');
-    const statusLabel = useAsyncTranslation(locale, 'admin.services.edit_service.status_label');
-    const skillsTagsTitle = useAsyncTranslation(locale, 'admin.services.skills_tags_title');
-    const skillsLabel = useAsyncTranslation(locale, 'admin.services.skills_label');
-    const skillsPlaceholder = useAsyncTranslation(locale, 'admin.services.skills_placeholder');
-    const tagsLabel = useAsyncTranslation(locale, 'admin.services.tags_label');
-    const tagsPlaceholder = useAsyncTranslation(locale, 'admin.services.tags_placeholder');
-    const pricingNoteTitle = useAsyncTranslation(locale, 'admin.services.pricing_note_title_edit');
-    const pricingNoteDescription = useAsyncTranslation(locale, 'admin.services.pricing_note_description_edit');
-    const savingLabel = useAsyncTranslation(locale, 'admin.services.saving');
-    const saveChangesLabel = useAsyncTranslation(locale, 'admin.services.save_changes');
-    const cancelLabel = useAsyncTranslation(locale, 'admin.services.cancel');
-    const categoryLoadError = useAsyncTranslation(locale, 'admin.services.category_load_error');
-    const serviceLoadError = useAsyncTranslation(locale, 'admin.services.service_load_error');
-    const errorOccurred = useAsyncTranslation(locale, 'admin.services.error_occurred');
-    const statusActive = useAsyncTranslation(locale, 'admin.services.statuses.ACTIVE');
-    const statusDraft = useAsyncTranslation(locale, 'admin.services.statuses.DRAFT');
-    const statusSuspended = useAsyncTranslation(locale, 'admin.services.statuses.SUSPENDED');
+    const pageTitle = t('admin.services.edit_service.title');
+    const pageSubtitle = t('admin.services.edit_service.subtitle');
+    const infoTitle = t('admin.services.info_title');
+    const titleLabel = t('admin.services.title_label');
+    const slugLabel = t('admin.services.slug_label');
+    const slugPlaceholder = t('admin.services.slug_placeholder');
+    const slugHelp = t('admin.services.slug_help');
+    const descriptionLabel = t('admin.services.description_label');
+    const requirementsLabel = t('admin.services.requirements_label');
+    const categoryLabel = t('admin.services.category_label');
+    const categoryPlaceholder = t('admin.services.category_placeholder');
+    const statusLabel = t('admin.services.edit_service.status_label');
+    const skillsTagsTitle = t('admin.services.skills_tags_title');
+    const skillsLabel = t('admin.services.skills_label');
+    const skillsPlaceholder = t('admin.services.skills_placeholder');
+    const tagsLabel = t('admin.services.tags_label');
+    const tagsPlaceholder = t('admin.services.tags_placeholder');
+    const pricingNoteTitle = t('admin.services.pricing_note_title_edit');
+    const pricingNoteDescription = t('admin.services.pricing_note_description_edit');
+    const savingLabel = t('admin.services.saving');
+    const saveChangesLabel = t('admin.services.save_changes');
+    const cancelLabel = t('admin.services.cancel');
+    const categoryLoadError = t('admin.services.category_load_error');
+    const serviceLoadError = t('admin.services.service_load_error');
+    const errorOccurred = t('admin.services.error_occurred');
+    const statusActive = t('admin.services.statuses.ACTIVE');
+    const statusDraft = t('admin.services.statuses.DRAFT');
+    const statusSuspended = t('admin.services.statuses.SUSPENDED');
 
     const loadService = useCallback(async () => {
         try {

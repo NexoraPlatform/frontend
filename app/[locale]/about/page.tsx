@@ -11,7 +11,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import type {Metadata} from "next";
 import {generateSEO} from "@/lib/seo";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';

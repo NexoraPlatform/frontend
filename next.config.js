@@ -1,3 +1,5 @@
+const withNextIntl = require('next-intl/plugin')('./i18n.ts');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Performance optimizations
@@ -167,4 +169,4 @@ const withBundleAnalyzer = process.env.ANALYZE === 'true'
     ? require('@next/bundle-analyzer')({ enabled: true })
     : (config) => config;
 
-module.exports = withBundleAnalyzer(nextConfig);
+module.exports = withBundleAnalyzer(withNextIntl(nextConfig));
