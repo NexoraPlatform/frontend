@@ -4,13 +4,15 @@ import { auth } from '@/auth';
 import {
   checkRequirement,
   type AccessUser,
-  type AccessRole,
   type Requirement,
 } from '@/lib/access';
 import { locales, defaultLocale } from '@/lib/i18n';
+import createMiddleware from 'next-intl/middleware';
 
-const LOCALE_COOKIE_NAME = 'preferred_locale';
-const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+});
 
 type RouteRule = { pattern: RegExp; require: Requirement | 'auth-only' };
 
@@ -43,63 +45,9 @@ function findRequirement(pathname: string): Requirement | 'auth-only' | null {
 
 // ---- Helper Functions ----
 
-function redirectToSignin(req: any) {
-  const url = req.nextUrl.clone();
-  url.pathname = '/auth/signin';
-  url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
-  return NextResponse.redirect(url);
-}
-
-function getLocale(request: any): string {
-  const pathname = request.nextUrl.pathname;
-
-  // Check if pathname already has locale
-  const hasLocale = locales.some(
-    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-  );
-
-  if (hasLocale) {
-    return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
-  }
-
-  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
-  if (cookieLocale && locales.includes(cookieLocale as (typeof locales)[number])) {
-    return cookieLocale;
-  }
-
-  const country =
-    request.geo?.country ||
-    request.headers.get('x-vercel-ip-country') ||
-    request.headers.get('x-country');
-  if (country) {
-    return country.toUpperCase() === 'RO' ? 'ro' : 'en';
-  }
-
-  // Get from headers
-  const acceptLanguage = request.headers.get('Accept-Language');
-  if (acceptLanguage) {
-    const preferredLanguages = acceptLanguage
-      .split(',')
-      .map((lang: string) => lang.split(';')[0].trim().toLowerCase());
-
-    for (const lang of preferredLanguages) {
-      // @ts-ignore
-      const found = locales.find(l => lang.startsWith(l));
-      if (found) return found;
-    }
-  }
-
-  return defaultLocale;
-}
-
-function applyLocaleCookie(response: NextResponse, locale: string) {
-  if (locales.includes(locale as (typeof locales)[number])) {
-    response.cookies.set(LOCALE_COOKIE_NAME, locale, {
-      path: '/',
-      maxAge: LOCALE_COOKIE_MAX_AGE,
-    });
-  }
-  return response;
+function getLocaleFromRequest(req: any) {
+  const segment = req.nextUrl.pathname.split('/')[1];
+  return locales.includes(segment as (typeof locales)[number]) ? segment : defaultLocale;
 }
 
 function isEarlyAccessEnabled() {
@@ -174,6 +122,11 @@ function isAdminUser(user: AccessUser | null) {
 // ---- Middleware Main ----
 
 export default auth(async (req) => {
+  const intlResponse = intlMiddleware(req);
+  if (intlResponse.headers.get('location')) {
+    return intlResponse;
+  }
+
   const { pathname } = req.nextUrl;
 
   // Ignore static files and API
@@ -195,20 +148,8 @@ export default auth(async (req) => {
     });
   }
 
-  // 1. Locale Handling
-  const pathnameHasLocale = locales.some(
-    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-  );
-
-  if (!pathnameHasLocale) {
-    const locale = getLocale(req);
-    const url = new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url);
-    url.search = req.nextUrl.search;
-    return applyLocaleCookie(NextResponse.redirect(url), locale);
-  }
-
   const segments = pathname.split('/');
-  const locale = segments[1];
+  const locale = getLocaleFromRequest(req);
   const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/';
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
@@ -236,7 +177,7 @@ export default auth(async (req) => {
       normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
 
     if (isOpenSoonRoute) {
-      return applyLocaleCookie(NextResponse.next(), locale);
+      return intlResponse;
     }
 
     let adminBypass = false;
@@ -247,9 +188,9 @@ export default auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/open-soon`, req.url);
       if (normalizedPath === '/') {
-        return applyLocaleCookie(NextResponse.rewrite(url), locale);
+        return NextResponse.rewrite(url);
       }
-      return applyLocaleCookie(NextResponse.redirect(url), locale);
+      return NextResponse.redirect(url);
     }
   }
 
@@ -267,7 +208,7 @@ export default auth(async (req) => {
       normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
     if (isEarlyAccessRoute) {
-      return applyLocaleCookie(NextResponse.next(), locale);
+      return intlResponse;
     }
 
     let adminBypass = false;
@@ -278,9 +219,9 @@ export default auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/early-access`, req.url);
       if (normalizedPath === '/') {
-        return applyLocaleCookie(NextResponse.rewrite(url), locale);
+        return NextResponse.rewrite(url);
       }
-      return applyLocaleCookie(NextResponse.redirect(url), locale);
+      return NextResponse.redirect(url);
     }
   }
 
@@ -288,9 +229,9 @@ export default auth(async (req) => {
   // Redirect authenticated users away from auth pages
   if (AUTH_PAGES.has(normalizedPath) && isAuthenticated) {
     console.log('[Middleware] Redirecting authenticated user to dashboard');
-    const url = new URL('/dashboard', req.url);
+    const url = new URL(`/${locale}/dashboard`, req.url);
     url.search = req.nextUrl.search;
-    return applyLocaleCookie(NextResponse.redirect(url), locale);
+    return NextResponse.redirect(url);
   }
 
   // 3. Protected Routes
@@ -299,13 +240,18 @@ export default auth(async (req) => {
 
   if (!requirement) {
     console.log('[Middleware] No requirement, allowing.');
-    return applyLocaleCookie(NextResponse.next(), locale);
+    return intlResponse;
   }
 
   // 4. Token & Permission Checks
-  if (!isAuthenticated) return applyLocaleCookie(redirectToSignin(req), locale);
+  if (!isAuthenticated) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/${locale}/auth/signin`;
+    url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
+    return NextResponse.redirect(url);
+  }
 
-  if (requirement === 'auth-only') return applyLocaleCookie(NextResponse.next(), locale);
+  if (requirement === 'auth-only') return intlResponse;
 
   const allowed = checkRequirement(user || null, requirement);
   console.log(`[Middleware] Check Requirement Result: ${allowed}`);
@@ -313,17 +259,16 @@ export default auth(async (req) => {
   if (!allowed) {
     console.log('[Middleware] Access Denied. Redirecting.');
     const url = req.nextUrl.clone();
-    url.pathname = '/access-denied';
+    url.pathname = `/${locale}/access-denied`;
     url.searchParams.set('from', req.nextUrl.pathname);
-    return applyLocaleCookie(NextResponse.redirect(url), locale);
+    return NextResponse.redirect(url);
   }
 
-  return applyLocaleCookie(NextResponse.next(), locale);
+  return intlResponse;
 });
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)',
+    '/((?!api|_next|icons|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)',
   ],
 };
-

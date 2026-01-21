@@ -4,11 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "npm run partytown && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "analyze": "ANALYZE=true next build",
-    "partytown": "partytown copylib public/~partytown"
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
