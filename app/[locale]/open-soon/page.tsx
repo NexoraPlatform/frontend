@@ -23,10 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api";
 import {Alert, AlertDescription} from "@/components/ui/alert";
+import { Locale } from "@/types/locale";
 
 export default function OpenSoonPage() {
   const t = useTranslations();
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -96,7 +97,7 @@ export default function OpenSoonPage() {
         name: fullName || undefined,
         language: locale,
       });
-      setFullName(""});
+      setFullName("");
       setEmail("");
       setUserType("");
       setSuccessNewsletter(response.success)

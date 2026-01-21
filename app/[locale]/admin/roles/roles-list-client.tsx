@@ -54,12 +54,12 @@ function SortableRow({
                          role,
                          onEdit,
                          onDelete,
-                         locale,
+                         t,
                      }: {
     role: RoleRow;
     onEdit: (id: number) => void;
     onDelete: (id: number) => void;
-    locale: Locale;
+    t: ReturnType<typeof useTranslations>;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: role.id,
@@ -286,7 +286,7 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
                                             role={role}
                                             onEdit={onEdit}
                                             onDelete={onDelete}
-                                            locale={locale}
+                                            t={t}
                                         />
                                     ))}
                                 </div>

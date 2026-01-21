@@ -9,13 +9,14 @@ import { Button } from '@/components/ui/button';
 import { useLocale } from 'next-intl';
 import RolesListClient from './roles-list-client';
 import { useTranslations } from 'next-intl';
+import { Locale } from '@/types/locale';
 
 const PermissionMatrix = dynamic(() => import('./PermissionMatrixTab'), { ssr: false });
 
 export default function RolesPage() {
   const t = useTranslations();
   const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
-    const locale = useLocale();
+  const locale = useLocale() as Locale;
   const rolesLabel = t('admin.roles.tabs.roles');
   const permissionsLabel = t('admin.roles.tabs.permissions');
   const loadingPermissions = t('admin.roles.permissions_tab_loading');

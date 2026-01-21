@@ -39,10 +39,9 @@ import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { useLocale } from 'next-intl';
 import { useTranslations } from 'next-intl';
-import { Locale } from "@/types/locale";
 
 /** Custom hook care grupează toate traducerile pentru pagina de Calls */
-function useCallsT(locale: Locale) {
+function useCallsT(t: ReturnType<typeof useTranslations>) {
     return {
         title: t("admin.calls.manage_title"),
         subtitle: t("admin.calls.manage_subtitle"),
@@ -111,7 +110,7 @@ export default function CallsPage() {
     const locale = useLocale();
 
     // Toate textele printr-un singur hook
-    const t = useCallsT(locale);
+    const copy = useCallsT(t);
 
     const handleCallAction = async (callId: string, action: string, noteTextParam: string | null) => {
         try {
@@ -132,7 +131,7 @@ export default function CallsPage() {
                 refetchCalls();
             }
         } catch (error: any) {
-            alert(t.errorPrefix + error.message);
+            alert(copy.errorPrefix + error.message);
         }
     };
 
@@ -168,7 +167,7 @@ export default function CallsPage() {
     });
 
     const getStatusBadge = (status: string) => {
-        const text = t.statuses[status as keyof typeof t.statuses] || status;
+        const text = copy.statuses[status as keyof typeof copy.statuses] || status;
         switch (status) {
             case "WAITING":
                 return (
@@ -230,8 +229,8 @@ export default function CallsPage() {
                         </span>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{t.title}</h1>
-                        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">{t.subtitle}</p>
+                        <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{copy.title}</h1>
+                        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">{copy.subtitle}</p>
                     </div>
                 </div>
             </div>
@@ -244,7 +243,7 @@ export default function CallsPage() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                                 <Input
-                                    placeholder={t.searchPlaceholder}
+                                    placeholder={copy.searchPlaceholder}
                                     className="pl-10"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -254,27 +253,27 @@ export default function CallsPage() {
 
                         <Select value={passedFilter} onValueChange={setPassedFilter}>
                             <SelectTrigger className="w-full md:w-48">
-                                <SelectValue placeholder={t.passedFilterLabel} />
+                                <SelectValue placeholder={copy.passedFilterLabel} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{t.passedFilterAll}</SelectItem>
-                                <SelectItem value="1">{t.passedFilterYes}</SelectItem>
-                                <SelectItem value="0">{t.passedFilterNo}</SelectItem>
+                                <SelectItem value="all">{copy.passedFilterAll}</SelectItem>
+                                <SelectItem value="1">{copy.passedFilterYes}</SelectItem>
+                                <SelectItem value="0">{copy.passedFilterNo}</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-full md:w-48">
                                 <Filter className="w-4 h-4 mr-2" />
-                                <SelectValue placeholder={t.statusFilterLabel} />
+                                <SelectValue placeholder={copy.statusFilterLabel} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{t.statusFilterAll}</SelectItem>
-                                <SelectItem value="WAITING">{t.statuses.WAITING}</SelectItem>
-                                <SelectItem value="ACCEPTED">{t.statuses.ACCEPTED}</SelectItem>
-                                <SelectItem value="FINISHED">{t.statuses.FINISHED}</SelectItem>
-                                <SelectItem value="REFUSED">{t.statuses.REFUSED}</SelectItem>
-                                <SelectItem value="NO_SHOW">{t.statuses.NO_SHOW}</SelectItem>
+                                <SelectItem value="all">{copy.statusFilterAll}</SelectItem>
+                                <SelectItem value="WAITING">{copy.statuses.WAITING}</SelectItem>
+                                <SelectItem value="ACCEPTED">{copy.statuses.ACCEPTED}</SelectItem>
+                                <SelectItem value="FINISHED">{copy.statuses.FINISHED}</SelectItem>
+                                <SelectItem value="REFUSED">{copy.statuses.REFUSED}</SelectItem>
+                                <SelectItem value="NO_SHOW">{copy.statuses.NO_SHOW}</SelectItem>
                             </SelectContent>
                         </Select>
 
@@ -284,7 +283,7 @@ export default function CallsPage() {
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {range[0].startDate && range[0].endDate
                                         ? `${range[0].startDate.toLocaleDateString(locale)} - ${range[0].endDate.toLocaleDateString(locale)}`
-                                        : t.dateFilterPlaceholder}
+                                        : copy.dateFilterPlaceholder}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="p-0 w-auto" align="start">
@@ -312,10 +311,10 @@ export default function CallsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <BookOpen className="w-5 h-5" />
-                        <span>{t.listTitle}</span>
+                        <span>{copy.listTitle}</span>
                     </CardTitle>
                     <CardDescription>
-                        {t.listDescriptionTemplate.replace("{count}", filteredCalls.length.toString())}
+                        {copy.listDescriptionTemplate.replace("{count}", filteredCalls.length.toString())}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -348,7 +347,7 @@ export default function CallsPage() {
                                                 <ListTodo className="w-4 h-4 text-emerald-500" />
                                                 <span>
                                                     <a href={`/admin/tests/${call.test_result.skill_test_id}/statistics`}>
-                                                        {t.viewTestDetails}
+                                                        {copy.viewTestDetails}
                                                     </a>
                                                 </span>
                                             </div>
@@ -356,7 +355,7 @@ export default function CallsPage() {
                                             <div className="flex items-center space-x-1">
                                                 <Clock className="w-4 h-4 text-amber-500" />
                                                 <span>
-                                                    {t.scheduledAtPrefix}{" "}
+                                                    {copy.scheduledAtPrefix}{" "}
                                                     {DateTime.fromISO(call.date_time, { setZone: true }).toFormat("dd.MM.yyyy HH:mm")}{" "}
                                                 </span>
                                             </div>
@@ -364,21 +363,21 @@ export default function CallsPage() {
                                             <div className="flex items-center space-x-1">
                                                 <BarChart3 className="w-4 h-4 text-indigo-500" />
                                                 <span>
-                                                    {t.passingScorePrefix} {call.test_result.score}%
+                                                    {copy.passingScorePrefix} {call.test_result.score}%
                                                 </span>
                                             </div>
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                             <span>
-                                                {t.categoryPrefix} {call.service?.category?.name?.[locale]}
+                                                {copy.categoryPrefix} {call.service?.category?.name?.[locale]}
                                             </span>
                                             <span>
-                                                {t.createdPrefix} {new Date(call.created_at).toLocaleString(locale)}
+                                                {copy.createdPrefix} {new Date(call.created_at).toLocaleString(locale)}
                                             </span>
                                             {call.results && (
                                                 <span>
-                                                    {t.resultsLabelTemplate.replace("{count}", call.results.length.toString())}
+                                                    {copy.resultsLabelTemplate.replace("{count}", call.results.length.toString())}
                                                 </span>
                                             )}
                                         </div>
@@ -395,28 +394,28 @@ export default function CallsPage() {
                                                 <DropdownMenuItem asChild>
                                                     <Link target="_blank" href={call.call_url}>
                                                         <Eye className="w-4 h-4 mr-2" />
-                                                        {t.connectToInterview}
+                                                        {copy.connectToInterview}
                                                     </Link>
                                                 </DropdownMenuItem>
 
                                                 {call.status !== "WAITING" && (
                                                     <DropdownMenuItem onClick={() => handleCallAction(call.id, "WAITING", null)}>
                                                         <PauseCircleOutlineIcon className="w-4 h-4 mr-2" />
-                                                        {t.moveWaiting}
+                                                        {copy.moveWaiting}
                                                     </DropdownMenuItem>
                                                 )}
 
                                                 {call.status !== "FINISHED" && (
                                                     <DropdownMenuItem onClick={() => handleCallAction(call.id, "FINISHED", null)}>
                                                         <PlaylistAddCheckCircleIcon className="!w-4 !h-4 mr-2" />
-                                                        {t.moveFinished}
+                                                        {copy.moveFinished}
                                                     </DropdownMenuItem>
                                                 )}
 
                                                 {call.status !== "ACCEPTED" && (
                                                     <DropdownMenuItem onClick={() => handleCallAction(call.id, "ACCEPTED", null)}>
                                                         <CheckCircleOutlineIcon className="!w-4 !h-4 mr-2" />
-                                                        {t.moveAccepted}
+                                                        {copy.moveAccepted}
                                                     </DropdownMenuItem>
                                                 )}
 
@@ -426,22 +425,22 @@ export default function CallsPage() {
                                                         onClick={() => setNoteModalCallId(call.id)}
                                                     >
                                                         <VisibilityOff className="!w-4 !h-4 mr-2" />
-                                                        {t.moveRefused}
+                                                        {copy.moveRefused}
                                                     </DropdownMenuItem>
                                                 )}
 
                                                 {noteModalCallId === call.id && (
                                                     <div className="mt-2 w-full max-w-md space-y-2 rounded-2xl border border-border/60 bg-background/70 p-4 text-sm shadow-sm dark:border-slate-800/70 dark:bg-slate-950/70">
-                                                        <label className="text-sm font-medium">{t.refuseReasonLabel}</label>
+                                                        <label className="text-sm font-medium">{copy.refuseReasonLabel}</label>
                                                         <textarea
                                                             value={noteText}
                                                             onChange={(e) => setNoteText(e.target.value)}
-                                                            placeholder={t.refuseReasonPlaceholder}
+                                                            placeholder={copy.refuseReasonPlaceholder}
                                                             className="h-20 w-full rounded-lg border border-border/60 bg-background/70 p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 dark:border-slate-800/70 dark:bg-slate-950/70"
                                                         />
                                                         <div className="flex justify-end space-x-2">
                                                             <Button variant="secondary" onClick={() => setNoteModalCallId(null)}>
-                                                                {t.cancelLabel}
+                                                                {copy.cancelLabel}
                                                             </Button>
                                                             <Button
                                                                 onClick={() => {
@@ -450,7 +449,7 @@ export default function CallsPage() {
                                                                     setNoteText("");
                                                                 }}
                                                             >
-                                                                {t.confirmLabel}
+                                                                {copy.confirmLabel}
                                                             </Button>
                                                         </div>
                                                     </div>
@@ -459,7 +458,7 @@ export default function CallsPage() {
                                                 {call.status !== "NO_SHOW" && (
                                                     <DropdownMenuItem onClick={() => handleCallAction(call.id, "NO_SHOW", null)}>
                                                         <XCircle className="w-4 h-4 mr-2" />
-                                                        {t.moveNoShow}
+                                                        {copy.moveNoShow}
                                                     </DropdownMenuItem>
                                                 )}
                                             </DropdownMenuContent>
@@ -471,8 +470,8 @@ export default function CallsPage() {
                             {filteredCalls.length === 0 && (
                                 <div className="rounded-2xl border border-dashed border-border/60 bg-background/60 py-12 text-center dark:border-slate-800/70 dark:bg-slate-950/60">
                                     <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium mb-2">{t.noCallsTitle}</h3>
-                                    <p className="text-muted-foreground mb-4">{t.noCallsDescription}</p>
+                                    <h3 className="text-lg font-medium mb-2">{copy.noCallsTitle}</h3>
+                                    <p className="text-muted-foreground mb-4">{copy.noCallsDescription}</p>
                                 </div>
                             )}
                         </div>

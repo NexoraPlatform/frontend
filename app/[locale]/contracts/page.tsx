@@ -1,6 +1,20 @@
 'use client';
 import { useState } from 'react';
 
+type ContractClause = {
+    title: string;
+    text: string;
+    logic_source?: string;
+};
+
+type ContractResponse = {
+    meta?: {
+        client_jurisdiction?: string;
+        freelancer_jurisdiction?: string;
+    };
+    clauses?: ContractClause[];
+};
+
 export default function ContractGenerator() {
     const [formData, setFormData] = useState({
         client_country: 'US', // Default SUA
@@ -12,7 +26,7 @@ export default function ContractGenerator() {
         }
     });
 
-    const [contract, setContract] = useState(null);
+    const [contract, setContract] = useState<ContractResponse | null>(null);
 
     const handleGenerate = async () => {
         const res = await fetch('http://localhost:8000/api/contract/generate', {

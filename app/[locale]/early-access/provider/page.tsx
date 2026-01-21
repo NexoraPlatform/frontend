@@ -127,7 +127,7 @@ export default function EarlyAccessProviderPage() {
         agreeToTerms: false,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState(""});
+    const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
     const [isCountryOpen, setIsCountryOpen] = useState(false);
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
