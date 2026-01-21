@@ -51,6 +51,7 @@ import TitleIcon from '@mui/icons-material/Title';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
+import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
 import dayjs from 'dayjs';
@@ -134,6 +135,8 @@ type RecommendedProvider = {
     estimated_cost: number;
 }
 
+type BudgetType = 'FIXED' | 'HOURLY';
+
 type FormData = {
     title: string;
     description: string;
@@ -141,7 +144,7 @@ type FormData = {
     serviceId: string;
     technologies: TechnologySelected[];
     budget: string;
-    budgetType: string;
+    budgetType: BudgetType;
     deadline: string;
     visibility: string;
     attachments: File[];
@@ -181,7 +184,7 @@ export default function NewProjectPage() {
         notes: '',
         paymentPlan: '',
     });
-    const [generatedAiOutput, setGeneratedAiOutput] = useState({
+    const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
         title: "",
         description: "",
         technologies: [],
@@ -817,11 +820,12 @@ export default function NewProjectPage() {
             setGeneratedAiOutput(generatedOutput);
             setFormData(prev => ({
                 ...prev,
-                note: generatedOutput.notes || '',
+                notes: generatedOutput.notes || '',
                 recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
                     role: member.role,
                     level: member.level,
                     service: member.service,
+                    count: member.count ?? 0,
                     estimated_cost: member.estimated_cost
                 })),
             }));
@@ -834,10 +838,20 @@ export default function NewProjectPage() {
 
     const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
         setSkipValidation(true);
-        setFormData(prev => ({
-            ...prev,
-            [field]: generatedText,
-        }));
+        setFormData(prev => {
+            if (field === 'budgetType') {
+                const normalizedBudgetType: BudgetType = generatedText === 'HOURLY' ? 'HOURLY' : 'FIXED';
+                return {
+                    ...prev,
+                    budgetType: normalizedBudgetType,
+                };
+            }
+
+            return {
+                ...prev,
+                [field]: generatedText,
+            };
+        });
     }
 
     const handleUseGeneratedTechnologies = (technologies: string[]) => {
@@ -1169,7 +1183,11 @@ export default function NewProjectPage() {
                                             <div>
                                                 <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>Tip Buget <span className="text-red-500">*</span></Label>
                                                 <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
+                                                            value={formData.budgetType}
+                                                            onValueChange={(value) => {
+                                                                const normalizedBudgetType: BudgetType = value === 'HOURLY' ? 'HOURLY' : 'FIXED';
+                                                                setFormData(prev => ({ ...prev, budgetType: normalizedBudgetType }));
+                                                            }}>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="FIXED" id="fixed" />
                                                         <Label htmlFor="fixed">Preț Fix per Proiect</Label>
@@ -1303,11 +1321,14 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.team_structure.length > 0 && (
                                                 <div>
                                                     <span className="text-sm text-black font-bold">Structura echipa: </span>
-                                                    {generatedAiOutput?.team_structure.map((team: {role: string, level: string, count: number, estimated_cost: number}, index) => (
-                                                        <div key={index}>
-                                                            <span className="text-sm text-black font-bold">Rol:</span> {team.role} - {team.count} {team.count === 1 ? 'persoana': 'persoane'} - Nivel {team.level}  - {team.estimated_cost} RON estimat
-                                                        </div>
-                                                    ))}
+                                                    {generatedAiOutput?.team_structure.map((team, index) => {
+                                                        const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
+                                                        return (
+                                                            <div key={index}>
+                                                                <span className="text-sm text-black font-bold">Rol:</span> {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? 'persoana' : 'persoane'} - Nivel {typedTeam.level}  - {typedTeam.estimated_cost} RON estimat
+                                                            </div>
+                                                        );
+                                                    })}
 
                                                 </div>
                                             )}
@@ -1348,12 +1369,12 @@ export default function NewProjectPage() {
                                                 </div>
                                             )}
 
-                                            {generatedAiOutput?.milestones?.length > 0 && (
+                                            {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
                                                 <>
                                                     <div>
                                                         <span className="text-sm text-black font-bold">Milestones sugerate: </span>
                                                         <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.milestones.map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
+                                                            {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
                                                                 <li key={index}>
                                                                     {group.provider_role ? `${group.provider_role}: ` : ''}
                                                                     {group.milestones.map((milestone, milestoneIndex) => (
@@ -1367,16 +1388,16 @@ export default function NewProjectPage() {
                                                         </ul>
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones)}>
+                                                       onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
                                                         <AddCircleIcon />
                                                         Folosește Milestones
                                                     </a>
                                                 </>
                                             )}
 
-                                            {generatedAiOutput?.notes.trim() && (
+                                            {(generatedAiOutput?.notes ?? '').trim() && (
                                                 <div>
-                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes}
+                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes ?? ''}
                                                 </div>
                                             )}
 
