@@ -51,6 +51,7 @@ import TitleIcon from '@mui/icons-material/Title';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
+import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
 import dayjs from 'dayjs';
@@ -134,6 +135,8 @@ type RecommendedProvider = {
     estimated_cost: number;
 }
 
+type BudgetType = 'FIXED' | 'HOURLY';
+
 type FormData = {
     title: string;
     description: string;
@@ -141,13 +144,14 @@ type FormData = {
     serviceId: string;
     technologies: TechnologySelected[];
     budget: string;
-    budgetType: string;
+    budgetType: BudgetType;
     deadline: string;
     visibility: string;
     attachments: File[];
     additionalInfo: string;
     recommendedProviders: RecommendedProvider[];
     notes: string;
+    paymentPlan: string;
 };
 
 
@@ -178,8 +182,9 @@ export default function NewProjectPage() {
         additionalInfo: '',
         recommendedProviders: [],
         notes: '',
+        paymentPlan: '',
     });
-    const [generatedAiOutput, setGeneratedAiOutput] = useState({
+    const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
         title: "",
         description: "",
         technologies: [],
@@ -188,7 +193,10 @@ export default function NewProjectPage() {
         notes: "",
         deadline: "",
         additional_services: [],
-        team_structure: []
+        team_structure: [],
+        payment_plan: "",
+        milestone_count: 0,
+        milestones: []
     });
     const [aiLoading, setAiLoading] = useState(false);
 
@@ -209,6 +217,107 @@ export default function NewProjectPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [providersPerPage] = useState(6); // 6 providers per page for better layout
     const [availableServices, setAvailableServices] = useState<any[]>([]);
+    const [providerMilestones, setProviderMilestones] = useState<Record<string, { title: string; amount: string }[]>>({});
+    const [aiSuggestedMilestones, setAiSuggestedMilestones] = useState<{ provider_role?: string; milestones: { title: string; amount: number }[] }[]>([]);
+
+    const isLongProject = useMemo(() => (
+        ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
+    ), [formData.deadline]);
+
+    const buildProviderMilestonesFromAi = useCallback(() => {
+        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
+            return {};
+        }
+
+        const providerMap = new Map(
+            selectedProviders.map((provider) => [
+                provider.id,
+                {
+                    ...provider,
+                    profile: suggestedProviders.find((p) => p.id === provider.id),
+                }
+            ])
+        );
+
+        const scoreProviderForRole = (providerId: string, role?: string) => {
+            const provider = providerMap.get(providerId);
+            if (!provider) {
+                return 0;
+            }
+            const baseScore = provider.matchScore ?? 0;
+            if (!role) {
+                return baseScore;
+            }
+            const roleLower = role.toLowerCase();
+            const skills = provider.profile?.skills ?? [];
+            const hasRoleMatch = skills.some((skill) => (
+                skill.toLowerCase().includes(roleLower) || roleLower.includes(skill.toLowerCase())
+            ));
+            return baseScore + (hasRoleMatch ? 50 : 0);
+        };
+
+        const sortedProviders = (role?: string) => {
+            return [...selectedProviders]
+                .sort((a, b) => scoreProviderForRole(b.id, role) - scoreProviderForRole(a.id, role));
+        };
+
+        const milestonesByProvider: Record<string, { title: string; amount: string }[]> = {};
+
+        aiSuggestedMilestones.forEach((group) => {
+            const providersByScore = sortedProviders(group.provider_role);
+            if (providersByScore.length === 0) {
+                return;
+            }
+            group.milestones.forEach((milestone, index) => {
+                const provider = providersByScore[index % providersByScore.length];
+                if (!milestonesByProvider[provider.id]) {
+                    milestonesByProvider[provider.id] = [];
+                }
+                milestonesByProvider[provider.id].push({
+                    title: milestone.title,
+                    amount: String(milestone.amount),
+                });
+            });
+        });
+
+        return milestonesByProvider;
+    }, [aiSuggestedMilestones, selectedProviders, suggestedProviders]);
+
+    useEffect(() => {
+        if (!isLongProject && Object.keys(providerMilestones).length > 0) {
+            setProviderMilestones({});
+            setAiSuggestedMilestones([]);
+        }
+    }, [isLongProject, providerMilestones]);
+
+    useEffect(() => {
+        if (aiSuggestedMilestones.length === 0) {
+            return;
+        }
+        const hasAnyMilestones = Object.values(providerMilestones).some((milestones) => milestones.length > 0);
+        if (hasAnyMilestones || selectedProviders.length === 0) {
+            return;
+        }
+        setProviderMilestones(buildProviderMilestonesFromAi());
+    }, [aiSuggestedMilestones, buildProviderMilestonesFromAi, providerMilestones, selectedProviders]);
+
+    useEffect(() => {
+        if (!isLongProject) {
+            return;
+        }
+
+        const milestoneBudgets = Object.fromEntries(
+            Object.entries(providerMilestones).map(([providerId, milestones]) => [
+                providerId,
+                milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0),
+            ])
+        );
+
+        setProviderBudgets(prevBudgets => ({
+            ...prevBudgets,
+            ...milestoneBudgets,
+        }));
+    }, [isLongProject, providerMilestones]);
 
     const router = useRouter();
     const { data: categoriesData } = useMainCategories();
@@ -289,6 +398,46 @@ export default function NewProjectPage() {
 
         if (formData.technologies.length === 0) {
             newErrors.technologies = 'Selecteaza minim o tehnologie';
+        }
+
+        if (isLongProject && selectedProviders.length > 0) {
+            const hasMissingMilestones = selectedProviders.some((provider) => (
+                !providerMilestones[provider.id] || providerMilestones[provider.id].length === 0
+            ));
+            if (hasMissingMilestones) {
+                newErrors.milestones = 'Adaugă cel puțin un milestone pentru fiecare prestator';
+            } else {
+                const hasInvalidMilestone = selectedProviders.some((provider) => (
+                    (providerMilestones[provider.id] ?? []).some(
+                        (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
+                    )
+                ));
+                if (hasInvalidMilestone) {
+                    newErrors.milestones = 'Completează titlul și bugetul pentru fiecare milestone';
+                }
+            }
+
+            if (String(formData.budget).trim() !== '') {
+                const milestoneTotal = getMilestoneTotal();
+                if (milestoneTotal !== Number(formData.budget)) {
+                    newErrors.milestoneTotal = 'Suma milestone-urilor trebuie să fie egală cu bugetul total';
+                }
+            }
+
+            const hasBudgetMismatch = selectedProviders.some((provider) => {
+                const allocated = Number(providerBudgets[provider.id] ?? 0);
+                if (allocated === 0) {
+                    return false;
+                }
+                const providerTotal = (providerMilestones[provider.id] ?? []).reduce(
+                    (sum, milestone) => sum + Number(milestone.amount || 0),
+                    0
+                );
+                return providerTotal !== allocated;
+            });
+            if (hasBudgetMismatch) {
+                newErrors.milestoneBudget = 'Bugetele milestone-urilor trebuie să fie egale cu bugetul alocat fiecărui prestator';
+            }
         }
 
         // alte validări...
@@ -444,6 +593,10 @@ export default function NewProjectPage() {
                     const { [providerId]: removed, ...rest } = prevBudgets;
                     return rest;
                 });
+                setProviderMilestones(prevMilestones => {
+                    const { [providerId]: removed, ...rest } = prevMilestones;
+                    return rest;
+                });
                 return prev.filter(p => p.id !== providerId);
             } else {
 
@@ -484,6 +637,48 @@ export default function NewProjectPage() {
         return Number(formData.budget) - getTotalAllocatedBudget();
     };
 
+    const getMilestoneTotal = () => {
+        return Object.values(providerMilestones).flat().reduce(
+            (sum, milestone) => sum + Number(milestone.amount || 0),
+            0
+        );
+    };
+
+    const addProviderMilestone = (providerId: string) => {
+        setProviderMilestones(prev => ({
+            ...prev,
+            [providerId]: [...(prev[providerId] ?? []), { title: '', amount: '' }],
+        }));
+    };
+
+    const updateProviderMilestoneField = (
+        providerId: string,
+        index: number,
+        field: 'title' | 'amount',
+        value: string
+    ) => {
+        setProviderMilestones(prev => ({
+            ...prev,
+            [providerId]: (prev[providerId] ?? []).map((milestone, i) => (
+                i === index ? { ...milestone, [field]: value } : milestone
+            )),
+        }));
+    };
+
+    const removeProviderMilestone = (providerId: string, index: number) => {
+        setProviderMilestones(prev => ({
+            ...prev,
+            [providerId]: (prev[providerId] ?? []).filter((_, i) => i !== index),
+        }));
+    };
+
+    const applyAiMilestonesToProviders = () => {
+        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
+            return;
+        }
+        setProviderMilestones(buildProviderMilestonesFromAi());
+    };
+
     const getLastActiveText = (lastActiveAt: string): string => {
         const time = dayjs.utc(lastActiveAt);
         return `${time.fromNow()}`;
@@ -492,6 +687,11 @@ export default function NewProjectPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         setSkipValidation(false);
         e.preventDefault();
+
+        if (!validate()) {
+            setError('Completează câmpurile obligatorii înainte de a trimite proiectul.');
+            return;
+        }
 
         if (selectedProviders.length === 0) {
             setError('Selectează cel puțin un prestator pentru a trimite proiectul');
@@ -509,11 +709,27 @@ export default function NewProjectPage() {
         setError('');
 
         try {
+            const milestonesPayload = isLongProject
+                ? selectedProviders.map((provider) => ({
+                    providerId: Number(provider.id),
+                    milestones: (providerMilestones[provider.id] ?? []).map((milestone) => ({
+                        title: milestone.title.trim(),
+                        amount: Number(milestone.amount),
+                    })),
+                }))
+                : [];
+
             const projectData = {
                 ...formData,
+                budget: Number(formData.budget),
                 selectedProviders,
                 providerBudgets,
-                clientId: user?.id
+                clientId: user?.id,
+                paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
+                milestoneCount: isLongProject
+                    ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
+                    : 0,
+                milestones: milestonesPayload,
             };
 
             const createdProject = await apiClient.createProject(projectData);
@@ -622,11 +838,12 @@ export default function NewProjectPage() {
             setGeneratedAiOutput(generatedOutput);
             setFormData(prev => ({
                 ...prev,
-                note: generatedOutput.notes || '',
+                notes: generatedOutput.notes || '',
                 recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
                     role: member.role,
                     level: member.level,
                     service: member.service,
+                    count: member.count ?? 0,
                     estimated_cost: member.estimated_cost
                 })),
             }));
@@ -639,10 +856,20 @@ export default function NewProjectPage() {
 
     const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
         setSkipValidation(true);
-        setFormData(prev => ({
-            ...prev,
-            [field]: generatedText,
-        }));
+        setFormData(prev => {
+            if (field === 'budgetType') {
+                const normalizedBudgetType: BudgetType = generatedText === 'HOURLY' ? 'HOURLY' : 'FIXED';
+                return {
+                    ...prev,
+                    budgetType: normalizedBudgetType,
+                };
+            }
+
+            return {
+                ...prev,
+                [field]: generatedText,
+            };
+        });
     }
 
     const handleUseGeneratedTechnologies = (technologies: string[]) => {
@@ -673,6 +900,10 @@ export default function NewProjectPage() {
                 technologies: [...existing, ...newTechs]
             };
         });
+    };
+
+    const handleUseGeneratedMilestones = (milestones: { provider_role?: string; milestones: { title: string; amount: number }[] }[]) => {
+        setAiSuggestedMilestones(milestones);
     };
 
     // const handleUpdateServicesByCategory = async (categoryId: string) => {
@@ -970,7 +1201,11 @@ export default function NewProjectPage() {
                                             <div>
                                                 <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>Tip Buget <span className="text-red-500">*</span></Label>
                                                 <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
+                                                            value={formData.budgetType}
+                                                            onValueChange={(value) => {
+                                                                const normalizedBudgetType: BudgetType = value === 'HOURLY' ? 'HOURLY' : 'FIXED';
+                                                                setFormData(prev => ({ ...prev, budgetType: normalizedBudgetType }));
+                                                            }}>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="FIXED" id="fixed" />
                                                         <Label htmlFor="fixed">Preț Fix per Proiect</Label>
@@ -1021,6 +1256,7 @@ export default function NewProjectPage() {
                                                     </Select>
                                                 </div>
                                             </div>
+
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -1103,11 +1339,14 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.team_structure.length > 0 && (
                                                 <div>
                                                     <span className="text-sm text-black font-bold">Structura echipa: </span>
-                                                    {generatedAiOutput?.team_structure.map((team: {role: string, level: string, count: number, estimated_cost: number}, index) => (
-                                                        <div key={index}>
-                                                            <span className="text-sm text-black font-bold">Rol:</span> {team.role} - {team.count} {team.count === 1 ? 'persoana': 'persoane'} - Nivel {team.level}  - {team.estimated_cost} RON estimat
-                                                        </div>
-                                                    ))}
+                                                    {generatedAiOutput?.team_structure.map((team, index) => {
+                                                        const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
+                                                        return (
+                                                            <div key={index}>
+                                                                <span className="text-sm text-black font-bold">Rol:</span> {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? 'persoana' : 'persoane'} - Nivel {typedTeam.level}  - {typedTeam.estimated_cost} RON estimat
+                                                            </div>
+                                                        );
+                                                    })}
 
                                                 </div>
                                             )}
@@ -1140,9 +1379,43 @@ export default function NewProjectPage() {
                                                 </>
                                             )}
 
-                                            {generatedAiOutput?.notes.trim() && (
+                                            {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count) && (
                                                 <div>
-                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes}
+                                                    <span className="text-sm text-black font-bold">Plan de plată: </span>
+                                                    {generatedAiOutput?.payment_plan || 'Nespecificat'}
+                                                    {generatedAiOutput?.milestone_count ? ` • ${generatedAiOutput.milestone_count} milestones` : ''}
+                                                </div>
+                                            )}
+
+                                            {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
+                                                <>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">Milestones sugerate: </span>
+                                                        <ul className="ml-6 list-disc">
+                                                            {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
+                                                                <li key={index}>
+                                                                    {group.provider_role ? `${group.provider_role}: ` : ''}
+                                                                    {group.milestones.map((milestone, milestoneIndex) => (
+                                                                        <span key={milestoneIndex}>
+                                                                            {milestone.title} - {milestone.amount} RON
+                                                                            {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
+                                                                        </span>
+                                                                    ))}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                       onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
+                                                        <AddCircleIcon />
+                                                        Folosește Milestones
+                                                    </a>
+                                                </>
+                                            )}
+
+                                            {(generatedAiOutput?.notes ?? '').trim() && (
+                                                <div>
+                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes ?? ''}
                                                 </div>
                                             )}
 
@@ -1797,6 +2070,111 @@ export default function NewProjectPage() {
                                                         )}
                                                     </CardContent>
                                                 </Card>
+
+                                                {isLongProject && (
+                                                    <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
+                                                        <CardHeader>
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <CardTitle className="text-base">Milestones per prestator</CardTitle>
+                                                                    <CardDescription>
+                                                                        Adaugă milestones după selectarea prestatorilor pentru proiecte mai lungi de o lună.
+                                                                    </CardDescription>
+                                                                </div>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={applyAiMilestonesToProviders}
+                                                                    disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
+                                                                >
+                                                                    <AutoAwesomeIcon className="w-4 h-4 mr-2" />
+                                                                    Aplică milestones AI
+                                                                </Button>
+                                                            </div>
+                                                        </CardHeader>
+                                                        <CardContent className="space-y-4">
+                                                            {selectedProviders.map((selectedProvider) => {
+                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                                const milestones = providerMilestones[selectedProvider.id] ?? [];
+
+                                                                return (
+                                                                    <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="font-medium">
+                                                                                {provider ? `${provider.firstName} ${provider.lastName}` : `Prestator #${selectedProvider.id}`}
+                                                                            </div>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => addProviderMilestone(selectedProvider.id)}
+                                                                            >
+                                                                                <Plus className="w-4 h-4 mr-2" />
+                                                                                Adaugă milestone
+                                                                            </Button>
+                                                                        </div>
+                                                                        {milestones.length === 0 ? (
+                                                                            <div className="text-sm text-muted-foreground">
+                                                                                Nu există milestones încă pentru acest prestator.
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="space-y-3">
+                                                                                {milestones.map((milestone, index) => (
+                                                                                    <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
+                                                                                        <div>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>Nume milestone</Label>
+                                                                                            <Input
+                                                                                                id={`provider-${selectedProvider.id}-milestone-title-${index}`}
+                                                                                                value={milestone.title}
+                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
+                                                                                                placeholder="ex: Discovery"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>Buget milestone (RON)</Label>
+                                                                                            <Input
+                                                                                                id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                value={milestone.amount}
+                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
+                                                                                                placeholder="ex: 1500"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            variant="ghost"
+                                                                                            size="icon"
+                                                                                            onClick={() => removeProviderMilestone(selectedProvider.id, index)}
+                                                                                            aria-label="Șterge milestone"
+                                                                                        >
+                                                                                            <X className="w-4 h-4" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="text-sm text-muted-foreground">
+                                                                            Total milestones: {milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0).toLocaleString()} RON
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+
+                                                            {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
+                                                                <div className="text-sm text-red-500">
+                                                                    {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="text-sm text-muted-foreground">
+                                                                Total milestones: {getMilestoneTotal().toLocaleString()} RON •
+                                                                Diferență: {(Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString()} RON
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
 
                                                 <div className="space-y-3">
                                                     {selectedProviders.map(selectedProvider => {

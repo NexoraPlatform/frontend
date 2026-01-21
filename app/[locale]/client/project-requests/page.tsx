@@ -50,6 +50,7 @@ export default function ClientProjectRequestsPage() {
     const router = useRouter();
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const cardElementRef = useRef<any>(null);
     const stripeRef = useRef<any>(null);
     const elementsRef = useRef<any>(null);
@@ -70,14 +71,14 @@ export default function ClientProjectRequestsPage() {
     }, [user, loading, router]);
 
     useEffect(() => {
-        if (checkoutDialogOpen) {
+        if (checkoutDialogOpen && selectedProject?.id) {
             async function initStripe() {
                 const stripe = await stripePromise;
                 if (!stripe) return console.error('Stripe nu s-a încărcat.');
 
                 const elements = stripe.elements();
                 const cardElement = elements.create('card');
-                cardElement.mount('#card-element');
+                cardElement.mount(`#card-element-${selectedProject.id}`);
 
                 // Salvezi pentru confirmare ulterioară
                 stripeRef.current = stripe;
@@ -93,7 +94,7 @@ export default function ClientProjectRequestsPage() {
             cardElementRef.current?.unmount?.();
             cardElementRef.current = null;
         };
-    }, [checkoutDialogOpen]);
+    }, [checkoutDialogOpen, selectedProject?.id]);
 
     const handlePayment = async (project_id: any) => {
         setErrorMessage('');
@@ -103,6 +104,11 @@ export default function ClientProjectRequestsPage() {
 
         if (!stripe || !cardElement) {
             setErrorMessage('Stripe nu e gata.');
+            return;
+        }
+
+        if (!clientSecret) {
+            setErrorMessage('Sesiunea de plată nu este pregătită încă.');
             return;
         }
 
@@ -153,6 +159,14 @@ export default function ClientProjectRequestsPage() {
             console.error('Checkout error:', err);
         }
     }
+
+    const openCheckout = async (project: any) => {
+        setSelectedProject(project);
+        setSuccess(false);
+        setErrorMessage('');
+        setClientSecret(null);
+        await getClientSecret(project.id);
+    };
 
     const handleBudgetResponse = async (
         projectId: string,
@@ -443,7 +457,7 @@ export default function ClientProjectRequestsPage() {
 
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
                                             <Button
-                                                onClick={() => getClientSecret(project.id)}
+                                                onClick={() => openCheckout(project)}
                                                 className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
                                                 size="lg"
                                             >
@@ -469,158 +483,6 @@ export default function ClientProjectRequestsPage() {
                                                 </Button>
                                             </div>
                                         </div>
-                                        <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-                                            <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
-                                                <div className="bg-[#0B1C2D] p-6 text-white">
-                                                    <div className="flex items-center space-x-3 mb-4">
-                                                        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                                                            <Shield className="w-6 h-6 text-[#1BC47D]" />
-                                                        </div>
-                                                        <div>
-                                                            <DialogTitle className="text-xl font-bold text-white">
-                                                                Securizează Plata
-                                                            </DialogTitle>
-                                                            <DialogDescription className="text-sm text-blue-100">
-                                                                Protejează-ți investiția cu escrow
-                                                            </DialogDescription>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">
-                                                        <div className="flex items-center justify-between text-sm">
-                                                            <span className="text-blue-100">Proiect:</span>
-                                                            <span className="font-semibold">{project.title}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between text-sm mt-2">
-                                                            <span className="text-blue-100">Valoare proiect:</span>
-                                                            <span className="font-bold text-lg">{Number(project.budget)?.toLocaleString()} RON</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between text-sm mt-2">
-                                                            <span className="text-blue-100">Comision platforma (12%):</span>
-                                                            <span className="font-bold text-lg">{Number(project.budget * 12/100)?.toLocaleString()} RON</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between text-sm mt-2">
-                                                            <span className="text-blue-100">Valoare totală:</span>
-                                                            <span className="font-bold text-lg">{(Number(project.budget) + (Number(project.budget) * (12/100)))?.toLocaleString()} RON</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="p-6 space-y-6">
-                                                    <div className="text-center">
-                                                        <h3 className="font-semibold text-lg mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                            Cum funcționează Escrow?
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                                            <div className="text-center">
-                                                                <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
-                                                                    <span className="font-bold text-[#1BC47D]">1</span>
-                                                                </div>
-                                                                <p className="text-slate-500 dark:text-[#A3ADC2]">Banii sunt blocați securizat</p>
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
-                                                                    <span className="font-bold text-[#1BC47D]">2</span>
-                                                                </div>
-                                                                <p className="text-slate-500 dark:text-[#A3ADC2]">Prestatorii lucrează la proiect</p>
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
-                                                                    <span className="font-bold text-[#1BC47D]">3</span>
-                                                                </div>
-                                                                <p className="text-slate-500 dark:text-[#A3ADC2]">Banii sunt eliberați la finalizare</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] border border-emerald-100 dark:border-[#1E2A3D] rounded-lg p-4">
-                                                        <div className="flex items-start space-x-3">
-                                                            <CheckCircle className="w-5 h-5 text-[#1BC47D] mt-0.5" />
-                                                            <div className="text-sm">
-                                                                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-1">
-                                                                    Protecție 100% Garantată
-                                                                </div>
-                                                                <p className="text-slate-500 dark:text-[#A3ADC2]">
-                                                                    Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor.
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-4">
-                                                        <label className="block text-sm font-medium text-slate-600 dark:text-[#A3ADC2]">
-                                                            Detalii Card de Plată
-                                                        </label>
-                                                        <div
-                                                            id="card-element"
-                                                            className="border-2 border-slate-200 dark:border-[#1E2A3D] dark:!text-white rounded-lg p-4 bg-white dark:bg-[#0B1220] focus-within:border-[#1BC47D] focus-within:ring-2 focus-within:ring-emerald-200 transition-all"
-                                                        />
-                                                    </div>
-
-                                                    {errorMessage && (
-                                                        <Alert variant="destructive">
-                                                            <AlertCircle className="h-4 w-4" />
-                                                            <AlertDescription>{errorMessage}</AlertDescription>
-                                                        </Alert>
-                                                    )}
-
-                                                    {success && (
-                                                        <Alert className="border-emerald-200 bg-emerald-50">
-                                                            <CheckCircle className="h-4 w-4 text-[#1BC47D]" />
-                                                            <AlertDescription className="text-emerald-800">
-                                                                Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.
-                                                            </AlertDescription>
-                                                        </Alert>
-                                                    )}
-
-                                                    <div className="flex flex-col gap-3 sm:flex-row">
-                                                        <Button
-                                                            type="button"
-                                                            onClick={() => handlePayment(project.id)}
-                                                            disabled={loading}
-                                                            className="flex-1 btn-primary py-3"
-                                                        >
-                                                            {loading ? (
-                                                                <>
-                                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                                    Se procesează...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Shield className="w-4 h-4 mr-2" />
-                                                                    Securizează {(Number(project.budget) + (Number(project.budget) * 12/100))?.toLocaleString()} RON
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            onClick={() => setCheckoutDialogOpen(false)}
-                                                            className="px-6 border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                        >
-                                                            Anulează
-                                                        </Button>
-                                                    </div>
-
-                                                    <div className="text-xs text-center text-slate-500 dark:text-[#A3ADC2] pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                                                        <div className="flex items-center justify-center space-x-4">
-                                                            <div className="flex items-center space-x-1">
-                                                                <Shield className="w-3 h-3" />
-                                                                <span>SSL Securizat</span>
-                                                            </div>
-                                                            <div className="flex items-center space-x-1">
-                                                                <CheckCircle className="w-3 h-3" />
-                                                                <span>PCI Compliant</span>
-                                                            </div>
-                                                            <div className="flex items-center space-x-1">
-                                                                <Globe className="w-3 h-3" />
-                                                                <span>Stripe Powered</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </DialogContent>
-                                        </Dialog>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -628,6 +490,159 @@ export default function ClientProjectRequestsPage() {
                     )}
                 </div>
             </section>
+
+            <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
+                <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
+                    <div className="bg-[#0B1C2D] p-6 text-white">
+                        <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                                <Shield className="w-6 h-6 text-[#1BC47D]" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-xl font-bold text-white">
+                                    Securizează Plata
+                                </DialogTitle>
+                                <DialogDescription className="text-sm text-blue-100">
+                                    Protejează-ți investiția cu escrow
+                                </DialogDescription>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-blue-100">Proiect:</span>
+                                <span className="font-semibold">{selectedProject?.title}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm mt-2">
+                                <span className="text-blue-100">Valoare proiect:</span>
+                                <span className="font-bold text-lg">{Number(selectedProject?.budget)?.toLocaleString()} RON</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm mt-2">
+                                <span className="text-blue-100">Comision platforma (12%):</span>
+                                <span className="font-bold text-lg">{Number(selectedProject?.budget * 12 / 100)?.toLocaleString()} RON</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm mt-2">
+                                <span className="text-blue-100">Valoare totală:</span>
+                                <span className="font-bold text-lg">{(Number(selectedProject?.budget) + (Number(selectedProject?.budget) * (12 / 100)))?.toLocaleString()} RON</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        <div className="text-center">
+                            <h3 className="font-semibold text-lg mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                Cum funcționează Escrow?
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                <div className="text-center">
+                                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
+                                        <span className="font-bold text-[#1BC47D]">1</span>
+                                    </div>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">Banii sunt blocați securizat</p>
+                                </div>
+                                <div className="text-center">
+                                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
+                                        <span className="font-bold text-[#1BC47D]">2</span>
+                                    </div>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">Prestatorii lucrează la proiect</p>
+                                </div>
+                                <div className="text-center">
+                                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
+                                        <span className="font-bold text-[#1BC47D]">3</span>
+                                    </div>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">Banii sunt eliberați la finalizare</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] border border-emerald-100 dark:border-[#1E2A3D] rounded-lg p-4">
+                            <div className="flex items-start space-x-3">
+                                <CheckCircle className="w-5 h-5 text-[#1BC47D] mt-0.5" />
+                                <div className="text-sm">
+                                    <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-1">
+                                        Protecție 100% Garantată
+                                    </div>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">
+                                        Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="block text-sm font-medium text-slate-600 dark:text-[#A3ADC2]">
+                                Detalii Card de Plată
+                            </label>
+                            <div
+                                id={selectedProject?.id ? `card-element-${selectedProject.id}` : 'card-element'}
+                                className="border-2 border-slate-200 dark:border-[#1E2A3D] dark:!text-white rounded-lg p-4 bg-white dark:bg-[#0B1220] focus-within:border-[#1BC47D] focus-within:ring-2 focus-within:ring-emerald-200 transition-all"
+                            />
+                        </div>
+
+                        {errorMessage && (
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{errorMessage}</AlertDescription>
+                            </Alert>
+                        )}
+
+                        {success && (
+                            <Alert className="border-emerald-200 bg-emerald-50">
+                                <CheckCircle className="h-4 w-4 text-[#1BC47D]" />
+                                <AlertDescription className="text-emerald-800">
+                                    Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                            <Button
+                                type="button"
+                                onClick={() => handlePayment(selectedProject?.id)}
+                                disabled={loading || !clientSecret || !selectedProject}
+                                className="flex-1 btn-primary py-3"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Se procesează...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Shield className="w-4 h-4 mr-2" />
+                                        Securizează {(Number(selectedProject?.budget) + (Number(selectedProject?.budget) * 12 / 100))?.toLocaleString()} RON
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setCheckoutDialogOpen(false)}
+                                className="px-6 border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                            >
+                                Anulează
+                            </Button>
+                        </div>
+
+                        <div className="text-xs text-center text-slate-500 dark:text-[#A3ADC2] pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                            <div className="flex items-center justify-center space-x-4">
+                                <div className="flex items-center space-x-1">
+                                    <Shield className="w-3 h-3" />
+                                    <span>SSL Securizat</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span>PCI Compliant</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <Globe className="w-3 h-3" />
+                                    <span>Stripe Powered</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <Footer />
         </div>

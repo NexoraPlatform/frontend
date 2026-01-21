@@ -6,6 +6,47 @@ export type RoleLite = {
   slug: string;
 };
 
+export type MilestoneEntry = {
+  title: string;
+  amount: number;
+};
+
+export type ProviderMilestonePayload = {
+  providerId: number;
+  milestones: MilestoneEntry[];
+};
+
+export type ProviderRoleMilestonePayload = {
+  provider_role: string;
+  milestones: MilestoneEntry[];
+};
+
+export type CreateProjectPayload = {
+  title: string;
+  description: string;
+  budget: number;
+  budgetType: 'FIXED' | 'HOURLY';
+  paymentPlan?: string;
+  milestoneCount?: number;
+  milestones?: ProviderMilestonePayload[];
+  [key: string]: unknown;
+};
+
+export type GenerateProjectInformationResponse = {
+  title: string;
+  description: string;
+  technologies: string[];
+  estimated_budget: number;
+  budget_type: string;
+  team_structure: unknown[];
+  deadline: string;
+  additional_services: string[];
+  payment_plan?: string;
+  milestone_count?: number;
+  milestones?: ProviderRoleMilestonePayload[];
+  notes?: string;
+};
+
 export class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -1026,7 +1067,7 @@ export class ApiClient {
     });
   }
 
-  async createProject(projectData: any) {
+  async createProject(projectData: CreateProjectPayload) {
     return this.request<any>('/projects', {
       method: 'POST',
       body: JSON.stringify(projectData),
@@ -1077,7 +1118,7 @@ export class ApiClient {
   }
 
   async generateProjectInformation(projectData: any) {
-    return this.request<any>('/projects/generate-information-by-ai', {
+    return this.request<GenerateProjectInformationResponse>('/projects/generate-information-by-ai', {
       method: 'POST',
       body: JSON.stringify(projectData),
       headers: {
