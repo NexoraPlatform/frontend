@@ -24,18 +24,6 @@ export function NotificationBell() {
     const router = useRouter();
     const locale = useLocale();
     const t = useTranslations();
-    const notificationsTitle = t('common.notifications.title');
-    const openNotificationsAria = t('common.notifications.open_aria');
-    const unreadCountText = t('common.notifications.unread_count', {count: unreadCount});
-    const allReadText = t('common.notifications.all_read');
-    const webPushTitle = t('common.notifications.web_push_title');
-    const webPushUnsupported = t('common.notifications.web_push_unsupported');
-    const webPushDenied = t('common.notifications.web_push_denied');
-    const webPushEnabledHint = t('common.notifications.web_push_enabled_hint');
-    const notificationsListLabel = t('common.notifications.list_aria');
-    const noNotificationsText = t('common.notifications.empty');
-    const endOfListText = t('common.notifications.end_of_list');
-    const seeAllText = t('common.notifications.see_all');
     const {
         notifications,
         unreadCount,
@@ -52,6 +40,18 @@ export function NotificationBell() {
         refresh,
         loadMore,
     } = useNotifications();
+    const notificationsTitle = t('common.notifications.title');
+    const openNotificationsAria = t('common.notifications.open_aria');
+    const unreadCountText = t('common.notifications.unread_count', {count: unreadCount});
+    const allReadText = t('common.notifications.all_read');
+    const webPushTitle = t('common.notifications.web_push_title');
+    const webPushUnsupported = t('common.notifications.web_push_unsupported');
+    const webPushDenied = t('common.notifications.web_push_denied');
+    const webPushEnabledHint = t('common.notifications.web_push_enabled_hint');
+    const notificationsListLabel = t('common.notifications.list_aria');
+    const noNotificationsText = t('common.notifications.empty');
+    const endOfListText = t('common.notifications.end_of_list');
+    const seeAllText = t('common.notifications.see_all');
     const distanceLocale = locale === 'en' ? enUS : roLocale;
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);
