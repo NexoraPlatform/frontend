@@ -111,7 +111,7 @@ export default function CallsPage() {
     const locale = useLocale();
 
     // Toate textele printr-un singur hook
-    const t = useCallsT(locale);
+    const t = useCallsT(locale as Locale);
 
     const handleCallAction = async (callId: string, action: string, noteTextParam: string | null) => {
         try {

@@ -203,7 +203,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
         } finally {
             setLoading(false);
         }
-    }, [id, locale, t]);
+    }, [id, t]);
 
     useEffect(() => {
         loadOrder();
