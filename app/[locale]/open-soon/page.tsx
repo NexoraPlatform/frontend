@@ -23,9 +23,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api";
 import {Alert, AlertDescription} from "@/components/ui/alert";
+import { Locale } from "@/types/locale";
 
 export default function OpenSoonPage() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const t = useTranslations();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
