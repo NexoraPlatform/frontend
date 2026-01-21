@@ -10,6 +10,8 @@ import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
+import {NextIntlClientProvider} from "next-intl";
+import {getLocale, getMessages} from "next-intl/server";
 import { GoogleTagManager } from '@next/third-parties/google'
 import {Partytown} from "@qwik.dev/partytown/react";
 import {TrustoraThemeStyles} from "@/components/trustora/theme-styles";
@@ -165,11 +167,13 @@ export const metadata: Metadata = generateSEO({
     url: "/",
 })
 
-export default function RootLayout({
-                                       children,
-                                   }: {
+export default async function RootLayout({
+                                              children,
+                                          }: {
     children: React.ReactNode
 }) {
+    const locale = await getLocale();
+    const messages = await getMessages();
 
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -212,7 +216,7 @@ export default function RootLayout({
     });
 
     return (
-        <html lang="ro" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
+        <html lang={locale} suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID as string} />
         <head>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -279,27 +283,29 @@ export default function RootLayout({
             }}
         />
 
-        <AuthProvider>
-            <OneSignalInit />
-            <NotificationProvider>
-                <ChatProvider>
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
-                        storageKey="Trustora-theme"
-                    >
-                        <ActivityTracker />
+        <NextIntlClientProvider locale={locale} messages={messages}>
+            <AuthProvider>
+                <OneSignalInit />
+                <NotificationProvider>
+                    <ChatProvider>
+                        <ThemeProvider
+                            attribute="class"
+                            defaultTheme="system"
+                            enableSystem
+                            disableTransitionOnChange
+                            storageKey="Trustora-theme"
+                        >
+                            <ActivityTracker />
 
-                        {/* Main content */}
-                        <main id="main-content">{children}</main>
+                            {/* Main content */}
+                            <main id="main-content">{children}</main>
 
-                        <Toaster position="top-right" expand={false} richColors closeButton />
-                    </ThemeProvider>
-                </ChatProvider>
-            </NotificationProvider>
-        </AuthProvider>
+                            <Toaster position="top-right" expand={false} richColors closeButton />
+                        </ThemeProvider>
+                    </ChatProvider>
+                </NotificationProvider>
+            </AuthProvider>
+        </NextIntlClientProvider>
         </body>
         </html>
     )

@@ -70,11 +70,11 @@ export function Header() {
   const t = useTranslations();
   const homeText = t('navigation.home');
   const skipToContentText = t('common.skip_to_content');
-  const navigateToText = t('navigation.navigate_to');
+  const navigateToText = t('common.navigate_to');
   const mainNavigationText = t('navigation.main_navigation');
-  const changeThemeToText = t('navigation.change_theme');
-  const darkText = t('navigation.dark');
-  const lightText = t('navigation.light');
+  const changeThemeToText = t('common.change_theme');
+  const darkText = t('common.dark');
+  const lightText = t('common.light');
   const openMainUserMenuText = t('navigation.open_main_user_menu');
   const earlyAccessClientCta = t('trustora.early_access.header.client_cta', {defaultValue: 'Înregistrare ca client'});
   const earlyAccessProviderCta = t('trustora.early_access.header.provider_cta', {defaultValue: 'Înregistrare ca prestator'});
