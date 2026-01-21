@@ -61,6 +61,7 @@ function SortableRow({
     onDelete: (id: number) => void;
     locale: Locale;
 }) {
+    const t = useTranslations();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: role.id,
     });
@@ -111,6 +112,7 @@ function SortableRow({
 }
 
 export default function RolesListClient({ locale }: { locale: Locale }) {
+    const t = useTranslations();
     const [roles, setRoles] = useState<RoleRow[]>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
