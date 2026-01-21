@@ -10,9 +10,8 @@ import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
-import {getLocale} from "next-intl/server";
+import {getLocale, getMessages} from "next-intl/server";
 import { GoogleTagManager } from '@next/third-parties/google'
-import {Partytown} from "@qwik.dev/partytown/react";
 import {TrustoraThemeStyles} from "@/components/trustora/theme-styles";
 import {Header} from "@/components/header";
 import {TrustoraHeroSection} from "@/components/trustora/hero-section";
@@ -22,6 +21,7 @@ import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-langua
 import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
 import {Footer} from "@/components/footer";
 import OneSignalInit from "@/components/OneSignalInit";
+import { NextIntlClientProvider } from "next-intl"
 
 const inter = Inter({
     subsets: ["latin"],
@@ -172,6 +172,7 @@ export default async function RootLayout({
     children: React.ReactNode
 }) {
     const locale = await getLocale();
+    const messages = await getMessages();
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
@@ -243,24 +244,7 @@ export default async function RootLayout({
             <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
             <meta name="color-scheme" content="light dark" />
 
-            <Script id="load-non-critical-css" strategy="afterInteractive">
-                {`
-                    // Load non-critical CSS after page is interactive
-                    const loadCSS = (href) => {
-                        const link = document.createElement('link');
-                        link.rel = 'stylesheet';
-                        link.href = href;
-                        link.media = 'print';
-                        document.head.appendChild(link);
-                        link.onload = () => { link.media = 'all'; };
-                    };
-                    
-                    // Defer loading of component styles
-                    requestIdleCallback(() => {
-                        loadCSS('/non-critical.css');
-                    });
-                `}
-            </Script>
+
         </head>
 
         <body className={`font-sans antialiased ${inter.className}`}>
@@ -279,7 +263,7 @@ export default async function RootLayout({
                 __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
-
+        <NextIntlClientProvider locale={locale} messages={messages}>
         <AuthProvider>
             <OneSignalInit />
             <NotificationProvider>
@@ -301,6 +285,7 @@ export default async function RootLayout({
                 </ChatProvider>
             </NotificationProvider>
         </AuthProvider>
+        </NextIntlClientProvider>
         </body>
         </html>
     )
