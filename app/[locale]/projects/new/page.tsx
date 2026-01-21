@@ -301,6 +301,24 @@ export default function NewProjectPage() {
         setProviderMilestones(buildProviderMilestonesFromAi());
     }, [aiSuggestedMilestones, buildProviderMilestonesFromAi, providerMilestones, selectedProviders]);
 
+    useEffect(() => {
+        if (!isLongProject) {
+            return;
+        }
+
+        const milestoneBudgets = Object.fromEntries(
+            Object.entries(providerMilestones).map(([providerId, milestones]) => [
+                providerId,
+                milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0),
+            ])
+        );
+
+        setProviderBudgets(prevBudgets => ({
+            ...prevBudgets,
+            ...milestoneBudgets,
+        }));
+    }, [isLongProject, providerMilestones]);
+
     const router = useRouter();
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
