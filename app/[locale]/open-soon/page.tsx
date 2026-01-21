@@ -48,10 +48,8 @@ export default function OpenSoonPage() {
   const formNamePlaceholder = t("trustora.open_soon.form.full_name_placeholder");
   const formRoleLabel = t("trustora.open_soon.form.role_label");
   const formRolePlaceholder = t("trustora.open_soon.form.role_placeholder");
-  const formRoleClient = t("trustora.open_soon.form.role_client")",
-  );
-  const formRoleProvider = t("trustora.open_soon.form.role_provider")",
-  );
+  const formRoleClient = t("trustora.open_soon.form.role_client");
+  const formRoleProvider = t("trustora.open_soon.form.role_provider");
   const formEmailLabel = t("trustora.open_soon.form.email_label");
   const formEmailPlaceholder = t("trustora.open_soon.form.email_placeholder");
   const formSubmit = t("trustora.open_soon.form.submit");

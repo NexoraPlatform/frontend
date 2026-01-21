@@ -37,7 +37,7 @@ import PlaylistAddCheckCircleIcon from "@mui/icons-material/PlaylistAddCheckCirc
 import { VisibilityOff } from "@mui/icons-material";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import { Locale } from "@/types/locale";
 
 /** Custom hook care grupează toate traducerile pentru pagina de Calls */
@@ -107,7 +107,6 @@ export default function CallsPage() {
 
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
     const locale = useLocale();
-  const t = useTranslations();
 
     // Toate textele printr-un singur hook
     const t = useCallsT(locale);

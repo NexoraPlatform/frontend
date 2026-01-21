@@ -79,8 +79,7 @@ export default function AdminNewsletterPage() {
   const previewError = t("admin.newsletter.preview_error");
   const previewNote = t("admin.newsletter.preview_note");
   const customOnlyNote = t("admin.newsletter.custom_only_note");
-  const recipientsLabel = t("admin.newsletter.recipients_label")",
-  );
+  const recipientsLabel = t("admin.newsletter.recipients_label");
   const recipientsPlaceholder = t("admin.newsletter.recipients_placeholder");
   const sendButton = t("admin.newsletter.send_button");
   const sendingButton = t("admin.newsletter.sending_button");

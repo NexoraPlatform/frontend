@@ -60,7 +60,7 @@ export default function SignUpPage() {
   const roleLabel = t('auth.signup.role_label');
   const roleClient = t('auth.signup.role_client');
   const roleProvider = t('auth.signup.role_provider');
-  const companyLabel = t('auth.signup.company_label')');
+  const companyLabel = t('auth.signup.company_label');
   const companyPlaceholder = t('auth.signup.company_placeholder');
   const passwordLabel = t('auth.signup.password_label');
   const passwordPlaceholder = t('auth.signup.password_placeholder');

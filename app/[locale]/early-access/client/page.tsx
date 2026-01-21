@@ -83,8 +83,7 @@ export default function EarlyAccessClientPage() {
     const countryEmptyText = t("trustora.early_access.client.fields.country_empty");
     const needsLabel = t("trustora.early_access.client.fields.needs_label");
     const needsPlaceholder = t("trustora.early_access.client.fields.needs_placeholder");
-    const budgetLabel = t("trustora.early_access.client.fields.budget_label")",
-    );
+    const budgetLabel = t("trustora.early_access.client.fields.budget_label");
     const budgetPlaceholder = t("trustora.early_access.client.fields.budget_placeholder");
     const frequencyLabel = t("trustora.early_access.client.fields.frequency_label");
     const frequencyPlaceholder = t("trustora.early_access.client.fields.frequency_placeholder");
