@@ -60,6 +60,7 @@ export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
     const [loading, setLoading] = useState(true);
     const [savingRoles, setSavingRoles] = useState<Set<string>>(new Set()); // roleSlug care salvează
     const [filter, setFilter] = useState('');
+    const t = useTranslations();
 
     const [roles, setRoles] = useState<RoleLite[]>([]);
     const [groups, setGroups] = useState<PermissionGroup[]>([]);
