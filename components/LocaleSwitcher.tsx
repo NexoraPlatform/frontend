@@ -28,10 +28,11 @@ export function LocaleSwitcher({ className }: { className?: string }) {
     if (!mounted) return null;
 
     const currentConfig = localeConfig[currentLocale];
+    const normalizedPathname = (pathname ?? '/').replace(/^\/(ro|en)(?=\/|$)/, '') || '/';
 
     const handleLocaleChange = (nextLocale: Locale) => {
         startTransition(() => {
-            router.replace(pathname, { locale: nextLocale });
+            router.replace(normalizedPathname, { locale: nextLocale });
         });
     };
 
