@@ -97,7 +97,7 @@ export type PaymentStatus =
     | 'PAID';
 
 export default function OrderDetailsPage({ id }: { id: string }) {
-  const t = useTranslations();
+    const t = useTranslations();
     const locale = useLocale();
     const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
@@ -199,11 +199,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             setOrder(mockOrder);
             setNewStatus(mockOrder.status);
         } catch (error: any) {
-            setError(await t(locale, 'admin.orders.load_error'));
+            setError(t('admin.orders.load_error'));
         } finally {
             setLoading(false);
         }
-    }, [id, locale]);
+    }, [id, t]);
 
     useEffect(() => {
         loadOrder();
@@ -227,7 +227,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             });
             setError('');
         } catch (error: any) {
-            setError(await t(locale, 'admin.orders.update_error'));
+            setError(t('admin.orders.update_error'));
         } finally {
             setUpdating(false);
         }

@@ -146,47 +146,4 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
     },
 };
 
-const namespaceCache: Record<Locale, Record<string, any>> = {
-    ro: {},
-    en: {},
-};
-
-export async function getTranslation(locale: Locale, key: string): Promise<string> {
-    const keys = key.split('.'); // e.g. ['homepage', 'hero', 'title']
-    const namespace = keys.shift(); // 'homepage'
-
-    if (!namespace) return key;
-
-    const resolvedLocale = translations[locale] ? locale : defaultLocale;
-    if (!namespaceCache[resolvedLocale]) {
-        namespaceCache[resolvedLocale] = {};
-    }
-
-    if (!namespaceCache[resolvedLocale][namespace]) {
-        const loadNamespace =
-            translations[resolvedLocale]?.[namespace as keyof typeof translations[typeof resolvedLocale]];
-        if (!loadNamespace) return key;
-
-        const loaders = Array.isArray(loadNamespace) ? loadNamespace : [loadNamespace];
-        const loaded = await Promise.all(
-            loaders.map(async (loader) => {
-                const loadedModule = await loader();
-                return loadedModule?.default ?? loadedModule;
-            }),
-        );
-
-        namespaceCache[resolvedLocale][namespace] = Object.assign({}, ...loaded);
-    }
-
-    let value: any = namespaceCache[resolvedLocale][namespace];
-    for (const k of keys) {
-        value = value?.[k];
-    }
-
-    return value ?? key;
-}
-
-// Async wrapper function
-export async function t(locale: Locale, key: string): Promise<string> {
-    return getTranslation(locale, key);
-}
+// Use next-intl helpers (e.g., useTranslations/getTranslations) instead of custom translation utilities.
