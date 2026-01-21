@@ -391,10 +391,17 @@ export default function DashboardClient() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
                 <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Prezentare</span>
+                  <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
+                  <span>Prezentare</span>
               </TabsTrigger>
-                <TabsTrigger value="projects" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+                <TabsTrigger
+                    value={
+                      user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')
+                          ? 'projects'
+                          : ''
+                    }
+                    className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                >
                   {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') ? (
                       <Link href={`/${locale}/client/project-requests`}>Proiecte</Link>
                   ) : (
