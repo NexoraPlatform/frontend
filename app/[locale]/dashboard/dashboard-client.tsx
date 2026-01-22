@@ -311,7 +311,7 @@ export default function DashboardClient() {
   if (!user) {
     return null;
   }
-console.log(user)
+
   // Mock data for overview stats
   const getOverviewStats = () => {
       if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
