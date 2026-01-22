@@ -139,7 +139,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
         <div className="container mx-auto px-4 py-8">
             {/* Header */}
             <div className="flex items-center space-x-4 mb-8">
-                <Link href={`/${locale}/admin/tests`}>
+                <Link href="/admin/tests">
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>

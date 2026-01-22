@@ -2,7 +2,6 @@
 
 import {useState, useEffect, useCallback} from 'react';
 import { useRouter } from '@/lib/navigation';
-import { useLocale } from 'next-intl';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,6 @@ export default function DashboardClient() {
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
   const router = useRouter();
-    const locale = useLocale();
   useEffect(() => {
     if (!loading && !user) {
       console.log('Auth loading:', loading, 'User:', user);
@@ -403,7 +401,7 @@ export default function DashboardClient() {
                     className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
                 >
                   {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') ? (
-                      <Link href={`/${locale}/client/project-requests`}>Proiecte</Link>
+                      <Link href="/client/project-requests">Proiecte</Link>
                   ) : (
                       <>
                           <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
@@ -471,19 +469,19 @@ export default function DashboardClient() {
                     {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? (
                         <>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href={`/${locale}/provider/services/select`}>
+                            <Link href="/provider/services/select">
                               <Plus className="w-6 h-6" />
                               <span>Adaugă Servicii</span>
                             </Link>
                           </Button>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href={`/${locale}/provider/profile`}>
+                            <Link href="/provider/profile">
                               <Edit className="w-6 h-6" />
                               <span>Editează Profil</span>
                             </Link>
                           </Button>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href={`/${locale}/tests`}>
+                            <Link href="/tests">
                               <Award className="w-6 h-6" />
                               <span>Susține Teste</span>
                             </Link>
@@ -492,19 +490,19 @@ export default function DashboardClient() {
                     ) : (
                         <>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href={`/${locale}/projects/new`}>
+                            <Link href="/projects/new">
                               <Plus className="w-6 h-6" />
                               <span>Proiect Nou</span>
                             </Link>
                           </Button>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href={`/${locale}/services`}>
+                            <Link href="/services">
                               <Search className="w-6 h-6" />
                               <span>Caută Servicii</span>
                             </Link>
                           </Button>
                           <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href={`/${locale}/projects`}>
+                            <Link href="/projects">
                               <Eye className="w-6 h-6" />
                               <span>Explorează Proiecte</span>
                             </Link>
@@ -717,7 +715,7 @@ export default function DashboardClient() {
 
                 {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
                     <Button asChild className="btn-primary">
-                      <Link href={`/${locale}/projects/new`}>
+                      <Link href="/projects/new">
                         <Plus className="w-4 h-4 mr-2" />
                         Proiect Nou
                       </Link>
@@ -750,7 +748,7 @@ export default function DashboardClient() {
                       </p>
                         <Can {...({ superuser: true } || { roles: ['client'] })}>
                           <Button asChild className="btn-primary">
-                            <Link href={`/${locale}/projects/new`}>
+                            <Link href="/projects/new">
                               <Plus className="w-4 h-4 mr-2" />
                               Creează Primul Proiect
                             </Link>
@@ -802,7 +800,7 @@ export default function DashboardClient() {
                     </p>
                     {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') && (
                         <Button asChild>
-                          <Link href={`/${locale}/provider/services/select`}>
+                          <Link href="/provider/services/select">
                             <Plus className="w-4 h-4 mr-2" />
                             Adaugă Primul Serviciu
                           </Link>

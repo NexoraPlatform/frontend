@@ -215,7 +215,7 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
 
     const onEdit = (id: number) => {
         // navigate to your edit page
-        window.location.href = `/${locale}/admin/roles/${id}`;
+        window.location.href = `/admin/roles/${id}`;
     };
     const onDelete = async (id: number) => {
         // dacă ai endpoint de delete, îl poți apela aici; pentru demo doar reîncarc

@@ -8,7 +8,6 @@ import Image from 'next/image';
 import { useAuth } from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
 import { useTranslations } from "next-intl";
-import { useLocale } from "next-intl";
 
 const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
   ssr: false,
@@ -17,7 +16,6 @@ const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
 
 export function Footer() {
   const { user } = useAuth();
-  const locale = useLocale();
   const t = useTranslations();
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const footerInfoText = t("common.footer_info");
@@ -52,9 +50,9 @@ export function Footer() {
   const popularServiceMobileText = t("common.popular_service_mobile");
   const popularServiceDesignText = t("common.popular_service_design");
   const popularServiceMarketingText = t("common.popular_service_marketing");
-  const privacyHref = `/${locale}/privacy`;
-  const termsHref = `/${locale}/terms`;
-  const cookiesHref = `/${locale}/cookies`;
+  const privacyHref = '/privacy';
+  const termsHref = '/terms';
+  const cookiesHref = '/cookies';
 
   return (
       <footer
@@ -216,16 +214,16 @@ export function Footer() {
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold" id="quick-links-heading">{quickLinksText}</h2>
                 <nav className="space-y-2" aria-labelledby="quick-links-heading">
-                  <Link href={`/${locale}/services`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/services" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                       {servicesText}
                   </Link>
-                  <Link href={`/${locale}/about`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/about" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                       {aboutText}
                   </Link>
-                  <Link href={`/${locale}/help`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/help" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                       {helpText}
                   </Link>
-                  <Link href={`/${locale}/contact`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                       {contactText}
                   </Link>
                 </nav>
@@ -234,16 +232,16 @@ export function Footer() {
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold" id="popular-services-heading">{popularServicesText}</h2>
                 <nav className="space-y-2" aria-labelledby="popular-services-heading">
-                  <Link href={`/${locale}/services?category=web-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/services?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     {popularServiceWebText}
                   </Link>
-                  <Link href={`/${locale}/services?category=mobile-development`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/services?category=mobile-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     {popularServiceMobileText}
                   </Link>
-                  <Link href={`/${locale}/services?category=design`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/services?category=design" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     {popularServiceDesignText}
                   </Link>
-                  <Link href={`/${locale}/services?category=marketing`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/services?category=marketing" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     {popularServiceMarketingText}
                   </Link>
                 </nav>

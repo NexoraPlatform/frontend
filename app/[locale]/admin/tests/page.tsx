@@ -182,7 +182,7 @@ export default function AdminTestsPage() {
                 </p>
               </div>
             </div>
-            <Link href={`/${locale}/admin/tests/new`}>
+            <Link href="/admin/tests/new">
               <Button className="btn-primary">
                 <Plus className="w-4 h-4 mr-2" />
                 {addTest}
@@ -317,7 +317,7 @@ export default function AdminTestsPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href={`/${locale}/admin/tests/${test.id}/statistics`}>
+                              <Link href={`/admin/tests/${test.id}/statistics`}>
                                 <BarChart3 className="w-4 h-4 mr-2" />
                                 {statisticsLabel}
                               </Link>

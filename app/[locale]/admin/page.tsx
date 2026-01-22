@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from '@/lib/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +52,6 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState<AdminStats | null>(null);
-    const locale = useLocale();
   const t = useTranslations();
   useEffect(() => {
     const fetchStats = async () => {
@@ -425,7 +424,7 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {stats.map((stat, index) => (
-          <Link key={index} href={`/${locale}${stat.href}`}>
+          <Link key={index} href={stat.href}>
             <Card className="group h-full border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-card dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] dark:hover:border-sky-500/40 dark:hover:bg-slate-900">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between gap-4">
@@ -478,7 +477,7 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
-                  <Link key={index} href={`/${locale}${action.href}`}>
+                  <Link key={index} href={action.href}>
                     <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
@@ -522,7 +521,7 @@ export default function AdminDashboard() {
                     )}
                     allPerms={section.permissions || []}
                   >
-                    <Link href={`/${locale}${section.href}`}>
+                    <Link href={section.href}>
                       <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-4">
