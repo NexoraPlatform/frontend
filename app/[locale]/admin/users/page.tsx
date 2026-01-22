@@ -281,12 +281,12 @@ export default function AdminUsersPage() {
                                 </Can>
                               )}
 
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/${locale}/admin/users/${user.id}`)}>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/admin/users/${user.id}`)}>
                                 <Pencil className="w-4 h-4 mr-2" />
                                 {modifyProfile}
                               </DropdownMenuItem>
                               {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') && (
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/${locale}/provider/${user.profile_url}`)}>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/provider/${user.profile_url}`)}>
                                   <Eye className="w-4 h-4 mr-2" />
                                   {viewProfile}
                                 </DropdownMenuItem>

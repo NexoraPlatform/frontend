@@ -35,7 +35,7 @@ export default function RolesPage() {
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              <Link href={`/${locale}/admin`}>
+              <Link href="/admin">
                 <Button
                   variant="outline"
                   size="icon"
@@ -49,7 +49,7 @@ export default function RolesPage() {
               </span>
             </div>
             {tab === 'roles' && (
-              <Link href={`/${locale}/admin/roles/new`}>
+              <Link href="/admin/roles/new">
                 <Button className="shadow-sm">
                   <Plus className="mr-2 h-4 w-4" />
                   {addRole}

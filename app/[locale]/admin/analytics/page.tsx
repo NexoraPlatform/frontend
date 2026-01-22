@@ -22,7 +22,7 @@ export default function AdminAnalyticsPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-4">
-            <Link href={`/${locale}/admin`}>
+            <Link href="/admin">
               <Button
                 variant="outline"
                 size="icon"

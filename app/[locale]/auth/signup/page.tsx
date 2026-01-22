@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { TermsContent } from '@/components/terms-content';
-import { Locale } from '@/types/locale';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -35,12 +34,11 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const locale = useLocale() as Locale;
   const t = useTranslations();
   const router = useRouter();
   const { register } = useAuth();
-  const termsHref = `/${locale}/terms`;
-  const privacyHref = `/${locale}/privacy`;
+  const termsHref = '/terms';
+  const privacyHref = '/privacy';
   const badgeText = t('auth.signup.badge');
   const titlePrefix = t('auth.signup.title_prefix');
   const titleBrand = t('auth.signup.title_brand');

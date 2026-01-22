@@ -279,7 +279,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.2),_rgba(15,23,42,0)_60%)]" />
                 <div className="relative flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <Link href={`/${locale}/admin/orders`}>
+                        <Link href="/admin/orders">
                             <Button
                                 variant="outline"
                                 size="icon"

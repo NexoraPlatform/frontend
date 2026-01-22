@@ -241,7 +241,7 @@ export default function EditTestClient({ id }: { id: string }) {
             };
 
             await apiClient.updateTest(id, payload);
-            router.push(`/${locale}/admin/tests`);
+            router.push('/admin/tests');
         } catch (error: any) {
             setError(error.message || 'A apărut o eroare');
         } finally {

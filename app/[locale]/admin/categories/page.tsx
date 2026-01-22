@@ -153,7 +153,7 @@ export default function AdminCategoriesPage() {
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              <Link href={`/${locale}/admin`}>
+              <Link href="/admin">
                 <Button
                   variant="outline"
                   size="icon"
@@ -166,7 +166,7 @@ export default function AdminCategoriesPage() {
                 Trustora Admin
               </span>
             </div>
-            <Link href={`/${locale}/admin/categories/new`}>
+            <Link href="/admin/categories/new">
               <Button className="shadow-sm">
                 <Plus className="w-4 h-4 mr-2" />
                 {addCategory}
@@ -278,7 +278,7 @@ export default function AdminCategoriesPage() {
                   <p className="text-muted-foreground mb-4">
                     {noCategoriesDescription}
                   </p>
-                  <Link href={`/${locale}/admin/categories/new`}>
+                  <Link href="/admin/categories/new">
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
                       {addFirstCategory}

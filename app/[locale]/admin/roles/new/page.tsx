@@ -91,7 +91,7 @@ export default function NewRolePage() {
 
         try {
             await apiClient.createRole(roleData);
-            router.push(`/${locale}/admin/roles`);
+            router.push('/admin/roles');
         } catch (error: any) {
             setError(error.message || errorOccurred);
         } finally {
@@ -105,7 +105,7 @@ export default function NewRolePage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
                 <div className="relative flex flex-col gap-4">
                     <div className="flex flex-wrap items-center gap-4">
-                        <Link href={`/${locale}/admin/roles`}>
+                        <Link href="/admin/roles">
                             <Button
                                 variant="outline"
                                 size="icon"
@@ -229,7 +229,7 @@ export default function NewRolePage() {
                                         </>
                                     )}
                                 </Button>
-                                <Link href={`/${locale}/admin/roles`}>
+                                <Link href="/admin/roles">
                                     <Button type="button" variant="outline">
                                         {cancelLabel}
                                     </Button>
