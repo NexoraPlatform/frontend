@@ -9,6 +9,7 @@ export default function OneSignalInit() {
     const { user } = useAuth();
     // Folosim un ref global pentru a preveni re-inițializarea strictă
     const oneSignalInitialized = useRef(false);
+    const oneSignalInitPromise = useRef<Promise<void> | null>(null);
 
     useEffect(() => {
         const initOneSignal = async () => {
@@ -21,37 +22,45 @@ export default function OneSignalInit() {
             if (oneSignalInitialized.current) {
                 // Dacă e deja inițializat, doar actualizăm userul (dacă e cazul)
                 if (user) {
-                    OneSignal.login(user.id.toString());
+                    try {
+                        await OneSignal.login(user.id.toString());
+                    } catch (error) {
+                        console.error("OneSignal login error:", error);
+                    }
                 }
                 return;
             }
 
             try {
                 // 2. Inițializarea
-                await OneSignal.init({
-                    appId,
-                    allowLocalhostAsSecureOrigin: true, // CRITIC pentru localhost
-                    notifyButton: {
-                        enable: true,
-                        showCredit: false,
-                        prenotify: true,
-                        position: 'bottom-right',
-                        offset: { bottom: '15px', left: '15px', right: '15px' },
-                        text: {
-                            'tip.state.unsubscribed': 'Abonează-te la notificări',
-                            'tip.state.subscribed': 'Ești abonat la notificări',
-                            'tip.state.blocked': 'Ai blocat notificările',
-                            'message.action.subscribed': 'Mulțumim pentru abonare!',
-                            'message.action.resubscribed': 'Te-ai reabonat!',
-                            'message.action.unsubscribed': 'Nu vei mai primi notificări',
-                            'dialog.main.title': 'Setări Notificări',
-                            'dialog.main.button.subscribe': 'Abonează-te',
-                            'dialog.main.button.unsubscribe': 'Dezabonează-te',
-                            'dialog.blocked.title': 'Deblochează Notificările',
-                            'dialog.blocked.message': 'Urmează instrucțiunile pentru a permite notificările:'
-                        }
-                    } as any,
-                });
+                if (!oneSignalInitPromise.current) {
+                    oneSignalInitPromise.current = OneSignal.init({
+                        appId,
+                        allowLocalhostAsSecureOrigin: true, // CRITIC pentru localhost
+                        notifyButton: {
+                            enable: true,
+                            showCredit: false,
+                            prenotify: true,
+                            position: 'bottom-right',
+                            offset: { bottom: '15px', left: '15px', right: '15px' },
+                            text: {
+                                'tip.state.unsubscribed': 'Abonează-te la notificări',
+                                'tip.state.subscribed': 'Ești abonat la notificări',
+                                'tip.state.blocked': 'Ai blocat notificările',
+                                'message.action.subscribed': 'Mulțumim pentru abonare!',
+                                'message.action.resubscribed': 'Te-ai reabonat!',
+                                'message.action.unsubscribed': 'Nu vei mai primi notificări',
+                                'dialog.main.title': 'Setări Notificări',
+                                'dialog.main.button.subscribe': 'Abonează-te',
+                                'dialog.main.button.unsubscribe': 'Dezabonează-te',
+                                'dialog.blocked.title': 'Deblochează Notificările',
+                                'dialog.blocked.message': 'Urmează instrucțiunile pentru a permite notificările:'
+                            }
+                        } as any,
+                    });
+                }
+
+                await oneSignalInitPromise.current;
 
                 oneSignalInitialized.current = true;
                 console.log("OneSignal Initialized Successfully");
@@ -75,7 +84,11 @@ export default function OneSignalInit() {
 
                 // 4. Login user (dacă există deja la încărcare)
                 if (user) {
-                    OneSignal.login(user.id.toString());
+                    try {
+                        await OneSignal.login(user.id.toString());
+                    } catch (error) {
+                        console.error("OneSignal login error:", error);
+                    }
                 }
 
             } catch (error: any) {
