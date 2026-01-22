@@ -1154,16 +1154,16 @@ export default function NewProjectPage() {
                                                 {/*</div>*/}
                                             </div>
 
-                                            <div>
-                                                <Label className="mb-2 block">Repository GitHub</Label>
+                                            <div className="p-4 border rounded-lg bg-card">
+                                                <h3 className="font-semibold mb-4">Repository GitHub</h3>
                                                 <RadioGroup
                                                     value={formData.githubRepoTarget}
                                                     onValueChange={(value) =>
                                                         setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
                                                     }
-                                                    className="space-y-3"
+                                                    className="mb-4"
                                                 >
-                                                    <div className="flex items-start space-x-2">
+                                                    <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="platform" id="github-platform" />
                                                         <Label htmlFor="github-platform">
                                                             Repo pe Trustora (Recomandat)
@@ -1172,7 +1172,7 @@ export default function NewProjectPage() {
                                                             </span>
                                                         </Label>
                                                     </div>
-                                                    <div className="flex items-start space-x-2">
+                                                    <div className="flex items-center space-x-2 mt-2">
                                                         <RadioGroupItem
                                                             value="provider"
                                                             id="github-provider"
@@ -1187,7 +1187,7 @@ export default function NewProjectPage() {
                                                             )}
                                                         </Label>
                                                     </div>
-                                                    <div className="flex items-start space-x-2">
+                                                    <div className="flex items-center space-x-2 mt-2">
                                                         <RadioGroupItem
                                                             value="client"
                                                             id="github-client"
