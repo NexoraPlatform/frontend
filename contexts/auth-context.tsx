@@ -27,7 +27,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  me: () => void;
+  refreshUser: () => Promise<void>;
   loading: boolean;
   userLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -72,9 +72,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const me = async () => {
-    const user = await apiClient.me();
-    setUser(user);
+  const refreshUser = async () => {
+    const freshUser = await apiClient.me();
+    setUser(freshUser);
+    await update({ ...freshUser });
   };
 
   const register = async (userData: any) => {
@@ -133,7 +134,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     loading,
     userLoading,
     login,
-    me,
+    refreshUser,
     register,
     logout,
     updateUser,
