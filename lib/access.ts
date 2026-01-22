@@ -26,6 +26,7 @@ export type AccessUser = {
     stripe_account_id?: string;
 
     // RBAC fields
+    role?: string;             // optional single role slug
     roles?: AccessRole[];        // <-- array of roles with slugs
     permissions?: string[];      // optional extra permissions (strings)
     is_superuser?: boolean;       // optional boolean flag
@@ -43,10 +44,14 @@ export type Requirement = {
 };
 
 export function getRoleSlugs(user: AccessUser | null): string[] {
-    if (!user?.roles?.length) return [];
-    return user.roles
-        .map(r => (typeof r?.slug === 'string' ? r.slug.toLowerCase() : ''))
-        .filter(Boolean);
+    const rolesFromArray = user?.roles?.length
+        ? user.roles
+            .map(r => (typeof r?.slug === 'string' ? r.slug.toLowerCase() : ''))
+            .filter(Boolean)
+        : [];
+    const roleFromString =
+        typeof user?.role === 'string' ? [user.role.toLowerCase()] : [];
+    return [...new Set([...rolesFromArray, ...roleFromString])];
 }
 
 export function getPermissionSlugs(user: AccessUser | null): string[] {
