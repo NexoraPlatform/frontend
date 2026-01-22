@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, TrendingUp, Clock, X } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import type { Locale } from '@/types/locale';
+import { useTranslations } from 'next-intl';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -31,21 +30,20 @@ export function SearchBar({
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  const pathname = usePathname();
-  const locale = (pathname.split('/')[1] as Locale) || 'ro';
-  const placeholderText = useAsyncTranslation(locale, "common.search_bar.placeholder");
-  const searchButtonText = useAsyncTranslation(locale, "common.search_bar.search_button");
-  const loadingSuggestionsText = useAsyncTranslation(locale, "common.search_bar.loading_suggestions");
-  const suggestionsTitleText = useAsyncTranslation(locale, "common.search_bar.suggestions_title");
-  const recentSearchesTitleText = useAsyncTranslation(locale, "common.search_bar.recent_searches_title");
-  const clearRecentSearchesText = useAsyncTranslation(locale, "common.search_bar.clear_recent_searches");
-  const trendingTitleText = useAsyncTranslation(locale, "common.search_bar.trending_title");
-  const noSuggestionsTemplate = useAsyncTranslation(locale, "common.search_bar.no_suggestions");
-  const trendingDefaultWeb = useAsyncTranslation(locale, "common.search_bar.trending_defaults.web_development");
-  const trendingDefaultLogo = useAsyncTranslation(locale, "common.search_bar.trending_defaults.logo_design");
-  const trendingDefaultSeo = useAsyncTranslation(locale, "common.search_bar.trending_defaults.seo");
-  const trendingDefaultMobile = useAsyncTranslation(locale, "common.search_bar.trending_defaults.mobile_app");
-  const trendingDefaultMarketing = useAsyncTranslation(locale, "common.search_bar.trending_defaults.digital_marketing");
+  const t = useTranslations();
+  const placeholderText = t("common.search_bar.placeholder");
+  const searchButtonText = t("common.search_bar.search_button");
+  const loadingSuggestionsText = t("common.search_bar.loading_suggestions");
+  const suggestionsTitleText = t("common.search_bar.suggestions_title");
+  const recentSearchesTitleText = t("common.search_bar.recent_searches_title");
+  const clearRecentSearchesText = t("common.search_bar.clear_recent_searches");
+  const trendingTitleText = t("common.search_bar.trending_title");
+  const noSuggestionsText = t("common.search_bar.no_suggestions", { query });
+  const trendingDefaultWeb = t("common.search_bar.trending_defaults.web_development");
+  const trendingDefaultLogo = t("common.search_bar.trending_defaults.logo_design");
+  const trendingDefaultSeo = t("common.search_bar.trending_defaults.seo");
+  const trendingDefaultMobile = t("common.search_bar.trending_defaults.mobile_app");
+  const trendingDefaultMarketing = t("common.search_bar.trending_defaults.digital_marketing");
   const trendingDefaults = useMemo(
     () => ([
       trendingDefaultWeb,
@@ -290,7 +288,7 @@ export function SearchBar({
             {/* No results */}
             {!loading && query && suggestions.length === 0 && (
               <div className="p-4 text-center text-muted-foreground">
-                {noSuggestionsTemplate.replace('{query}', query)}
+                {noSuggestionsText}
               </div>
             )}
           </CardContent>

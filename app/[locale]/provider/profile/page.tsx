@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useRef, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';

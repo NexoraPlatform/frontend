@@ -2,27 +2,28 @@
 
 import { useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { useLocale } from '@/hooks/use-locale';
+import { useLocale, useTranslations } from 'next-intl';
+import type { Locale } from '@/types/locale';
 import RolesListClient from './roles-list-client';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 const PermissionMatrix = dynamic(() => import('./PermissionMatrixTab'), { ssr: false });
 
 export default function RolesPage() {
   const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
-    const locale = useLocale();
-  const rolesLabel = useAsyncTranslation(locale, 'admin.roles.tabs.roles');
-  const permissionsLabel = useAsyncTranslation(locale, 'admin.roles.tabs.permissions');
-  const loadingPermissions = useAsyncTranslation(locale, 'admin.roles.permissions_tab_loading');
-  const manageTitle = useAsyncTranslation(locale, 'admin.roles.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.roles.manage_subtitle');
-  const addRole = useAsyncTranslation(locale, 'admin.roles.add_role');
-  const permissionTitle = useAsyncTranslation(locale, 'admin.roles.permission_matrix.title');
-  const permissionSubtitle = useAsyncTranslation(locale, 'admin.roles.permission_matrix.subtitle');
+    const locale = useLocale() as Locale;
+  const t = useTranslations();
+  const rolesLabel = t('admin.roles.tabs.roles');
+  const permissionsLabel = t('admin.roles.tabs.permissions');
+  const loadingPermissions = t('admin.roles.permissions_tab_loading');
+  const manageTitle = t('admin.roles.manage_title');
+  const manageSubtitle = t('admin.roles.manage_subtitle');
+  const addRole = t('admin.roles.add_role');
+  const permissionTitle = t('admin.roles.permission_matrix.title');
+  const permissionSubtitle = t('admin.roles.permission_matrix.subtitle');
 
   const headerTitle = tab === 'roles' ? manageTitle : permissionTitle;
   const headerSubtitle = tab === 'roles' ? manageSubtitle : permissionSubtitle;
@@ -34,7 +35,7 @@ export default function RolesPage() {
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              <Link href={`/${locale}/admin`}>
+              <Link href="/admin">
                 <Button
                   variant="outline"
                   size="icon"
@@ -48,7 +49,7 @@ export default function RolesPage() {
               </span>
             </div>
             {tab === 'roles' && (
-              <Link href={`/${locale}/admin/roles/new`}>
+              <Link href="/admin/roles/new">
                 <Button className="shadow-sm">
                   <Plus className="mr-2 h-4 w-4" />
                   {addRole}

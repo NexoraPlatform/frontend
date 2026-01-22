@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +27,7 @@ import {
 } from 'lucide-react';
 import { useAdminTests } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useLocale, useTranslations } from 'next-intl';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminTestsPage() {
@@ -38,39 +37,40 @@ export default function AdminTestsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();
     const locale = useLocale();
-  const manageTitle = useAsyncTranslation(locale, 'admin.tests.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.tests.manage_subtitle');
-  const addTest = useAsyncTranslation(locale, 'admin.tests.add_test');
-  const searchPlaceholder = useAsyncTranslation(locale, 'admin.tests.search_placeholder');
-  const levelFilterPlaceholder = useAsyncTranslation(locale, 'admin.tests.level_filter_placeholder');
-  const statusFilterPlaceholder = useAsyncTranslation(locale, 'admin.tests.status_filter_placeholder');
-  const levelAll = useAsyncTranslation(locale, 'admin.tests.levels.all');
-  const levelJunior = useAsyncTranslation(locale, 'admin.tests.levels.JUNIOR');
-  const levelMediu = useAsyncTranslation(locale, 'admin.tests.levels.MEDIU');
-  const levelSenior = useAsyncTranslation(locale, 'admin.tests.levels.SENIOR');
-  const levelExpert = useAsyncTranslation(locale, 'admin.tests.levels.EXPERT');
-  const statusAll = useAsyncTranslation(locale, 'admin.tests.statuses.all');
-  const statusActive = useAsyncTranslation(locale, 'admin.tests.statuses.ACTIVE');
-  const statusInactive = useAsyncTranslation(locale, 'admin.tests.statuses.INACTIVE');
-  const statusDraft = useAsyncTranslation(locale, 'admin.tests.statuses.DRAFT');
-  const listTitle = useAsyncTranslation(locale, 'admin.tests.list_title');
-  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.tests.list_description');
-  const questionCountTemplate = useAsyncTranslation(locale, 'admin.tests.question_count');
-  const minuteSuffix = useAsyncTranslation(locale, 'admin.tests.minute_suffix');
-  const passingScoreTemplate = useAsyncTranslation(locale, 'admin.tests.passing_score');
-  const categoryPrefix = useAsyncTranslation(locale, 'admin.tests.category_prefix');
-  const createdPrefix = useAsyncTranslation(locale, 'admin.tests.created_prefix');
-  const resultsTemplate = useAsyncTranslation(locale, 'admin.tests.results_count');
-  const viewDetails = useAsyncTranslation(locale, 'admin.tests.view_details');
-  const statisticsLabel = useAsyncTranslation(locale, 'admin.tests.statistics.title_suffix');
-  const deactivateLabel = useAsyncTranslation(locale, 'admin.tests.deactivate');
-  const activateLabel = useAsyncTranslation(locale, 'admin.tests.activate');
-  const deleteLabel = useAsyncTranslation(locale, 'admin.tests.delete');
-  const confirmDeleteText = useAsyncTranslation(locale, 'admin.tests.confirm_delete');
-  const errorPrefix = useAsyncTranslation(locale, 'admin.tests.error_prefix');
-  const noTestsTitle = useAsyncTranslation(locale, 'admin.tests.no_tests_title');
-  const noTestsDescription = useAsyncTranslation(locale, 'admin.tests.no_tests_description');
-  const addFirstTest = useAsyncTranslation(locale, 'admin.tests.add_first_test');
+  const t = useTranslations();
+  const manageTitle = t('admin.tests.manage_title');
+  const manageSubtitle = t('admin.tests.manage_subtitle');
+  const addTest = t('admin.tests.add_test');
+  const searchPlaceholder = t('admin.tests.search_placeholder');
+  const levelFilterPlaceholder = t('admin.tests.level_filter_placeholder');
+  const statusFilterPlaceholder = t('admin.tests.status_filter_placeholder');
+  const levelAll = t('admin.tests.levels.all');
+  const levelJunior = t('admin.tests.levels.JUNIOR');
+  const levelMediu = t('admin.tests.levels.MEDIU');
+  const levelSenior = t('admin.tests.levels.SENIOR');
+  const levelExpert = t('admin.tests.levels.EXPERT');
+  const statusAll = t('admin.tests.statuses.all');
+  const statusActive = t('admin.tests.statuses.ACTIVE');
+  const statusInactive = t('admin.tests.statuses.INACTIVE');
+  const statusDraft = t('admin.tests.statuses.DRAFT');
+  const listTitle = t('admin.tests.list_title');
+  const listDescriptionTemplate = t('admin.tests.list_description');
+  const questionCountTemplate = t('admin.tests.question_count');
+  const minuteSuffix = t('admin.tests.minute_suffix');
+  const passingScoreTemplate = t('admin.tests.passing_score');
+  const categoryPrefix = t('admin.tests.category_prefix');
+  const createdPrefix = t('admin.tests.created_prefix');
+  const resultsTemplate = t('admin.tests.results_count');
+  const viewDetails = t('admin.tests.view_details');
+  const statisticsLabel = t('admin.tests.statistics.title_suffix');
+  const deactivateLabel = t('admin.tests.deactivate');
+  const activateLabel = t('admin.tests.activate');
+  const deleteLabel = t('admin.tests.delete');
+  const confirmDeleteText = t('admin.tests.confirm_delete');
+  const errorPrefix = t('admin.tests.error_prefix');
+  const noTestsTitle = t('admin.tests.no_tests_title');
+  const noTestsDescription = t('admin.tests.no_tests_description');
+  const addFirstTest = t('admin.tests.add_first_test');
 
   const handleTestAction = async (testId: string, action: string) => {
     try {
@@ -182,7 +182,7 @@ export default function AdminTestsPage() {
                 </p>
               </div>
             </div>
-            <Link href={`/${locale}/admin/tests/new`}>
+            <Link href="/admin/tests/new">
               <Button className="btn-primary">
                 <Plus className="w-4 h-4 mr-2" />
                 {addTest}
@@ -317,7 +317,7 @@ export default function AdminTestsPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href={`/${locale}/admin/tests/${test.id}/statistics`}>
+                              <Link href={`/admin/tests/${test.id}/statistics`}>
                                 <BarChart3 className="w-4 h-4 mr-2" />
                                 {statisticsLabel}
                               </Link>

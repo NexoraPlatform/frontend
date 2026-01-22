@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname, useRouter } from '@/lib/navigation';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import { LocalizedLink } from '@/components/LocalizedLink';
-import { useLocalizedRouter } from '@/hooks/use-localized-router';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -17,11 +15,8 @@ import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
-import { Locale } from '@/types/locale';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
-import { t } from "@/lib/i18n";
 import { Can } from "@/components/Can";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
@@ -68,57 +63,41 @@ export function Header() {
     process.env.BASIC_AUTH === 'true';
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
-  const router = useLocalizedRouter();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const locale = pathname.split('/')[1] as Locale || 'ro';
-  const homeText = useAsyncTranslation(locale, 'navigation.home');
-  const skipToContentText = useAsyncTranslation(locale, 'common.skip_to_content')
-  const navigateToText = useAsyncTranslation(locale, 'navigation.navigate_to');
-  const mainNavigationText = useAsyncTranslation(locale, 'navigation.main_navigation');
-  const changeThemeToText = useAsyncTranslation(locale, 'navigation.change_theme');
-  const darkText = useAsyncTranslation(locale, 'navigation.dark');
-  const lightText = useAsyncTranslation(locale, 'navigation.light');
-  const openMainUserMenuText = useAsyncTranslation(locale, 'navigation.open_main_user_menu');
-  const earlyAccessClientCta = useAsyncTranslation(locale, 'trustora.early_access.header.client_cta', 'Înregistrare ca client');
-  const earlyAccessProviderCta = useAsyncTranslation(locale, 'trustora.early_access.header.provider_cta', 'Înregistrare ca prestator');
-  const earlyAccessMenuAria = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_aria', 'Meniul principal pe mobil');
-  const earlyAccessMenuTitle = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_title', 'Meniu înscriere early access');
-  const earlyAccessMenuLabel = useAsyncTranslation(locale, 'trustora.early_access.header.mobile_menu_label', 'Meniu');
-  const earlyAccessMenuDescription = useAsyncTranslation(
-    locale,
-    'trustora.early_access.header.mobile_menu_description',
-    'Alege tipul de cont pentru înscriere în early access.',
-  );
-  const earlyAccessMenuSrDescription = useAsyncTranslation(
-    locale,
-    'trustora.early_access.header.mobile_menu_sr_description',
-    'Alege tipul de cont pentru înscriere în early access și accesează detaliile de contact Trustora.',
-  );
-  const earlyAccessContactLabel = useAsyncTranslation(locale, 'trustora.early_access.header.contact_label', 'Date de contact');
-  const earlyAccessContactTag = useAsyncTranslation(locale, 'trustora.early_access.header.contact_tag', 'Trustora');
-  const earlyAccessBannerText = useAsyncTranslation(
-    locale,
-    'common.banner.early_access_enabled',
-    'Early access funnel is enabled.',
-  );
-  const basicAuthBannerText = useAsyncTranslation(
-    locale,
-    'common.banner.basic_auth_enabled',
-    'Basic authentication is enabled.',
-  );
+  const t = useTranslations();
+  const homeText = t('navigation.home');
+  const skipToContentText = t('common.skip_to_content');
+  const navigateToText = t('common.navigate_to');
+  const mainNavigationText = t('navigation.main_navigation');
+  const changeThemeToText = t('common.change_theme');
+  const darkText = t('common.dark');
+  const lightText = t('common.light');
+  const openMainUserMenuText = t('navigation.open_main_user_menu');
+  const earlyAccessClientCta = t('trustora.early_access.header.client_cta');
+  const earlyAccessProviderCta = t('trustora.early_access.header.provider_cta');
+  const earlyAccessMenuAria = t('trustora.early_access.header.mobile_menu_aria');
+  const earlyAccessMenuTitle = t('trustora.early_access.header.mobile_menu_title');
+  const earlyAccessMenuLabel = t('trustora.early_access.header.mobile_menu_label');
+  const earlyAccessMenuDescription = t('trustora.early_access.header.mobile_menu_description');
+  const earlyAccessMenuSrDescription = t('trustora.early_access.header.mobile_menu_sr_description');
+  const earlyAccessContactLabel = t('trustora.early_access.header.contact_label');
+  const earlyAccessContactTag = t('trustora.early_access.header.contact_tag');
+  const earlyAccessBannerText = t('common.banner.early_access_enabled');
+  const basicAuthBannerText = t('common.banner.basic_auth_enabled');
 
-  const servicesText = useAsyncTranslation(locale, 'navigation.services');
-  const projectsText = useAsyncTranslation(locale, 'navigation.projects');
-  const aboutText = useAsyncTranslation(locale, 'navigation.about');
-  const helpText = useAsyncTranslation(locale, 'navigation.help');
-  const contactText = useAsyncTranslation(locale, 'navigation.contact');
-  const dashboardText = useAsyncTranslation(locale, 'navigation.dashboard');
-  const editProfileText = useAsyncTranslation(locale, 'navigation.edit_profile');
-  const adminPanelText = useAsyncTranslation(locale, 'navigation.admin_panel');
-  const logoutText = useAsyncTranslation(locale, 'navigation.logout');
-  const loginText = useAsyncTranslation(locale, 'navigation.login');
-  const registerText = useAsyncTranslation(locale, 'navigation.register');
+  const servicesText = t('navigation.services');
+  const projectsText = t('navigation.projects');
+  const aboutText = t('navigation.about');
+  const helpText = t('navigation.help');
+  const contactText = t('navigation.contact');
+  const dashboardText = t('navigation.dashboard');
+  const editProfileText = t('navigation.edit_profile');
+  const adminPanelText = t('navigation.admin_panel');
+  const logoutText = t('navigation.logout');
+  const loginText = t('navigation.login');
+  const registerText = t('navigation.register');
 
   const isAdminUser =
     user?.is_superuser ||
@@ -194,7 +173,7 @@ export function Header() {
         {bannerContent}
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
-            <LocalizedLink
+            <Link
               href="/"
               className="flex items-center space-x-4 group"
               aria-label={`Trustora - ${homeText}`}
@@ -232,10 +211,10 @@ export function Header() {
                   Where work meets trust.
                 </span>
               </div>
-            </LocalizedLink>
+            </Link>
 
             <div className="flex items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <LocaleSwitcher className="w-fit" currentLocale={locale} />
+              <LocaleSwitcher className="w-fit" />
               <Button
                 variant="ghost"
                 size="icon"
@@ -252,10 +231,10 @@ export function Header() {
                   variant="outline"
                   asChild
                 >
-                  <LocalizedLink href="/early-access/client">{earlyAccessClientCta}</LocalizedLink>
+                  <Link href="/early-access/client">{earlyAccessClientCta}</Link>
                 </Button>
                 <Button className="w-full btn-primary text-white sm:w-auto" asChild>
-                  <LocalizedLink href="/early-access/provider">{earlyAccessProviderCta}</LocalizedLink>
+                  <Link href="/early-access/provider">{earlyAccessProviderCta}</Link>
                 </Button>
               </div>
               <Sheet>
@@ -286,10 +265,10 @@ export function Header() {
                       variant="outline"
                       asChild
                     >
-                      <LocalizedLink href="/early-access/client">{earlyAccessClientCta}</LocalizedLink>
+                      <Link href="/early-access/client">{earlyAccessClientCta}</Link>
                     </Button>
                     <Button className="w-full btn-primary text-white" asChild>
-                      <LocalizedLink href="/early-access/provider">{earlyAccessProviderCta}</LocalizedLink>
+                      <Link href="/early-access/provider">{earlyAccessProviderCta}</Link>
                     </Button>
                     <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/80 p-4 text-xs text-emerald-950 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
                       <div className="flex items-center justify-between">
@@ -355,7 +334,7 @@ export function Header() {
 
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-3 py-3 sm:h-20 sm:py-0">
-          <LocalizedLink
+          <Link
             href="/"
             className="flex items-center space-x-4 group"
             aria-label={`Trustora - ${homeText}`}
@@ -393,7 +372,7 @@ export function Header() {
                 Where work meets trust.
               </span>
             </div>
-          </LocalizedLink>
+          </Link>
 
           <nav
             className="hidden lg:flex items-center space-x-8"
@@ -401,12 +380,12 @@ export function Header() {
             aria-label={mainNavigationText}
           >
             {navigation.map((item, index) => (
-              <LocalizedLink
+              <Link
                 key={index}
                 href={item.href}
                 className={cn(
                   'text-sm font-medium transition-colors hover:text-primary relative',
-                  pathname === `/${locale}${item.href}` || pathname === item.href
+                  pathname === item.href
                     ? 'text-primary'
                     : 'text-muted-foreground'
                 )}
@@ -415,7 +394,7 @@ export function Header() {
                 {item.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#1BC47D] to-[#0B1C2D] transition-all duration-300 group-hover:w-full rounded-full"></span>
                 <span className="absolute inset-0 bg-emerald-50/70 dark:bg-emerald-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
-              </LocalizedLink>
+              </Link>
             ))}
           </nav>
 
@@ -431,7 +410,7 @@ export function Header() {
               </>
             )}
 
-            <LocaleSwitcher className="hidden lg:block" currentLocale={locale} />
+            <LocaleSwitcher className="hidden lg:block" />
 
             {/* Theme Toggle */}
             <Button
@@ -465,16 +444,16 @@ export function Header() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <LocalizedLink href="/dashboard">{dashboardText}</LocalizedLink>
+                    <Link href="/dashboard">{dashboardText}</Link>
                   </DropdownMenuItem>
                   <Can roles={['provider']}>
                     <DropdownMenuItem asChild>
-                      <LocalizedLink href="/provider/profile">{editProfileText}</LocalizedLink>
+                      <Link href="/provider/profile">{editProfileText}</Link>
                     </DropdownMenuItem>
                   </Can>
                   <Can roles={['admin']}>
                     <DropdownMenuItem asChild>
-                      <LocalizedLink href="/admin">{adminPanelText}</LocalizedLink>
+                      <Link href="/admin">{adminPanelText}</Link>
                     </DropdownMenuItem>
                   </Can>
                   <DropdownMenuSeparator />
@@ -487,10 +466,10 @@ export function Header() {
             ) : (
               <div className="hidden md:flex items-center space-x-3">
                 <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
-                  <LocalizedLink href="/auth/signin">{loginText}</LocalizedLink>
+                  <Link href="/auth/signin">{loginText}</Link>
                 </Button>
                 <Button className="bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
-                  <LocalizedLink href="/auth/signup">{registerText}</LocalizedLink>
+                  <Link href="/auth/signup">{registerText}</Link>
                 </Button>
               </div>
             )}
@@ -506,26 +485,26 @@ export function Header() {
                 <div className="flex flex-col space-y-6 mt-8">
                   <SearchBar className="lg:hidden" />
                   {navigation.map((item, index) => (
-                    <LocalizedLink
+                    <Link
                       key={index}
                       href={item.href}
                       className="text-lg font-semibold hover:text-emerald-700 transition-colors py-3 border-b border-border/50 hover:border-emerald-200 dark:hover:border-emerald-500/40 rounded-lg hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 px-4"
                       onClick={() => setIsOpen(false)}
                     >
                       {item.name}
-                    </LocalizedLink>
+                    </Link>
                   ))}
                   {!user && (
                     <div className="flex flex-col space-y-4 pt-6">
                       <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 rounded-xl py-3 font-semibold" asChild>
-                        <LocalizedLink href="/auth/signin">{loginText}</LocalizedLink>
+                        <Link href="/auth/signin">{loginText}</Link>
                       </Button>
                       <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl py-3 font-semibold shadow-lg" asChild>
-                        <LocalizedLink href="/auth/signup">{registerText}</LocalizedLink>
+                        <Link href="/auth/signup">{registerText}</Link>
                       </Button>
                     </div>
                   )}
-                  <LocaleSwitcher currentLocale={locale} />
+                  <LocaleSwitcher />
                 </div>
               </SheetContent>
             </Sheet>

@@ -1,9 +1,9 @@
 "use client";
 
 import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
-import Link from 'next/link';
+import { useRouter } from '@/lib/navigation';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,6 @@ import { useAdminCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {MuiIcon} from '@/components/MuiIcons';
 import {IconSearchDropdown} from "@/components/IconSearchDropdown";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 export default function NewCategoryPage() {
   const [formData, setFormData] = useState({
@@ -30,33 +29,33 @@ export default function NewCategoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-    const locale = useLocale();
+  const t = useTranslations();
   const { data: categoriesData } = useAdminCategories();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const addNewTitle = useAsyncTranslation(locale, 'admin.categories.add_new_title');
-  const addNewSubtitle = useAsyncTranslation(locale, 'admin.categories.add_new_subtitle');
-  const infoTitle = useAsyncTranslation(locale, 'admin.categories.info_title');
-  const infoDescription = useAsyncTranslation(locale, 'admin.categories.info_description');
-  const errorOccurred = useAsyncTranslation(locale, 'admin.categories.error_occurred');
-  const nameLabel = useAsyncTranslation(locale, 'admin.categories.name_label');
-  const namePlaceholder = useAsyncTranslation(locale, 'admin.categories.name_placeholder');
-  const slugLabel = useAsyncTranslation(locale, 'admin.categories.slug_label');
-  const slugPlaceholder = useAsyncTranslation(locale, 'admin.categories.slug_placeholder');
-  const slugHelp = useAsyncTranslation(locale, 'admin.categories.slug_help');
-  const descriptionLabel = useAsyncTranslation(locale, 'admin.categories.description_label');
-  const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.categories.description_placeholder');
-  const iconLabel = useAsyncTranslation(locale, 'admin.categories.icon_label');
-  const previewLabel = useAsyncTranslation(locale, 'admin.categories.preview');
-  const sortOrderLabel = useAsyncTranslation(locale, 'admin.categories.sort_order_label');
-  const sortOrderPlaceholder = useAsyncTranslation(locale, 'admin.categories.sort_order_placeholder');
-  const parentCategoryLabel = useAsyncTranslation(locale, 'admin.categories.parent_category_label');
-  const parentCategoryPlaceholder = useAsyncTranslation(locale, 'admin.categories.parent_category_placeholder');
-  const noParent = useAsyncTranslation(locale, 'admin.categories.no_parent');
-  const noParentHelp = useAsyncTranslation(locale, 'admin.categories.no_parent_help');
-  const createCategoryLabel = useAsyncTranslation(locale, 'admin.categories.create_category');
-  const creatingLabel = useAsyncTranslation(locale, 'admin.categories.creating');
-  const cancelLabel = useAsyncTranslation(locale, 'admin.categories.cancel');
+  const addNewTitle = t('admin.categories.add_new_title');
+  const addNewSubtitle = t('admin.categories.add_new_subtitle');
+  const infoTitle = t('admin.categories.info_title');
+  const infoDescription = t('admin.categories.info_description');
+  const errorOccurred = t('admin.categories.error_occurred');
+  const nameLabel = t('admin.categories.name_label');
+  const namePlaceholder = t('admin.categories.name_placeholder');
+  const slugLabel = t('admin.categories.slug_label');
+  const slugPlaceholder = t('admin.categories.slug_placeholder');
+  const slugHelp = t('admin.categories.slug_help');
+  const descriptionLabel = t('admin.categories.description_label');
+  const descriptionPlaceholder = t('admin.categories.description_placeholder');
+  const iconLabel = t('admin.categories.icon_label');
+  const previewLabel = t('admin.categories.preview');
+  const sortOrderLabel = t('admin.categories.sort_order_label');
+  const sortOrderPlaceholder = t('admin.categories.sort_order_placeholder');
+  const parentCategoryLabel = t('admin.categories.parent_category_label');
+  const parentCategoryPlaceholder = t('admin.categories.parent_category_placeholder');
+  const noParent = t('admin.categories.no_parent');
+  const noParentHelp = t('admin.categories.no_parent_help');
+  const createCategoryLabel = t('admin.categories.create_category');
+  const creatingLabel = t('admin.categories.creating');
+  const cancelLabel = t('admin.categories.cancel');
 
   const collections = useMemo(() => ['material-symbols','mdi','lucide'], []);
 

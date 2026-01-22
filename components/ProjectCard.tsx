@@ -2,8 +2,8 @@
 
 import { Star, MapPin, Zap } from 'lucide-react';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import { ProjectWithClient, formatBudgetRange, formatDeadline, formatDate } from '@/lib/projects';
+import { useLocale } from 'next-intl';
 import { Locale } from '@/types/locale';
 
 interface ProjectCardProps {
@@ -11,8 +11,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const pathname = usePathname();
-  const locale = (pathname?.split('/')?.[1] as Locale) || 'ro';
+  const locale = useLocale() as Locale;
 
   return (
     <div

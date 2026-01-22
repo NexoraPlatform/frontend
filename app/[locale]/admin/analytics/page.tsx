@@ -1,20 +1,20 @@
 "use client";
 
-import Link from 'next/link';
-import { useLocale } from '@/hooks/use-locale';
+import { Link } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, BarChart3, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 export default function AdminAnalyticsPage() {
     const locale = useLocale();
-  const title = useAsyncTranslation(locale, 'admin.analytics.manage_title');
-  const subtitle = useAsyncTranslation(locale, 'admin.analytics.manage_subtitle');
-  const statsTitle = useAsyncTranslation(locale, 'admin.analytics.stats_title');
-  const statsDescription = useAsyncTranslation(locale, 'admin.analytics.stats_description');
-  const developmentTitle = useAsyncTranslation(locale, 'admin.analytics.in_development_title');
-  const developmentDescription = useAsyncTranslation(locale, 'admin.analytics.in_development_description');
+  const t = useTranslations();
+  const title = t('admin.analytics.manage_title');
+  const subtitle = t('admin.analytics.manage_subtitle');
+  const statsTitle = t('admin.analytics.stats_title');
+  const statsDescription = t('admin.analytics.stats_description');
+  const developmentTitle = t('admin.analytics.in_development_title');
+  const developmentDescription = t('admin.analytics.in_development_description');
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
@@ -22,7 +22,7 @@ export default function AdminAnalyticsPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-4">
-            <Link href={`/${locale}/admin`}>
+            <Link href="/admin">
               <Button
                 variant="outline"
                 size="icon"

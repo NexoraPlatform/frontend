@@ -4,7 +4,7 @@ import {Card, CardContent} from "@/components/ui/card";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {MapPin, Star} from "lucide-react";
 import ProviderService from "./[id]/provider-service";
-import {useRouter} from "next/navigation";
+import { useRouter } from '@/lib/navigation';
 
 interface ProviderCardProps {
     provider: any;

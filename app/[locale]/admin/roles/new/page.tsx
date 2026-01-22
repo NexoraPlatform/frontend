@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from '@/lib/navigation';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, IdCardLanyard, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,8 @@ import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import apiClient from "@/lib/api";
-import { useRouter } from "next/navigation";
-import { useLocale } from "@/hooks/use-locale";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from "next-intl";
 import {
     Accordion,
     AccordionContent,
@@ -52,18 +51,19 @@ export default function NewRolePage() {
     const [permissionGroups, setPermissionGroups] = useState<GroupPermissions[]>([]);
     const router = useRouter();
     const locale = useLocale();
-    const title = useAsyncTranslation(locale, 'admin.roles.new_role.title');
-    const subtitle = useAsyncTranslation(locale, 'admin.roles.new_role.subtitle');
-    const infoTitle = useAsyncTranslation(locale, 'admin.roles.new_role.info_title');
-    const infoDescription = useAsyncTranslation(locale, 'admin.roles.new_role.info_description');
-    const nameLabel = useAsyncTranslation(locale, 'admin.roles.new_role.name_label');
-    const namePlaceholder = useAsyncTranslation(locale, 'admin.roles.new_role.name_placeholder');
-    const descriptionLabel = useAsyncTranslation(locale, 'admin.roles.new_role.description_label');
-    const descriptionPlaceholder = useAsyncTranslation(locale, 'admin.roles.new_role.description_placeholder');
-    const creatingLabel = useAsyncTranslation(locale, 'admin.roles.new_role.creating');
-    const createButtonLabel = useAsyncTranslation(locale, 'admin.roles.new_role.create_button');
-    const cancelLabel = useAsyncTranslation(locale, 'admin.roles.new_role.cancel');
-    const errorOccurred = useAsyncTranslation(locale, 'admin.roles.error_occurred');
+  const t = useTranslations();
+    const title = t('admin.roles.new_role.title');
+    const subtitle = t('admin.roles.new_role.subtitle');
+    const infoTitle = t('admin.roles.new_role.info_title');
+    const infoDescription = t('admin.roles.new_role.info_description');
+    const nameLabel = t('admin.roles.new_role.name_label');
+    const namePlaceholder = t('admin.roles.new_role.name_placeholder');
+    const descriptionLabel = t('admin.roles.new_role.description_label');
+    const descriptionPlaceholder = t('admin.roles.new_role.description_placeholder');
+    const creatingLabel = t('admin.roles.new_role.creating');
+    const createButtonLabel = t('admin.roles.new_role.create_button');
+    const cancelLabel = t('admin.roles.new_role.cancel');
+    const errorOccurred = t('admin.roles.error_occurred');
 
     useEffect(() => {
         const loadPermissions = async () => {
@@ -91,7 +91,7 @@ export default function NewRolePage() {
 
         try {
             await apiClient.createRole(roleData);
-            router.push(`/${locale}/admin/roles`);
+            router.push('/admin/roles');
         } catch (error: any) {
             setError(error.message || errorOccurred);
         } finally {
@@ -105,7 +105,7 @@ export default function NewRolePage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
                 <div className="relative flex flex-col gap-4">
                     <div className="flex flex-wrap items-center gap-4">
-                        <Link href={`/${locale}/admin/roles`}>
+                        <Link href="/admin/roles">
                             <Button
                                 variant="outline"
                                 size="icon"
@@ -229,7 +229,7 @@ export default function NewRolePage() {
                                         </>
                                     )}
                                 </Button>
-                                <Link href={`/${locale}/admin/roles`}>
+                                <Link href="/admin/roles">
                                     <Button type="button" variant="outline">
                                         {cancelLabel}
                                     </Button>

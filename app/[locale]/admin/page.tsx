@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
-import { useLocale } from '@/hooks/use-locale';
+import { Link } from '@/lib/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,6 @@ import {
 import CallIcon from '@mui/icons-material/Call';
 import apiClient from '@/lib/api';
 import { Can } from '@/components/Can';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 interface AdminStats {
   totalUsers: number;
@@ -53,7 +52,7 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState<AdminStats | null>(null);
-    const locale = useLocale();
+  const t = useTranslations();
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -69,87 +68,87 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
-  const dashboardTitle = useAsyncTranslation(locale, 'admin.dashboard.title');
-  const dashboardSubtitle = useAsyncTranslation(locale, 'admin.dashboard.subtitle');
+  const dashboardTitle = t('admin.dashboard.title');
+  const dashboardSubtitle = t('admin.dashboard.subtitle');
 
-  const statsUsersTitle = useAsyncTranslation(locale, 'admin.dashboard.stats.users');
-  const statsServicesTitle = useAsyncTranslation(locale, 'admin.dashboard.stats.services');
-  const statsRevenueTitle = useAsyncTranslation(locale, 'admin.dashboard.stats.revenue');
-  const statsProjectsTitle = useAsyncTranslation(locale, 'admin.dashboard.stats.projects');
-  const changeTemplate = useAsyncTranslation(locale, 'admin.dashboard.stats.change_template');
+  const statsUsersTitle = t('admin.dashboard.stats.users');
+  const statsServicesTitle = t('admin.dashboard.stats.services');
+  const statsRevenueTitle = t('admin.dashboard.stats.revenue');
+  const statsProjectsTitle = t('admin.dashboard.stats.projects');
+  const changeTemplate = t('admin.dashboard.stats.change_template');
 
-  const quickActionsTitle = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.title');
-  const quickActionsDescription = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.description');
-  const addUserTitle = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.add_user.title');
-  const addUserDescription = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.add_user.description');
-  const addCategoryTitle = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.add_category.title');
-  const addCategoryDescription = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.add_category.description');
-  const addTestTitle = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.add_test.title');
-  const addTestDescription = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.add_test.description');
-  const viewReportsTitle = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.view_reports.title');
-  const viewReportsDescription = useAsyncTranslation(locale, 'admin.dashboard.quick_actions.view_reports.description');
+  const quickActionsTitle = t('admin.dashboard.quick_actions.title');
+  const quickActionsDescription = t('admin.dashboard.quick_actions.description');
+  const addUserTitle = t('admin.dashboard.quick_actions.add_user.title');
+  const addUserDescription = t('admin.dashboard.quick_actions.add_user.description');
+  const addCategoryTitle = t('admin.dashboard.quick_actions.add_category.title');
+  const addCategoryDescription = t('admin.dashboard.quick_actions.add_category.description');
+  const addTestTitle = t('admin.dashboard.quick_actions.add_test.title');
+  const addTestDescription = t('admin.dashboard.quick_actions.add_test.description');
+  const viewReportsTitle = t('admin.dashboard.quick_actions.view_reports.title');
+  const viewReportsDescription = t('admin.dashboard.quick_actions.view_reports.description');
 
-  const sectionsTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.title');
-  const sectionsDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.description');
-  const usersSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.users.title');
-  const usersSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.users.description');
-  const usersSectionStatsTemplate = useAsyncTranslation(locale, 'admin.dashboard.sections.users.stats_template');
-  const servicesSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.services.title');
-  const servicesSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.services.description');
-  const servicesSectionStatsTemplate = useAsyncTranslation(locale, 'admin.dashboard.sections.services.stats_template');
-  const categoriesSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.categories.title');
-  const categoriesSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.categories.description');
-  const categoriesSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.categories.stats');
-  const testsSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.tests.title');
-  const testsSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.tests.description');
-  const testsSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.tests.stats');
-  const callsSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.calls.title');
-  const callsSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.calls.description');
-  const callsSectionStatsTemplate = useAsyncTranslation(locale, 'admin.dashboard.sections.calls.stats_template');
-  const projectsSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.projects.title');
-  const projectsSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.projects.description');
-  const projectsSectionStatsTemplate = useAsyncTranslation(locale, 'admin.dashboard.sections.projects.stats_template');
-  const disputesSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.disputes.title');
-  const disputesSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.disputes.description');
-  const disputesSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.disputes.stats');
-  const newsletterSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.newsletter.title');
-  const newsletterSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.newsletter.description');
-  const newsletterSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.newsletter.stats');
-  const rolesSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.roles.title');
-  const rolesSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.roles.description');
-  const rolesSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.roles.stats');
-  const analyticsSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.analytics.title');
-  const analyticsSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.analytics.description');
-  const analyticsSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.analytics.stats');
-  const earlyAccessSectionTitle = useAsyncTranslation(locale, 'admin.dashboard.sections.early_access.title');
-  const earlyAccessSectionDescription = useAsyncTranslation(locale, 'admin.dashboard.sections.early_access.description');
-  const earlyAccessSectionStats = useAsyncTranslation(locale, 'admin.dashboard.sections.early_access.stats');
-  const pendingTemplate = useAsyncTranslation(locale, 'admin.dashboard.pending_template');
+  const sectionsTitle = t('admin.dashboard.sections.title');
+  const sectionsDescription = t('admin.dashboard.sections.description');
+  const usersSectionTitle = t('admin.dashboard.sections.users.title');
+  const usersSectionDescription = t('admin.dashboard.sections.users.description');
+  const usersSectionStatsTemplate = t('admin.dashboard.sections.users.stats_template');
+  const servicesSectionTitle = t('admin.dashboard.sections.services.title');
+  const servicesSectionDescription = t('admin.dashboard.sections.services.description');
+  const servicesSectionStatsTemplate = t('admin.dashboard.sections.services.stats_template');
+  const categoriesSectionTitle = t('admin.dashboard.sections.categories.title');
+  const categoriesSectionDescription = t('admin.dashboard.sections.categories.description');
+  const categoriesSectionStats = t('admin.dashboard.sections.categories.stats');
+  const testsSectionTitle = t('admin.dashboard.sections.tests.title');
+  const testsSectionDescription = t('admin.dashboard.sections.tests.description');
+  const testsSectionStats = t('admin.dashboard.sections.tests.stats');
+  const callsSectionTitle = t('admin.dashboard.sections.calls.title');
+  const callsSectionDescription = t('admin.dashboard.sections.calls.description');
+  const callsSectionStatsTemplate = t('admin.dashboard.sections.calls.stats_template');
+  const projectsSectionTitle = t('admin.dashboard.sections.projects.title');
+  const projectsSectionDescription = t('admin.dashboard.sections.projects.description');
+  const projectsSectionStatsTemplate = t('admin.dashboard.sections.projects.stats_template');
+  const disputesSectionTitle = t('admin.dashboard.sections.disputes.title');
+  const disputesSectionDescription = t('admin.dashboard.sections.disputes.description');
+  const disputesSectionStats = t('admin.dashboard.sections.disputes.stats');
+  const newsletterSectionTitle = t('admin.dashboard.sections.newsletter.title');
+  const newsletterSectionDescription = t('admin.dashboard.sections.newsletter.description');
+  const newsletterSectionStats = t('admin.dashboard.sections.newsletter.stats');
+  const rolesSectionTitle = t('admin.dashboard.sections.roles.title');
+  const rolesSectionDescription = t('admin.dashboard.sections.roles.description');
+  const rolesSectionStats = t('admin.dashboard.sections.roles.stats');
+  const analyticsSectionTitle = t('admin.dashboard.sections.analytics.title');
+  const analyticsSectionDescription = t('admin.dashboard.sections.analytics.description');
+  const analyticsSectionStats = t('admin.dashboard.sections.analytics.stats');
+  const earlyAccessSectionTitle = t('admin.dashboard.sections.early_access.title');
+  const earlyAccessSectionDescription = t('admin.dashboard.sections.early_access.description');
+  const earlyAccessSectionStats = t('admin.dashboard.sections.early_access.stats');
+  const pendingTemplate = t('admin.dashboard.pending_template');
 
-  const activityTitle = useAsyncTranslation(locale, 'admin.dashboard.activity.title');
-  const activityUserMessage = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.user.message');
-  const activityUserTime = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.user.time');
-  const activityOrderMessage = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.order.message');
-  const activityOrderTime = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.order.time');
-  const activityServiceMessage = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.service.message');
-  const activityServiceTime = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.service.time');
-  const activityTestMessage = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.test.message');
-  const activityTestTime = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.test.time');
-  const activityDisputeMessage = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.dispute.message');
-  const activityDisputeTime = useAsyncTranslation(locale, 'admin.dashboard.activity.entries.dispute.time');
-  const viewAllActivity = useAsyncTranslation(locale, 'admin.dashboard.activity.view_all');
+  const activityTitle = t('admin.dashboard.activity.title');
+  const activityUserMessage = t('admin.dashboard.activity.entries.user.message');
+  const activityUserTime = t('admin.dashboard.activity.entries.user.time');
+  const activityOrderMessage = t('admin.dashboard.activity.entries.order.message');
+  const activityOrderTime = t('admin.dashboard.activity.entries.order.time');
+  const activityServiceMessage = t('admin.dashboard.activity.entries.service.message');
+  const activityServiceTime = t('admin.dashboard.activity.entries.service.time');
+  const activityTestMessage = t('admin.dashboard.activity.entries.test.message');
+  const activityTestTime = t('admin.dashboard.activity.entries.test.time');
+  const activityDisputeMessage = t('admin.dashboard.activity.entries.dispute.message');
+  const activityDisputeTime = t('admin.dashboard.activity.entries.dispute.time');
+  const viewAllActivity = t('admin.dashboard.activity.view_all');
 
-  const systemStatusTitle = useAsyncTranslation(locale, 'admin.dashboard.system_status.title');
-  const serverStatusLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.server_status');
-  const databaseLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.database');
-  const apiResponseLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.api_response');
-  const providerRatesLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.provider_rates');
-  const competencyTestsLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.competency_tests');
-  const onlineLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.online');
-  const healthyLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.healthy');
-  const fastLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.fast');
-  const flexibleLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.flexible');
-  const activeLabel = useAsyncTranslation(locale, 'admin.dashboard.system_status.active');
+  const systemStatusTitle = t('admin.dashboard.system_status.title');
+  const serverStatusLabel = t('admin.dashboard.system_status.server_status');
+  const databaseLabel = t('admin.dashboard.system_status.database');
+  const apiResponseLabel = t('admin.dashboard.system_status.api_response');
+  const providerRatesLabel = t('admin.dashboard.system_status.provider_rates');
+  const competencyTestsLabel = t('admin.dashboard.system_status.competency_tests');
+  const onlineLabel = t('admin.dashboard.system_status.online');
+  const healthyLabel = t('admin.dashboard.system_status.healthy');
+  const fastLabel = t('admin.dashboard.system_status.fast');
+  const flexibleLabel = t('admin.dashboard.system_status.flexible');
+  const activeLabel = t('admin.dashboard.system_status.active');
 
   const stats = useMemo(() => [
     {
@@ -425,7 +424,7 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {stats.map((stat, index) => (
-          <Link key={index} href={`/${locale}${stat.href}`}>
+          <Link key={index} href={stat.href}>
             <Card className="group h-full border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-card dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] dark:hover:border-sky-500/40 dark:hover:bg-slate-900">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between gap-4">
@@ -478,7 +477,7 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
-                  <Link key={index} href={`/${locale}${action.href}`}>
+                  <Link key={index} href={action.href}>
                     <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
@@ -522,7 +521,7 @@ export default function AdminDashboard() {
                     )}
                     allPerms={section.permissions || []}
                   >
-                    <Link href={`/${locale}${section.href}`}>
+                    <Link href={section.href}>
                       <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-4">

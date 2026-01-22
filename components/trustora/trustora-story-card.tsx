@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
     AlertTriangle,
     ArrowRight,
@@ -12,158 +13,46 @@ import {
     Scale,
     Shield,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
-import { Locale } from "@/types/locale";
 
 export const TrustoraStoryCard = () => {
     const [activeStep, setActiveStep] = useState(0);
-    const pathname = usePathname();
-    const locale = (pathname.split("/")[1] as Locale) || "ro";
-    const manifestLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.manifest_label",
-        "MANIFESTUL TRUSTORA",
-    );
-    const headingLine = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.heading_line",
-        "De la Incertitudine la",
-    );
-    const headingHighlight = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.heading_highlight",
-        "Infrastructură Digitală.",
-    );
-    const activeLabel = useAsyncTranslation(locale, "trustora.early_access.story.active_label", "ACTIVE");
-    const nextStepLabel = useAsyncTranslation(locale, "trustora.early_access.story.next_step", "Următorul Pas");
-    const joinNetworkLabel = useAsyncTranslation(locale, "trustora.early_access.story.join_network", "Intră în rețea");
-    const paymentFailedLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.payment_failed",
-        "PLATĂ: EȘUATĂ",
-    );
-    const riskLabel = useAsyncTranslation(locale, "trustora.early_access.story.risk_label", "RISC");
-    const complianceGapLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.compliance_gap",
-        "Lipsă conformitate",
-    );
-    const protocolInitLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.protocol_init",
-        "TRUST_PROTOCOL_INIT",
-    );
-    const legalWrapperLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.legal_wrapper",
-        "WRAPPER LEGAL",
-    );
-    const smartContractLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.smart_contract",
-        "CONTRACT INTELIGENT",
-    );
-    const connectingNodesLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.connecting_nodes",
-        "CONEXIUNI ÎN CURS...",
-    );
-    const escrowLabel = useAsyncTranslation(locale, "trustora.early_access.story.escrow", "ESCROW");
-    const activeProtectionLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.active_protection",
-        "PROTECȚIE ACTIVĂ",
-    );
-    const fundsLabel = useAsyncTranslation(locale, "trustora.early_access.story.funds_label", "Fonduri");
-    const globalInfrastructureLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.global_infrastructure",
-        "Infrastructură globală de încredere",
-    );
-    const verifiedLabel = useAsyncTranslation(locale, "trustora.early_access.story.verified", "VERIFICAT");
-    const securedLabel = useAsyncTranslation(locale, "trustora.early_access.story.secured", "SECURIZAT");
-    const systemStatusLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.system_status_label",
-        "Stare sistem:",
-    );
-    const statusCritical = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.status.critical",
-        "CRITIC",
-    );
-    const statusInitializing = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.status.initializing",
-        "INIȚIALIZARE",
-    );
-    const statusSecured = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.status.secured",
-        "SECURIZAT",
-    );
-    const statusOptimal = useAsyncTranslation(locale, "trustora.early_access.story.status.optimal", "OPTIM");
-    const stepChaosTitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.chaos.title",
-        "Haosul Curent",
-    );
-    const stepChaosSubtitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.chaos.subtitle",
-        "Freelancing-ul este un câmp minat.",
-    );
-    const stepChaosDescription = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.chaos.description",
-        "Contracte pe email. Plăți nesecurizate. Facturi neconforme în Excel. Clienții riscă amenzi pentru 'angajare mascată', iar profesioniști riscă neplata. Este un joc de noroc, nu o afacere.",
-    );
-    const stepInfrastructureTitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.infrastructure.title",
-        "Viziunea Infrastructurii",
-    );
-    const stepInfrastructureSubtitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.infrastructure.subtitle",
-        "Nu vindem freelanceri. Vindem certitudine.",
-    );
-    const stepInfrastructureDescription = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.infrastructure.description",
-        "Am creat un 'Legal Wrapper' unificat. Trustora nu este doar un marketplace, este infrastructura de securitate dintre bani și livrabil. Stripe + Notar Digital + Marketplace într-un singur loc.",
-    );
-    const stepMechanismTitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.mechanism.title",
-        "Mecanismul de Încredere",
-    );
-    const stepMechanismSubtitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.mechanism.subtitle",
-        "Smart Escrow & Verificare Totală.",
-    );
-    const stepMechanismDescription = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.mechanism.description",
-        "Banii sunt blocați în conturi segregate înainte de start. Identitatea este verificată biometric. Contractele includ transfer automat de IP. Nimic nu este lăsat la voia întâmplării.",
-    );
-    const stepSuccessTitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.success.title",
-        "Noua Realitate",
-    );
-    const stepSuccessSubtitle = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.success.subtitle",
-        "Unde munca întâlnește încrederea.",
-    );
-    const stepSuccessDescription = useAsyncTranslation(
-        locale,
-        "trustora.early_access.story.steps.success.description",
-        "Un ecosistem unde plățile sunt garantate și munca este protejată legal. Fără frică. Fără riscuri administrative. Doar focus pe livrare și performanță.",
-    );
+    const t = useTranslations();
+    const manifestLabel = t("trustora.early_access.story.manifest_label");
+    const headingLine = t("trustora.early_access.story.heading_line");
+    const headingHighlight = t("trustora.early_access.story.heading_highlight");
+    const activeLabel = t("trustora.early_access.story.active_label");
+    const nextStepLabel = t("trustora.early_access.story.next_step");
+    const joinNetworkLabel = t("trustora.early_access.story.join_network");
+    const paymentFailedLabel = t("trustora.early_access.story.payment_failed");
+    const riskLabel = t("trustora.early_access.story.risk_label");
+    const complianceGapLabel = t("trustora.early_access.story.compliance_gap");
+    const protocolInitLabel = t("trustora.early_access.story.protocol_init");
+    const legalWrapperLabel = t("trustora.early_access.story.legal_wrapper");
+    const smartContractLabel = t("trustora.early_access.story.smart_contract");
+    const connectingNodesLabel = t("trustora.early_access.story.connecting_nodes");
+    const escrowLabel = t("trustora.early_access.story.escrow");
+    const activeProtectionLabel = t("trustora.early_access.story.active_protection");
+    const fundsLabel = t("trustora.early_access.story.funds_label");
+    const globalInfrastructureLabel = t("trustora.early_access.story.global_infrastructure");
+    const verifiedLabel = t("trustora.early_access.story.verified");
+    const securedLabel = t("trustora.early_access.story.secured");
+    const systemStatusLabel = t("trustora.early_access.story.system_status_label");
+    const statusCritical = t("trustora.early_access.story.status.critical");
+    const statusInitializing = t("trustora.early_access.story.status.initializing");
+    const statusSecured = t("trustora.early_access.story.status.secured");
+    const statusOptimal = t("trustora.early_access.story.status.optimal");
+    const stepChaosTitle = t("trustora.early_access.story.steps.chaos.title");
+    const stepChaosSubtitle = t("trustora.early_access.story.steps.chaos.subtitle");
+    const stepChaosDescription = t("trustora.early_access.story.steps.chaos.description");
+    const stepInfrastructureTitle = t("trustora.early_access.story.steps.infrastructure.title");
+    const stepInfrastructureSubtitle = t("trustora.early_access.story.steps.infrastructure.subtitle");
+    const stepInfrastructureDescription = t("trustora.early_access.story.steps.infrastructure.description");
+    const stepMechanismTitle = t("trustora.early_access.story.steps.mechanism.title");
+    const stepMechanismSubtitle = t("trustora.early_access.story.steps.mechanism.subtitle");
+    const stepMechanismDescription = t("trustora.early_access.story.steps.mechanism.description");
+    const stepSuccessTitle = t("trustora.early_access.story.steps.success.title");
+    const stepSuccessSubtitle = t("trustora.early_access.story.steps.success.subtitle");
+    const stepSuccessDescription = t("trustora.early_access.story.steps.success.description");
 
     // Culorile brandului Trustora
     const colors = {

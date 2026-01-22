@@ -1,20 +1,20 @@
 "use client";
 
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, ArrowLeft } from 'lucide-react';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useLocale, useTranslations } from 'next-intl';
 
 export default function AdminDisputesPage() {
     const locale = useLocale();
-  const manageTitle = useAsyncTranslation(locale, 'admin.disputes.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.disputes.manage_subtitle');
-  const listTitle = useAsyncTranslation(locale, 'admin.disputes.list_title');
-  const listDescription = useAsyncTranslation(locale, 'admin.disputes.list_description');
-  const emptyTitle = useAsyncTranslation(locale, 'admin.disputes.empty_title');
-  const emptyDescription = useAsyncTranslation(locale, 'admin.disputes.empty_description');
+  const t = useTranslations();
+  const manageTitle = t('admin.disputes.manage_title');
+  const manageSubtitle = t('admin.disputes.manage_subtitle');
+  const listTitle = t('admin.disputes.list_title');
+  const listDescription = t('admin.disputes.list_description');
+  const emptyTitle = t('admin.disputes.empty_title');
+  const emptyDescription = t('admin.disputes.empty_description');
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
@@ -22,7 +22,7 @@ export default function AdminDisputesPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_rgba(15,23,42,0)_60%)]" />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href={`/${locale}/admin`}>
+            <Link href="/admin">
               <Button
                 variant="outline"
                 size="icon"

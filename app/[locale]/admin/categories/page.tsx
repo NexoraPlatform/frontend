@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,31 +18,31 @@ import {
 } from 'lucide-react';
 import { useAdminCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { useRouter } from 'next/navigation';
-import { useLocale } from '@/hooks/use-locale';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { MuiIcon } from '@/components/MuiIcons';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
 
 export default function AdminCategoriesPage() {
   const { data: categoriesData, loading: categoriesLoading, refetch: refetchCategories } = useAdminCategories();
   const router = useRouter();
     const locale = useLocale();
-  const manageTitle = useAsyncTranslation(locale, 'admin.categories.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.categories.manage_subtitle');
-  const addCategory = useAsyncTranslation(locale, 'admin.categories.add_category');
-  const listTitle = useAsyncTranslation(locale, 'admin.categories.list_title');
-  const totalSummaryTemplate = useAsyncTranslation(locale, 'admin.categories.total_summary');
-  const inactiveLabel = useAsyncTranslation(locale, 'admin.categories.inactive');
-  const orderLabel = useAsyncTranslation(locale, 'admin.categories.order_label');
-  const subcategoriesLabel = useAsyncTranslation(locale, 'admin.categories.subcategories_label');
-  const iconLabel = useAsyncTranslation(locale, 'admin.categories.icon_label');
-  const editLabel = useAsyncTranslation(locale, 'admin.categories.edit');
-  const deleteLabel = useAsyncTranslation(locale, 'admin.categories.delete');
-  const confirmDeleteText = useAsyncTranslation(locale, 'admin.categories.confirm_delete');
-  const errorPrefix = useAsyncTranslation(locale, 'admin.categories.error_prefix');
-  const noCategoriesTitle = useAsyncTranslation(locale, 'admin.categories.no_categories_title');
-  const noCategoriesDescription = useAsyncTranslation(locale, 'admin.categories.no_categories_description');
-  const addFirstCategory = useAsyncTranslation(locale, 'admin.categories.add_first_category');
+  const t = useTranslations();
+  const manageTitle = t('admin.categories.manage_title');
+  const manageSubtitle = t('admin.categories.manage_subtitle');
+  const addCategory = t('admin.categories.add_category');
+  const listTitle = t('admin.categories.list_title');
+  const totalSummaryTemplate = t('admin.categories.total_summary');
+  const inactiveLabel = t('admin.categories.inactive');
+  const orderLabel = t('admin.categories.order_label');
+  const subcategoriesLabel = t('admin.categories.subcategories_label');
+  const iconLabel = t('admin.categories.icon_label');
+  const editLabel = t('admin.categories.edit');
+  const deleteLabel = t('admin.categories.delete');
+  const confirmDeleteText = t('admin.categories.confirm_delete');
+  const errorPrefix = t('admin.categories.error_prefix');
+  const noCategoriesTitle = t('admin.categories.no_categories_title');
+  const noCategoriesDescription = t('admin.categories.no_categories_description');
+  const addFirstCategory = t('admin.categories.add_first_category');
 
   const handleCategoryAction = async (categoryId: string, action: string) => {
     try {
@@ -153,7 +153,7 @@ export default function AdminCategoriesPage() {
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              <Link href={`/${locale}/admin`}>
+              <Link href="/admin">
                 <Button
                   variant="outline"
                   size="icon"
@@ -166,7 +166,7 @@ export default function AdminCategoriesPage() {
                 Trustora Admin
               </span>
             </div>
-            <Link href={`/${locale}/admin/categories/new`}>
+            <Link href="/admin/categories/new">
               <Button className="shadow-sm">
                 <Plus className="w-4 h-4 mr-2" />
                 {addCategory}
@@ -278,7 +278,7 @@ export default function AdminCategoriesPage() {
                   <p className="text-muted-foreground mb-4">
                     {noCategoriesDescription}
                   </p>
-                  <Link href={`/${locale}/admin/categories/new`}>
+                  <Link href="/admin/categories/new">
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
                       {addFirstCategory}

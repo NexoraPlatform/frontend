@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useCallback} from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,9 +27,8 @@ import {
     XCircle, LucideIcon
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { t } from '@/lib/i18n';
+import { useLocale, useTranslations } from 'next-intl';
+import { Locale } from '@/types/locale';
 
 const STATUS_STYLE_MAP: Record<OrderStatus, { color: string; icon: LucideIcon }> = {
     PENDING: { color: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200', icon: Clock },
@@ -99,7 +98,8 @@ export type PaymentStatus =
     | 'PAID';
 
 export default function OrderDetailsPage({ id }: { id: string }) {
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
+  const t = useTranslations();
     const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
     const [order, setOrder] = useState<OrderType | null>(null);
@@ -109,53 +109,53 @@ export default function OrderDetailsPage({ id }: { id: string }) {
     const [newStatus, setNewStatus] = useState('');
     const [adminNotes, setAdminNotes] = useState('');
 
-    const notFoundLabel = useAsyncTranslation(locale, 'admin.orders.not_found');
-    const orderLabel = useAsyncTranslation(locale, 'admin.orders.order_label');
-    const detailSubtitle = useAsyncTranslation(locale, 'admin.orders.detail_subtitle');
-    const orderDetailsTitle = useAsyncTranslation(locale, 'admin.orders.details_title');
-    const categoryLabel = useAsyncTranslation(locale, 'admin.orders.category_label');
-    const requirementsTitle = useAsyncTranslation(locale, 'admin.orders.requirements_title');
-    const clientNotesTitle = useAsyncTranslation(locale, 'admin.orders.client_notes_title');
-    const providerNotesTitle = useAsyncTranslation(locale, 'admin.orders.provider_notes_title');
-    const deliverablesTitle = useAsyncTranslation(locale, 'admin.orders.deliverables_title');
-    const participantsTitle = useAsyncTranslation(locale, 'admin.orders.participants_title');
-    const clientLabel = useAsyncTranslation(locale, 'admin.orders.client_label');
-    const providerLabel = useAsyncTranslation(locale, 'admin.orders.provider_label');
-    const messageButton = useAsyncTranslation(locale, 'admin.orders.message_button');
-    const profileButton = useAsyncTranslation(locale, 'admin.orders.profile_button');
-    const financialTitle = useAsyncTranslation(locale, 'admin.orders.financial_title');
-    const orderValueLabel = useAsyncTranslation(locale, 'admin.orders.order_value_label');
-    const platformFeeLabel = useAsyncTranslation(locale, 'admin.orders.platform_fee_label');
-    const providerReceivesLabel = useAsyncTranslation(locale, 'admin.orders.provider_receives_label');
-    const paymentStatusLabel = useAsyncTranslation(locale, 'admin.orders.payment_status_label');
-    const timelineTitle = useAsyncTranslation(locale, 'admin.orders.timeline_title');
-    const orderPlacedLabel = useAsyncTranslation(locale, 'admin.orders.order_placed_label');
-    const deliveryDueLabel = useAsyncTranslation(locale, 'admin.orders.delivery_due_label');
-    const currentStatusLabel = useAsyncTranslation(locale, 'admin.orders.current_status_label');
-    const adminActionsTitle = useAsyncTranslation(locale, 'admin.orders.admin_actions_title');
-    const updateStatusLabel = useAsyncTranslation(locale, 'admin.orders.update_status_label');
-    const adminNotesLabel = useAsyncTranslation(locale, 'admin.orders.admin_notes_label');
-    const adminNotesPlaceholder = useAsyncTranslation(locale, 'admin.orders.admin_notes_placeholder');
-    const saveChanges = useAsyncTranslation(locale, 'admin.orders.save_changes');
-    const updatingLabel = useAsyncTranslation(locale, 'admin.orders.updating');
-    const downloadInvoice = useAsyncTranslation(locale, 'admin.orders.download_invoice');
-    const messageHistory = useAsyncTranslation(locale, 'admin.orders.message_history');
+    const notFoundLabel = t('admin.orders.not_found');
+    const orderLabel = t('admin.orders.order_label');
+    const detailSubtitle = t('admin.orders.detail_subtitle');
+    const orderDetailsTitle = t('admin.orders.details_title');
+    const categoryLabel = t('admin.orders.category_label');
+    const requirementsTitle = t('admin.orders.requirements_title');
+    const clientNotesTitle = t('admin.orders.client_notes_title');
+    const providerNotesTitle = t('admin.orders.provider_notes_title');
+    const deliverablesTitle = t('admin.orders.deliverables_title');
+    const participantsTitle = t('admin.orders.participants_title');
+    const clientLabel = t('admin.orders.client_label');
+    const providerLabel = t('admin.orders.provider_label');
+    const messageButton = t('admin.orders.message_button');
+    const profileButton = t('admin.orders.profile_button');
+    const financialTitle = t('admin.orders.financial_title');
+    const orderValueLabel = t('admin.orders.order_value_label');
+    const platformFeeLabel = t('admin.orders.platform_fee_label');
+    const providerReceivesLabel = t('admin.orders.provider_receives_label');
+    const paymentStatusLabel = t('admin.orders.payment_status_label');
+    const timelineTitle = t('admin.orders.timeline_title');
+    const orderPlacedLabel = t('admin.orders.order_placed_label');
+    const deliveryDueLabel = t('admin.orders.delivery_due_label');
+    const currentStatusLabel = t('admin.orders.current_status_label');
+    const adminActionsTitle = t('admin.orders.admin_actions_title');
+    const updateStatusLabel = t('admin.orders.update_status_label');
+    const adminNotesLabel = t('admin.orders.admin_notes_label');
+    const adminNotesPlaceholder = t('admin.orders.admin_notes_placeholder');
+    const saveChanges = t('admin.orders.save_changes');
+    const updatingLabel = t('admin.orders.updating');
+    const downloadInvoice = t('admin.orders.download_invoice');
+    const messageHistory = t('admin.orders.message_history');
 
     const statusLabels = {
-        PENDING: useAsyncTranslation(locale, 'admin.orders.statuses.pending'),
-        ACCEPTED: useAsyncTranslation(locale, 'admin.orders.statuses.accepted'),
-        IN_PROGRESS: useAsyncTranslation(locale, 'admin.orders.statuses.in_progress'),
-        DELIVERED: useAsyncTranslation(locale, 'admin.orders.statuses.delivered'),
-        COMPLETED: useAsyncTranslation(locale, 'admin.orders.statuses.completed'),
-        CANCELLED: useAsyncTranslation(locale, 'admin.orders.statuses.cancelled'),
-        DISPUTED: useAsyncTranslation(locale, 'admin.orders.statuses.disputed'),
+        PENDING: t('admin.orders.statuses.pending'),
+        ACCEPTED: t('admin.orders.statuses.accepted'),
+        IN_PROGRESS: t('admin.orders.statuses.in_progress'),
+        DELIVERED: t('admin.orders.statuses.delivered'),
+        COMPLETED: t('admin.orders.statuses.completed'),
+        CANCELLED: t('admin.orders.statuses.cancelled'),
+        DISPUTED: t('admin.orders.statuses.disputed'),
     } as const;
 
     const paymentStatusLabels = {
-        PENDING: useAsyncTranslation(locale, 'admin.orders.payment_statuses.pending'),
-        PAID: useAsyncTranslation(locale, 'admin.orders.payment_statuses.paid'),
-        FAILED: useAsyncTranslation(locale, 'admin.orders.payment_statuses.failed'),
-        REFUNDED: useAsyncTranslation(locale, 'admin.orders.payment_statuses.refunded'),
+        PENDING: t('admin.orders.payment_statuses.pending'),
+        PAID: t('admin.orders.payment_statuses.paid'),
+        FAILED: t('admin.orders.payment_statuses.failed'),
+        REFUNDED: t('admin.orders.payment_statuses.refunded'),
     } as const;
 
     const loadOrder = useCallback(async () => {
@@ -200,11 +200,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             setOrder(mockOrder);
             setNewStatus(mockOrder.status);
         } catch (error: any) {
-            setError(await t(locale, 'admin.orders.load_error'));
+            setError(t('admin.orders.load_error'));
         } finally {
             setLoading(false);
         }
-    }, [id, locale]);
+    }, [id, t]);
 
     useEffect(() => {
         loadOrder();
@@ -228,7 +228,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             });
             setError('');
         } catch (error: any) {
-            setError(await t(locale, 'admin.orders.update_error'));
+            setError(t('admin.orders.update_error'));
         } finally {
             setUpdating(false);
         }
@@ -279,7 +279,7 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.2),_rgba(15,23,42,0)_60%)]" />
                 <div className="relative flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <Link href={`/${locale}/admin/orders`}>
+                        <Link href="/admin/orders">
                             <Button
                                 variant="outline"
                                 size="icon"

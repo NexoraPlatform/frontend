@@ -1,9 +1,10 @@
 "use client";
 
-import { useLocale } from '@/hooks/use-locale';
+import { useLocale } from 'next-intl';
+import type { Locale } from '@/types/locale';
 import PermissionMatrixTab from '../PermissionMatrixTab';
 
 export default function PermissionsPage() {
-    const locale = useLocale();
-  return <PermissionMatrixTab locale={locale} />;
+    const locale = useLocale() as Locale;
+    return <PermissionMatrixTab locale={locale} />;
 }

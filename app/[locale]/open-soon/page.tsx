@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
-import { useLocale } from "@/hooks/use-locale";
+import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import {
   ArrowRightIcon, CheckCircle,
@@ -19,14 +19,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api";
 import {Alert, AlertDescription} from "@/components/ui/alert";
+import { Locale } from "@/types/locale";
 
 export default function OpenSoonPage() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
+  const t = useTranslations();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -34,130 +35,46 @@ export default function OpenSoonPage() {
   const [userType, setUserType] = useState<"client" | "provider" | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successNewsletter, setSuccessNewsletter] = useState<boolean>(false);
-  const title = useAsyncTranslation(locale, "trustora.open_soon.title", "Infrastructura de încredere pentru");
-  const titleAccent = useAsyncTranslation(locale, "trustora.open_soon.title_accent", "economia digitală.");
-  const badge = useAsyncTranslation(locale, "trustora.open_soon.badge", "Infrastructura se încarcă...");
-  const subtitle = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.subtitle",
-    "Trustora securizează banii și munca prin escrow automatizat, contracte legale și profesioniști verificați.",
-  );
-  const subtitleHighlight = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.subtitle_highlight",
-    "Early Access registration începe în curând.",
-  );
-  const support = useAsyncTranslation(locale, "trustora.open_soon.support", "Contact suport");
-  const languageLabel = useAsyncTranslation(locale, "trustora.open_soon.language_label", "Limba");
-  const themeLabel = useAsyncTranslation(locale, "trustora.open_soon.theme_label", "Temă");
-  const themeLight = useAsyncTranslation(locale, "trustora.open_soon.theme_light", "Lumină");
-  const themeDark = useAsyncTranslation(locale, "trustora.open_soon.theme_dark", "Întuneric");
-  const formNameLabel = useAsyncTranslation(locale, "trustora.open_soon.form.full_name_label", "Nume Complet");
-  const formNamePlaceholder = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.full_name_placeholder",
-    "Ex: Andrei Popa",
-  );
-  const formRoleLabel = useAsyncTranslation(locale, "trustora.open_soon.form.role_label", "Rol");
-  const formRolePlaceholder = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.role_placeholder",
-    "Selectează...",
-  );
-  const formRoleClient = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.role_client",
-    "Client (Angajez)",
-  );
-  const formRoleProvider = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.role_provider",
-    "Prestator (Lucrez)",
-  );
-  const formEmailLabel = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.email_label",
-    "Adresă de Email",
-  );
-  const formEmailPlaceholder = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.email_placeholder",
-    "andrei@companie.ro",
-  );
-  const formSubmit = useAsyncTranslation(locale, "trustora.open_soon.form.submit", "Mă înscriu");
-  const formTermsPrefix = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.terms_prefix",
-    "Prin înscriere, accepți",
-  );
-  const formTermsLink = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.form.terms_link",
-    "Termenii și Condițiile",
-  );
-  const formSuccess = useAsyncTranslation(locale, "trustora.open_soon.form.success", "Success");
+  const title = t("trustora.open_soon.title");
+  const titleAccent = t("trustora.open_soon.title_accent");
+  const badge = t("trustora.open_soon.badge");
+  const subtitle = t("trustora.open_soon.subtitle");
+  const subtitleHighlight = t("trustora.open_soon.subtitle_highlight");
+  const support = t("trustora.open_soon.support");
+  const languageLabel = t("trustora.open_soon.language_label");
+  const themeLabel = t("trustora.open_soon.theme_label");
+  const themeLight = t("trustora.open_soon.theme_light");
+  const themeDark = t("trustora.open_soon.theme_dark");
+  const formNameLabel = t("trustora.open_soon.form.full_name_label");
+  const formNamePlaceholder = t("trustora.open_soon.form.full_name_placeholder");
+  const formRoleLabel = t("trustora.open_soon.form.role_label");
+  const formRolePlaceholder = t("trustora.open_soon.form.role_placeholder");
+  const formRoleClient = t("trustora.open_soon.form.role_client");
+  const formRoleProvider = t("trustora.open_soon.form.role_provider");
+  const formEmailLabel = t("trustora.open_soon.form.email_label");
+  const formEmailPlaceholder = t("trustora.open_soon.form.email_placeholder");
+  const formSubmit = t("trustora.open_soon.form.submit");
+  const formTermsPrefix = t("trustora.open_soon.form.terms_prefix");
+  const formTermsLink = t("trustora.open_soon.form.terms_link");
+  const formSuccess = t("trustora.open_soon.form.success");
 
-  const formTermsSuffix = useAsyncTranslation(locale, "trustora.open_soon.form.terms_suffix", ".");
-  const escrowTitle = useAsyncTranslation(locale, "trustora.open_soon.escrow_title", "Escrow Vault");
-  const escrowTotal = useAsyncTranslation(locale, "trustora.open_soon.escrow_total", "Total securizat");
-  const escrowStatus = useAsyncTranslation(locale, "trustora.open_soon.escrow_status", "FONDURI_BLOCATE");
-  const contractTitle = useAsyncTranslation(locale, "trustora.open_soon.contract_title", "Logică smart contract");
-  const contractWaiting = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.contract_waiting",
-    "// Așteptăm confirmarea livrării...",
-  );
-  const trustIdentity = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.trust_identity",
-    "Identitate verificată",
-  );
-  const trustPayment = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.trust_payment",
-    "Plată protejată",
-  );
-  const trustDispute = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.trust_dispute",
-    "Rezolvare dispute",
-  );
-  const featureVerifiedTitle = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.feature_verified_title",
-    "Doar conturi verificate",
-  );
-  const featureVerifiedBody = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.feature_verified_body",
-    "Fără conturi false. Fiecare utilizator trece printr-o verificare riguroasă de identitate.",
-  );
-  const featureEscrowTitle = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.feature_escrow_title",
-    "Escrow protejat",
-  );
-  const featureEscrowBody = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.feature_escrow_body",
-    "Banii sunt blocați la începutul proiectului și eliberați doar la livrare.",
-  );
-  const featureContractsTitle = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.feature_contracts_title",
-    "Contracte legale",
-  );
-  const featureContractsBody = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.feature_contracts_body",
-    "Nu doar un chat. Fiecare proiect generează un contract legal opozabil.",
-  );
-  const footerCopy = useAsyncTranslation(
-    locale,
-    "trustora.open_soon.footer_copy",
-    "© 2026 Trustora Systems. Infrastructură de încredere digitală.",
-  );
-  const fileLabel = useAsyncTranslation(locale, "trustora.open_soon.file_label", "trustora_core_v1.0.tsx");
+  const formTermsSuffix = t("trustora.open_soon.form.terms_suffix");
+  const escrowTitle = t("trustora.open_soon.escrow_title");
+  const escrowTotal = t("trustora.open_soon.escrow_total");
+  const escrowStatus = t("trustora.open_soon.escrow_status");
+  const contractTitle = t("trustora.open_soon.contract_title");
+  const contractWaiting = t("trustora.open_soon.contract_waiting");
+  const trustIdentity = t("trustora.open_soon.trust_identity");
+  const trustPayment = t("trustora.open_soon.trust_payment");
+  const trustDispute = t("trustora.open_soon.trust_dispute");
+  const featureVerifiedTitle = t("trustora.open_soon.feature_verified_title");
+  const featureVerifiedBody = t("trustora.open_soon.feature_verified_body");
+  const featureEscrowTitle = t("trustora.open_soon.feature_escrow_title");
+  const featureEscrowBody = t("trustora.open_soon.feature_escrow_body");
+  const featureContractsTitle = t("trustora.open_soon.feature_contracts_title");
+  const featureContractsBody = t("trustora.open_soon.feature_contracts_body");
+  const footerCopy = t("trustora.open_soon.footer_copy");
+  const fileLabel = t("trustora.open_soon.file_label");
 
   useEffect(() => {
     setMounted(true);
@@ -211,7 +128,7 @@ export default function OpenSoonPage() {
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
             <span className="px-2 py-1 text-[10px] uppercase tracking-wider">{languageLabel}</span>
-            <LocaleSwitcher currentLocale={locale} className="h-8 w-8 px-2" />
+            <LocaleSwitcher className="h-8 w-8 px-2" />
           </div>
           <Button
             variant="ghost"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +19,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useAdminOrders } from '@/hooks/use-api';
-import { useLocale } from '@/hooks/use-locale';
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
+import { useLocale, useTranslations } from 'next-intl';
 
 const STATUS_STYLES: Record<string, string> = {
   COMPLETED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
@@ -41,25 +40,26 @@ const PAYMENT_STATUS_STYLES: Record<string, string> = {
 
 export default function AdminOrdersPage() {
     const locale = useLocale();
+  const t = useTranslations();
   const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
-  const manageTitle = useAsyncTranslation(locale, 'admin.orders.manage_title');
-  const manageSubtitle = useAsyncTranslation(locale, 'admin.orders.manage_subtitle');
-  const searchPlaceholder = useAsyncTranslation(locale, 'admin.orders.search_placeholder');
-  const statusFilterPlaceholder = useAsyncTranslation(locale, 'admin.orders.status_filter_placeholder');
-  const statusAll = useAsyncTranslation(locale, 'admin.orders.statuses.all');
-  const statusPending = useAsyncTranslation(locale, 'admin.orders.statuses.pending');
-  const statusInProgress = useAsyncTranslation(locale, 'admin.orders.statuses.in_progress');
-  const statusCompleted = useAsyncTranslation(locale, 'admin.orders.statuses.completed');
-  const statusCancelled = useAsyncTranslation(locale, 'admin.orders.statuses.cancelled');
-  const statusDisputed = useAsyncTranslation(locale, 'admin.orders.statuses.disputed');
-  const listTitle = useAsyncTranslation(locale, 'admin.orders.list_title');
-  const listDescriptionTemplate = useAsyncTranslation(locale, 'admin.orders.list_description');
-  const clientLabel = useAsyncTranslation(locale, 'admin.orders.client_label');
-  const providerLabel = useAsyncTranslation(locale, 'admin.orders.provider_label');
-  const duePrefix = useAsyncTranslation(locale, 'admin.orders.due_prefix');
-  const noOrdersTitle = useAsyncTranslation(locale, 'admin.orders.no_orders_title');
-  const noOrdersDescription = useAsyncTranslation(locale, 'admin.orders.no_orders_description');
+  const manageTitle = t('admin.orders.manage_title');
+  const manageSubtitle = t('admin.orders.manage_subtitle');
+  const searchPlaceholder = t('admin.orders.search_placeholder');
+  const statusFilterPlaceholder = t('admin.orders.status_filter_placeholder');
+  const statusAll = t('admin.orders.statuses.all');
+  const statusPending = t('admin.orders.statuses.pending');
+  const statusInProgress = t('admin.orders.statuses.in_progress');
+  const statusCompleted = t('admin.orders.statuses.completed');
+  const statusCancelled = t('admin.orders.statuses.cancelled');
+  const statusDisputed = t('admin.orders.statuses.disputed');
+  const listTitle = t('admin.orders.list_title');
+  const listDescriptionTemplate = t('admin.orders.list_description');
+  const clientLabel = t('admin.orders.client_label');
+  const providerLabel = t('admin.orders.provider_label');
+  const duePrefix = t('admin.orders.due_prefix');
+  const noOrdersTitle = t('admin.orders.no_orders_title');
+  const noOrdersDescription = t('admin.orders.no_orders_description');
 
   const statusLabels = {
     COMPLETED: statusCompleted,
@@ -67,15 +67,15 @@ export default function AdminOrdersPage() {
     PENDING: statusPending,
     CANCELLED: statusCancelled,
     DISPUTED: statusDisputed,
-    ACCEPTED: useAsyncTranslation(locale, 'admin.orders.statuses.accepted'),
-    DELIVERED: useAsyncTranslation(locale, 'admin.orders.statuses.delivered'),
+    ACCEPTED: t('admin.orders.statuses.accepted'),
+    DELIVERED: t('admin.orders.statuses.delivered'),
   } as const;
 
   const paymentStatusLabels = {
-    PAID: useAsyncTranslation(locale, 'admin.orders.payment_statuses.paid'),
-    PENDING: useAsyncTranslation(locale, 'admin.orders.payment_statuses.pending'),
-    FAILED: useAsyncTranslation(locale, 'admin.orders.payment_statuses.failed'),
-    REFUNDED: useAsyncTranslation(locale, 'admin.orders.payment_statuses.refunded'),
+    PAID: t('admin.orders.payment_statuses.paid'),
+    PENDING: t('admin.orders.payment_statuses.pending'),
+    FAILED: t('admin.orders.payment_statuses.failed'),
+    REFUNDED: t('admin.orders.payment_statuses.refunded'),
   } as const;
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -114,7 +114,7 @@ export default function AdminOrdersPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.16),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href={`/${locale}/admin`}>
+            <Link href="/admin">
               <Button
                 variant="outline"
                 size="icon"
@@ -258,7 +258,7 @@ export default function AdminOrdersPage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <Link href={`/${locale}/admin/orders/${order.id}`}>
+                    <Link href={`/admin/orders/${order.id}`}>
                       <Button
                         variant="ghost"
                         size="icon"

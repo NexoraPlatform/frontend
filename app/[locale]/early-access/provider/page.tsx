@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from 'next-intl';
 import { Check, CheckCircle, Mail, UserRound, Globe2, Award, Clock, ChevronsUpDown } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -14,13 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { LocalizedLink } from "@/components/LocalizedLink";
+import { Link } from '@/lib/navigation';
 import { TermsContent } from "@/components/terms-content";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { apiClient } from "@/lib/api";
-import { usePathname } from "next/navigation";
-import { useAsyncTranslation } from "@/hooks/use-async-translation";
-import { Locale } from "@/types/locale";
 
 const COUNTRY_CODES = [
     "AF", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
@@ -48,216 +46,60 @@ const getFlagEmoji = (code: string) =>
         .join("");
 
 export default function EarlyAccessProviderPage() {
-    const pathname = usePathname();
-    const locale = (pathname.split("/")[1] as Locale) || "ro";
-    const badgeText = useAsyncTranslation(locale, "trustora.early_access.provider.badge", "Formular prestator");
-    const titleText = useAsyncTranslation(locale, "trustora.early_access.provider.title", "Înscriere");
-    const titleHighlightText = useAsyncTranslation(locale, "trustora.early_access.provider.title_highlight", "prestator");
-    const titleSuffixText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.title_suffix",
-        "pentru early access",
-    );
-    const subtitleText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.subtitle",
-        "Îți colectăm experiența și preferințele pentru a-ți potrivi rapid proiecte cu clienți serioși.",
-    );
-    const benefitOne = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.benefits.verification",
-        "Profil publicat doar după verificare manuală",
-    );
-    const benefitTwo = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.benefits.projects",
-        "Acces rapid la proiecte cu bugete clare",
-    );
-    const benefitThree = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.benefits.escrow",
-        "Escrow opțional pentru plăți sigure",
-    );
-    const backLinkText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.back_link",
-        "← Înapoi la alegerea tipului de cont",
-    );
-    const formTitle = useAsyncTranslation(locale, "trustora.early_access.provider.form_title", "Completează profilul");
-    const formDescription = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.form_description",
-        "Datele tale ne ajută să te potrivim cu proiecte relevante.",
-    );
-    const successText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.success",
-        "Mulțumim! Cererea ta a fost trimisă. Revenim cu detalii pe email.",
-    );
-    const skillErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.error_skill",
-        "Selectează skill-ul principal.",
-    );
-    const countryErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.error_country",
-        "Selectează țara.",
-    );
-    const emailExistsErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.error_email_exists",
-        "Adresa de email este deja folosită pentru un cont prestator.",
-    );
-    const genericErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_generic",
-        "A apărut o eroare. Încearcă din nou.",
-    );
-    const termsAcknowledgementText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.terms_acknowledgement",
-        "Am luat la cunoștință și sunt de acord cu",
-    );
-    const termsAndText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.terms_and",
-        "și",
-    );
-    const termsLinkText = useAsyncTranslation(locale, "common.terms_conditions", "Termenii și Condițiile");
-    const privacyLinkText = useAsyncTranslation(locale, "common.privacy_policy", "Politica de Confidențialitate");
-    const submitErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_submit",
-        "Nu am putut trimite formularul.",
-    );
-    const emailLabel = useAsyncTranslation(locale, "trustora.early_access.provider.fields.email_label", "Email");
-    const emailPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.email_placeholder",
-        "freelancer@example.com",
-    );
-    const fullNameLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.full_name_label",
-        "Nume complet",
-    );
-    const fullNamePlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.full_name_placeholder",
-        "Ana Popescu",
-    );
-    const countryLabel = useAsyncTranslation(locale, "trustora.early_access.provider.fields.country_label", "Țara");
-    const countryPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.country_placeholder",
-        "România",
-    );
-    const countrySearchPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.country_search_placeholder",
-        "Caută țara",
-    );
-    const countryEmptyText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.country_empty",
-        "Nu am găsit nicio țară.",
-    );
-    const skillLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.skill_label",
-        "Skill principal",
-    );
-    const skillPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.skill_placeholder",
-        "Alege skill",
-    );
-    const yearsLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.years_label",
-        "Ani experiență",
-    );
-    const yearsPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.fields.years_placeholder",
-        "5",
-    );
-    const hasClientsLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.checkboxes.has_clients",
-        "Am deja clienți activi.",
-    );
-    const unpaidWorkLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.checkboxes.unpaid_work",
-        "Am făcut muncă neplătită recent.",
-    );
-    const wantsEscrowLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.checkboxes.wants_escrow",
-        "Doresc să folosesc escrow pentru fiecare proiect.",
-    );
-    const profileNote = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.profile_note",
-        "Creștem scorul profilului dacă ai clienți activi și experiență solidă.",
-    );
-    const submitText = useAsyncTranslation(locale, "trustora.early_access.common.submit", "Trimite aplicația");
-    const submittingText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.submitting",
-        "Trimitem aplicația...",
-    );
-    const termsRequiredErrorText = useAsyncTranslation(
-        locale,
-        "trustora.early_access.common.error_terms_required",
-        "Trebuie să accepți termenii și condițiile.",
-    );
-    const skillDesign = useAsyncTranslation(locale, "trustora.early_access.provider.skills.design", "Design");
-    const skillFrontend = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.frontend",
-        "Frontend development",
-    );
-    const skillBackend = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.backend",
-        "Backend development",
-    );
-    const skillFullstack = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.fullstack",
-        "Full-stack",
-    );
-    const skillProduct = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.product",
-        "Product management",
-    );
-    const skillQa = useAsyncTranslation(locale, "trustora.early_access.provider.skills.qa", "QA & testing");
-    const skillDevops = useAsyncTranslation(locale, "trustora.early_access.provider.skills.devops", "DevOps");
-    const skillMobile = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.mobile",
-        "Mobile development",
-    );
-    const skillMarketing = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.marketing",
-        "Marketing",
-    );
-    const skillOther = useAsyncTranslation(locale, "trustora.early_access.provider.skills.other", "Other");
-    const otherSkillLabel = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.other_label",
-        "Specify other skill",
-    );
-    const otherSkillPlaceholder = useAsyncTranslation(
-        locale,
-        "trustora.early_access.provider.skills.other_placeholder",
-        "Ex: Digital Marketing",
-    );
+    const locale = useLocale();
+    const t = useTranslations();
+    const badgeText = t("trustora.early_access.provider.badge");
+    const titleText = t("trustora.early_access.provider.title");
+    const titleHighlightText = t("trustora.early_access.provider.title_highlight");
+    const titleSuffixText = t("trustora.early_access.common.title_suffix");
+    const subtitleText = t("trustora.early_access.provider.subtitle");
+    const benefitOne = t("trustora.early_access.provider.benefits.verification");
+    const benefitTwo = t("trustora.early_access.provider.benefits.projects");
+    const benefitThree = t("trustora.early_access.provider.benefits.escrow");
+    const backLinkText = t("trustora.early_access.common.back_link");
+    const formTitle = t("trustora.early_access.provider.form_title");
+    const formDescription = t("trustora.early_access.provider.form_description");
+    const successText = t("trustora.early_access.provider.success");
+    const skillErrorText = t("trustora.early_access.provider.error_skill");
+    const countryErrorText = t("trustora.early_access.provider.error_country");
+    const emailExistsErrorText = t("trustora.early_access.provider.error_email_exists");
+    const genericErrorText = t("trustora.early_access.common.error_generic");
+    const termsAcknowledgementText = t("trustora.early_access.common.terms_acknowledgement");
+    const termsAndText = t("trustora.early_access.common.terms_and");
+    const termsLinkText = t("common.terms_conditions");
+    const privacyLinkText = t("common.privacy_policy");
+    const submitErrorText = t("trustora.early_access.common.error_submit");
+    const emailLabel = t("trustora.early_access.provider.fields.email_label");
+    const emailPlaceholder = t("trustora.early_access.provider.fields.email_placeholder");
+    const fullNameLabel = t("trustora.early_access.provider.fields.full_name_label");
+    const fullNamePlaceholder = t("trustora.early_access.provider.fields.full_name_placeholder");
+    const countryLabel = t("trustora.early_access.provider.fields.country_label");
+    const countryPlaceholder = t("trustora.early_access.provider.fields.country_placeholder");
+    const countrySearchPlaceholder = t("trustora.early_access.provider.fields.country_search_placeholder");
+    const countryEmptyText = t("trustora.early_access.provider.fields.country_empty");
+    const skillLabel = t("trustora.early_access.provider.fields.skill_label");
+    const skillPlaceholder = t("trustora.early_access.provider.fields.skill_placeholder");
+    const yearsLabel = t("trustora.early_access.provider.fields.years_label");
+    const yearsPlaceholder = t("trustora.early_access.provider.fields.years_placeholder");
+    const hasClientsLabel = t("trustora.early_access.provider.checkboxes.has_clients");
+    const unpaidWorkLabel = t("trustora.early_access.provider.checkboxes.unpaid_work");
+    const wantsEscrowLabel = t("trustora.early_access.provider.checkboxes.wants_escrow");
+    const profileNote = t("trustora.early_access.provider.profile_note");
+    const submitText = t("trustora.early_access.common.submit");
+    const submittingText = t("trustora.early_access.common.submitting");
+    const termsRequiredErrorText = t("trustora.early_access.common.error_terms_required");
+    const skillDesign = t("trustora.early_access.provider.skills.design");
+    const skillFrontend = t("trustora.early_access.provider.skills.frontend");
+    const skillBackend = t("trustora.early_access.provider.skills.backend");
+    const skillFullstack = t("trustora.early_access.provider.skills.fullstack");
+    const skillProduct = t("trustora.early_access.provider.skills.product");
+    const skillQa = t("trustora.early_access.provider.skills.qa");
+    const skillDevops = t("trustora.early_access.provider.skills.devops");
+    const skillMobile = t("trustora.early_access.provider.skills.mobile");
+    const skillMarketing = t("trustora.early_access.provider.skills.marketing");
+    const skillOther = t("trustora.early_access.provider.skills.other");
+    const otherSkillLabel = t("trustora.early_access.provider.skills.other_label");
+    const otherSkillPlaceholder = t("trustora.early_access.provider.skills.other_placeholder");
 
     const primarySkillOptions = [
         skillDesign,
@@ -400,9 +242,9 @@ export default function EarlyAccessProviderPage() {
                                 ))}
                             </div>
                             <div>
-                                <LocalizedLink href="/early-access" className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300">
+                                <Link href="/early-access" className="text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-300">
                                     {backLinkText}
-                                </LocalizedLink>
+                                </Link>
                             </div>
                         </div>
 
@@ -639,19 +481,19 @@ export default function EarlyAccessProviderPage() {
                                         />
                                         <Label htmlFor="terms" className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                                             {termsAcknowledgementText}{" "}
-                                            <LocalizedLink
+                                            <Link
                                                 href="/terms"
                                                 className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                                             >
                                                 {termsLinkText}
-                                            </LocalizedLink>{" "}
+                                            </Link>{" "}
                                             {termsAndText}{" "}
-                                            <LocalizedLink
+                                            <Link
                                                 href="/privacy"
                                                 className="font-medium text-emerald-700 hover:underline dark:text-emerald-300"
                                             >
                                                 {privacyLinkText}
-                                            </LocalizedLink>
+                                            </Link>
                                             .
                                         </Label>
                                     </div>

@@ -5,19 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import Image from "next/image";
-import { t } from '@/lib/i18n';
-import {Locale} from "@/types/locale";
-import { useAsyncTranslation } from '@/hooks/use-async-translation';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export function TestimonialsSection() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-    const pathname = usePathname();
-    const locale = pathname.split('/')[1] as Locale || 'ro';
+  const t = useTranslations();
 
-    const badgeText    = useAsyncTranslation(locale, "homepage.testimonials.badge");
-    const titleText    = useAsyncTranslation(locale, "homepage.testimonials.title");
-    const subtitleText = useAsyncTranslation(locale, "homepage.testimonials.subtitle");
+  const badgeText = t("homepage.testimonials.badge");
+  const titleText = t("homepage.testimonials.title");
+  const subtitleText = t("homepage.testimonials.subtitle");
 
   const testimonials = [
     {

@@ -21,6 +21,7 @@ import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-langua
 import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
 import {Footer} from "@/components/footer";
 import OneSignalInit from "@/components/OneSignalInit";
+import {NextIntlClientProvider} from 'next-intl';
 
 const inter = Inter({
     subsets: ["latin"],
@@ -278,7 +279,7 @@ export default function RootLayout({
                 __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
-
+        <NextIntlClientProvider>
         <AuthProvider>
             <OneSignalInit />
             <NotificationProvider>
@@ -300,6 +301,7 @@ export default function RootLayout({
                 </ChatProvider>
             </NotificationProvider>
         </AuthProvider>
+        </NextIntlClientProvider>
         </body>
         </html>
     )
