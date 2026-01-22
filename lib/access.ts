@@ -45,7 +45,12 @@ export type Requirement = {
 export function getRoleSlugs(user: AccessUser | null): string[] {
     if (!user?.roles?.length) return [];
     return user.roles
-        .map(r => (typeof r?.slug === 'string' ? r.slug.toLowerCase() : ''))
+        .map(r => {
+            if (typeof r === 'string') {
+                return r.toLowerCase();
+            }
+            return typeof r?.slug === 'string' ? r.slug.toLowerCase() : '';
+        })
         .filter(Boolean);
 }
 

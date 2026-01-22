@@ -54,6 +54,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
 import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
+import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -480,8 +481,9 @@ export default function NewProjectPage() {
         }
 
         if (user) {
-            const hasClientRole = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client');
-            if (user?.roles?.length && !hasClientRole) {
+            const hasClientRole = hasRole(user, ['client']) || user?.role?.toLowerCase?.() === 'client';
+            const hasRoleData = (user?.roles?.length ?? 0) > 0 || Boolean(user?.role);
+            if (hasRoleData && !hasClientRole) {
                 router.push('/dashboard');
             }
         }
