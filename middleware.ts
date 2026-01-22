@@ -141,7 +141,8 @@ export default auth(async (req) => {
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
-    pathname.includes('.') ||
+      pathname.includes('.') ||
+      pathname.includes('manifest.json') ||
     pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
@@ -272,6 +273,6 @@ export default auth(async (req) => {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|non-critical\\.css|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|non-critical\\.css|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)).*)',
   ],
 };

@@ -333,6 +333,7 @@ export default function DashboardClient() {
   };
 
   const overviewStats = getOverviewStats();
+  {console.log(projects)}
 
   return (
       <div className="min-h-screen bg-white dark:bg-[#070C14]">
@@ -392,24 +393,23 @@ export default function DashboardClient() {
                   <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
                   <span>Prezentare</span>
               </TabsTrigger>
-                <TabsTrigger
-                    value={
-                      user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')
-                          ? 'projects'
-                          : ''
-                    }
-                    className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
-                >
-                  {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') ? (
-                      <Link href="/client/project-requests">Proiecte</Link>
-                  ) : (
-                      <>
-                          <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                          <span>Proiecte</span>
-                      </>
-                  )}
+                {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') ? (
+                    <Link href="/client/project-requests">Proiecte</Link>
+                ) : (
+                    <TabsTrigger
+                        value="projects"
+                        className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                    >
 
-                </TabsTrigger>
+
+                      <>
+                        <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                        <span>Proiecte</span>
+                      </>
+
+                    </TabsTrigger>
+                )}
+
                 <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Target className="hidden sm:block w-4 h-4 pe-1" />
                 <span>Servicii</span>
