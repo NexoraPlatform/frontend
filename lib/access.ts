@@ -26,7 +26,8 @@ export type AccessUser = {
     stripe_account_id?: string;
 
     // RBAC fields
-    roles?: AccessRole[];        // <-- array of roles with slugs
+    role?: string;             // optional single role slug
+    roles?: Array<AccessRole | string>;        // <-- array of roles with slugs
     permissions?: string[];      // optional extra permissions (strings)
     is_superuser?: boolean;       // optional boolean flag
 };
@@ -43,17 +44,28 @@ export type Requirement = {
 };
 
 export function getRoleSlugs(user: AccessUser | null): string[] {
-    if (!user?.roles?.length) return [];
-    return user.roles
-        .map(r => (typeof r?.slug === 'string' ? r.slug.toLowerCase() : ''))
-        .filter(Boolean);
+    const rolesFromArray = user?.roles?.length
+        ? user.roles
+            .map((role) => {
+                if (typeof role === 'string') return role.toLowerCase();
+                if (typeof role?.slug === 'string') return role.slug.toLowerCase();
+                return '';
+            })
+            .filter(Boolean)
+        : [];
+    const roleFromString =
+        typeof user?.role === 'string' ? [user.role.toLowerCase()] : [];
+    return [...new Set([...rolesFromArray, ...roleFromString])];
 }
 
 export function getPermissionSlugs(user: AccessUser | null): string[] {
     const fromUser = (user?.permissions ?? []).map(p => p.toLowerCase());
 
     const fromRoles =
-        user?.roles?.flatMap(r => r.permissions?.map(p => p.slug.toLowerCase()) ?? []) ?? [];
+        user?.roles?.flatMap((role) => {
+            if (typeof role === 'string') return [];
+            return role.permissions?.map(p => p.slug.toLowerCase()) ?? [];
+        }) ?? [];
 
     // de-dupe
     return Array.from(new Set([...fromUser, ...fromRoles]));

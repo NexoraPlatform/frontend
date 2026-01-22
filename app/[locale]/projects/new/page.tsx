@@ -53,6 +53,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
 import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
+import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -168,7 +169,7 @@ export default function NewProjectPage() {
         setDayjsLocale(locale);
     }, [locale]);
 
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -469,15 +470,23 @@ export default function NewProjectPage() {
     }, []);
 
     useEffect(() => {
+        if (userLoading) {
+            return;
+        }
         if (!loading && !user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+        if (!user) {
+            return;
+        }
+
+        const hasRoleData = (user?.roles?.length ?? 0) > 0 || Boolean(user?.role);
+        const hasClientRole = hasRole(user, ['client']) || user?.role?.toLowerCase?.() === 'client';
+        if (hasRoleData && !hasClientRole) {
             router.push('/dashboard');
         }
-
-
-    }, [user, loading, router]);
+    }, [user, loading, router, userLoading]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
         if (formData.recommendedProviders.length > 0) {
