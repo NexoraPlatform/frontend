@@ -25,6 +25,8 @@ declare module "next-auth" {
       roles?: AccessRole[];
       permissions?: string[];
       is_superuser?: boolean;
+      github_token?: string;
+      github_nickname?: string;
     } & DefaultSession["user"];
   }
 
@@ -45,6 +47,8 @@ declare module "next-auth" {
     permissions?: string[];
     is_superuser?: boolean;
     access_token?: string; // Sometimes returned from backend login
+    github_token?: string;
+    github_nickname?: string;
   }
 }
 
@@ -65,5 +69,8 @@ declare module "next-auth/jwt" {
     location?: string;
     avatar?: string;
     bio?: string;
+    github_token?: string;
+    github_nickname?: string;
+    role?: string;
   }
 }
