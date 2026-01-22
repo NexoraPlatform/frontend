@@ -40,7 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     const data = await res.json();
                     // Expecting data in format: { access_token: string, user: UserData }
-
+                    console.log(data)
                     if (data?.access_token && data?.user) {
                         // Return object that matches User interface
                         return {
@@ -76,6 +76,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.location = user.location;
                 token.avatar = user.avatar;
                 token.bio = user.bio;
+                token.github_token = user.github_token;
+                token.github_nickname = user.github_nickname;
             }
             return token;
         },
@@ -96,6 +98,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.location = token.location;
                 session.user.avatar = token.avatar;
                 session.user.bio = token.bio;
+                session.user.github_token = token.github_token;
+                session.user.github_nickname = token.github_nickname;
             }
             return session;
         },
