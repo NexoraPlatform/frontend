@@ -29,6 +29,7 @@ interface AuthContextType {
   user: User | null;
   me: () => void;
   loading: boolean;
+  userLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
@@ -42,6 +43,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   const loading = status === "loading";
+  const userLoading = loading || (status === "authenticated" && !user);
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -129,6 +131,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     loading,
+    userLoading,
     login,
     me,
     register,

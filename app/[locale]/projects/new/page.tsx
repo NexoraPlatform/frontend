@@ -169,7 +169,7 @@ export default function NewProjectPage() {
         setDayjsLocale(locale);
     }, [locale]);
 
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -470,6 +470,9 @@ export default function NewProjectPage() {
     }, []);
 
     useEffect(() => {
+        if (userLoading) {
+            return;
+        }
         if (!loading && !user) {
             router.push('/auth/signin');
             return;
@@ -483,7 +486,7 @@ export default function NewProjectPage() {
         if (hasRoleData && !hasClientRole) {
             router.push('/dashboard');
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, userLoading]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
         if (formData.recommendedProviders.length > 0) {
