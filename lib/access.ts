@@ -27,7 +27,7 @@ export type AccessUser = {
 
     // RBAC fields
     role?: string;             // optional single role slug
-    roles?: AccessRole[];        // <-- array of roles with slugs
+    roles?: Array<AccessRole | string>;        // <-- array of roles with slugs
     permissions?: string[];      // optional extra permissions (strings)
     is_superuser?: boolean;       // optional boolean flag
 };
@@ -46,7 +46,11 @@ export type Requirement = {
 export function getRoleSlugs(user: AccessUser | null): string[] {
     const rolesFromArray = user?.roles?.length
         ? user.roles
-            .map(r => (typeof r?.slug === 'string' ? r.slug.toLowerCase() : ''))
+            .map((role) => {
+                if (typeof role === 'string') return role.toLowerCase();
+                if (typeof role?.slug === 'string') return role.slug.toLowerCase();
+                return '';
+            })
             .filter(Boolean)
         : [];
     const roleFromString =
@@ -58,7 +62,10 @@ export function getPermissionSlugs(user: AccessUser | null): string[] {
     const fromUser = (user?.permissions ?? []).map(p => p.toLowerCase());
 
     const fromRoles =
-        user?.roles?.flatMap(r => r.permissions?.map(p => p.slug.toLowerCase()) ?? []) ?? [];
+        user?.roles?.flatMap((role) => {
+            if (typeof role === 'string') return [];
+            return role.permissions?.map(p => p.slug.toLowerCase()) ?? [];
+        }) ?? [];
 
     // de-dupe
     return Array.from(new Set([...fromUser, ...fromRoles]));
