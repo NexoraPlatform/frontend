@@ -10,6 +10,17 @@ export default function OneSignalInit() {
     // Folosim un ref global pentru a preveni re-inițializarea strictă
     const oneSignalInitialized = useRef(false);
     const oneSignalInitPromise = useRef<Promise<void> | null>(null);
+    const linkUserToOneSignal = async (userId: string) => {
+        const legacyLogin = (OneSignal as any).setExternalUserId;
+        if (typeof legacyLogin === 'function') {
+            await legacyLogin(userId);
+            return;
+        }
+
+        if (typeof OneSignal.login === 'function') {
+            await OneSignal.login(userId);
+        }
+    };
 
     useEffect(() => {
         const initOneSignal = async () => {
@@ -19,11 +30,11 @@ export default function OneSignalInit() {
             }
 
             // 1. Prevenim apelarea multiplă
-            if (oneSignalInitialized.current) {
+                if (oneSignalInitialized.current) {
                 // Dacă e deja inițializat, doar actualizăm userul (dacă e cazul)
                 if (user) {
                     try {
-                        await OneSignal.login(user.id.toString());
+                        await linkUserToOneSignal(user.id.toString());
                     } catch (error) {
                         console.error("OneSignal login error:", error);
                     }
@@ -85,7 +96,7 @@ export default function OneSignalInit() {
                 // 4. Login user (dacă există deja la încărcare)
                 if (user) {
                     try {
-                        await OneSignal.login(user.id.toString());
+                        await linkUserToOneSignal(user.id.toString());
                     } catch (error) {
                         console.error("OneSignal login error:", error);
                     }
