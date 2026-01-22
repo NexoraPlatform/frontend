@@ -345,7 +345,7 @@ export default function NewProjectPage() {
             searchParams.get('github') ??
             searchParams.get('github_status') ??
             searchParams.get('github_connected');
-        const normalizedValue = rawValue?.toLowerCase();
+        const normalizedValue = rawValue?.toLowerCase() ?? '';
         const shouldRefresh =
             !rawValue ||
             ['success', 'connected', 'true', '1'].includes(normalizedValue);
