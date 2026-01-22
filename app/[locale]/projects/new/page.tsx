@@ -1,7 +1,8 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback} from 'react';
+import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -168,7 +169,9 @@ export default function NewProjectPage() {
         setDayjsLocale(locale);
     }, [locale]);
 
-    const { user, loading } = useAuth();
+    const { user, loading, me } = useAuth();
+    const searchParams = useSearchParams();
+    const hasTriggeredGithubRefetch = useRef(false);
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -322,6 +325,8 @@ export default function NewProjectPage() {
     }, [isLongProject, providerMilestones]);
 
     const router = useRouter();
+    const hasGithubToken = Boolean(user?.github_token);
+    const isGithubConnected = hasGithubToken || Boolean(user?.github_nickname);
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
 
@@ -478,6 +483,35 @@ export default function NewProjectPage() {
 
 
     }, [user, loading, router]);
+
+    useEffect(() => {
+        if (hasTriggeredGithubRefetch.current) {
+            return;
+        }
+
+        const githubStatus = searchParams?.get('github');
+        const githubConnected = searchParams?.get('github_connected');
+        const githubConnectedAlt = searchParams?.get('githubConnected');
+
+        const isGithubConnectSuccess =
+            githubStatus === 'success' ||
+            githubStatus === 'connected' ||
+            githubStatus === 'true' ||
+            githubConnected === 'success' ||
+            githubConnected === '1' ||
+            githubConnected === 'true' ||
+            githubConnectedAlt === 'success' ||
+            githubConnectedAlt === '1' ||
+            githubConnectedAlt === 'true';
+
+        if (!isGithubConnectSuccess) {
+            return;
+        }
+
+        hasTriggeredGithubRefetch.current = true;
+
+        void me();
+    }, [me, searchParams]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
         if (formData.recommendedProviders.length > 0) {
@@ -1105,8 +1139,8 @@ export default function NewProjectPage() {
                                             </div>
 
                                             <div>
-                                                <GithubConnect isConnected={false} />
-                                                <CreateRepoAction projectId={String(1)} hasGithubToken={true} />
+                                                <GithubConnect isConnected={isGithubConnected} />
+                                                <CreateRepoAction projectId={String(1)} hasGithubToken={hasGithubToken} />
                                             </div>
                                         </CardContent>
                                     </Card>
