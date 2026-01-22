@@ -128,6 +128,11 @@ function isAdminUser(user: AccessUser | null) {
 
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
+  const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
+
+  if (isServiceWorkerScript) {
+    return NextResponse.next();
+  }
   const intlResponse = intlMiddleware(req);
 
   if (
