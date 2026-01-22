@@ -476,12 +476,15 @@ export default function NewProjectPage() {
     useEffect(() => {
         if (!loading && !user) {
             router.push('/auth/signin');
-        }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
-            router.push('/dashboard');
+            return;
         }
 
-
+        if (user) {
+            const hasClientRole = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client');
+            if (user?.roles?.length && !hasClientRole) {
+                router.push('/dashboard');
+            }
+        }
     }, [user, loading, router]);
 
     useEffect(() => {
