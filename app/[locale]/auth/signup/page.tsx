@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Link } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,7 +37,15 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const t = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register } = useAuth();
+  const callbackUrl = useMemo(() => {
+    const rawCallbackUrl = searchParams.get('callbackUrl');
+    if (rawCallbackUrl && rawCallbackUrl.startsWith('/')) {
+      return rawCallbackUrl;
+    }
+    return '/dashboard';
+  }, [searchParams]);
   const termsHref = '/terms';
   const privacyHref = '/privacy';
   const badgeText = t('auth.signup.badge');
@@ -104,7 +113,7 @@ export default function SignUpPage() {
         password: formData.password,
         role: formData.role,
       });
-      router.push('/dashboard');
+      router.push(callbackUrl);
     } catch (error: any) {
       setError(error.message || genericErrorText);
     } finally {
