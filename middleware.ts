@@ -120,7 +120,11 @@ function isAdminUser(user: AccessUser | null) {
   if (!user) return false;
   if (user.is_superuser) return true;
   return Array.isArray(user.roles)
-    ? user.roles.some((role) => role.slug?.toLowerCase() === 'admin')
+    ? user.roles.some((role) =>
+        typeof role === 'string'
+          ? role.toLowerCase() === 'admin'
+          : role.slug?.toLowerCase() === 'admin'
+      )
     : false;
 }
 
@@ -128,6 +132,11 @@ function isAdminUser(user: AccessUser | null) {
 
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
+  const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
+
+  if (isServiceWorkerScript) {
+    return NextResponse.next();
+  }
   const intlResponse = intlMiddleware(req);
 
   if (
