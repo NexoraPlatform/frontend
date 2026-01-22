@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function CreateRepoAction({ projectId, hasGithubToken }: { projectId: string, hasGithubToken: boolean }) {
-    const [target, setTarget] = useState<'platform' | 'provider'>('platform');
+    const [target, setTarget] = useState<'platform' | 'provider' | 'client'>('platform');
     const [loading, setLoading] = useState(false);
 
     const handleCreate = async () => {
@@ -52,9 +52,18 @@ export default function CreateRepoAction({ projectId, hasGithubToken }: { projec
                         {!hasGithubToken && <span className="block text-xs text-red-500">Trebuie să conectezi contul de GitHub mai întâi.</span>}
                     </Label>
                 </div>
+
+                {/* Opțiunea 3: Client */}
+                <div className="flex items-center space-x-2 mt-2">
+                    <RadioGroupItem value="client" id="r3" disabled={!hasGithubToken} />
+                    <Label htmlFor="r3" className={!hasGithubToken ? "opacity-50" : ""}>
+                        Repo pe contul clientului
+                        {!hasGithubToken && <span className="block text-xs text-red-500">Trebuie să conectezi contul de GitHub mai întâi.</span>}
+                    </Label>
+                </div>
             </RadioGroup>
 
-            <Button onClick={handleCreate} disabled={loading || (target === 'provider' && !hasGithubToken)}>
+            <Button onClick={handleCreate} disabled={loading || (target !== 'platform' && !hasGithubToken)}>
                 {loading ? "Se creează..." : "Generează Repository"}
             </Button>
         </div>
