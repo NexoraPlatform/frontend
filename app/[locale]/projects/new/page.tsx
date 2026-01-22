@@ -1,8 +1,9 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback} from 'react';
-import { useRouter } from '@/lib/navigation';
+import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
+import { usePathname, useRouter } from '@/lib/navigation';
 import { useLocale } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -169,7 +170,7 @@ export default function NewProjectPage() {
         setDayjsLocale(locale);
     }, [locale]);
 
-    const { user, loading, userLoading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -323,8 +324,45 @@ export default function NewProjectPage() {
     }, [isLongProject, providerMilestones]);
 
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const githubRefreshHandled = useRef(false);
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
+
+    useEffect(() => {
+        if (githubRefreshHandled.current || loading || userLoading || !user) {
+            return;
+        }
+
+        const githubParamKeys = ['github', 'github_status', 'github_connected'];
+        const hasGithubParam = githubParamKeys.some((key) => searchParams.has(key));
+        if (!hasGithubParam) {
+            return;
+        }
+
+        const rawValue =
+            searchParams.get('github') ??
+            searchParams.get('github_status') ??
+            searchParams.get('github_connected');
+        const normalizedValue = rawValue?.toLowerCase() ?? '';
+        const shouldRefresh =
+            !rawValue ||
+            ['success', 'connected', 'true', '1'].includes(normalizedValue);
+
+        if (!shouldRefresh) {
+            return;
+        }
+
+        githubRefreshHandled.current = true;
+        void (async () => {
+            try {
+                await refreshUser();
+            } finally {
+                router.replace(pathname);
+            }
+        })();
+    }, [loading, userLoading, user, refreshUser, router, pathname, searchParams]);
 
     const skillLevels = [
         { value: 'JUNIOR', label: 'Junior', color: 'bg-green-100 text-green-800', icon: '🌱' },
