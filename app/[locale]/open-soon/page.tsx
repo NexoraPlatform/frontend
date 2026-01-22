@@ -41,7 +41,6 @@ export default function OpenSoonPage() {
   const subtitle = t("trustora.open_soon.subtitle");
   const subtitleHighlight = t("trustora.open_soon.subtitle_highlight");
   const support = t("trustora.open_soon.support");
-  const languageLabel = t("trustora.open_soon.language_label");
   const themeLabel = t("trustora.open_soon.theme_label");
   const themeLight = t("trustora.open_soon.theme_light");
   const themeDark = t("trustora.open_soon.theme_dark");
@@ -125,10 +124,9 @@ export default function OpenSoonPage() {
             TRUSTORA
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
-            <span className="px-2 py-1 text-[10px] uppercase tracking-wider">{languageLabel}</span>
-            <LocaleSwitcher className="h-8 w-8 px-2" />
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/70 dark:text-slate-200">
+            <LocaleSwitcher className="h-10 w-10 px-0" />
           </div>
           <Button
             variant="ghost"
@@ -143,7 +141,7 @@ export default function OpenSoonPage() {
           </Button>
           <a
             href="mailto:contact@trustora.com"
-            className="text-sm font-medium text-slate-500 transition-colors hover:text-[#0B1C2D] dark:text-slate-300 dark:hover:text-white"
+            className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-[#0B1C2D] dark:text-slate-300 dark:hover:text-white md:inline-flex"
           >
             {support}
           </a>

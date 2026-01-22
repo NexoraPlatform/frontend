@@ -154,9 +154,9 @@ export function ChatButton() {
                                                     </div>
 
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center justify-between">
+                                                        <div className="flex items-start justify-between gap-2">
                                                             <div
-                                                                className={`truncate ${
+                                                                className={`break-words whitespace-normal leading-snug ${
                                                                     isUnread ? 'font-semibold text-[#0B1C2D] dark:text-white' : 'font-medium'
                                                                 }`}
                                                                 title={g.name}
