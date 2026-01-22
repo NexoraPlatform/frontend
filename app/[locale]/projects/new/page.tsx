@@ -1152,8 +1152,12 @@ export default function NewProjectPage() {
                                             </div>
 
                                             <div>
-                                                <GithubConnect isConnected={false} />
-                                                <CreateRepoAction projectId={String(1)} hasGithubToken={true} />
+                                                <GithubConnect isConnected={!!user?.github_token} />
+                                            </div>
+                                            <div>
+                                                {user?.github_token && (
+                                                    <CreateRepoAction projectId={String(1)} hasGithubToken={!!user?.github_token} />
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>
