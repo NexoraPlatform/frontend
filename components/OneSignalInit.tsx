@@ -12,17 +12,24 @@ export default function OneSignalInit() {
 
     useEffect(() => {
         const initOneSignal = async () => {
+            const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+            if (!appId) {
+                return;
+            }
+
             // 1. Prevenim apelarea multiplă
             if (oneSignalInitialized.current) {
                 // Dacă e deja inițializat, doar actualizăm userul (dacă e cazul)
-                if (user) OneSignal.login(user.id.toString());
+                if (user) {
+                    OneSignal.login(user.id.toString());
+                }
                 return;
             }
 
             try {
                 // 2. Inițializarea
                 await OneSignal.init({
-                    appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+                    appId,
                     allowLocalhostAsSecureOrigin: true, // CRITIC pentru localhost
                     notifyButton: {
                         enable: true,
