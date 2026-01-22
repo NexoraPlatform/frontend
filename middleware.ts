@@ -163,14 +163,10 @@ export default auth(async (req) => {
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-  console.log(`[Middleware] Path: ${pathname}, Normalized: ${normalizedPath}`);
-
   // req.auth is the session object
   const session = req.auth;
   const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
   const isAuthenticated = !!user;
-
-  console.log(`[Middleware] Authenticated: ${isAuthenticated}, Roles: ${user?.roles?.map(r => r.slug).join(', ')}`);
 
   if (isOpenSoonEnabled()) {
     const openSoonRoutes = new Set([
@@ -237,7 +233,6 @@ export default auth(async (req) => {
   // 2. Auth Flow
   // Redirect authenticated users away from auth pages
   if (AUTH_PAGES.has(normalizedPath) && isAuthenticated) {
-    console.log('[Middleware] Redirecting authenticated user to dashboard');
     const url = new URL(`/${locale}/dashboard`, req.url);
     url.search = req.nextUrl.search;
     return NextResponse.redirect(url);
@@ -245,10 +240,8 @@ export default auth(async (req) => {
 
   // 3. Protected Routes
   const requirement = findRequirement(normalizedPath);
-  console.log(`[Middleware] Requirement for ${normalizedPath}:`, requirement);
 
   if (!requirement) {
-    console.log('[Middleware] No requirement, allowing.');
     return intlResponse ?? NextResponse.next();
   }
 
@@ -258,10 +251,8 @@ export default auth(async (req) => {
   if (requirement === 'auth-only') return intlResponse ?? NextResponse.next();
 
   const allowed = checkRequirement(user || null, requirement);
-  console.log(`[Middleware] Check Requirement Result: ${allowed}`);
 
   if (!allowed) {
-    console.log('[Middleware] Access Denied. Redirecting.');
     const url = req.nextUrl.clone();
     url.pathname = `/${locale}/access-denied`;
     url.searchParams.set('from', req.nextUrl.pathname);

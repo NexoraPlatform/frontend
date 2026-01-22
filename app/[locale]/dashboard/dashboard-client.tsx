@@ -69,7 +69,6 @@ export default function DashboardClient() {
   const router = useRouter();
   useEffect(() => {
     if (!loading && !user) {
-      console.log('Auth loading:', loading, 'User:', user);
       router.push('/auth/signin');
     }
   }, [user, loading, router]);
@@ -333,7 +332,6 @@ export default function DashboardClient() {
   };
 
   const overviewStats = getOverviewStats();
-  {console.log(projects)}
 
   return (
       <div className="min-h-screen bg-white dark:bg-[#070C14]">
