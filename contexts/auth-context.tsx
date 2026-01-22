@@ -21,10 +21,13 @@ interface User {
   roles?: AccessRole[];
   permissions?: string[];
   is_superuser?: boolean;
+  github_token?: string;
+  github_nickname?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  me: () => void;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
@@ -67,6 +70,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const me = async () => {
+    const user = await apiClient.me();
+    setUser(user);
+  };
+
   const register = async (userData: any) => {
     // NextAuth doesn't natively handle registration, we usually call API then login
     try {
@@ -79,8 +87,34 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await signOut({ redirect: true, callbackUrl: '/auth/signin' });
-    setUser(null);
+    try {
+      // 1. Ștergem token-ul de autentificare pentru API (Laravel)
+      // Verifică în 'lib/api.ts' sau unde salvezi tokenul dacă cheia e 'auth_token' sau alta
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data'); // Dacă salvezi și userul aici
+
+        // 2. (Opțional) Ștergere cookie-uri custom
+        // Dacă ai setat manual cookie-uri folosind js-cookie sau document.cookie
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c
+              .replace(/^ +/, "")
+              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+      }
+
+      // 3. Resetăm starea React
+      setUser(null);
+
+      // 4. Deconectare NextAuth
+      // Aceasta șterge automat cookie-ul 'next-auth.session-token'
+      await signOut({ redirect: true, callbackUrl: '/auth/signin' });
+
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Fallback în caz de eroare
+      window.location.href = '/auth/signin';
+    }
   };
 
   const updateUser = async (userData: Partial<User>) => {
@@ -96,6 +130,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     user,
     loading,
     login,
+    me,
     register,
     logout,
     updateUser,

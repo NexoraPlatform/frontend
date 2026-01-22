@@ -64,6 +64,8 @@ dayjs.extend(utc);
 
 import 'dayjs/locale/ro';
 import 'dayjs/locale/en';
+import CreateRepoAction from "@/components/CreateRepoAction";
+import GithubConnect from "@/components/GithubConnect";
 
 function setDayjsLocale(locale: string) {
     const supported = ['ro', 'en'];
@@ -1100,6 +1102,11 @@ export default function NewProjectPage() {
                                                 {/*        </SelectContent>*/}
                                                 {/*    </Select>*/}
                                                 {/*</div>*/}
+                                            </div>
+
+                                            <div>
+                                                <GithubConnect isConnected={false} />
+                                                <CreateRepoAction projectId={String(1)} hasGithubToken={true} />
                                             </div>
                                         </CardContent>
                                     </Card>
