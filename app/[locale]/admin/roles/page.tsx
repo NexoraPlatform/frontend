@@ -7,13 +7,14 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useLocale, useTranslations } from 'next-intl';
+import type { Locale } from '@/types/locale';
 import RolesListClient from './roles-list-client';
 
 const PermissionMatrix = dynamic(() => import('./PermissionMatrixTab'), { ssr: false });
 
 export default function RolesPage() {
   const [tab, setTab] = useState<'roles' | 'permissions'>('roles');
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
   const t = useTranslations();
   const rolesLabel = t('admin.roles.tabs.roles');
   const permissionsLabel = t('admin.roles.tabs.permissions');

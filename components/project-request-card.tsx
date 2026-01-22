@@ -39,6 +39,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useLocale } from "next-intl";
 import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
+import { Locale } from '@/types/locale';
 
 interface ProjectRequestCardProps {
     project: any;
@@ -62,7 +63,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
     const elementsRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
     const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
     const [newBudget, setNewBudget] = useState<number>(0);
 

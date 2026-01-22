@@ -17,6 +17,7 @@ import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { TermsContent } from '@/components/terms-content';
+import { Locale } from '@/types/locale';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -34,7 +35,7 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const t = useTranslations();
   const router = useRouter();
   const { register } = useAuth();
@@ -60,7 +61,7 @@ export default function SignUpPage() {
   const roleLabel = t('auth.signup.role_label');
   const roleClient = t('auth.signup.role_client');
   const roleProvider = t('auth.signup.role_provider');
-  const companyLabel = t('auth.signup.company_label')');
+  const companyLabel = t('auth.signup.company_label');
   const companyPlaceholder = t('auth.signup.company_placeholder');
   const passwordLabel = t('auth.signup.password_label');
   const passwordPlaceholder = t('auth.signup.password_placeholder');

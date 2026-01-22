@@ -31,6 +31,8 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
     if (!mounted) return null;
 
     const currentConfig = localeConfig[locale as keyof typeof localeConfig];
+    const normalizedPathname =
+        pathname.replace(new RegExp(`^/(${locales.join('|')})(?=/|$)`), '') || '/';
 
     return (
         <DropdownMenu>
@@ -54,7 +56,7 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
                             key={nextLocale}
                             onSelect={(event) => {
                                 event.preventDefault();
-                                router.replace(pathname, { locale: nextLocale });
+                                router.replace(normalizedPathname, { locale: nextLocale });
                             }}
                             aria-current={isCurrent ? 'true' : undefined}
                             className={`flex items-center gap-2 text-sm w-full ${isCurrent ? 'font-semibold text-primary' : ''}`}

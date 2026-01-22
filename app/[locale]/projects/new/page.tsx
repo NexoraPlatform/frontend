@@ -161,7 +161,7 @@ type SelectedProvider = {
 };
 
 export default function NewProjectPage() {
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
     useEffect(() => {
         setDayjsLocale(locale);
     }, [locale]);

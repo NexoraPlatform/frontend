@@ -23,9 +23,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api";
 import {Alert, AlertDescription} from "@/components/ui/alert";
+import { Locale } from "@/types/locale";
 
 export default function OpenSoonPage() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const t = useTranslations();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -48,10 +49,8 @@ export default function OpenSoonPage() {
   const formNamePlaceholder = t("trustora.open_soon.form.full_name_placeholder");
   const formRoleLabel = t("trustora.open_soon.form.role_label");
   const formRolePlaceholder = t("trustora.open_soon.form.role_placeholder");
-  const formRoleClient = t("trustora.open_soon.form.role_client")",
-  );
-  const formRoleProvider = t("trustora.open_soon.form.role_provider")",
-  );
+  const formRoleClient = t("trustora.open_soon.form.role_client");
+  const formRoleProvider = t("trustora.open_soon.form.role_provider");
   const formEmailLabel = t("trustora.open_soon.form.email_label");
   const formEmailPlaceholder = t("trustora.open_soon.form.email_placeholder");
   const formSubmit = t("trustora.open_soon.form.submit");

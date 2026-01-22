@@ -42,6 +42,8 @@ import { Locale } from "@/types/locale";
 
 /** Custom hook care grupează toate traducerile pentru pagina de Calls */
 function useCallsT(locale: Locale) {
+    const t = useTranslations();
+
     return {
         title: t("admin.calls.manage_title"),
         subtitle: t("admin.calls.manage_subtitle"),
@@ -106,8 +108,7 @@ export default function CallsPage() {
     ]);
 
     const { data: callsData, loading: callsLoading, refetch: refetchCalls } = useAdminCalls();
-    const locale = useLocale();
-  const t = useTranslations();
+    const locale = useLocale() as Locale;
 
     // Toate textele printr-un singur hook
     const t = useCallsT(locale);

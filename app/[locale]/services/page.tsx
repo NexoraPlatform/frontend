@@ -176,7 +176,7 @@ function getServicesFromResponse(
 }
 
 export default function ServicesPage() {
-    const locale = useLocale();
+    const locale = useLocale() as Locale;
   const t = useTranslations();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
