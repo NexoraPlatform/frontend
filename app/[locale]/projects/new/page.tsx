@@ -156,6 +156,7 @@ type FormData = {
     recommendedProviders: RecommendedProvider[];
     notes: string;
     paymentPlan: string;
+    githubRepoTarget: 'platform' | 'provider' | 'client';
 };
 
 
@@ -187,6 +188,7 @@ export default function NewProjectPage() {
         recommendedProviders: [],
         notes: '',
         paymentPlan: '',
+        githubRepoTarget: 'platform',
     });
     const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
         title: "",
@@ -774,6 +776,7 @@ export default function NewProjectPage() {
                 selectedProviders,
                 providerBudgets,
                 clientId: user?.id,
+                githubRepoConnected: !!user?.github_token,
                 paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
                 milestoneCount: isLongProject
                     ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
@@ -1149,6 +1152,57 @@ export default function NewProjectPage() {
                                                 {/*        </SelectContent>*/}
                                                 {/*    </Select>*/}
                                                 {/*</div>*/}
+                                            </div>
+
+                                            <div>
+                                                <Label className="mb-2 block">Repository GitHub</Label>
+                                                <RadioGroup
+                                                    value={formData.githubRepoTarget}
+                                                    onValueChange={(value) =>
+                                                        setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
+                                                    }
+                                                    className="space-y-3"
+                                                >
+                                                    <div className="flex items-start space-x-2">
+                                                        <RadioGroupItem value="platform" id="github-platform" />
+                                                        <Label htmlFor="github-platform">
+                                                            Repo pe Trustora (Recomandat)
+                                                            <span className="block text-xs text-muted-foreground">
+                                                                Noi deținem repo-ul, tu ești colaborator.
+                                                            </span>
+                                                        </Label>
+                                                    </div>
+                                                    <div className="flex items-start space-x-2">
+                                                        <RadioGroupItem
+                                                            value="provider"
+                                                            id="github-provider"
+                                                            disabled={!user?.github_token}
+                                                        />
+                                                        <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
+                                                            Repo pe contul prestatorului
+                                                            {!user?.github_token && (
+                                                                <span className="block text-xs text-red-500">
+                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                </span>
+                                                            )}
+                                                        </Label>
+                                                    </div>
+                                                    <div className="flex items-start space-x-2">
+                                                        <RadioGroupItem
+                                                            value="client"
+                                                            id="github-client"
+                                                            disabled={!user?.github_token}
+                                                        />
+                                                        <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
+                                                            Repo pe contul clientului
+                                                            {!user?.github_token && (
+                                                                <span className="block text-xs text-red-500">
+                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                </span>
+                                                            )}
+                                                        </Label>
+                                                    </div>
+                                                </RadioGroup>
                                             </div>
 
                                             <div>
