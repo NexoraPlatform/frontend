@@ -43,7 +43,7 @@ import {
     EuroIcon,
     Filter,
     ChevronDown,
-    BadgeAlert
+    BadgeAlert, GithubIcon
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
@@ -83,6 +83,7 @@ type ServiceItem = {
     name: string;
     slug?: string;
     category_id: string;
+    require_repo: boolean;
 };
 
 type GroupedServices = Record<
@@ -129,6 +130,7 @@ const aiLoadingMessages = [
 type TechnologySelected = {
     id: string;
     name: string
+    require_repo?: boolean;
 }
 
 type RecommendedProvider = {
@@ -602,7 +604,7 @@ export default function NewProjectPage() {
         }
     }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
 
-    const handleTechnologyToggle = (techName: string, techId: string) => {
+    const handleTechnologyToggle = (techName: string, techId: string, requireRepo: boolean) => {
         setFormData(prev => {
             const exists = prev.technologies.some(t => t.name === techName && t.id === techId);
 
@@ -610,7 +612,7 @@ export default function NewProjectPage() {
                 ...prev,
                 technologies: exists
                     ? prev.technologies.filter(t => !(t.name === techName && t.id === techId))
-                    : [...prev.technologies, { id: techId, name: techName }]
+                    : [...prev.technologies, { id: techId, name: techName, require_repo: requireRepo }]
             };
         });
     };
@@ -868,6 +870,25 @@ export default function NewProjectPage() {
     };
 
     const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
+
+    const hasRequireRepo = (data: any): boolean => {
+        if (Array.isArray(data)) {
+            return data.some(item => hasRequireRepo(item));
+        }
+
+        if (typeof data === 'object' && data !== null) {
+            if (data.require_repo === true) {
+                return true;
+            }
+
+            return Object.values(data).some(value => hasRequireRepo(value));
+        }
+
+        return false;
+    };
+
+
+    const existsRequireRepo = hasRequireRepo(formData.technologies);
 
     const generateDescription = async () => {
         const newErrors: { [key: string]: string } = {};
@@ -1153,66 +1174,6 @@ export default function NewProjectPage() {
                                                 {/*    </Select>*/}
                                                 {/*</div>*/}
                                             </div>
-
-                                            <div className="p-4 border rounded-lg bg-card">
-                                                <h3 className="font-semibold mb-4">Repository GitHub</h3>
-                                                <RadioGroup
-                                                    value={formData.githubRepoTarget}
-                                                    onValueChange={(value) =>
-                                                        setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
-                                                    }
-                                                    className="mb-4"
-                                                >
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="platform" id="github-platform" />
-                                                        <Label htmlFor="github-platform">
-                                                            Repo pe Trustora (Recomandat)
-                                                            <span className="block text-xs text-muted-foreground">
-                                                                Noi deținem repo-ul, tu ești colaborator.
-                                                            </span>
-                                                        </Label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2 mt-2">
-                                                        <RadioGroupItem
-                                                            value="provider"
-                                                            id="github-provider"
-                                                            disabled={!user?.github_token}
-                                                        />
-                                                        <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
-                                                            Repo pe contul prestatorului
-                                                            {!user?.github_token && (
-                                                                <span className="block text-xs text-red-500">
-                                                                    Trebuie să conectezi contul de GitHub mai întâi.
-                                                                </span>
-                                                            )}
-                                                        </Label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2 mt-2">
-                                                        <RadioGroupItem
-                                                            value="client"
-                                                            id="github-client"
-                                                            disabled={!user?.github_token}
-                                                        />
-                                                        <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
-                                                            Repo pe contul clientului
-                                                            {!user?.github_token && (
-                                                                <span className="block text-xs text-red-500">
-                                                                    Trebuie să conectezi contul de GitHub mai întâi.
-                                                                </span>
-                                                            )}
-                                                        </Label>
-                                                    </div>
-                                                </RadioGroup>
-                                            </div>
-
-                                            <div>
-                                                <GithubConnect isConnected={!!user?.github_token} />
-                                            </div>
-                                            <div>
-                                                {user?.github_token && (
-                                                    <CreateRepoAction projectId={String(1)} hasGithubToken={!!user?.github_token} />
-                                                )}
-                                            </div>
                                         </CardContent>
                                     </Card>
 
@@ -1285,7 +1246,7 @@ export default function NewProjectPage() {
                                                                                 id={service.id}
                                                                                 // checked={formData.technologies.some(t => t.id === service.id)}
                                                                                 checked={markedNamesSet.has(service.name)}
-                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id)}
+                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
                                                                             />
                                                                             <Label htmlFor={service.id} className="text-sm cursor-pointer">
                                                                                 {service.name}
@@ -1301,6 +1262,82 @@ export default function NewProjectPage() {
 
                                         </CardContent>
                                     </Card>
+
+                                    {existsRequireRepo && (
+                                        <Card className="mb-6 glass-card shadow-sm">
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center space-x-2">
+                                                    <GithubIcon className="w-5 h-5" />
+                                                    Repo Github
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    Creaza repoul pentru proiect
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-6">
+                                                <div className="space-y-6">
+                                                <Label>
+                                                        Conecteaza-ti contul Github
+                                                        <span className="block text-xs text-muted-foreground">
+                                                                Pentru a putea crea un repo este nevoie sa iti conectezi contul de github.
+                                                            </span>
+                                                    </Label>
+                                                    <GithubConnect isConnected={!!user?.github_token} />
+                                                </div>
+
+                                                <div className="p-4 border rounded-lg bg-card">
+                                                    <h3 className="font-semibold mb-4">Repository GitHub</h3>
+                                                    <RadioGroup
+                                                        value={formData.githubRepoTarget}
+                                                        onValueChange={(value) =>
+                                                            setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
+                                                        }
+                                                        className="mb-4"
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="platform" id="github-platform" />
+                                                            <Label htmlFor="github-platform">
+                                                                Repo pe Trustora (Recomandat)
+                                                                {/*<span className="block text-xs text-muted-foreground">*/}
+                                                                {/*    Noi deținem repo-ul, tu ești colaborator.*/}
+                                                                {/*</span>*/}
+                                                            </Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <RadioGroupItem
+                                                                value="provider"
+                                                                id="github-provider"
+                                                                disabled={!user?.github_token}
+                                                            />
+                                                            <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                Repo pe contul prestatorului
+                                                                {!user?.github_token && (
+                                                                    <span className="block text-xs text-red-500">
+                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                </span>
+                                                                )}
+                                                            </Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <RadioGroupItem
+                                                                value="client"
+                                                                id="github-client"
+                                                                disabled={!user?.github_token}
+                                                            />
+                                                            <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                Repo pe contul clientului
+                                                                {!user?.github_token && (
+                                                                    <span className="block text-xs text-red-500">
+                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                </span>
+                                                                )}
+                                                            </Label>
+                                                        </div>
+                                                    </RadioGroup>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
                                     <Card className="glass-card shadow-sm">
                                         <CardHeader>
