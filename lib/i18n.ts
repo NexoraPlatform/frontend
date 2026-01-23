@@ -1,7 +1,7 @@
 import {Locale} from '@/types/locale';
 
 export const locales: Locale[] = ['ro', 'en'];
-export const defaultLocale: Locale = 'ro';
+export const defaultLocale: Locale = 'en';
 
 export const localeConfig = {
     ro: {
