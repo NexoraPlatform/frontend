@@ -65,6 +65,10 @@ export class ApiClient {
     this.token = null;
   }
 
+  getToken() {
+    return this.token;
+  }
+
   private getSelectedLanguageFromPathname(): string | null {
     if (typeof window === 'undefined') {
       return null;
