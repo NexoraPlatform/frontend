@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { apiClient } from '@/lib/api';
 import { AccessRole } from "@/lib/access";
 
@@ -41,6 +42,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const { data: session, status, update } = useSession();
   const [user, setUser] = useState<User | null>(null);
+  const pathname = usePathname();
 
   const loading = status === "loading";
   const userLoading = loading || (status === "authenticated" && !user);
@@ -72,11 +74,19 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const freshUser = await apiClient.me();
     setUser(freshUser);
-    await update({ ...freshUser });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) return;
+    refreshUser().catch((error) => {
+      console.error("Failed to refresh user:", error);
+    });
+  }, [status, session?.user?.id, pathname, refreshUser]);
 
   const register = async (userData: any) => {
     // NextAuth doesn't natively handle registration, we usually call API then login

@@ -1,5 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { apiClient } from '@/lib/api';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -164,11 +165,12 @@ export class ChatService {
 
     async sendMessageViaApi(groupId: string, content: string, attachments?: any[]) {
         const censoredContent = this.censorMessage(content);
+        const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({ content: censoredContent, attachments }),
         });
@@ -178,7 +180,7 @@ export class ChatService {
     }
 
     async uploadAttachment(groupId: string | number, file: File, text = '') {
-        const token = localStorage.getItem('auth_token');
+        const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
         const fd = new FormData();
         fd.append('file', file);
         if (text) fd.append('message', text);

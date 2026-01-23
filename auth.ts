@@ -58,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
             // First login
             if (user) {
                 token.accessToken = user.access_token;
@@ -78,6 +78,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.bio = user.bio;
                 token.github_token = user.github_token;
                 token.github_nickname = user.github_nickname;
+            }
+            if (trigger === "update") {
+                const updatedUser = session?.user ?? session;
+                if (updatedUser) {
+                    token.id = updatedUser.id ?? token.id;
+                    token.firstName = updatedUser.firstName ?? token.firstName;
+                    token.lastName = updatedUser.lastName ?? token.lastName;
+                    token.role = updatedUser.role ?? token.role;
+                    token.roles = updatedUser.roles ?? token.roles;
+                    token.permissions = updatedUser.permissions ?? token.permissions;
+                    token.is_superuser = updatedUser.is_superuser ?? token.is_superuser;
+                    token.testVerified = updatedUser.testVerified ?? token.testVerified;
+                    token.callVerified = updatedUser.callVerified ?? token.callVerified;
+                    token.stripe_account_id = updatedUser.stripe_account_id ?? token.stripe_account_id;
+                    token.language = updatedUser.language ?? token.language;
+                    token.location = updatedUser.location ?? token.location;
+                    token.avatar = updatedUser.avatar ?? token.avatar;
+                    token.bio = updatedUser.bio ?? token.bio;
+                    token.github_token = updatedUser.github_token ?? token.github_token;
+                    token.github_nickname = updatedUser.github_nickname ?? token.github_nickname;
+                }
             }
             return token;
         },

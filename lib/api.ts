@@ -65,6 +65,10 @@ export class ApiClient {
     this.token = null;
   }
 
+  getToken() {
+    return this.token;
+  }
+
   private getSelectedLanguageFromPathname(): string | null {
     if (typeof window === 'undefined') {
       return null;
@@ -1341,6 +1345,10 @@ export class ApiClient {
     return this.request<any>(`/chat/groups/${groupId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ content, attachments }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
     });
   }
 
