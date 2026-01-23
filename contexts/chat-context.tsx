@@ -119,6 +119,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
     const [groupOnline, setGroupOnline] = useState<Record<string, string[]>>({});
     const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const groupsRef = useRef<ChatGroup[]>([]);
 
     const openPanel = (group?: ChatGroup) => {
         if (group) setActiveGroup(group);
@@ -233,6 +234,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
+        groupsRef.current = groups;
+    }, [groups]);
+
+    useEffect(() => {
         if (notificationsLoading) return;
         if (!seededNotificationsRef.current) {
             notifications.forEach(n => seenNotificationIdsRef.current.add(n.id));
@@ -324,8 +329,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     action: {
                         label: 'Vezi',
                         onClick: () => {
-                            const group = groups.find(g => g.id === message.groupId);
+                            const group = groupsRef.current.find(g => g.id === message.groupId);
                             if (group) setActiveGroup(group);
+                            if (group) openPanel(group);
                         },
                     },
                 });
