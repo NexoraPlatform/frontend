@@ -1345,6 +1345,10 @@ export class ApiClient {
     return this.request<any>(`/chat/groups/${groupId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ content, attachments }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
     });
   }
 

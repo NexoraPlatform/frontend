@@ -181,12 +181,12 @@ export function ChatButton() {
                                                                     isUnread ? 'font-semibold text-[#0B1C2D] dark:text-white' : 'text-muted-foreground'
                                                                 }`}
                                                                 title={
-                                                                    g.last_message.translations?.[userLang] ??
+                                                                    g.last_message?.translations ??
                                                                     g.last_message.content ??
                                                                     '---'
                                                                 }
                                                             >
-                                                                {g.last_message.translations?.[userLang] ??
+                                                                {g.last_message.translations ??
                                                                     g.last_message.content ??
                                                                     '---'}
                                                             </div>
