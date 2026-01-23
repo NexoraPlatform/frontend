@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import { apiClient } from '@/lib/api';
 import { AccessRole } from "@/lib/access";
@@ -41,6 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const { data: session, status, update } = useSession();
   const [user, setUser] = useState<User | null>(null);
+  const lastRefreshedUserIdRef = useRef<string | null>(null);
 
   const loading = status === "loading";
   const userLoading = loading || (status === "authenticated" && !user);
@@ -80,10 +81,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status !== "authenticated") return;
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) return;
+    if (lastRefreshedUserIdRef.current === sessionUserId) return;
+    lastRefreshedUserIdRef.current = sessionUserId;
     refreshUser().catch((error) => {
       console.error("Failed to refresh user:", error);
     });
-  }, [status, refreshUser]);
+  }, [status, session?.user?.id, refreshUser]);
 
   const register = async (userData: any) => {
     // NextAuth doesn't natively handle registration, we usually call API then login
