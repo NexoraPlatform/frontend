@@ -879,7 +879,7 @@ function MessageBubble({
                         <Avatar className="w-8 h-8">
                             <AvatarImage src={message.sender.avatar || "/placeholder.svg"} />
                             <AvatarFallback className="text-xs">
-                                {message.sender.firstName[0]} {message.sender.lastName[0]}
+                                {message.sender?.firstName?.[0]} {message.sender?.lastName?.[0]}
                             </AvatarFallback>
                         </Avatar>
                     )}
