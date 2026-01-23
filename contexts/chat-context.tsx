@@ -324,15 +324,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             ));
 
             if (message.sender_id !== user?.id && (!activeGroup || activeGroup.id !== message.groupId)) {
+                const openGroup = () => {
+                    const group = groupsRef.current.find(g => g.id === message.groupId);
+                    if (group) {
+                        setActiveGroup(group);
+                        openPanel(group);
+                    }
+                };
+
                 toast(`💬 ${message.senderName}`, {
                     description: message.content.substring(0, 100),
+                    onClick: openGroup,
                     action: {
                         label: 'Vezi',
-                        onClick: () => {
-                            const group = groupsRef.current.find(g => g.id === message.groupId);
-                            if (group) setActiveGroup(group);
-                            if (group) openPanel(group);
-                        },
+                        onClick: openGroup,
                     },
                 });
             }
