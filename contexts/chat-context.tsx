@@ -197,9 +197,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     setupEventListeners();
                     listenersReadyRef.current = true;
                 }
-
-                await refreshGroups();
             }
+
+            await refreshGroups();
         } catch (e) {
             console.error('Failed to initialize chat:', e);
             toast.error('Nu s-a putut conecta la chat');
