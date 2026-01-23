@@ -335,6 +335,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     if (group) {
                         setActiveGroup(group);
                         openPanel(group);
+                        await loadMessages(group.id, 1);
                     }
                 };
 
