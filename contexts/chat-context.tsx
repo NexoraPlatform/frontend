@@ -324,8 +324,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             ));
 
             if (message.sender_id !== user?.id && (!activeGroup || activeGroup.id !== message.groupId)) {
-                const openGroup = () => {
-                    const group = groupsRef.current.find(g => g.id === message.groupId);
+                const openGroup = async () => {
+                    const findGroup = () =>
+                        groupsRef.current.find(g => String(g.id) === String(message.groupId));
+                    let group = findGroup();
+                    if (!group) {
+                        await refreshGroups();
+                        group = findGroup();
+                    }
                     if (group) {
                         setActiveGroup(group);
                         openPanel(group);
@@ -334,10 +340,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
                 toast(`💬 ${message.senderName}`, {
                     description: message.content.substring(0, 100),
-                    onClick: openGroup,
+                    onClick: () => void openGroup(),
                     action: {
                         label: 'Vezi',
-                        onClick: openGroup,
+                        onClick: () => void openGroup(),
                     },
                 });
             }
