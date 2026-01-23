@@ -25,7 +25,7 @@ export interface ChatGroup {
     last_message?: {
         id: string;
         content: string;
-        translations?: Record<string, string>;
+        translations?: string;
         sender_id: string;
         timestamp: string;
         isRead: boolean;
