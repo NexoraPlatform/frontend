@@ -339,14 +339,23 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     }
                 };
 
-                toast(`💬 ${message.senderName}`, {
-                    description: message.content.substring(0, 100),
-                    onClick: () => void openGroup(),
-                    action: {
-                        label: 'Vezi',
-                        onClick: () => void openGroup(),
-                    },
-                });
+                toast.custom(() => (
+                    <button
+                        type="button"
+                        onClick={() => void openGroup()}
+                        className="w-full text-left"
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="text-sm font-semibold">💬 {message.senderName}</div>
+                                <div className="text-xs text-muted-foreground line-clamp-2">
+                                    {message.content.substring(0, 100)}
+                                </div>
+                            </div>
+                            <span className="text-xs font-semibold text-emerald-600">Vezi</span>
+                        </div>
+                    </button>
+                ), { duration: 6000 });
             }
         });
 
