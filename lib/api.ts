@@ -149,6 +149,15 @@ export class ApiClient {
     return response;
   }
 
+  async me() {
+    return this.request<any>(`/auth/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+      }
+    });
+  }
+
   async register(userData: {
     email: string;
     password: string;
@@ -1063,6 +1072,36 @@ export class ApiClient {
         ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
+  }
+
+  async githubInitiate() {
+    return this.request<any>(`/auth/github/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    });
+  }
+
+  async connectGithub() {
+    return this.request<any>('/auth/github/redirect',{
+      method: 'GET',
+      headers: {
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    })
+  }
+
+  async createGithubRepo(projectId: string|number, target: string) {
+    return this.request<any>(`/projects/${projectId}/create-repo`, {
+      method: 'POST',
+      body: JSON.stringify({ target: target }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
+    })
   }
 
   async respondToBudgetProposal(projectId: string, providerId: string, response: {

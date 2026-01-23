@@ -392,7 +392,16 @@ export default function DashboardClient() {
                   <span>Prezentare</span>
               </TabsTrigger>
                 {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') ? (
-                    <Link href="/client/project-requests">Proiecte</Link>
+                    <div
+                        className=" rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                    >
+                      <Link
+                          className="flex items-center justify-center"
+                          href="/client/project-requests">
+                        <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                        <span>Proiecte</span>
+                      </Link>
+                    </div>
                 ) : (
                     <TabsTrigger
                         value="projects"

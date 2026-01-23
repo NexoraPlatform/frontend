@@ -1,8 +1,9 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback} from 'react';
-import { useRouter } from '@/lib/navigation';
+import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
+import { usePathname, useRouter } from '@/lib/navigation';
 import { useLocale } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ import {
     EuroIcon,
     Filter,
     ChevronDown,
-    BadgeAlert
+    BadgeAlert, GithubIcon
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
@@ -53,6 +54,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
 import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
+import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -64,6 +66,8 @@ dayjs.extend(utc);
 
 import 'dayjs/locale/ro';
 import 'dayjs/locale/en';
+import CreateRepoAction from "@/components/CreateRepoAction";
+import GithubConnect from "@/components/GithubConnect";
 
 function setDayjsLocale(locale: string) {
     const supported = ['ro', 'en'];
@@ -79,6 +83,7 @@ type ServiceItem = {
     name: string;
     slug?: string;
     category_id: string;
+    require_repo: boolean;
 };
 
 type GroupedServices = Record<
@@ -125,6 +130,7 @@ const aiLoadingMessages = [
 type TechnologySelected = {
     id: string;
     name: string
+    require_repo?: boolean;
 }
 
 type RecommendedProvider = {
@@ -152,6 +158,7 @@ type FormData = {
     recommendedProviders: RecommendedProvider[];
     notes: string;
     paymentPlan: string;
+    githubRepoTarget: 'platform' | 'provider' | 'client';
 };
 
 
@@ -166,7 +173,7 @@ export default function NewProjectPage() {
         setDayjsLocale(locale);
     }, [locale]);
 
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -183,6 +190,7 @@ export default function NewProjectPage() {
         recommendedProviders: [],
         notes: '',
         paymentPlan: '',
+        githubRepoTarget: 'platform',
     });
     const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
         title: "",
@@ -320,8 +328,45 @@ export default function NewProjectPage() {
     }, [isLongProject, providerMilestones]);
 
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const githubRefreshHandled = useRef(false);
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
+
+    useEffect(() => {
+        if (githubRefreshHandled.current || loading || userLoading || !user) {
+            return;
+        }
+
+        const githubParamKeys = ['github', 'github_status', 'github_connected'];
+        const hasGithubParam = githubParamKeys.some((key) => searchParams.has(key));
+        if (!hasGithubParam) {
+            return;
+        }
+
+        const rawValue =
+            searchParams.get('github') ??
+            searchParams.get('github_status') ??
+            searchParams.get('github_connected');
+        const normalizedValue = rawValue?.toLowerCase() ?? '';
+        const shouldRefresh =
+            !rawValue ||
+            ['success', 'connected', 'true', '1'].includes(normalizedValue);
+
+        if (!shouldRefresh) {
+            return;
+        }
+
+        githubRefreshHandled.current = true;
+        void (async () => {
+            try {
+                await refreshUser();
+            } finally {
+                router.replace(pathname);
+            }
+        })();
+    }, [loading, userLoading, user, refreshUser, router, pathname, searchParams]);
 
     const skillLevels = [
         { value: 'JUNIOR', label: 'Junior', color: 'bg-green-100 text-green-800', icon: '🌱' },
@@ -467,15 +512,23 @@ export default function NewProjectPage() {
     }, []);
 
     useEffect(() => {
+        if (userLoading) {
+            return;
+        }
         if (!loading && !user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+        if (!user) {
+            return;
+        }
+
+        const hasRoleData = (user?.roles?.length ?? 0) > 0 || Boolean(user?.role);
+        const hasClientRole = hasRole(user, ['client']) || user?.role?.toLowerCase?.() === 'client';
+        if (hasRoleData && !hasClientRole) {
             router.push('/dashboard');
         }
-
-
-    }, [user, loading, router]);
+    }, [user, loading, router, userLoading]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
         if (formData.recommendedProviders.length > 0) {
@@ -551,7 +604,7 @@ export default function NewProjectPage() {
         }
     }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
 
-    const handleTechnologyToggle = (techName: string, techId: string) => {
+    const handleTechnologyToggle = (techName: string, techId: string, requireRepo: boolean) => {
         setFormData(prev => {
             const exists = prev.technologies.some(t => t.name === techName && t.id === techId);
 
@@ -559,7 +612,7 @@ export default function NewProjectPage() {
                 ...prev,
                 technologies: exists
                     ? prev.technologies.filter(t => !(t.name === techName && t.id === techId))
-                    : [...prev.technologies, { id: techId, name: techName }]
+                    : [...prev.technologies, { id: techId, name: techName, require_repo: requireRepo }]
             };
         });
     };
@@ -725,6 +778,7 @@ export default function NewProjectPage() {
                 selectedProviders,
                 providerBudgets,
                 clientId: user?.id,
+                githubRepoConnected: !!user?.github_token,
                 paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
                 milestoneCount: isLongProject
                     ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
@@ -816,6 +870,25 @@ export default function NewProjectPage() {
     };
 
     const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
+
+    const hasRequireRepo = (data: any): boolean => {
+        if (Array.isArray(data)) {
+            return data.some(item => hasRequireRepo(item));
+        }
+
+        if (typeof data === 'object' && data !== null) {
+            if (data.require_repo === true) {
+                return true;
+            }
+
+            return Object.values(data).some(value => hasRequireRepo(value));
+        }
+
+        return false;
+    };
+
+
+    const existsRequireRepo = hasRequireRepo(formData.technologies);
 
     const generateDescription = async () => {
         const newErrors: { [key: string]: string } = {};
@@ -1173,7 +1246,7 @@ export default function NewProjectPage() {
                                                                                 id={service.id}
                                                                                 // checked={formData.technologies.some(t => t.id === service.id)}
                                                                                 checked={markedNamesSet.has(service.name)}
-                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id)}
+                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
                                                                             />
                                                                             <Label htmlFor={service.id} className="text-sm cursor-pointer">
                                                                                 {service.name}
@@ -1189,6 +1262,82 @@ export default function NewProjectPage() {
 
                                         </CardContent>
                                     </Card>
+
+                                    {existsRequireRepo && (
+                                        <Card className="mb-6 glass-card shadow-sm">
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center space-x-2">
+                                                    <GithubIcon className="w-5 h-5" />
+                                                    Repo Github
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    Creaza repoul pentru proiect
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-6">
+                                                <div className="space-y-6">
+                                                <Label>
+                                                        Conecteaza-ti contul Github
+                                                        <span className="block text-xs text-muted-foreground">
+                                                                Pentru a putea crea un repo este nevoie sa iti conectezi contul de github.
+                                                            </span>
+                                                    </Label>
+                                                    <GithubConnect isConnected={!!user?.github_token} />
+                                                </div>
+
+                                                <div className="p-4 border rounded-lg bg-card">
+                                                    <h3 className="font-semibold mb-4">Repository GitHub</h3>
+                                                    <RadioGroup
+                                                        value={formData.githubRepoTarget}
+                                                        onValueChange={(value) =>
+                                                            setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
+                                                        }
+                                                        className="mb-4"
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="platform" id="github-platform" />
+                                                            <Label htmlFor="github-platform">
+                                                                Repo pe Trustora (Recomandat)
+                                                                {/*<span className="block text-xs text-muted-foreground">*/}
+                                                                {/*    Noi deținem repo-ul, tu ești colaborator.*/}
+                                                                {/*</span>*/}
+                                                            </Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <RadioGroupItem
+                                                                value="provider"
+                                                                id="github-provider"
+                                                                disabled={!user?.github_token}
+                                                            />
+                                                            <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                Repo pe contul prestatorului
+                                                                {!user?.github_token && (
+                                                                    <span className="block text-xs text-red-500">
+                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                </span>
+                                                                )}
+                                                            </Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <RadioGroupItem
+                                                                value="client"
+                                                                id="github-client"
+                                                                disabled={!user?.github_token}
+                                                            />
+                                                            <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                Repo pe contul clientului
+                                                                {!user?.github_token && (
+                                                                    <span className="block text-xs text-red-500">
+                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                </span>
+                                                                )}
+                                                            </Label>
+                                                        </div>
+                                                    </RadioGroup>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
                                     <Card className="glass-card shadow-sm">
                                         <CardHeader>
@@ -1379,7 +1528,7 @@ export default function NewProjectPage() {
                                                 </>
                                             )}
 
-                                            {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count) && (
+                                            {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
                                                 <div>
                                                     <span className="text-sm text-black font-bold">Plan de plată: </span>
                                                     {generatedAiOutput?.payment_plan || 'Nespecificat'}
