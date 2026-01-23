@@ -77,8 +77,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     const freshUser = await apiClient.me();
     setUser(freshUser);
-    await update({ ...freshUser });
-  }, [update]);
+  }, []);
 
   useEffect(() => {
     if (status !== "authenticated") return;
