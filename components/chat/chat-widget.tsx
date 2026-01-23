@@ -826,7 +826,10 @@ function MessageBubble({
     const { user } = useAuth()
 
     const userLang = user?.language ?? "ro"
-    const translated = message.translations?.[userLang]
+    const translated =
+        typeof message.translations === "string"
+            ? message.translations
+            : message.translations?.[userLang]
 
     const getOwnMessageStatusIcon = (m: ChatMessage) => {
         if (String(m.sender_id) !== String(user?.id)) return null
