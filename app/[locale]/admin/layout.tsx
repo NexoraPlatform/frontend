@@ -13,20 +13,20 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, userLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations();
   const loadingText = t('admin.loading');
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/auth/signin?callbackUrl=' + encodeURIComponent('/admin'));
-        return;
-      }
+    if (userLoading) {
+      return;
     }
-  }, [user, loading, router]);
+    if (!loading && !user) {
+      router.push('/auth/signin?callbackUrl=' + encodeURIComponent('/admin'));
+    }
+  }, [user, loading, router, userLoading]);
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
