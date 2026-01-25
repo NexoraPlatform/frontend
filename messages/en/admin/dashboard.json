@@ -69,6 +69,11 @@
         "description": "Resolve user disputes",
         "stats": "Disputes and complaints"
       },
+      "legal_clauses": {
+        "title": "Legal Clauses",
+        "description": "Manage contract clauses and translations",
+        "stats": "Clause library"
+      },
       "newsletter": {
         "title": "Newsletter",
         "description": "Send updates to subscribers",
