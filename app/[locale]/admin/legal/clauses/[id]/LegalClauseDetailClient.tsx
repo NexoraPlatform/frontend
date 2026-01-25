@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -33,7 +33,7 @@ type Props = {
 export default function LegalClauseDetailClient({ id }: Props) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const locale = useLocale();
   const [clause, setClause] = useState<LegalClause | null>(null);
   const [identifier, setIdentifier] = useState('');
   const [category, setCategory] = useState('');
@@ -43,12 +43,12 @@ export default function LegalClauseDetailClient({ id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const selectedLanguage = useMemo(() => {
-    const langParam = searchParams.get('lang');
-    if (langParam && LANGUAGE_CODES.has(langParam)) {
-      return langParam;
+    const preferredLanguage = user?.language ?? locale;
+    if (preferredLanguage && LANGUAGE_CODES.has(preferredLanguage)) {
+      return preferredLanguage;
     }
     return 'en';
-  }, [searchParams]);
+  }, [locale, user?.language]);
   const selectedLanguageLabel = useMemo(
     () => LANGUAGES.find((language) => language.code === selectedLanguage)?.label ?? selectedLanguage,
     [selectedLanguage]
