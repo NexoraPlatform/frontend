@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { checkRequirement } from '@/lib/access';
 import { apiClient, type LegalClause } from '@/lib/api';
@@ -59,6 +60,8 @@ const LANGUAGE_OPTIONS = [
 export default function AdminLegalClausesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const didInitFromQuery = useRef(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [identifier, setIdentifier] = useState('');
@@ -81,6 +84,44 @@ export default function AdminLegalClausesPage() {
       router.replace(`/access-denied?from=${encodeURIComponent('/admin/legal/clauses')}`);
     }
   }, [loading, canView, router]);
+
+  useEffect(() => {
+    if (didInitFromQuery.current) return;
+    const initialSearch = searchParams.get('search') ?? '';
+    const initialCategory = searchParams.get('category') ?? '';
+    const initialIdentifier = searchParams.get('identifier') ?? '';
+    const initialSortBy = searchParams.get('sort_by') ?? 'created_at';
+    const initialSortDir = searchParams.get('sort_dir') ?? 'desc';
+    const initialPerPage = Number(searchParams.get('per_page') ?? 15);
+    const initialPage = Number(searchParams.get('page') ?? 1);
+    const initialLanguage = searchParams.get('lang') ?? 'all';
+
+    setSearch(initialSearch);
+    setCategory(initialCategory);
+    setIdentifier(initialIdentifier);
+    setSortBy(initialSortBy);
+    setSortDir(initialSortDir);
+    setPerPage(Number.isNaN(initialPerPage) ? 15 : initialPerPage);
+    setPage(Number.isNaN(initialPage) ? 1 : initialPage);
+    setLanguageFilter(initialLanguage);
+    didInitFromQuery.current = true;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!didInitFromQuery.current) return;
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    if (category.trim()) params.set('category', category.trim());
+    if (identifier.trim()) params.set('identifier', identifier.trim());
+    if (sortBy !== 'created_at') params.set('sort_by', sortBy);
+    if (sortDir !== 'desc') params.set('sort_dir', sortDir);
+    if (perPage !== 15) params.set('per_page', String(perPage));
+    if (page !== 1) params.set('page', String(page));
+    if (languageFilter !== 'all') params.set('lang', languageFilter);
+
+    const query = params.toString();
+    router.replace(query ? `/admin/legal/clauses?${query}` : '/admin/legal/clauses');
+  }, [search, category, identifier, sortBy, sortDir, perPage, page, languageFilter, router]);
 
   const fetchClauses = useCallback(async () => {
     setFetching(true);
