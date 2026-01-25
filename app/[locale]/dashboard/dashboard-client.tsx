@@ -46,7 +46,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
-import { apiClient } from '@/lib/api';
+import { apiClient, DashboardStatsResponse } from '@/lib/api';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
 import { SiStripe } from "react-icons/si";
@@ -58,6 +58,8 @@ export default function DashboardClient() {
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [projectsError, setProjectsError] = useState('');
   const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider');
   const isClient = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client');
@@ -152,6 +154,25 @@ export default function DashboardClient() {
       setLoadingProjects(false);
     }
   }, [currentPage, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
+
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const response = await apiClient.getDashboardStats();
+      setStats(response);
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && activeTab === 'overview') {
+      loadStats();
+    }
+  }, [user, activeTab, loadStats]);
+
 
   useEffect(() => {
     if (user && activeTab === 'projects') {
@@ -320,21 +341,91 @@ export default function DashboardClient() {
     return null;
   }
 
-  // Mock data for overview stats
+  // Data for overview stats
   const getOverviewStats = () => {
     if (isProvider) {
+      const providerStats = stats?.role === 'provider' ? stats.stats : null;
       return [
-        { title: t('dashboard.overview.provider.active_projects.title'), value: t('dashboard.overview.provider.active_projects.value'), change: t('dashboard.overview.provider.active_projects.change'), icon: Briefcase, color: 'text-blue-600' },
-        { title: t('dashboard.overview.provider.monthly_revenue.title'), value: t('dashboard.overview.provider.monthly_revenue.value'), change: t('dashboard.overview.provider.monthly_revenue.change'), icon: DollarSign, color: 'text-green-600' },
-        { title: t('dashboard.overview.provider.average_rating.title'), value: t('dashboard.overview.provider.average_rating.value'), change: t('dashboard.overview.provider.average_rating.change'), icon: Star, color: 'text-yellow-600' },
-        { title: t('dashboard.overview.provider.new_requests.title'), value: t('dashboard.overview.provider.new_requests.value'), change: t('dashboard.overview.provider.new_requests.change'), icon: Bell, color: 'text-purple-600' }
+        {
+          title: t('dashboard.overview.provider.active_projects.title'),
+          value: providerStats?.active_projects.value ?? t('dashboard.overview.provider.active_projects.value'),
+          change: providerStats ?
+            `${providerStats.active_projects.change > 0 ? '+' : ''}${providerStats.active_projects.change} ${providerStats.active_projects.change_type}`
+            : t('dashboard.overview.provider.active_projects.change'),
+          icon: Briefcase,
+          color: 'text-blue-600'
+        },
+        {
+          title: t('dashboard.overview.provider.monthly_revenue.title'),
+          value: providerStats
+            ? `${providerStats.monthly_revenue.value} ${providerStats.monthly_revenue.currency}`
+            : t('dashboard.overview.provider.monthly_revenue.value'),
+          change: providerStats
+            ? `${providerStats.monthly_revenue.change_percentage}%`
+            : t('dashboard.overview.provider.monthly_revenue.change'),
+          icon: DollarSign,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.provider.average_rating.title'),
+          value: providerStats?.average_rating.value ?? t('dashboard.overview.provider.average_rating.value'),
+          change: providerStats ?
+            `${providerStats.average_rating.change > 0 ? '+' : ''}${providerStats.average_rating.change}`
+            : t('dashboard.overview.provider.average_rating.change'),
+          icon: Star,
+          color: 'text-yellow-600'
+        },
+        {
+          title: t('dashboard.overview.provider.new_requests.title'),
+          value: providerStats?.new_requests.value ?? t('dashboard.overview.provider.new_requests.value'),
+          change: providerStats ?
+            `${providerStats.new_requests.change > 0 ? '+' : ''}${providerStats.new_requests.change}`
+            : t('dashboard.overview.provider.new_requests.change'),
+          icon: Bell,
+          color: 'text-purple-600'
+        }
       ];
     } else {
+      const clientStats = stats?.role === 'client' ? stats.stats : null;
       return [
-        { title: t('dashboard.overview.client.projects_posted.title'), value: t('dashboard.overview.client.projects_posted.value'), change: t('dashboard.overview.client.projects_posted.change'), icon: FileText, color: 'text-blue-600' },
-        { title: t('dashboard.overview.client.budget_spent.title'), value: t('dashboard.overview.client.budget_spent.value'), change: t('dashboard.overview.client.budget_spent.change'), icon: DollarSign, color: 'text-green-600' },
-        { title: t('dashboard.overview.client.projects_completed.title'), value: t('dashboard.overview.client.projects_completed.value'), change: t('dashboard.overview.client.projects_completed.change'), icon: CheckCircle, color: 'text-green-600' },
-        { title: t('dashboard.overview.client.active_providers.title'), value: t('dashboard.overview.client.active_providers.value'), change: t('dashboard.overview.client.active_providers.change'), icon: Users, color: 'text-purple-600' }
+        {
+          title: t('dashboard.overview.client.projects_posted.title'),
+          value: clientStats?.projects_posted.value ?? t('dashboard.overview.client.projects_posted.value'),
+          change: clientStats ?
+            `${clientStats.projects_posted.change > 0 ? '+' : ''}${clientStats.projects_posted.change}`
+            : t('dashboard.overview.client.projects_posted.change'),
+          icon: FileText,
+          color: 'text-blue-600'
+        },
+        {
+          title: t('dashboard.overview.client.budget_spent.title'),
+          value: clientStats
+            ? `${clientStats.budget_spent.value} ${clientStats.budget_spent.currency}`
+            : t('dashboard.overview.client.budget_spent.value'),
+          change: clientStats
+            ? `${clientStats.budget_spent.change_percentage}%`
+            : t('dashboard.overview.client.budget_spent.change'),
+          icon: DollarSign,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.client.projects_completed.title'),
+          value: clientStats?.projects_completed.value ?? t('dashboard.overview.client.projects_completed.value'),
+          change: clientStats ?
+            `${clientStats.projects_completed.change > 0 ? '+' : ''}${clientStats.projects_completed.change}`
+            : t('dashboard.overview.client.projects_completed.change'),
+          icon: CheckCircle,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.client.active_providers.title'),
+          value: clientStats?.active_providers.value ?? t('dashboard.overview.client.active_providers.value'),
+          change: clientStats ?
+            `${clientStats.active_providers.change > 0 ? '+' : ''}${clientStats.active_providers.change}`
+            : t('dashboard.overview.client.active_providers.change'),
+          icon: Users,
+          color: 'text-purple-600'
+        }
       ];
     }
   };
