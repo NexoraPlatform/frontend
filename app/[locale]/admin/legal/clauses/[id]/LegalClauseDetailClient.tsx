@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -23,6 +24,7 @@ const LANGUAGES = [
   { code: 'ch', label: 'Chinese' },
   { code: 'ie', label: 'Irish' },
 ];
+const LANGUAGE_CODES = new Set(LANGUAGES.map((language) => language.code));
 
 type Props = {
   id: string;
@@ -31,13 +33,26 @@ type Props = {
 export default function LegalClauseDetailClient({ id }: Props) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [clause, setClause] = useState<LegalClause | null>(null);
   const [identifier, setIdentifier] = useState('');
   const [category, setCategory] = useState('');
-  const [content, setContent] = useState<Record<string, string>>({});
+  const [content, setContent] = useState('');
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedLanguage = useMemo(() => {
+    const langParam = searchParams.get('lang');
+    if (langParam && LANGUAGE_CODES.has(langParam)) {
+      return langParam;
+    }
+    return 'en';
+  }, [searchParams]);
+  const selectedLanguageLabel = useMemo(
+    () => LANGUAGES.find((language) => language.code === selectedLanguage)?.label ?? selectedLanguage,
+    [selectedLanguage]
+  );
 
   const canEdit = useMemo(
     () => checkRequirement(user, { roles: ['admin', 'legal'], permissions: ['legal.clauses.update'] }),
@@ -60,11 +75,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
         setClause(loadedClause);
         setIdentifier(loadedClause.identifier || '');
         setCategory(loadedClause.category || '');
-        const nextContent: Record<string, string> = {};
-        LANGUAGES.forEach((language) => {
-          nextContent[language.code] = loadedClause.content?.[language.code] || '';
-        });
-        setContent(nextContent);
+        setContent(loadedClause.content?.[selectedLanguage] || '');
       } catch (err: any) {
         setError(err?.message || 'Failed to load the legal clause.');
       } finally {
@@ -75,23 +86,17 @@ export default function LegalClauseDetailClient({ id }: Props) {
     if (canEdit) {
       fetchClause();
     }
-  }, [id, canEdit]);
-
-  const handleContentChange = (language: string, value: string) => {
-    setContent((prev) => ({ ...prev, [language]: value }));
-  };
-
-  const buildContentPayload = () => {
-    const entries = Object.entries(content)
-      .map(([key, value]) => [key, value.trim()] as const)
-      .filter(([, value]) => value.length > 0);
-    return Object.fromEntries(entries);
-  };
+  }, [id, canEdit, selectedLanguage]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const trimmedContent = content.trim();
     if (!identifier.trim() || !category.trim()) {
       setError('Identifier and category are required.');
+      return;
+    }
+    if (!trimmedContent) {
+      setError('Clause content is required for the selected language.');
       return;
     }
 
@@ -101,7 +106,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
       await apiClient.updateAdminLegalClause(id, {
         identifier: identifier.trim(),
         category: category.trim(),
-        content: buildContentPayload(),
+        content: { [selectedLanguage]: trimmedContent },
       });
       router.push('/admin/legal/clauses');
     } catch (err: any) {
@@ -169,7 +174,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
           <div>
             <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">Edit legal clause</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Update the clause metadata or translations. Empty translation fields are ignored when saving.
+              Update the clause metadata and the translation for the selected language.
             </p>
           </div>
         </div>
@@ -195,20 +200,16 @@ export default function LegalClauseDetailClient({ id }: Props) {
 
         <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
           <CardHeader>
-            <CardTitle>Translations</CardTitle>
-            <CardDescription>Update any translations that need to change.</CardDescription>
+            <CardTitle>Translation</CardTitle>
+            <CardDescription>Update the clause for the selected language.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {LANGUAGES.map((language) => (
-              <div key={language.code} className="space-y-2">
-                <label className="text-sm font-medium">{language.label}</label>
-                <Textarea
-                  value={content[language.code] || ''}
-                  onChange={(event) => handleContentChange(language.code, event.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
-            ))}
+          <CardContent className="space-y-2">
+            <label className="text-sm font-medium">{selectedLanguageLabel}</label>
+            <Textarea
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              className="min-h-[160px]"
+            />
           </CardContent>
         </Card>
 

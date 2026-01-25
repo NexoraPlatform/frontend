@@ -42,6 +42,19 @@ const SORT_DIR_OPTIONS = [
 ];
 
 const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100];
+const LANGUAGE_OPTIONS = [
+  { value: 'all', label: 'All languages' },
+  { value: 'en', label: 'English' },
+  { value: 'ro', label: 'Romanian' },
+  { value: 'de', label: 'German' },
+  { value: 'it', label: 'Italian' },
+  { value: 'fr', label: 'French' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'pl', label: 'Polish' },
+  { value: 'nl', label: 'Dutch' },
+  { value: 'ch', label: 'Chinese' },
+  { value: 'ie', label: 'Irish' },
+];
 
 export default function AdminLegalClausesPage() {
   const { user, loading } = useAuth();
@@ -52,6 +65,7 @@ export default function AdminLegalClausesPage() {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
   const [perPage, setPerPage] = useState(15);
+  const [languageFilter, setLanguageFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -105,6 +119,13 @@ export default function AdminLegalClausesPage() {
   };
 
   const clauses = data?.data ?? [];
+  const filteredClauses = useMemo(() => {
+    if (languageFilter === 'all') return clauses;
+    return clauses.filter((clause) => {
+      const value = clause.content?.[languageFilter as keyof typeof clause.content];
+      return Boolean(value && String(value).trim().length > 0);
+    });
+  }, [clauses, languageFilter]);
   const hasPagination = data && data.last_page > 1;
 
   if (loading || (!canView && !fetching)) {
@@ -218,6 +239,27 @@ export default function AdminLegalClausesPage() {
               </Select>
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium">Language</label>
+              <Select
+                value={languageFilter}
+                onValueChange={(value) => {
+                  setLanguageFilter(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Direction</label>
               <Select
                 value={sortDir}
@@ -272,7 +314,7 @@ export default function AdminLegalClausesPage() {
           <CardHeader>
             <CardTitle>Clauses</CardTitle>
             <CardDescription>
-              {data ? `Showing ${clauses.length} of ${data.total} clauses.` : 'Manage legal clauses for contracts.'}
+              {data ? `Showing ${filteredClauses.length} of ${data.total} clauses.` : 'Manage legal clauses for contracts.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -281,17 +323,17 @@ export default function AdminLegalClausesPage() {
                 {error}
               </div>
             )}
-            {fetching && clauses.length === 0 ? (
+            {fetching && filteredClauses.length === 0 ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ) : clauses.length === 0 ? (
+            ) : filteredClauses.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border/70 px-6 py-10 text-center text-sm text-muted-foreground">
                 No clauses found. Adjust the filters or add a new clause.
               </div>
             ) : (
               <div className="space-y-3">
-                {clauses.map((clause) => (
+                {filteredClauses.map((clause) => (
                   <div
                     key={clause.id}
                     className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-background/50 p-4 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/40 lg:flex-row lg:items-center lg:justify-between"
@@ -302,8 +344,14 @@ export default function AdminLegalClausesPage() {
                         <Badge variant="outline">{clause.category}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {(clause.content?.en || clause.content?.ro || '').slice(0, 140)}
-                        {(clause.content?.en || clause.content?.ro || '').length > 140 ? '…' : ''}
+                        {(languageFilter === 'all'
+                          ? clause.content?.en || clause.content?.ro || ''
+                          : clause.content?.[languageFilter])?.slice(0, 140) || ''}
+                        {(languageFilter === 'all'
+                          ? clause.content?.en || clause.content?.ro || ''
+                          : clause.content?.[languageFilter])?.length > 140
+                          ? '…'
+                          : ''}
                       </p>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                         <span>Updated {new Date(clause.updated_at).toLocaleDateString()}</span>
@@ -315,7 +363,11 @@ export default function AdminLegalClausesPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Can roles={['admin', 'legal']} allPerms={['legal.clauses.update']}>
-                        <Link href={`/admin/legal/clauses/${clause.id}`}>
+                        <Link
+                          href={`/admin/legal/clauses/${clause.id}${
+                            languageFilter !== 'all' ? `?lang=${languageFilter}` : ''
+                          }`}
+                        >
                           <Button variant="outline" size="sm">
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
