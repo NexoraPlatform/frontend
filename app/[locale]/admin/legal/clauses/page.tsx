@@ -76,6 +76,7 @@ export default function AdminLegalClausesPage() {
   const [draftSortDir, setDraftSortDir] = useState('desc');
   const [draftPerPage, setDraftPerPage] = useState(15);
   const [draftLanguage, setDraftLanguage] = useState('all');
+  const [categorySearch, setCategorySearch] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -195,6 +196,11 @@ export default function AdminLegalClausesPage() {
     });
   }, [clauses, languageFilter]);
   const hasPagination = data && data.last_page > 1;
+  const filteredCategories = useMemo(() => {
+    const query = categorySearch.trim().toLowerCase();
+    if (!query) return categories;
+    return categories.filter((option) => option.toLowerCase().includes(query));
+  }, [categories, categorySearch]);
 
   const applyFilters = () => {
     setSearch(draftSearch);
@@ -277,21 +283,32 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
               <Select
-                  value={draftCategory}
-                  onValueChange={(value) => {
-                    setDraftCategory(value);
-                    setPage(1);
-                  }}
+                value={draftCategory}
+                onValueChange={(value) => {
+                  setDraftCategory(value);
+                  setPage(1);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((option, key) => (
-                      <SelectItem key={key} value={option}>
+                  <div className="p-2">
+                    <Input
+                      value={categorySearch}
+                      onChange={(event) => setCategorySearch(event.target.value)}
+                      placeholder="Search category"
+                    />
+                  </div>
+                  {filteredCategories.length === 0 ? (
+                    <div className="px-2 pb-2 text-xs text-muted-foreground">No categories found.</div>
+                  ) : (
+                    filteredCategories.map((option) => (
+                      <SelectItem key={option} value={option}>
                         {option}
                       </SelectItem>
-                  ))}
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
