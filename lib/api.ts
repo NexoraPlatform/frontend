@@ -597,6 +597,10 @@ export class ApiClient {
     return this.request<any>(`/admin/legal/clauses/${clauseId}`);
   }
 
+  async getAdminLegalClauseCategory() {
+    return this.request<any>(`/admin/legal/clauses/category`);
+  }
+
   async createAdminLegalClause(payload: {
     identifier: string;
     category: string;

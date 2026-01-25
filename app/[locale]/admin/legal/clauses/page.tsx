@@ -80,6 +80,7 @@ export default function AdminLegalClausesPage() {
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
 
   const canView = useMemo(
     () => checkRequirement(user, { roles: ['admin', 'legal'], permissions: ['legal.clauses.read'] }),
@@ -156,6 +157,24 @@ export default function AdminLegalClausesPage() {
     if (!canView) return;
     fetchClauses();
   }, [fetchClauses, canView]);
+
+  useEffect(() => {
+    const fetchLegalClauseCategory = async () => {
+      setFetching(true);
+      setError(null);
+
+      try {
+        const response = await apiClient.getAdminLegalClauseCategory();
+        setCategories(response);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load legal clause category.');
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchLegalClauseCategory();
+  }, []);
 
   const handleDelete = async (clauseId: number) => {
     if (!confirm('Delete this legal clause? This action cannot be undone.')) return;
@@ -257,14 +276,24 @@ export default function AdminLegalClausesPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
-              <Input
-                value={draftCategory}
-                onChange={(event) => {
-                  setDraftCategory(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="e.g. scope"
-              />
+              <Select
+                  value={draftCategory}
+                  onValueChange={(value) => {
+                    setDraftCategory(value);
+                    setPage(1);
+                  }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((option, key) => (
+                      <SelectItem key={key} value={option}>
+                        {option}
+                      </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Identifier</label>
