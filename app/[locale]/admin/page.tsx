@@ -75,7 +75,6 @@ export default function AdminDashboard() {
   const statsServicesTitle = t('admin.dashboard.stats.services');
   const statsRevenueTitle = t('admin.dashboard.stats.revenue');
   const statsProjectsTitle = t('admin.dashboard.stats.projects');
-  const changeTemplate = t('admin.dashboard.stats.change_template');
 
   const quickActionsTitle = t('admin.dashboard.quick_actions.title');
   const quickActionsDescription = t('admin.dashboard.quick_actions.description');
@@ -92,10 +91,8 @@ export default function AdminDashboard() {
   const sectionsDescription = t('admin.dashboard.sections.description');
   const usersSectionTitle = t('admin.dashboard.sections.users.title');
   const usersSectionDescription = t('admin.dashboard.sections.users.description');
-  const usersSectionStatsTemplate = t('admin.dashboard.sections.users.stats_template');
   const servicesSectionTitle = t('admin.dashboard.sections.services.title');
   const servicesSectionDescription = t('admin.dashboard.sections.services.description');
-  const servicesSectionStatsTemplate = t('admin.dashboard.sections.services.stats_template');
   const categoriesSectionTitle = t('admin.dashboard.sections.categories.title');
   const categoriesSectionDescription = t('admin.dashboard.sections.categories.description');
   const categoriesSectionStats = t('admin.dashboard.sections.categories.stats');
@@ -104,10 +101,8 @@ export default function AdminDashboard() {
   const testsSectionStats = t('admin.dashboard.sections.tests.stats');
   const callsSectionTitle = t('admin.dashboard.sections.calls.title');
   const callsSectionDescription = t('admin.dashboard.sections.calls.description');
-  const callsSectionStatsTemplate = t('admin.dashboard.sections.calls.stats_template');
   const projectsSectionTitle = t('admin.dashboard.sections.projects.title');
   const projectsSectionDescription = t('admin.dashboard.sections.projects.description');
-  const projectsSectionStatsTemplate = t('admin.dashboard.sections.projects.stats_template');
   const disputesSectionTitle = t('admin.dashboard.sections.disputes.title');
   const disputesSectionDescription = t('admin.dashboard.sections.disputes.description');
   const disputesSectionStats = t('admin.dashboard.sections.disputes.stats');
@@ -126,7 +121,6 @@ export default function AdminDashboard() {
   const earlyAccessSectionTitle = t('admin.dashboard.sections.early_access.title');
   const earlyAccessSectionDescription = t('admin.dashboard.sections.early_access.description');
   const earlyAccessSectionStats = t('admin.dashboard.sections.early_access.stats');
-  const pendingTemplate = t('admin.dashboard.pending_template');
 
   const activityTitle = t('admin.dashboard.activity.title');
   const activityUserMessage = t('admin.dashboard.activity.entries.user.message');
@@ -238,7 +232,7 @@ export default function AdminDashboard() {
       description: usersSectionDescription,
       icon: Users,
       href: '/admin/users',
-      stats: usersSectionStatsTemplate.replace('{count}', String(statsData?.totalUsers || 0)),
+      stats: t('admin.dashboard.sections.users.stats_template', { count: statsData?.totalUsers || 0 }),
       pending: statsData?.pendingUsers || 0,
       role: 'admin',
       permissions: ['users.read']
@@ -257,7 +251,7 @@ export default function AdminDashboard() {
       description: servicesSectionDescription,
       icon: FileText,
       href: '/admin/services',
-      stats: servicesSectionStatsTemplate.replace('{count}', String(statsData?.activeServices || 0)),
+      stats: t('admin.dashboard.sections.services.stats_template', { count: statsData?.activeServices || 0 }),
       pending: statsData?.pendingServices || 0,
       role: 'admin'
     },
@@ -284,7 +278,7 @@ export default function AdminDashboard() {
       description: callsSectionDescription,
       icon: CallIcon,
       href: '/admin/calls',
-      stats: callsSectionStatsTemplate.replace('{count}', String(statsData?.totalScheduleCalls || 0)),
+      stats: t('admin.dashboard.sections.calls.stats_template', { count: statsData?.totalScheduleCalls || 0 }),
       pending: statsData?.pendingCalls || 0,
       role: 'admin'
     },
@@ -293,7 +287,7 @@ export default function AdminDashboard() {
       description: projectsSectionDescription,
       icon: TrendingUp,
       href: '/admin/orders',
-      stats: projectsSectionStatsTemplate.replace('{count}', String(statsData?.totalProjects || 0)),
+      stats: t('admin.dashboard.sections.projects.stats_template', { count: statsData?.totalProjects || 0 }),
       pending: statsData?.totalPendingProjects || 0,
       role: 'admin'
     },
@@ -346,10 +340,8 @@ export default function AdminDashboard() {
   ], [
     usersSectionTitle,
     usersSectionDescription,
-    usersSectionStatsTemplate,
     servicesSectionTitle,
     servicesSectionDescription,
-    servicesSectionStatsTemplate,
     categoriesSectionTitle,
     categoriesSectionDescription,
     categoriesSectionStats,
@@ -358,10 +350,9 @@ export default function AdminDashboard() {
     testsSectionStats,
     callsSectionTitle,
     callsSectionDescription,
-    callsSectionStatsTemplate,
     projectsSectionTitle,
     projectsSectionDescription,
-    projectsSectionStatsTemplate,
+    t,
     disputesSectionTitle,
     disputesSectionDescription,
     disputesSectionStats,
@@ -460,7 +451,7 @@ export default function AdminDashboard() {
                     </p>
                     {stat?.change && (<p className="text-xs text-muted-foreground mt-2">
                       <span className={`font-semibold ${stat?.change < 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
-                        {changeTemplate.replace('{percent}', String(stat?.change))}
+                        {t('admin.dashboard.stats.change_template', { percent: stat?.change })}
                       </span>
                     </p>)}
                   </div>
@@ -554,7 +545,7 @@ export default function AdminDashboard() {
                             <div className="flex flex-col items-end space-y-1">
                               {section.pending > 0 && (
                                 <Badge variant="destructive" className="text-xs w-max">
-                                  {pendingTemplate.replace('{count}', String(section.pending))}
+                                  {t('admin.dashboard.pending_template', { count: section.pending })}
                                 </Badge>
                               )}
                               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
