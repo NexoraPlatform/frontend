@@ -111,6 +111,9 @@ export default function AdminDashboard() {
   const disputesSectionTitle = t('admin.dashboard.sections.disputes.title');
   const disputesSectionDescription = t('admin.dashboard.sections.disputes.description');
   const disputesSectionStats = t('admin.dashboard.sections.disputes.stats');
+  const legalClausesSectionTitle = t('admin.dashboard.sections.legal_clauses.title');
+  const legalClausesSectionDescription = t('admin.dashboard.sections.legal_clauses.description');
+  const legalClausesSectionStats = t('admin.dashboard.sections.legal_clauses.stats');
   const newsletterSectionTitle = t('admin.dashboard.sections.newsletter.title');
   const newsletterSectionDescription = t('admin.dashboard.sections.newsletter.description');
   const newsletterSectionStats = t('admin.dashboard.sections.newsletter.stats');
@@ -304,6 +307,16 @@ export default function AdminDashboard() {
       role: 'admin'
     },
     {
+      title: legalClausesSectionTitle,
+      description: legalClausesSectionDescription,
+      icon: FileText,
+      href: '/admin/legal/clauses',
+      stats: legalClausesSectionStats,
+      pending: 0,
+      roles: ['admin', 'legal'],
+      permissions: ['legal.clauses.read']
+    },
+    {
       title: newsletterSectionTitle,
       description: newsletterSectionDescription,
       icon: Bell,
@@ -352,6 +365,9 @@ export default function AdminDashboard() {
     disputesSectionTitle,
     disputesSectionDescription,
     disputesSectionStats,
+    legalClausesSectionTitle,
+    legalClausesSectionDescription,
+    legalClausesSectionStats,
     newsletterSectionTitle,
     newsletterSectionDescription,
     newsletterSectionStats,
@@ -517,7 +533,7 @@ export default function AdminDashboard() {
                     {...(
                       section.role === 'superuser'
                         ? { superuser: true }
-                        : { roles: [section.role as string] }
+                        : { roles: section.roles ?? [section.role as string] }
                     )}
                     allPerms={section.permissions || []}
                   >

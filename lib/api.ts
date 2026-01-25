@@ -6,6 +6,17 @@ export type RoleLite = {
   slug: string;
 };
 
+export type LegalClauseContent = Record<string, string>;
+
+export type LegalClause = {
+  id: number;
+  identifier: string;
+  category: string;
+  content: LegalClauseContent;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MilestoneEntry = {
   title: string;
   amount: number;
@@ -552,6 +563,65 @@ export class ApiClient {
 
   async deleteCategory(id: string) {
     return this.request<any>(`/admin/categories/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Legal clauses endpoints
+  async getAdminLegalClauses(params?: {
+    search?: string;
+    category?: string;
+    identifier?: string;
+    sort_by?: 'identifier' | 'category' | 'created_at' | 'updated_at';
+    sort_dir?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (params.search) searchParams.append('search', params.search);
+      if (params.category) searchParams.append('category', params.category);
+      if (params.identifier) searchParams.append('identifier', params.identifier);
+      if (params.sort_by) searchParams.append('sort_by', params.sort_by);
+      if (params.sort_dir) searchParams.append('sort_dir', params.sort_dir);
+      if (params.per_page) searchParams.append('per_page', params.per_page.toString());
+      if (params.page) searchParams.append('page', params.page.toString());
+    }
+    const qs = searchParams.toString();
+    return this.request<any>(`/admin/legal/clauses${qs ? `?${qs}` : ''}`);
+  }
+
+  async getAdminLegalClause(clauseId: string | number) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}`);
+  }
+
+  async createAdminLegalClause(payload: {
+    identifier: string;
+    category: string;
+    content: LegalClauseContent;
+  }) {
+    return this.request<any>('/admin/legal/clauses', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateAdminLegalClause(
+    clauseId: string | number,
+    payload: {
+      identifier?: string;
+      category?: string;
+      content?: LegalClauseContent;
+    }
+  ) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteAdminLegalClause(clauseId: string | number) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}`, {
       method: 'DELETE',
     });
   }

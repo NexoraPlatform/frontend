@@ -67,6 +67,11 @@
         "description": "Rezolvă disputele între utilizatori",
         "stats": "Dispute și reclamații"
       },
+      "legal_clauses": {
+        "title": "Clauze Legale",
+        "description": "Gestionează clauzele contractuale și traducerile",
+        "stats": "Biblioteca de clauze"
+      },
       "newsletter": {
         "title": "Newsletter",
         "description": "Trimite actualizări către abonați",
