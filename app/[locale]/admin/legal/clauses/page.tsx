@@ -69,6 +69,13 @@ export default function AdminLegalClausesPage() {
   const [sortDir, setSortDir] = useState('desc');
   const [perPage, setPerPage] = useState(15);
   const [languageFilter, setLanguageFilter] = useState('all');
+  const [draftSearch, setDraftSearch] = useState('');
+  const [draftCategory, setDraftCategory] = useState('');
+  const [draftIdentifier, setDraftIdentifier] = useState('');
+  const [draftSortBy, setDraftSortBy] = useState('created_at');
+  const [draftSortDir, setDraftSortDir] = useState('desc');
+  const [draftPerPage, setDraftPerPage] = useState(15);
+  const [draftLanguage, setDraftLanguage] = useState('all');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -134,6 +141,7 @@ export default function AdminLegalClausesPage() {
         sort_by: sortBy as any,
         sort_dir: sortDir as any,
         per_page: perPage,
+        lang: languageFilter,
         page,
       });
       setData(response as PaginatedResponse);
@@ -142,7 +150,7 @@ export default function AdminLegalClausesPage() {
     } finally {
       setFetching(false);
     }
-  }, [category, identifier, page, perPage, search, sortBy, sortDir]);
+  }, [category, identifier, languageFilter, page, perPage, search, sortBy, sortDir]);
 
   useEffect(() => {
     if (!canView) return;
@@ -168,6 +176,17 @@ export default function AdminLegalClausesPage() {
     });
   }, [clauses, languageFilter]);
   const hasPagination = data && data.last_page > 1;
+
+  const applyFilters = () => {
+    setSearch(draftSearch);
+    setCategory(draftCategory);
+    setIdentifier(draftIdentifier);
+    setSortBy(draftSortBy);
+    setSortDir(draftSortDir);
+    setPerPage(draftPerPage);
+    setLanguageFilter(draftLanguage);
+    setPage(1);
+  };
 
   if (loading || (!canView && !fetching)) {
     return (
@@ -228,9 +247,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Search</label>
               <Input
-                value={search}
+                value={draftSearch}
                 onChange={(event) => {
-                  setSearch(event.target.value);
+                  setDraftSearch(event.target.value);
                   setPage(1);
                 }}
                 placeholder="Search identifiers or content"
@@ -239,9 +258,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
               <Input
-                value={category}
+                value={draftCategory}
                 onChange={(event) => {
-                  setCategory(event.target.value);
+                  setDraftCategory(event.target.value);
                   setPage(1);
                 }}
                 placeholder="e.g. scope"
@@ -250,9 +269,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Identifier</label>
               <Input
-                value={identifier}
+                value={draftIdentifier}
                 onChange={(event) => {
-                  setIdentifier(event.target.value);
+                  setDraftIdentifier(event.target.value);
                   setPage(1);
                 }}
                 placeholder="scope_standard"
@@ -261,9 +280,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Sort by</label>
               <Select
-                value={sortBy}
+                value={draftSortBy}
                 onValueChange={(value) => {
-                  setSortBy(value);
+                  setDraftSortBy(value);
                   setPage(1);
                 }}
               >
@@ -282,9 +301,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Language</label>
               <Select
-                value={languageFilter}
+                value={draftLanguage}
                 onValueChange={(value) => {
-                  setLanguageFilter(value);
+                  setDraftLanguage(value);
                   setPage(1);
                 }}
               >
@@ -303,9 +322,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Direction</label>
               <Select
-                value={sortDir}
+                value={draftSortDir}
                 onValueChange={(value) => {
-                  setSortDir(value);
+                  setDraftSortDir(value);
                   setPage(1);
                 }}
               >
@@ -324,9 +343,9 @@ export default function AdminLegalClausesPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Per page</label>
               <Select
-                value={String(perPage)}
+                value={String(draftPerPage)}
                 onValueChange={(value) => {
-                  setPerPage(Number(value));
+                  setDraftPerPage(Number(value));
                   setPage(1);
                 }}
               >
@@ -343,7 +362,7 @@ export default function AdminLegalClausesPage() {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" onClick={fetchClauses} className="w-full">
+              <Button variant="outline" onClick={applyFilters} className="w-full">
                 {fetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
                 Refresh
               </Button>
@@ -386,10 +405,10 @@ export default function AdminLegalClausesPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {(languageFilter === 'all'
-                          ? clause.content?.en || clause.content?.ro || ''
+                          ? clause.content?.ro || clause.content?.ro || ''
                           : clause.content?.[languageFilter])?.slice(0, 140) || ''}
                         {(languageFilter === 'all'
-                          ? clause.content?.en || clause.content?.ro || ''
+                          ? clause.content?.ro || clause.content?.en || ''
                           : clause.content?.[languageFilter])?.length > 140
                           ? '…'
                           : ''}

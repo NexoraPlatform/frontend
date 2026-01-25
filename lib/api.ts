@@ -576,6 +576,7 @@ export class ApiClient {
     sort_dir?: 'asc' | 'desc';
     per_page?: number;
     page?: number;
+    lang?: string;
   }) {
     const searchParams = new URLSearchParams();
     if (params) {
@@ -586,6 +587,7 @@ export class ApiClient {
       if (params.sort_dir) searchParams.append('sort_dir', params.sort_dir);
       if (params.per_page) searchParams.append('per_page', params.per_page.toString());
       if (params.page) searchParams.append('page', params.page.toString());
+      if (params.lang) searchParams.append('lang', params.lang);
     }
     const qs = searchParams.toString();
     return this.request<any>(`/admin/legal/clauses${qs ? `?${qs}` : ''}`);
