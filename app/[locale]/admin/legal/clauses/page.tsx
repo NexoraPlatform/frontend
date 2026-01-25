@@ -452,7 +452,7 @@ export default function AdminLegalClausesPage() {
                       <p className="text-sm text-muted-foreground">
                         {(languageFilter === 'all'
                           ? clause.content?.ro || clause.content?.ro || ''
-                          : clause.content?.[languageFilter])?.slice(0, 140) || ''}
+                          : clause.content?.[draftLanguage])?.slice(0, 140) || ''}
                         {(languageFilter === 'all'
                           ? clause.content?.ro || clause.content?.en || ''
                           : clause.content?.[languageFilter])?.length > 140

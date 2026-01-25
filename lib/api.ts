@@ -593,8 +593,8 @@ export class ApiClient {
     return this.request<any>(`/admin/legal/clauses${qs ? `?${qs}` : ''}`);
   }
 
-  async getAdminLegalClause(clauseId: string | number) {
-    return this.request<any>(`/admin/legal/clauses/${clauseId}`);
+  async getAdminLegalClause(clauseId: string | number, language?: string) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}?lang=${language ?? 'ro'}`);
   }
 
   async getAdminLegalClauseCategory() {

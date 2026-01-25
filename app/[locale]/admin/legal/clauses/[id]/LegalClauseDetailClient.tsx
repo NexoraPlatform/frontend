@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import { useLocale } from 'next-intl';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {useSearchParams} from "next/navigation";
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -33,6 +35,7 @@ type Props = {
 export default function LegalClauseDetailClient({ id }: Props) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = useLocale();
   const [clause, setClause] = useState<LegalClause | null>(null);
   const [identifier, setIdentifier] = useState('');
@@ -41,6 +44,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draftLanguage, setDraftLanguage] = useState(searchParams.get('lang') ?? 'ro');
 
   const selectedLanguage = useMemo(() => {
     const preferredLanguage = locale;
@@ -50,8 +54,8 @@ export default function LegalClauseDetailClient({ id }: Props) {
     return 'en';
   }, [locale]);
   const selectedLanguageLabel = useMemo(
-    () => LANGUAGES.find((language) => language.code === selectedLanguage)?.label ?? selectedLanguage,
-    [selectedLanguage]
+    () => LANGUAGES.find((language) => language.code === searchParams.get('lang'))?.label ?? searchParams.get('lang'),
+    [searchParams]
   );
 
   const canEdit = useMemo(
@@ -70,12 +74,12 @@ export default function LegalClauseDetailClient({ id }: Props) {
       setFetching(true);
       setError(null);
       try {
-        const response = await apiClient.getAdminLegalClause(id);
+        const response = await apiClient.getAdminLegalClause(id, searchParams.get('lang') ?? 'ro');
         const loadedClause = response as LegalClause;
         setClause(loadedClause);
         setIdentifier(loadedClause.identifier || '');
         setCategory(loadedClause.category || '');
-        setContent(loadedClause.content?.[selectedLanguage] || '');
+        setContent(loadedClause.content?.[searchParams.get('lang') ?? 'ro'] || '');
       } catch (err: any) {
         setError(err?.message || 'Failed to load the legal clause.');
       } finally {
@@ -86,7 +90,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
     if (canEdit) {
       fetchClause();
     }
-  }, [id, canEdit, selectedLanguage]);
+  }, [id, canEdit, selectedLanguage, searchParams]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -131,6 +135,18 @@ export default function LegalClauseDetailClient({ id }: Props) {
       </div>
     );
   }
+
+  const setQueryParam = (value?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (!value) {
+      params.delete('lang');
+    } else {
+      params.set('lang', value);
+    }
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   if (error && !clause) {
     return (
@@ -204,7 +220,25 @@ export default function LegalClauseDetailClient({ id }: Props) {
             <CardDescription>Update the clause for the selected language.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <label className="text-sm font-medium">{selectedLanguageLabel}</label>
+            <Select
+                value={draftLanguage}
+                onValueChange={(value) => {
+                  setDraftLanguage(value);
+                  setQueryParam(value);
+                }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((option, key) => (
+                    <SelectItem key={key} value={option.code}>
+                      {option.label}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <label className="mt-5 text-sm font-medium">{selectedLanguageLabel}</label>
             <Textarea
               value={content}
               onChange={(event) => setContent(event.target.value)}
