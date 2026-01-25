@@ -3,7 +3,7 @@
 import { Star, MapPin, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { ProjectWithClient, formatBudgetRange, formatDeadline, formatDate } from '@/lib/projects';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Locale } from '@/types/locale';
 
 interface ProjectCardProps {
@@ -12,14 +12,14 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const locale = useLocale() as Locale;
+  const t = useTranslations();
 
   return (
     <div
-      className={`rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-[#1E2A3D] ${
-        project.is_recommended
-          ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/50 border-emerald-200 shadow-md dark:from-[#0F2E25] dark:to-[#0F2E25]/60'
-          : 'glass-card border-slate-200'
-      }`}
+      className={`rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:border-[#1E2A3D] ${project.is_recommended
+        ? 'bg-gradient-to-r from-emerald-50 to-emerald-50/50 border-emerald-200 shadow-md dark:from-[#0F2E25] dark:to-[#0F2E25]/60'
+        : 'glass-card border-slate-200'
+        }`}
     >
       <div className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
@@ -32,7 +32,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 <div className="flex items-center gap-1 px-3 py-1 bg-emerald-100 rounded-full dark:bg-[#153B2D]">
                   <Zap size={14} className="text-emerald-600" />
                   <span className="text-xs font-bold text-emerald-700 dark:text-[#7BF1B8]">
-                    Recomandat
+                    {t('projects.list.card.recommended')}
                   </span>
                 </div>
               )}
@@ -83,37 +83,37 @@ export function ProjectCard({ project }: ProjectCardProps) {
           ))}
           {project.technologies.length > 4 && (
             <span className="text-xs text-slate-500 px-2.5 py-1 dark:text-[#7C8799]">
-              +{project.technologies.length - 4} mai multe
+              {t('projects.list.card.more_technologies', { count: project.technologies.length - 4 })}
             </span>
           )}
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-slate-200 dark:border-[#1E2A3D]">
           <div>
-            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">Buget</p>
+            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">{t('projects.list.card.budget')}</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
-              {formatBudgetRange(project)}
+              {formatBudgetRange({ ...project, locale })}
             </p>
             <p className="text-xs text-slate-500 dark:text-[#7C8799]">
-              {project.budget_type === 'fixed' ? 'Proiect fix' : 'Pe oră'}
+              {project.budget_type === 'fixed' ? t('projects.list.card.fixed') : t('projects.list.card.hourly')}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">Deadline</p>
+            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">{t('projects.list.card.deadline')}</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
               {formatDeadline(project.deadline, locale)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">Oferte primite</p>
+            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">{t('projects.list.card.offers')}</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
               {project.offers_count}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">Postat</p>
+            <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">{t('projects.list.card.posted')}</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
-              {formatDate(project.created_at)}
+              {formatDate(project.created_at, locale)}
             </p>
           </div>
         </div>
@@ -149,7 +149,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               </span>
             </div>
             <button className="ml-auto btn-primary px-4 py-2 font-bold rounded-lg">
-              Detalii
+              {t('projects.list.card.details_button')}
             </button>
           </div>
         )}

@@ -1,14 +1,40 @@
 {
   "list": {
     "filters": {
-      "all": "All"
+      "all": "All",
+      "search_placeholder": "Search projects...",
+      "category_label": "Category",
+      "category_search_placeholder": "Search...",
+      "technologies_label": "Technologies",
+      "technologies_selected": "{count} selected",
+      "technologies_search_placeholder": "Search...",
+      "budget_label": "Budget",
+      "budget_presets": {
+        "all": "All",
+        "range1": "500 - 2,000 lei",
+        "range2": "2,000 - 5,000 lei",
+        "range3": "5,000 - 10,000 lei",
+        "range4": "10,000+ lei"
+      },
+      "active_filters": "{count} active filters"
     },
     "hero": {
       "badge": "Trustora projects",
       "title": "Projects",
       "description": "Find projects that match you and bid on the ones that interest you, in a safe and verified ecosystem."
     },
-    "empty": "No projects matched your filters"
+    "empty": "No projects matched your filters",
+    "card": {
+      "recommended": "Recommended",
+      "budget": "Budget",
+      "fixed": "Fixed project",
+      "hourly": "Hourly",
+      "deadline": "Deadline",
+      "offers": "Offers received",
+      "posted": "Posted",
+      "more_technologies": "+{count} more",
+      "details_button": "Details"
+    }
   },
   "provider_card": {
     "avatar_alt": "Provider image {firstName} {lastName}",

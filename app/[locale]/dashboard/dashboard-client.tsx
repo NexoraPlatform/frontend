@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useCallback} from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
@@ -49,8 +49,8 @@ import { ProjectRequestCard } from '@/components/project-request-card';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
-import {SiStripe} from "react-icons/si";
-import {Can} from "@/components/Can";
+import { SiStripe } from "react-icons/si";
+import { Can } from "@/components/Can";
 
 export default function DashboardClient() {
   const { user, loading } = useAuth();
@@ -92,15 +92,15 @@ export default function DashboardClient() {
       // Apply search filter
       if (searchTerm) {
         filteredProjects = filteredProjects.filter((project: any) =>
-            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.description.toLowerCase().includes(searchTerm.toLowerCase())
+          project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          project.description.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
 
       // Apply status filter
       if (statusFilter !== 'all') {
         filteredProjects = filteredProjects.filter((project: any) => {
-            if (isProvider) {
+          if (isProvider) {
             return project.status === statusFilter;
           } else {
             return project.status === statusFilter;
@@ -235,50 +235,50 @@ export default function DashboardClient() {
     const visiblePages = getVisiblePages();
 
     return (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-[#1E2A3D]">
-          <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
-            {t('dashboard.pagination.showing', {
-              start: Math.min((currentPage - 1) * projectsPerPage + 1, projects.length),
-              end: Math.min(currentPage * projectsPerPage, projects.length),
-              total: projects.length,
-            })}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-              {t('dashboard.pagination.previous')}
-            </Button>
-
-            {visiblePages.map((page, index) => (
-                <Button
-                    key={index}
-                    variant={page === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                    disabled={page === '...'}
-                    className="w-10"
-                >
-                  {page}
-                </Button>
-            ))}
-
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-            >
-              {t('dashboard.pagination.next')}
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-[#1E2A3D]">
+        <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+          {t('dashboard.pagination.showing', {
+            start: Math.min((currentPage - 1) * projectsPerPage + 1, projects.length),
+            end: Math.min(currentPage * projectsPerPage, projects.length),
+            total: projects.length,
+          })}
         </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {t('dashboard.pagination.previous')}
+          </Button>
+
+          {visiblePages.map((page, index) => (
+            <Button
+              key={index}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => typeof page === 'number' && setCurrentPage(page)}
+              disabled={page === '...'}
+              className="w-10"
+            >
+              {page}
+            </Button>
+          ))}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            {t('dashboard.pagination.next')}
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
     );
   };
 
@@ -307,12 +307,12 @@ export default function DashboardClient() {
 
   if (loading) {
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>{t('dashboard.loading.dashboard')}</p>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>{t('dashboard.loading.dashboard')}</p>
         </div>
+      </div>
     );
   }
 
@@ -322,7 +322,7 @@ export default function DashboardClient() {
 
   // Mock data for overview stats
   const getOverviewStats = () => {
-      if (isProvider) {
+    if (isProvider) {
       return [
         { title: t('dashboard.overview.provider.active_projects.title'), value: t('dashboard.overview.provider.active_projects.value'), change: t('dashboard.overview.provider.active_projects.change'), icon: Briefcase, color: 'text-blue-600' },
         { title: t('dashboard.overview.provider.monthly_revenue.title'), value: t('dashboard.overview.provider.monthly_revenue.value'), change: t('dashboard.overview.provider.monthly_revenue.change'), icon: DollarSign, color: 'text-green-600' },
@@ -342,98 +342,98 @@ export default function DashboardClient() {
   const overviewStats = getOverviewStats();
 
   return (
-      <div className="min-h-screen bg-white dark:bg-[#070C14]">
-        <Header />
+    <div className="min-h-screen bg-white dark:bg-[#070C14]">
+      <Header />
 
-        <section className="pt-28 pb-10 px-6 hero-gradient">
-          <div className="max-w-6xl mx-auto">
-            {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+      <section className="pt-28 pb-10 px-6 hero-gradient">
+        <div className="max-w-6xl mx-auto">
+          {/* Welcome Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+            <div>
+              <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                <span className="text-[#1BC47D]">●</span> {t('dashboard.hero.badge')}
+              </Badge>
+              <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                {t('dashboard.hero.welcome', { name: user.firstName })}
+              </h1>
+              <p className="text-slate-500 dark:text-[#A3ADC2]">
+                {isProvider
+                  ? t('dashboard.hero.subtitle.provider')
+                  : t('dashboard.hero.subtitle.client')
+                }
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
+                <AvatarImage src={user.avatar} />
+                <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
+                  {user.firstName[0]}{user.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
               <div>
-                <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                  <span className="text-[#1BC47D]">●</span> {t('dashboard.hero.badge')}
+                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
+                <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
+                  {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
                 </Badge>
-                <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                  {t('dashboard.hero.welcome', { name: user.firstName })}
-                </h1>
-                <p className="text-slate-500 dark:text-[#A3ADC2]">
-                  {isProvider
-                      ? t('dashboard.hero.subtitle.provider')
-                      : t('dashboard.hero.subtitle.client')
-                  }
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
-                    {user.firstName[0]}{user.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
-                  <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
-                    {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
-                  </Badge>
-                  <Button
-                      variant="outline"
-                      size="sm"
-                      className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                      onClick={getStripeOnboardingUrl}
-                  >
-                    <SiStripe className="w-4 h-4 mr-2 text-current" />
-                    {user.stripe_account_id ? t('dashboard.hero.stripe.manage') : t('dashboard.hero.stripe.connect')}
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
+                  onClick={getStripeOnboardingUrl}
+                >
+                  <SiStripe className="w-4 h-4 mr-2 text-current" />
+                  {user.stripe_account_id ? t('dashboard.hero.stripe.manage') : t('dashboard.hero.stripe.connect')}
+                </Button>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="px-6 pb-20">
-          <div className="max-w-6xl mx-auto">
-            {/* Dashboard Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
-                <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                  <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
-                  <span>{t('dashboard.tabs.overview')}</span>
+      <section className="px-6 pb-20">
+        <div className="max-w-6xl mx-auto">
+          {/* Dashboard Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
+              <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+                <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
+                <span>{t('dashboard.tabs.overview')}</span>
               </TabsTrigger>
-                {isClient ? (
-                    <div
-                        className=" rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
-                    >
-                      <Link
-                          className="flex items-center justify-center"
-                          href="/client/project-requests">
-                        <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                        <span>{t('dashboard.tabs.projects')}</span>
-                      </Link>
-                    </div>
-                ) : (
-                    <TabsTrigger
-                        value="projects"
-                        className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
-                    >
+              {isClient ? (
+                <div
+                  className=" rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                >
+                  <Link
+                    className="flex items-center justify-center"
+                    href="/client/project-requests">
+                    <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                    <span>{t('dashboard.tabs.projects')}</span>
+                  </Link>
+                </div>
+              ) : (
+                <TabsTrigger
+                  value="projects"
+                  className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                >
 
 
-                      <>
-                        <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                        <span>{t('dashboard.tabs.projects')}</span>
-                      </>
+                  <>
+                    <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                    <span>{t('dashboard.tabs.projects')}</span>
+                  </>
 
-                    </TabsTrigger>
-                )}
+                </TabsTrigger>
+              )}
 
-                <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+              <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Target className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.services')}</span>
               </TabsTrigger>
-                <TabsTrigger value="messages" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+              <TabsTrigger value="messages" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <MessageSquare className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.messages')}</span>
               </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+              <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Settings className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.settings')}</span>
               </TabsTrigger>
@@ -444,24 +444,24 @@ export default function DashboardClient() {
               {/* Stats Cards */}
               <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {overviewStats.map((stat, index) => (
-                    <Card key={index} className="glass-card shadow-sm hover:shadow-md transition-all duration-300">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-slate-500 mb-1 dark:text-[#A3ADC2]">
-                              {stat.title}
-                            </p>
-                            <p className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">{stat.value}</p>
-                            <p className="text-xs text-slate-400 mt-1 dark:text-[#6B7285]">
-                              {stat.change}
-                            </p>
-                          </div>
-                          <div className={`w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center ${stat.color}`}>
-                            <stat.icon className="w-6 h-6" />
-                          </div>
+                  <Card key={index} className="glass-card shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500 mb-1 dark:text-[#A3ADC2]">
+                            {stat.title}
+                          </p>
+                          <p className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">{stat.value}</p>
+                          <p className="text-xs text-slate-400 mt-1 dark:text-[#6B7285]">
+                            {stat.change}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className={`w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center ${stat.color}`}>
+                          <stat.icon className="w-6 h-6" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
 
@@ -474,55 +474,55 @@ export default function DashboardClient() {
                   </CardTitle>
                   <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
                     {isProvider
-                        ? t('dashboard.quick_actions.description.provider')
-                        : t('dashboard.quick_actions.description.client')
+                      ? t('dashboard.quick_actions.description.provider')
+                      : t('dashboard.quick_actions.description.client')
                     }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {isProvider ? (
-                        <>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/provider/services/select">
-                              <Plus className="w-6 h-6" />
-                              <span>{t('dashboard.quick_actions.provider.add_services')}</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/provider/profile">
-                              <Edit className="w-6 h-6" />
-                              <span>{t('dashboard.quick_actions.provider.edit_profile')}</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/tests">
-                              <Award className="w-6 h-6" />
-                              <span>{t('dashboard.quick_actions.provider.take_tests')}</span>
-                            </Link>
-                          </Button>
-                        </>
+                      <>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/provider/services/select">
+                            <Plus className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.add_services')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/provider/profile">
+                            <Edit className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.edit_profile')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/tests">
+                            <Award className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.take_tests')}</span>
+                          </Link>
+                        </Button>
+                      </>
                     ) : (
-                        <>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/projects/new">
-                              <Plus className="w-6 h-6" />
-                              <span>{t('dashboard.quick_actions.client.new_project')}</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/services">
-                              <Search className="w-6 h-6" />
-                              <span>{t('dashboard.quick_actions.client.search_services')}</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/projects">
-                              <Eye className="w-6 h-6" />
-                              <span>{t('dashboard.quick_actions.client.explore_projects')}</span>
-                            </Link>
-                          </Button>
-                        </>
+                      <>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/projects/new">
+                            <Plus className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.new_project')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/services">
+                            <Search className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.search_services')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/projects">
+                            <Eye className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.explore_projects')}</span>
+                          </Link>
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -539,65 +539,65 @@ export default function DashboardClient() {
                 <CardContent>
                   <div className="space-y-4">
                     {isProvider ? (
-                        <>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{t('dashboard.activity.provider.completed_project.title')}</p>
-                              <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.completed_project.meta')}</p>
-                            </div>
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Bell className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{t('dashboard.activity.provider.new_request.title')}</p>
-                              <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_request.meta')}</p>
-                            </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.completed_project.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.completed_project.meta')}</p>
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                              <Star className="w-4 h-4 text-yellow-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{t('dashboard.activity.provider.new_review.title')}</p>
-                              <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_review.meta')}</p>
-                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Bell className="w-4 h-4 text-blue-600" />
                           </div>
-                        </>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_request.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_request.meta')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                            <Star className="w-4 h-4 text-yellow-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_review.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_review.meta')}</p>
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                        <>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{t('dashboard.activity.client.project_accepted.title')}</p>
-                              <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.project_accepted.meta')}</p>
-                            </div>
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <DollarSign className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{t('dashboard.activity.client.budget_proposal.title')}</p>
-                              <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.budget_proposal.meta')}</p>
-                            </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.project_accepted.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.project_accepted.meta')}</p>
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                              <Plus className="w-4 h-4 text-purple-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{t('dashboard.activity.client.new_project.title')}</p>
-                              <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.new_project.meta')}</p>
-                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
                           </div>
-                        </>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.budget_proposal.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.budget_proposal.meta')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.new_project.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.new_project.meta')}</p>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -615,13 +615,13 @@ export default function DashboardClient() {
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                         <Input
-                            placeholder={t('dashboard.filters.search_placeholder')}
-                            value={searchTerm}
-                            onChange={(e) => {
-                              setSearchTerm(e.target.value);
-                              setCurrentPage(1);
-                            }}
-                            className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
+                          placeholder={t('dashboard.filters.search_placeholder')}
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
                         />
                       </div>
                     </div>
@@ -637,9 +637,9 @@ export default function DashboardClient() {
                       </SelectTrigger>
                       <SelectContent>
                         {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -655,23 +655,23 @@ export default function DashboardClient() {
                         </SelectTrigger>
                         <SelectContent>
                           {getSortOptions().map(option => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
 
                       <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={toggleSortOrder}
-                          className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
+                        variant="outline"
+                        size="icon"
+                        onClick={toggleSortOrder}
+                        className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
                       >
                         {sortOrder === 'asc' ? (
-                            <ArrowUp className="w-4 h-4" />
+                          <ArrowUp className="w-4 h-4" />
                         ) : (
-                            <ArrowDown className="w-4 h-4" />
+                          <ArrowDown className="w-4 h-4" />
                         )}
                       </Button>
                     </div>
@@ -679,43 +679,43 @@ export default function DashboardClient() {
 
                   {/* Active Filters */}
                   {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
-                      <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                        <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
+                    <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                      <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
 
-                        {searchTerm && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
-                              <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                        )}
+                      {searchTerm && (
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
+                          <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )}
 
-                        {statusFilter !== 'all' && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label })}</span>
-                              <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                        )}
+                      {statusFilter !== 'all' && (
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
+                          <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )}
 
-                        {(sortBy !== 'newest' || sortOrder !== 'desc') && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>{t('dashboard.filters.sort_label', {
-                                label: getSortOptions().find(o => o.value === sortBy)?.label,
-                                order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
-                              })}</span>
-                              <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                        )}
+                      {(sortBy !== 'newest' || sortOrder !== 'desc') && (
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>{t('dashboard.filters.sort_label', {
+                            label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
+                            order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
+                          })}</span>
+                          <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )}
 
-                        <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
-                          {t('dashboard.filters.reset_all')}
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
+                        {t('dashboard.filters.reset_all')}
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -732,60 +732,60 @@ export default function DashboardClient() {
                 </div>
 
                 {isClient && (
-                    <Button asChild className="btn-primary">
-                      <Link href="/projects/new">
-                        <Plus className="w-4 h-4 mr-2" />
-                        {t('dashboard.projects.new_project')}
-                      </Link>
-                    </Button>
+                  <Button asChild className="btn-primary">
+                    <Link href="/projects/new">
+                      <Plus className="w-4 h-4 mr-2" />
+                      {t('dashboard.projects.new_project')}
+                    </Link>
+                  </Button>
                 )}
               </div>
 
               {/* Projects List */}
               {loadingProjects ? (
-                  <div className="flex justify-center items-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
               ) : projectsError ? (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{projectsError}</AlertDescription>
-                  </Alert>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{projectsError}</AlertDescription>
+                </Alert>
               ) : projects.length === 0 ? (
-                  <Card className="glass-card">
-                    <CardContent className="text-center py-20">
-                      <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold mb-2">
-                        {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
-                      </h3>
-                      <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
-                        {isProvider
-                            ? t('dashboard.projects.empty.description.provider')
-                            : t('dashboard.projects.empty.description.client')
-                        }
-                      </p>
-                        <Can {...({ superuser: true } || { roles: ['client'] })}>
-                          <Button asChild className="btn-primary">
-                            <Link href="/projects/new">
-                              <Plus className="w-4 h-4 mr-2" />
-                              {t('dashboard.projects.empty.cta')}
-                            </Link>
-                          </Button>
-                      </Can>
-                    </CardContent>
-                  </Card>
+                <Card className="glass-card">
+                  <CardContent className="text-center py-20">
+                    <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
+                    </h3>
+                    <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
+                      {isProvider
+                        ? t('dashboard.projects.empty.description.provider')
+                        : t('dashboard.projects.empty.description.client')
+                      }
+                    </p>
+                    <Can roles={['client']}>
+                      <Button asChild className="btn-primary">
+                        <Link href="/projects/new">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('dashboard.projects.empty.cta')}
+                        </Link>
+                      </Button>
+                    </Can>
+                  </CardContent>
+                </Card>
               ) : (
-                  <div className="space-y-6">
-                    {projects.map((project) => (
-                        <ProjectRequestCard
-                            key={project.id}
-                            project={project}
-                            onResponse={handleProjectResponse}
-                        />
-                    ))}
+                <div className="space-y-6">
+                  {projects.map((project) => (
+                    <ProjectRequestCard
+                      key={project.id}
+                      project={project}
+                      onResponse={handleProjectResponse}
+                    />
+                  ))}
 
-                    {renderPagination()}
-                  </div>
+                  {renderPagination()}
+                </div>
               )}
             </TabsContent>
 
@@ -799,8 +799,8 @@ export default function DashboardClient() {
                   </CardTitle>
                   <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
                     {isProvider
-                        ? t('dashboard.services.description.provider')
-                        : t('dashboard.services.description.client')
+                      ? t('dashboard.services.description.provider')
+                      : t('dashboard.services.description.client')
                     }
                   </CardDescription>
                 </CardHeader>
@@ -812,17 +812,17 @@ export default function DashboardClient() {
                     </h3>
                     <p className="text-muted-foreground mb-4">
                       {isProvider
-                          ? t('dashboard.services.empty.description.provider')
-                          : t('dashboard.services.empty.description.client')
+                        ? t('dashboard.services.empty.description.provider')
+                        : t('dashboard.services.empty.description.client')
                       }
                     </p>
                     {isProvider && (
-                        <Button asChild>
-                          <Link href="/provider/services/select">
-                            <Plus className="w-4 h-4 mr-2" />
-                            {t('dashboard.services.empty.cta')}
-                          </Link>
-                        </Button>
+                      <Button asChild>
+                        <Link href="/provider/services/select">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('dashboard.services.empty.cta')}
+                        </Link>
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -942,32 +942,32 @@ export default function DashboardClient() {
 
                 {/* Billing (for clients) */}
                 {isClient && (
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <DollarSign className="w-5 h-5" />
-                          <span>{t('dashboard.settings.billing.title')}</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <Button variant="outline" className="w-full justify-start">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          {t('dashboard.settings.billing.payment_methods')}
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start">
-                          <FileText className="w-4 h-4 mr-2" />
-                          {t('dashboard.settings.billing.invoices')}
-                        </Button>
-                      </CardContent>
-                    </Card>
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <DollarSign className="w-5 h-5" />
+                        <span>{t('dashboard.settings.billing.title')}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Button variant="outline" className="w-full justify-start">
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        {t('dashboard.settings.billing.payment_methods')}
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start">
+                        <FileText className="w-4 h-4 mr-2" />
+                        {t('dashboard.settings.billing.invoices')}
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </TabsContent>
           </Tabs>
         </div>
-        </section>
+      </section>
 
-        <Footer />
-      </div>
+      <Footer />
+    </div>
   );
 }

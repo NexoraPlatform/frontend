@@ -1,14 +1,40 @@
 {
   "list": {
     "filters": {
-      "all": "Toate"
+      "all": "Toate",
+      "search_placeholder": "Caută proiecte...",
+      "category_label": "Categorie",
+      "category_search_placeholder": "Caută...",
+      "technologies_label": "Tehnologii",
+      "technologies_selected": "{count} selectate",
+      "technologies_search_placeholder": "Caută...",
+      "budget_label": "Buget",
+      "budget_presets": {
+        "all": "Toate",
+        "range1": "500 - 2.000 lei",
+        "range2": "2.000 - 5.000 lei",
+        "range3": "5.000 - 10.000 lei",
+        "range4": "10.000+ lei"
+      },
+      "active_filters": "{count} filtre active"
     },
     "hero": {
       "badge": "Proiecte Trustora",
       "title": "Proiecte",
       "description": "Găsește proiecte potrivite pentru tine și ofertează pe cele care te interesează, într-un ecosistem sigur și verificat."
     },
-    "empty": "Nu au fost găsite proiecte care să se potrivească filtrelor tale"
+    "empty": "Nu au fost găsite proiecte care să se potrivească filtrelor tale",
+    "card": {
+      "recommended": "Recomandat",
+      "budget": "Buget",
+      "fixed": "Proiect fix",
+      "hourly": "Pe oră",
+      "deadline": "Deadline",
+      "offers": "Oferte primite",
+      "posted": "Postat",
+      "more_technologies": "+{count} mai multe",
+      "details_button": "Detalii"
+    }
   },
   "provider_card": {
     "avatar_alt": "Imagine prestator {firstName} {lastName}",

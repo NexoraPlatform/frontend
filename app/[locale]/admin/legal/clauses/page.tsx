@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { Link, useRouter } from '@/lib/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
@@ -57,7 +57,7 @@ const LANGUAGE_OPTIONS = [
   { value: 'ie', label: 'Irish' },
 ];
 
-export default function AdminLegalClausesPage() {
+function AdminLegalClausesContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -187,7 +187,7 @@ export default function AdminLegalClausesPage() {
     }
   };
 
-  const clauses = data?.data ?? [];
+  const clauses = useMemo(() => data?.data ?? [], [data]);
   const filteredClauses = useMemo(() => {
     if (languageFilter === 'all') return clauses;
     return clauses.filter((clause) => {
@@ -451,7 +451,7 @@ export default function AdminLegalClausesPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {(languageFilter === 'all'
-                          ? clause.content?.ro || clause.content?.ro || ''
+                          ? clause.content?.ro || clause.content?.en || ''
                           : clause.content?.[draftLanguage])?.slice(0, 140) || ''}
                         {(languageFilter === 'all'
                           ? clause.content?.ro || clause.content?.en || ''
@@ -470,9 +470,8 @@ export default function AdminLegalClausesPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Can roles={['admin', 'legal']} allPerms={['legal.clauses.update']}>
                         <Link
-                          href={`/admin/legal/clauses/${clause.id}${
-                            languageFilter !== 'all' ? `?lang=${languageFilter}` : ''
-                          }`}
+                          href={`/admin/legal/clauses/${clause.id}${languageFilter !== 'all' ? `?lang=${languageFilter}` : ''
+                            }`}
                         >
                           <Button variant="outline" size="sm">
                             <Pencil className="mr-2 h-4 w-4" />
@@ -525,5 +524,13 @@ export default function AdminLegalClausesPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function AdminLegalClausesPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[400px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+      <AdminLegalClausesContent />
+    </Suspense>
   );
 }

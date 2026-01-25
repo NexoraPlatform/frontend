@@ -58,6 +58,38 @@ export type GenerateProjectInformationResponse = {
   notes?: string;
 };
 
+export type StatsChangeType = 'increase' | 'decrease' | 'neutral';
+
+export type StatsEntry = {
+  value: number;
+  change: number;
+  change_type: StatsChangeType;
+};
+
+export type MoneyStatsEntry = StatsEntry & {
+  value: number;
+  currency: string;
+  change_percentage: number;
+};
+
+export type ProviderDashboardStats = {
+  active_projects: StatsEntry;
+  monthly_revenue: MoneyStatsEntry;
+  average_rating: StatsEntry;
+  new_requests: StatsEntry;
+};
+
+export type ClientDashboardStats = {
+  projects_posted: StatsEntry;
+  budget_spent: MoneyStatsEntry;
+  projects_completed: StatsEntry;
+  active_providers: StatsEntry;
+};
+
+export type DashboardStatsResponse =
+  | { role: 'provider'; stats: ProviderDashboardStats }
+  | { role: 'client'; stats: ClientDashboardStats };
+
 export class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -1165,7 +1197,7 @@ export class ApiClient {
   }
 
   async connectGithub() {
-    return this.request<any>('/auth/github/redirect',{
+    return this.request<any>('/auth/github/redirect', {
       method: 'GET',
       headers: {
         ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
@@ -1173,7 +1205,7 @@ export class ApiClient {
     })
   }
 
-  async createGithubRepo(projectId: string|number, target: string) {
+  async createGithubRepo(projectId: string | number, target: string) {
     return this.request<any>(`/projects/${projectId}/create-repo`, {
       method: 'POST',
       body: JSON.stringify({ target: target }),
@@ -1518,6 +1550,11 @@ export class ApiClient {
     });
   }
 
+
+  // Dashboard endpoints
+  async getDashboardStats() {
+    return this.request<DashboardStatsResponse>('/dashboard/stats');
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
