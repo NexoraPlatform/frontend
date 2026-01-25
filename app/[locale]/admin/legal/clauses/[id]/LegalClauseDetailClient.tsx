@@ -43,12 +43,12 @@ export default function LegalClauseDetailClient({ id }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const selectedLanguage = useMemo(() => {
-    const preferredLanguage = user?.language ?? locale;
+    const preferredLanguage = locale;
     if (preferredLanguage && LANGUAGE_CODES.has(preferredLanguage)) {
       return preferredLanguage;
     }
     return 'en';
-  }, [locale, user?.language]);
+  }, [locale]);
   const selectedLanguageLabel = useMemo(
     () => LANGUAGES.find((language) => language.code === selectedLanguage)?.label ?? selectedLanguage,
     [selectedLanguage]
@@ -200,7 +200,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
 
         <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
           <CardHeader>
-            <CardTitle>Translation</CardTitle>
+            <CardTitle>Text</CardTitle>
             <CardDescription>Update the clause for the selected language.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
