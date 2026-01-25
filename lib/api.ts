@@ -90,6 +90,80 @@ export type DashboardStatsResponse =
   | { role: 'provider'; stats: ProviderDashboardStats }
   | { role: 'client'; stats: ClientDashboardStats };
 
+export type ActivityType = 'project_created' | 'invoice_paid' | 'proposal_received' | 'project_paid';
+
+export interface Activity {
+  id: number;
+  type: ActivityType;
+  metadata: Record<string, string>;
+  read_at: string | null;
+  created_at: string;
+  created_at_human: string;
+}
+
+export interface ActivityPageResponse {
+  data: Activity[];
+  links: {
+    first: string;
+    last: string;
+    prev: string | null;
+    next: string | null;
+  };
+  meta: {
+    current_page: number;
+    from: number;
+    last_page: number;
+    path: string;
+    per_page: number;
+    to: number;
+    total: number;
+  };
+}
+
+export interface ActivityFeedResponse {
+  data: Activity[];
+  meta: {
+    current_page: number;
+    last_page: number;
+  };
+}
+
+export interface RecentActivityQuick {
+  title: string;
+  time_ago: string;
+}
+
+export interface AuditLog {
+  id: number;
+  actor_name: string;
+  action: string;
+  event: 'created' | 'updated' | 'deleted';
+  subject_type: string;
+  subject_id: number;
+  old_values?: Record<string, any>;
+  new_values?: Record<string, any>;
+  ip: string;
+  created_at: string;
+}
+
+export interface AuditLogFilters {
+  user_id?: number;
+  subject_type?: string;
+  event?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+}
+
+export interface AuditLogResponse {
+  data: AuditLog[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+  };
+}
+
 export class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -1554,6 +1628,33 @@ export class ApiClient {
   // Dashboard endpoints
   async getDashboardStats() {
     return this.request<DashboardStatsResponse>('/dashboard/stats');
+  }
+
+  async getRecentActivities(page: number = 1) {
+    return this.request<ActivityFeedResponse>(`/activities?page=${page}`);
+  }
+
+  async getActivities(page: number = 1) {
+    return this.request<ActivityPageResponse>(`/activities?page=${page}`);
+  }
+
+  async getRecentActivitiesQuick() {
+    return this.request<RecentActivityQuick[]>('/activities/recent');
+  }
+
+  // Audit Logs
+  async fetchAuditLogs(filters: AuditLogFilters) {
+    const searchParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/admin/audit-logs?${query}` : '/admin/audit-logs';
+
+    return this.request<AuditLogResponse>(endpoint);
   }
 }
 

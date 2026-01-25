@@ -18,17 +18,17 @@ import {
   FolderPlus,
   UserPlus,
   UserCheck,
-  Eye,
   ArrowRight,
-  Activity,
   Bell,
   BookOpen,
   IdCardLanyard,
-  TrendingDown
+  TrendingDown,
+  History
 } from 'lucide-react';
 import CallIcon from '@mui/icons-material/Call';
 import apiClient from '@/lib/api';
 import { Can } from '@/components/Can';
+import ActivityFeed from '@/components/ActivityFeed';
 
 interface AdminStats {
   totalUsers: number;
@@ -112,6 +112,10 @@ export default function AdminDashboard() {
   const newsletterSectionTitle = t('admin.dashboard.sections.newsletter.title');
   const newsletterSectionDescription = t('admin.dashboard.sections.newsletter.description');
   const newsletterSectionStats = t('admin.dashboard.sections.newsletter.stats');
+  const auditLogsSectionTitle = "Audit Logs";
+  const auditLogsSectionDescription = "View system changes";
+  const activitiesSectionTitle = "Activities";
+  const activitiesSectionDescription = "System event history";
   const rolesSectionTitle = t('admin.dashboard.sections.roles.title');
   const rolesSectionDescription = t('admin.dashboard.sections.roles.description');
   const rolesSectionStats = t('admin.dashboard.sections.roles.stats');
@@ -122,18 +126,6 @@ export default function AdminDashboard() {
   const earlyAccessSectionDescription = t('admin.dashboard.sections.early_access.description');
   const earlyAccessSectionStats = t('admin.dashboard.sections.early_access.stats');
 
-  const activityTitle = t('admin.dashboard.activity.title');
-  const activityUserMessage = t('admin.dashboard.activity.entries.user.message');
-  const activityUserTime = t('admin.dashboard.activity.entries.user.time');
-  const activityOrderMessage = t('admin.dashboard.activity.entries.order.message');
-  const activityOrderTime = t('admin.dashboard.activity.entries.order.time');
-  const activityServiceMessage = t('admin.dashboard.activity.entries.service.message');
-  const activityServiceTime = t('admin.dashboard.activity.entries.service.time');
-  const activityTestMessage = t('admin.dashboard.activity.entries.test.message');
-  const activityTestTime = t('admin.dashboard.activity.entries.test.time');
-  const activityDisputeMessage = t('admin.dashboard.activity.entries.dispute.message');
-  const activityDisputeTime = t('admin.dashboard.activity.entries.dispute.time');
-  const viewAllActivity = t('admin.dashboard.activity.view_all');
 
   const systemStatusTitle = t('admin.dashboard.system_status.title');
   const serverStatusLabel = t('admin.dashboard.system_status.server_status');
@@ -320,6 +312,24 @@ export default function AdminDashboard() {
       role: 'admin'
     },
     {
+      title: activitiesSectionTitle,
+      description: activitiesSectionDescription,
+      icon: History,
+      href: '/admin/activity',
+      stats: '',
+      pending: 0,
+      role: 'admin'
+    },
+    {
+      title: auditLogsSectionTitle,
+      description: auditLogsSectionDescription,
+      icon: History,
+      href: '/admin/audit-logs',
+      stats: '',
+      pending: 0,
+      role: 'admin'
+    },
+    {
       title: rolesSectionTitle,
       description: rolesSectionDescription,
       icon: IdCardLanyard,
@@ -374,24 +384,6 @@ export default function AdminDashboard() {
     statsData
   ]);
 
-  const recentActivity = useMemo(() => [
-    { type: 'user', message: activityUserMessage, time: activityUserTime, icon: Users, color: 'text-blue-500' },
-    { type: 'order', message: activityOrderMessage, time: activityOrderTime, icon: TrendingUp, color: 'text-green-500' },
-    { type: 'service', message: activityServiceMessage, time: activityServiceTime, icon: FileText, color: 'text-yellow-500' },
-    { type: 'test', message: activityTestMessage, time: activityTestTime, icon: BookOpen, color: 'text-purple-500' },
-    { type: 'dispute', message: activityDisputeMessage, time: activityDisputeTime, icon: Shield, color: 'text-red-500' }
-  ], [
-    activityUserMessage,
-    activityUserTime,
-    activityOrderMessage,
-    activityOrderTime,
-    activityServiceMessage,
-    activityServiceTime,
-    activityTestMessage,
-    activityTestTime,
-    activityDisputeMessage,
-    activityDisputeTime
-  ]);
 
   const systemStatus = useMemo(() => [
     { label: serverStatusLabel, value: onlineLabel },
@@ -563,37 +555,9 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <div>
-          <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-foreground">
-                <Activity className="w-5 h-5" />
-                <span>{activityTitle}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3 rounded-2xl border border-border/60 bg-background/60 p-3 transition-colors hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:hover:border-sky-500/30 dark:hover:bg-slate-950">
-                    <div className={`w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center ${activity.color}`}>
-                      <activity.icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-border/60 dark:border-slate-800/70">
-                <Link href="/admin/activity">
-                  <Button variant="outline" className="w-full border-border text-foreground hover:border-sky-500/60 hover:text-sky-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-sky-200">
-                    <Eye className="w-4 h-4 mr-2" />
-                    {viewAllActivity}
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          <ActivityFeed />
+
+          {/* System Status */}
 
           {/* System Status */}
           <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
