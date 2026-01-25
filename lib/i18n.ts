@@ -50,6 +50,11 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/services/results.json"),
             () => import("@/locales/ro/services/actions.json"),
         ],
+        projects: [() => import("@/locales/ro/projects/page.json")],
+        help: [() => import("@/locales/ro/help/page.json")],
+        contact: [() => import("@/locales/ro/contact/page.json")],
+        client: [() => import("@/locales/ro/client/project_requests.json")],
+        dashboard: [() => import("@/locales/ro/dashboard/page.json")],
         trustora: [
             () => import("@/locales/ro/trustora/hero.json"),
             () => import("@/locales/ro/trustora/pillars.json"),
@@ -113,6 +118,11 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/services/results.json"),
             () => import("@/locales/en/services/actions.json"),
         ],
+        projects: [() => import("@/locales/en/projects/page.json")],
+        help: [() => import("@/locales/en/help/page.json")],
+        contact: [() => import("@/locales/en/contact/page.json")],
+        client: [() => import("@/locales/en/client/project_requests.json")],
+        dashboard: [() => import("@/locales/en/dashboard/page.json")],
         trustora: [
             () => import("@/locales/en/trustora/hero.json"),
             () => import("@/locales/en/trustora/pillars.json"),

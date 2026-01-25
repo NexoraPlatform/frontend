@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { getProjectCategories, getProjectTechnologies, ProjectWithClient } from '@/lib/projects';
 import { apiClient } from '@/lib/api';
@@ -14,11 +15,12 @@ import { Badge } from '@/components/ui/badge';
 const ITEMS_PER_PAGE = 8;
 
 export default function ProjectsPage() {
+  const t = useTranslations();
   const [projects, setProjects] = useState<ProjectWithClient[]>([]);
-  const [categories, setCategories] = useState<string[]>(['Toate']);
+  const [categories, setCategories] = useState<string[]>([t('projects.list.filters.all')]);
   const [technologies, setTechnologies] = useState<string[]>([]);
 
-  const [selectedCategory, setSelectedCategory] = useState('Toate');
+  const [selectedCategory, setSelectedCategory] = useState(t('projects.list.filters.all'));
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [selectedBudgetMin, setSelectedBudgetMin] = useState(0);
   const [selectedBudgetMax, setSelectedBudgetMax] = useState(999999);
@@ -145,14 +147,13 @@ export default function ProjectsPage() {
         <section className="pt-32 pb-12 px-6 hero-gradient">
           <div className="max-w-7xl mx-auto">
             <Badge className="mb-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-              <span className="text-[#1BC47D]">●</span> Proiecte Trustora
+              <span className="text-[#1BC47D]">●</span> {t('projects.list.hero.badge')}
             </Badge>
             <h1 className="text-4xl lg:text-5xl font-bold text-midnight-blue mb-3 dark:text-[#E6EDF3]">
-              Proiecte
+              {t('projects.list.hero.title')}
             </h1>
             <p className="text-lg text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
-              Găsește proiecte potrivite pentru tine și ofertează pe cele care te interesează,
-              într-un ecosistem sigur și verificat.
+              {t('projects.list.hero.description')}
             </p>
           </div>
         </section>
@@ -190,7 +191,7 @@ export default function ProjectsPage() {
             {!isLoading && projects.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-lg text-slate-500 dark:text-[#7C8799]">
-                  Nu au fost găsite proiecte care să se potrivească filtrelor tale
+                  {t('projects.list.empty')}
                 </p>
               </div>
             )}

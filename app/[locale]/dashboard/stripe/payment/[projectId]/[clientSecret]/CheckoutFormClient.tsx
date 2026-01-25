@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { loadStripe } from '@stripe/stripe-js';
 import {
     Elements,
@@ -29,6 +30,7 @@ function CheckoutForm({
     onPaymentSuccess: () => void;
     onPaymentError: (error: string) => void;
 }) {
+    const t = useTranslations();
     const stripe = useStripe();
     const elements = useElements();
     const [loading, setLoading] = useState(false);
@@ -48,13 +50,23 @@ function CheckoutForm({
         setLoading(false);
 
         if (result.error) {
-            onPaymentError(result.error.message || 'Eroare la procesarea plății');
+            onPaymentError(
+                t('dashboard.payments.processing_error', {
+                    message: result.error.message ?? t('dashboard.payments.generic_error'),
+                })
+            );
         } else if (result.paymentIntent?.status === 'succeeded') {
             onPaymentSuccess();
         }
     };
 
-    if (!clientSecret) return <p className="text-center text-slate-500 dark:text-[#A3ADC2]">Se încarcă sesiunea de plată...</p>;
+    if (!clientSecret) {
+        return (
+            <p className="text-center text-slate-500 dark:text-[#A3ADC2]">
+                {t('dashboard.payments.loading_session')}
+            </p>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -72,38 +84,47 @@ function CheckoutForm({
                 />
             </div>
             <Button type="submit" disabled={!stripe || loading} className="w-full btn-primary">
-                {loading ? 'Se procesează...' : 'Plătește'}
+                {loading ? t('dashboard.payments.processing') : t('dashboard.payments.pay')}
             </Button>
         </form>
     );
 }
 
 export default function StripeCheckoutClient({ projectId, clientSecret }: ClientProps) {
-    const [message, setMessage] = useState<string | null>(null);
+    const t = useTranslations();
+    const [message, setMessage] = useState<{ text: string; tone: 'error' | 'success' } | null>(null);
 
     const onPaymentSuccess = () => {
-        setMessage('Plata a fost efectuată cu succes! Redirecționare...');
+        setMessage({ text: t('dashboard.payments.success_redirect'), tone: 'success' });
         setTimeout(() => {
             window.location.href = '/dashboard';
         }, 2000);
     };
 
     const onPaymentError = (error: string) => {
-        setMessage(`Eroare la plată: ${error}`);
+        setMessage({ text: t('dashboard.payments.error_with_message', { message: error }), tone: 'error' });
     };
 
     return (
         <div className="max-w-xl mx-auto">
             {message && (
-                <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${message.startsWith('Eroare') ? 'border-red-200 bg-red-50 text-red-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-                    {message}
+                <div
+                    className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${
+                        message.tone === 'error'
+                            ? 'border-red-200 bg-red-50 text-red-600'
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    }`}
+                >
+                    {message.text}
                 </div>
             )}
             <Card className="glass-card">
                 <CardHeader>
-                    <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">Finalizează plata</CardTitle>
+                    <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {t('dashboard.payments.title')}
+                    </CardTitle>
                     <p className="text-sm text-slate-500 dark:text-[#A3ADC2]">
-                        Introdu detaliile cardului pentru a confirma plata în siguranță.
+                        {t('dashboard.payments.description')}
                     </p>
                 </CardHeader>
                 <CardContent>

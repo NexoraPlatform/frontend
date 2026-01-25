@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -58,6 +59,7 @@ export default function HelpInteractive({
                                             resources,
                                         }: Props) {
     const [searchTerm, setSearchTerm] = useState("");
+    const t = useTranslations();
 
     const filteredFAQs = faqCategories
         .map((category) => ({
@@ -76,30 +78,31 @@ export default function HelpInteractive({
             <section className="pt-32 pb-20 px-6 hero-gradient">
                 <div className="max-w-6xl mx-auto text-center">
                     <Badge className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                        <span className="text-[#1BC47D]">●</span> 📚 Centrul de Ajutor
+                        <span className="text-[#1BC47D]">●</span> {t('help.hero.badge')}
                     </Badge>
                     <h1 className="text-4xl lg:text-6xl font-bold mb-6 text-[#0B1C2D] tracking-tight dark:text-[#E6EDF3]">
-                        Răspunsuri rapide pentru <span className="text-[#1BC47D]">încrederea ta</span>
+                        {t.rich('help.hero.title', {
+                            highlight: (chunks) => <span className="text-[#1BC47D]">{chunks}</span>,
+                        })}
                     </h1>
                     <p className="text-xl text-slate-500 mb-10 max-w-3xl mx-auto dark:text-[#A3ADC2]">
-                        Găsește soluții, ghiduri și contactează echipa noastră atunci când ai nevoie
-                        de suport dedicat.
+                        {t('help.hero.description')}
                     </p>
 
                     <div className="max-w-2xl mx-auto">
                         <div className="relative">
                             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                             <Input
-                                placeholder="Caută în întrebări frecvente..."
+                                placeholder={t('help.hero.search_placeholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-12 pr-4 py-6 text-lg bg-white/90 border border-slate-200 shadow-sm focus-visible:ring-[#1BC47D] dark:bg-[#0B1220] dark:border-[#1E2A3D] dark:text-[#E6EDF3]"
                             />
                         </div>
                         <div className="mt-6 flex flex-wrap justify-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-[#6B7285]">
-                            <span>Suport live</span>
-                            <span>Resurse ghidate</span>
-                            <span>FAQ actualizat</span>
+                            <span>{t('help.hero.tags.live_support')}</span>
+                            <span>{t('help.hero.tags.guided_resources')}</span>
+                            <span>{t('help.hero.tags.updated_faq')}</span>
                         </div>
                     </div>
                 </div>
@@ -110,13 +113,13 @@ export default function HelpInteractive({
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
                         <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
-                            Suport imediat
+                            {t('help.support.eyebrow')}
                         </p>
                         <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            Alege canalul care îți oferă răspunsul perfect
+                            {t('help.support.title')}
                         </h2>
                         <p className="text-slate-500 dark:text-[#A3ADC2]">
-                            Echipa Trustora este pregătită să te ghideze pas cu pas.
+                            {t('help.support.description')}
                         </p>
                     </div>
 
@@ -173,13 +176,13 @@ export default function HelpInteractive({
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
                         <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
-                            Întrebări frecvente
+                            {t('help.faq.eyebrow')}
                         </p>
                         <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            Tot ce trebuie să știi despre Trustora
+                            {t('help.faq.title')}
                         </h2>
                         <p className="text-slate-500 dark:text-[#A3ADC2]">
-                            Răspunsuri rapide, actualizate și ușor de parcurs.
+                            {t('help.faq.description')}
                         </p>
                     </div>
 
@@ -234,13 +237,13 @@ export default function HelpInteractive({
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
                         <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
-                            Resurse utile
+                            {t('help.resources.eyebrow')}
                         </p>
                         <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            Instrumente care te ajută să fii în control
+                            {t('help.resources.title')}
                         </h2>
                         <p className="text-slate-500 dark:text-[#A3ADC2]">
-                            Ghiduri, tutoriale și template-uri pregătite de echipa Trustora.
+                            {t('help.resources.description')}
                         </p>
                     </div>
 
@@ -281,56 +284,66 @@ export default function HelpInteractive({
                 <div className="max-w-2xl mx-auto">
                     <div className="text-center mb-8">
                         <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 mb-3 dark:text-[#6B7285]">
-                            Contactează-ne
+                            {t('help.contact.eyebrow')}
                         </p>
                         <h2 className="text-3xl font-bold mb-4 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            Nu ai găsit răspunsul?
+                            {t('help.contact.title')}
                         </h2>
                         <p className="text-slate-500 dark:text-[#A3ADC2]">
-                            Trimite-ne o întrebare și îți răspundem în cel mai scurt timp.
+                            {t('help.contact.description')}
                         </p>
                     </div>
 
                     <Card className="glass-card">
                         <CardHeader>
-                            <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">Contactează Suportul</CardTitle>
+                            <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {t('help.contact.form.title')}
+                            </CardTitle>
                             <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                                Completează formularul de mai jos și te vom contacta în maxim 2 ore.
+                                {t('help.contact.form.description')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Nume</label>
+                                    <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                        {t('help.contact.form.fields.name.label')}
+                                    </label>
                                     <Input
-                                        placeholder="Numele tău"
+                                        placeholder={t('help.contact.form.fields.name.placeholder')}
                                         className="border-slate-200 dark:border-[#1E2A3D]"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Email</label>
+                                    <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                        {t('help.contact.form.fields.email.label')}
+                                    </label>
                                     <Input
                                         type="email"
-                                        placeholder="email@exemplu.ro"
+                                        placeholder={t('help.contact.form.fields.email.placeholder')}
                                         className="border-slate-200 dark:border-[#1E2A3D]"
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Subiect</label>
+                                <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                    {t('help.contact.form.fields.subject.label')}
+                                </label>
                                 <Input
-                                    placeholder="Despre ce vrei să vorbești?"
+                                    placeholder={t('help.contact.form.fields.subject.placeholder')}
                                     className="border-slate-200 dark:border-[#1E2A3D]"
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">Mesaj</label>
+                                <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                    {t('help.contact.form.fields.message.label')}
+                                </label>
                                 <textarea
                                     className="w-full min-h-32 px-3 py-2 border border-slate-200 bg-white rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1BC47D] focus:ring-offset-2 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#E6EDF3]"
-                                    placeholder="Descrie problema ta în detaliu..."
+                                    placeholder={t('help.contact.form.fields.message.placeholder')}
                                 />
                             </div>
-                            <Button className="w-full btn-primary">Trimite Mesajul</Button>
+                            <Button className="w-full btn-primary">{t('help.contact.form.submit')}</Button>
                         </CardContent>
                     </Card>
                 </div>

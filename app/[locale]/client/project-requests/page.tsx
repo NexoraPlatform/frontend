@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -32,7 +33,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
+import { enUS, ro } from 'date-fns/locale';
 import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
 
@@ -44,6 +45,9 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 export default function ClientProjectRequestsPage() {
     const { user, loading } = useAuth();
+    const locale = useLocale();
+    const t = useTranslations();
+    const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
     const [projects, setProjects] = useState<any[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [responding, setResponding] = useState<string | null>(null);
@@ -74,7 +78,7 @@ export default function ClientProjectRequestsPage() {
         if (checkoutDialogOpen && selectedProject?.id) {
             async function initStripe() {
                 const stripe = await stripePromise;
-                if (!stripe) return console.error('Stripe nu s-a încărcat.');
+                if (!stripe) return console.error(t('client.project_requests.stripe.load_error'));
 
                 const elements = stripe.elements();
                 const cardElement = elements.create('card');
@@ -103,12 +107,12 @@ export default function ClientProjectRequestsPage() {
         const cardElement = cardElementRef.current;
 
         if (!stripe || !cardElement) {
-            setErrorMessage('Stripe nu e gata.');
+            setErrorMessage(t('client.project_requests.stripe.not_ready'));
             return;
         }
 
         if (!clientSecret) {
-            setErrorMessage('Sesiunea de plată nu este pregătită încă.');
+            setErrorMessage(t('client.project_requests.stripe.session_not_ready'));
             return;
         }
 
@@ -125,7 +129,7 @@ export default function ClientProjectRequestsPage() {
         await apiClient.setPaymentIntent(project_id, result.paymentIntent.id);
 
         if (result.error) {
-            setErrorMessage(result.error.message || 'Eroare la plată');
+            setErrorMessage(result.error.message || t('client.project_requests.stripe.payment_error'));
         } else if (result.paymentIntent.status === 'requires_capture' || result.paymentIntent.status === 'succeeded') {
             setSuccess(true);
             // Poți închide dialogul, face redirect, etc.
@@ -177,9 +181,13 @@ export default function ClientProjectRequestsPage() {
         try {
             await apiClient.respondToBudgetProposal(projectId, providerId, { response });
             await loadProjects();
-            toast.success(response === 'ACCEPTED' ? 'Buget aprobat!' : 'Buget respins');
+            toast.success(
+                response === 'ACCEPTED'
+                    ? t('client.project_requests.budget.approved')
+                    : t('client.project_requests.budget.rejected')
+            );
         } catch (error: any) {
-            toast.error('Eroare: ' + error.message);
+            toast.error(t('client.project_requests.errors.generic', { message: error.message }));
         } finally {
             setResponding(null);
         }
@@ -191,28 +199,28 @@ export default function ClientProjectRequestsPage() {
                 return (
                     <Badge className="bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-500/30">
                         <Clock className="w-3 h-3 mr-1" />
-                        În așteptare
+                        {t('client.project_requests.status.pending')}
                     </Badge>
                 );
             case 'ACCEPTED':
                 return (
                     <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-500/30">
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        Acceptat
+                        {t('client.project_requests.status.accepted')}
                     </Badge>
                 );
             case 'REJECTED':
                 return (
                     <Badge className="bg-red-100 text-red-800 border border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-500/30">
                         <XCircle className="w-3 h-3 mr-1" />
-                        Respins
+                        {t('client.project_requests.status.rejected')}
                     </Badge>
                 );
             case 'NEW_PROPOSE':
                 return (
                     <Badge className="bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30">
                         <DollarSign className="w-3 h-3 mr-1" />
-                        Buget propus
+                        {t('client.project_requests.status.budget_proposed')}
                     </Badge>
                 );
             default:
@@ -241,14 +249,13 @@ export default function ClientProjectRequestsPage() {
                 <div className="container mx-auto px-4 py-12 lg:py-16">
                     <div className="max-w-3xl">
                         <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                            <span className="text-[#1BC47D]">●</span> Hub client Trustora
+                            <span className="text-[#1BC47D]">●</span> {t('client.project_requests.hero.badge')}
                         </Badge>
                         <h1 className="text-3xl sm:text-4xl font-bold mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            Cererile Mele de Proiecte
+                            {t('client.project_requests.hero.title')}
                         </h1>
                         <p className="text-lg text-slate-500 dark:text-[#A3ADC2]">
-                            Urmărește răspunsurile prestatorilor și securizează plățile prin escrow pentru
-                            colaborări sigure.
+                            {t('client.project_requests.hero.description')}
                         </p>
                     </div>
                 </div>
@@ -263,14 +270,14 @@ export default function ClientProjectRequestsPage() {
                                     <Target className="w-8 h-8 text-[#1BC47D]" />
                                 </div>
                                 <h3 className="text-xl font-semibold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                    Nu ai cereri de proiecte
+                                    {t('client.project_requests.empty.title')}
                                 </h3>
                                 <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
-                                    Creează primul tău proiect pentru a începe colaborarea cu prestatorii.
+                                    {t('client.project_requests.empty.description')}
                                 </p>
                                 <Button onClick={() => router.push('/projects/new')} className="btn-primary">
                                     <Target className="w-4 h-4 mr-2" />
-                                    Creează Proiect
+                                    {t('client.project_requests.empty.cta')}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -291,20 +298,20 @@ export default function ClientProjectRequestsPage() {
                                                 <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-slate-500 dark:text-[#A3ADC2]">
                                                     <div className="flex items-center gap-1">
                                                         <DollarSign className="w-4 h-4 text-[#1BC47D]" />
-                                                        <span>Buget total: {project.budget?.toLocaleString()} RON</span>
+                                                        <span>{t('client.project_requests.project.total_budget', { amount: project.budget?.toLocaleString() })}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="w-4 h-4 text-[#1BC47D]" />
                                                         <span>
-                                                            Creat {formatDistanceToNow(new Date(project.created_at), {
+                                                            {t('client.project_requests.project.created')} {formatDistanceToNow(new Date(project.created_at), {
                                                                 addSuffix: true,
-                                                                locale: ro
+                                                                locale: dateLocale
                                                             })}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <User className="w-4 h-4 text-[#1BC47D]" />
-                                                        <span>{project.providers?.length || 0} prestatori selectați</span>
+                                                        <span>{t('client.project_requests.project.selected_providers', { count: project.providers?.length || 0 })}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -330,7 +337,7 @@ export default function ClientProjectRequestsPage() {
                                             || project?.custom_services?.length > 0) && (
                                                 <div className="rounded-xl border border-slate-100 bg-white/80 px-4 py-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
                                                     <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-2">
-                                                        Tehnologii Proiect
+                                                        {t('client.project_requests.project.technologies')}
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {project.existing_services.map((tech: any, index: number) => (
@@ -349,7 +356,7 @@ export default function ClientProjectRequestsPage() {
 
                                         <div>
                                             <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
-                                                Răspunsuri Prestatori
+                                                {t('client.project_requests.providers.title')}
                                             </div>
                                             <div className="space-y-3">
                                                 {project.providers?.map((provider: any) => {
@@ -381,7 +388,7 @@ export default function ClientProjectRequestsPage() {
                                                                         </div>
                                                                         <div className="flex items-center gap-1">
                                                                             <MapPin className="w-3 h-3 text-[#1BC47D]" />
-                                                                            <span>{provider.location || 'România'}</span>
+                                                                            <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
@@ -401,7 +408,7 @@ export default function ClientProjectRequestsPage() {
                                                             <div className="text-left lg:text-right">
                                                                 {getStatusBadge(provider.status)}
                                                                 <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
-                                                                    Alocat: {provider.allocatedBudget?.toLocaleString()} RON
+                                                                    {t('client.project_requests.providers.allocated', { amount: provider.allocatedBudget?.toLocaleString() })}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -413,13 +420,13 @@ export default function ClientProjectRequestsPage() {
                                                                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                                                         <div>
                                                                             <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                                                Propunere de buget nou
+                                                                                {t('client.project_requests.budget.new_proposal')}
                                                                             </div>
                                                                             <div className="text-lg font-bold text-[#1BC47D]">
                                                                                 {provider.proposedBudget?.toLocaleString()} RON
                                                                             </div>
                                                                             <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
-                                                                                Buget original: {provider.allocatedBudget?.toLocaleString()} RON
+                                                                                {t('client.project_requests.budget.original', { amount: provider.allocatedBudget?.toLocaleString() })}
                                                                             </div>
                                                                         </div>
                                                                         <div className="flex flex-wrap gap-2">
@@ -430,7 +437,7 @@ export default function ClientProjectRequestsPage() {
                                                                                 className="btn-primary"
                                                                             >
                                                                                 <CheckCircle className="w-4 h-4 mr-1" />
-                                                                                Aprobă
+                                                                                {t('client.project_requests.budget.approve')}
                                                                             </Button>
                                                                             <Button
                                                                                 size="sm"
@@ -440,7 +447,7 @@ export default function ClientProjectRequestsPage() {
                                                                                 className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
                                                                             >
                                                                                 <XCircle className="w-4 h-4 mr-1" />
-                                                                                Respinge
+                                                                                {t('client.project_requests.budget.reject')}
                                                                             </Button>
                                                                         </div>
                                                                     </div>
@@ -450,9 +457,9 @@ export default function ClientProjectRequestsPage() {
 
                                                         {provider.respondedAt && (
                                                             <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
-                                                                Răspuns primit {formatDistanceToNow(new Date(provider.respondedAt), {
+                                                                {t('client.project_requests.providers.response_received')} {formatDistanceToNow(new Date(provider.respondedAt), {
                                                                     addSuffix: true,
-                                                                    locale: ro
+                                                                    locale: dateLocale
                                                                 })}
                                                             </div>
                                                         )}
@@ -472,7 +479,7 @@ export default function ClientProjectRequestsPage() {
                                                                         <span>{milestone.title}</span>
                                                                         <span>/</span>
                                                                         <span className="font-medium">
-                                                        Buget alocat: {milestone.amount.toLocaleString()} RON
+                                                        {t('client.project_requests.providers.milestone_budget', { amount: milestone.amount.toLocaleString() })}
                                                     </span>
                                                                     </div>
 
@@ -493,7 +500,7 @@ export default function ClientProjectRequestsPage() {
                                                 size="lg"
                                             >
                                                 <Shield className="w-5 h-5 mr-2" />
-                                                Securizează Plata
+                                                {t('client.project_requests.actions.secure_payment')}
                                             </Button>)}
                                             <div className="flex flex-col gap-2 sm:flex-row">
                                                 <Button
@@ -502,7 +509,7 @@ export default function ClientProjectRequestsPage() {
                                                     className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
                                                 >
                                                     <Eye className="w-4 h-4 mr-2" />
-                                                    Vezi Detalii
+                                                    {t('client.project_requests.actions.view_details')}
                                                 </Button>
                                                 <Button
                                                     variant="outline"
@@ -510,7 +517,7 @@ export default function ClientProjectRequestsPage() {
                                                     className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
                                                 >
                                                     <MessageSquare className="w-4 h-4 mr-2" />
-                                                    Mesaje
+                                                    {t('client.project_requests.actions.messages')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -531,29 +538,29 @@ export default function ClientProjectRequestsPage() {
                             </div>
                             <div>
                                 <DialogTitle className="text-xl font-bold text-white">
-                                    Securizează Plata
+                                    {t('client.project_requests.checkout.title')}
                                 </DialogTitle>
                                 <DialogDescription className="text-sm text-blue-100">
-                                    Protejează-ți investiția cu escrow
+                                    {t('client.project_requests.checkout.description')}
                                 </DialogDescription>
                             </div>
                         </div>
 
                         <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-blue-100">Proiect:</span>
+                                <span className="text-blue-100">{t('client.project_requests.checkout.project_label')}</span>
                                 <span className="font-semibold">{selectedProject?.title}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-blue-100">Valoare proiect:</span>
+                                <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
                                 <span className="font-bold text-lg">{Number(selectedProject?.budget)?.toLocaleString()} RON</span>
                             </div>
                             <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-blue-100">Comision platforma (12%):</span>
+                                <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
                                 <span className="font-bold text-lg">{Number(selectedProject?.budget * 12 / 100)?.toLocaleString()} RON</span>
                             </div>
                             <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-blue-100">Valoare totală:</span>
+                                <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
                                 <span className="font-bold text-lg">{(Number(selectedProject?.budget) + (Number(selectedProject?.budget) * (12 / 100)))?.toLocaleString()} RON</span>
                             </div>
                         </div>
@@ -562,26 +569,26 @@ export default function ClientProjectRequestsPage() {
                     <div className="p-6 space-y-6">
                         <div className="text-center">
                             <h3 className="font-semibold text-lg mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                Cum funcționează Escrow?
+                                {t('client.project_requests.checkout.how_it_works.title')}
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                                 <div className="text-center">
                                     <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
                                         <span className="font-bold text-[#1BC47D]">1</span>
                                     </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">Banii sunt blocați securizat</p>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_1')}</p>
                                 </div>
                                 <div className="text-center">
                                     <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
                                         <span className="font-bold text-[#1BC47D]">2</span>
                                     </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">Prestatorii lucrează la proiect</p>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_2')}</p>
                                 </div>
                                 <div className="text-center">
                                     <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
                                         <span className="font-bold text-[#1BC47D]">3</span>
                                     </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">Banii sunt eliberați la finalizare</p>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_3')}</p>
                                 </div>
                             </div>
                         </div>
@@ -591,10 +598,10 @@ export default function ClientProjectRequestsPage() {
                                 <CheckCircle className="w-5 h-5 text-[#1BC47D] mt-0.5" />
                                 <div className="text-sm">
                                     <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-1">
-                                        Protecție 100% Garantată
+                                        {t('client.project_requests.checkout.guarantee.title')}
                                     </div>
                                     <p className="text-slate-500 dark:text-[#A3ADC2]">
-                                        Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor.
+                                        {t('client.project_requests.checkout.guarantee.description')}
                                     </p>
                                 </div>
                             </div>
@@ -602,7 +609,7 @@ export default function ClientProjectRequestsPage() {
 
                         <div className="space-y-4">
                             <label className="block text-sm font-medium text-slate-600 dark:text-[#A3ADC2]">
-                                Detalii Card de Plată
+                                {t('client.project_requests.checkout.card_details')}
                             </label>
                             <div
                                 id={selectedProject?.id ? `card-element-${selectedProject.id}` : 'card-element'}
@@ -621,7 +628,7 @@ export default function ClientProjectRequestsPage() {
                             <Alert className="border-emerald-200 bg-emerald-50">
                                 <CheckCircle className="h-4 w-4 text-[#1BC47D]" />
                                 <AlertDescription className="text-emerald-800">
-                                    Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.
+                                    {t('client.project_requests.checkout.success')}
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -636,12 +643,14 @@ export default function ClientProjectRequestsPage() {
                                 {loading ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Se procesează...
+                                        {t('client.project_requests.checkout.processing')}
                                     </>
                                 ) : (
                                     <>
                                         <Shield className="w-4 h-4 mr-2" />
-                                        Securizează {(Number(selectedProject?.budget) + (Number(selectedProject?.budget) * 12 / 100))?.toLocaleString()} RON
+                                        {t('client.project_requests.checkout.secure_amount', {
+                                            amount: (Number(selectedProject?.budget) + (Number(selectedProject?.budget) * 12 / 100))?.toLocaleString(),
+                                        })}
                                     </>
                                 )}
                             </Button>
@@ -651,7 +660,7 @@ export default function ClientProjectRequestsPage() {
                                 onClick={() => setCheckoutDialogOpen(false)}
                                 className="px-6 border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
                             >
-                                Anulează
+                                {t('client.project_requests.checkout.cancel')}
                             </Button>
                         </div>
 
@@ -659,15 +668,15 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-center space-x-4">
                                 <div className="flex items-center space-x-1">
                                     <Shield className="w-3 h-3" />
-                                    <span>SSL Securizat</span>
+                                    <span>{t('client.project_requests.checkout.footer.ssl')}</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <CheckCircle className="w-3 h-3" />
-                                    <span>PCI Compliant</span>
+                                    <span>{t('client.project_requests.checkout.footer.pci')}</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <Globe className="w-3 h-3" />
-                                    <span>Stripe Powered</span>
+                                    <span>{t('client.project_requests.checkout.footer.stripe')}</span>
                                 </div>
                             </div>
                         </div>

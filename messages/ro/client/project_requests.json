@@ -1,0 +1,83 @@
+{
+  "project_requests": {
+    "hero": {
+      "badge": "Hub client Trustora",
+      "title": "Cererile mele de proiecte",
+      "description": "Urmărește răspunsurile prestatorilor și securizează plățile prin escrow pentru colaborări sigure."
+    },
+    "empty": {
+      "title": "Nu ai cereri de proiecte",
+      "description": "Creează primul tău proiect pentru a începe colaborarea cu prestatorii.",
+      "cta": "Creează proiect"
+    },
+    "project": {
+      "total_budget": "Buget total: {amount} RON",
+      "created": "Creat",
+      "selected_providers": "{count} prestatori selectați",
+      "technologies": "Tehnologii proiect"
+    },
+    "providers": {
+      "title": "Răspunsuri prestatori",
+      "location_fallback": "România",
+      "allocated": "Alocat: {amount} RON",
+      "response_received": "Răspuns primit",
+      "milestone_budget": "Buget alocat: {amount} RON"
+    },
+    "budget": {
+      "approved": "Buget aprobat!",
+      "rejected": "Buget respins",
+      "new_proposal": "Propunere de buget nou",
+      "original": "Buget original: {amount} RON",
+      "approve": "Aprobă",
+      "reject": "Respinge"
+    },
+    "status": {
+      "pending": "În așteptare",
+      "accepted": "Acceptat",
+      "rejected": "Respins",
+      "budget_proposed": "Buget propus"
+    },
+    "actions": {
+      "secure_payment": "Securizează plata",
+      "view_details": "Vezi detalii",
+      "messages": "Mesaje"
+    },
+    "stripe": {
+      "load_error": "Stripe nu s-a încărcat.",
+      "not_ready": "Stripe nu e gata.",
+      "session_not_ready": "Sesiunea de plată nu este pregătită încă.",
+      "payment_error": "Eroare la plată"
+    },
+    "errors": {
+      "generic": "Eroare: {message}"
+    },
+    "checkout": {
+      "title": "Securizează plata",
+      "description": "Protejează-ți investiția cu escrow",
+      "project_label": "Proiect:",
+      "project_value": "Valoare proiect:",
+      "platform_fee": "Comision platformă (12%):",
+      "total_value": "Valoare totală:",
+      "how_it_works": {
+        "title": "Cum funcționează escrow",
+        "step_1": "Banii sunt blocați securizat",
+        "step_2": "Prestatorii lucrează la proiect",
+        "step_3": "Banii sunt eliberați la finalizare"
+      },
+      "guarantee": {
+        "title": "Protecție 100% garantată",
+        "description": "Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor."
+      },
+      "card_details": "Detalii card de plată",
+      "success": "Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.",
+      "processing": "Se procesează...",
+      "secure_amount": "Securizează {amount} RON",
+      "cancel": "Anulează",
+      "footer": {
+        "ssl": "SSL securizat",
+        "pci": "PCI compliant",
+        "stripe": "Stripe powered"
+      }
+    }
+  }
+}

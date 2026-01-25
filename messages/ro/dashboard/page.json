@@ -1,0 +1,268 @@
+{
+  "hero": {
+    "badge": "Trustora Dashboard",
+    "welcome": "Bun venit, {name}! 👋",
+    "subtitle": {
+      "provider": "Gestionează-ți serviciile și proiectele active",
+      "client": "Urmărește-ți proiectele și găsește experții potriviți"
+    },
+    "role": {
+      "provider": "Prestator",
+      "client": "Client"
+    },
+    "stripe": {
+      "manage": "Modifică detalii cont Stripe",
+      "connect": "Conectează cont Stripe"
+    }
+  },
+  "tabs": {
+    "overview": "Prezentare",
+    "projects": "Proiecte",
+    "services": "Servicii",
+    "messages": "Mesaje",
+    "settings": "Setări"
+  },
+  "loading": {
+    "dashboard": "Se încarcă dashboard-ul...",
+    "projects": "Se încarcă...",
+    "page": "Se încarcă pagina..."
+  },
+  "errors": {
+    "projects_load_failed": "Nu s-au putut încărca proiectele: {message}",
+    "generic": "Eroare: {message}"
+  },
+  "notifications": {
+    "project_accepted": "Proiect acceptat",
+    "project_rejected": "Proiect respins",
+    "budget_proposed": "Propunere de buget trimisă"
+  },
+  "overview": {
+    "provider": {
+      "active_projects": {
+        "title": "Proiecte active",
+        "value": "3",
+        "change": "+2 această lună"
+      },
+      "monthly_revenue": {
+        "title": "Venituri lunare",
+        "value": "4,500 RON",
+        "change": "+15% față de luna trecută"
+      },
+      "average_rating": {
+        "title": "Rating mediu",
+        "value": "4.8",
+        "change": "+0.2 această lună"
+      },
+      "new_requests": {
+        "title": "Cereri noi",
+        "value": "7",
+        "change": "+3 astăzi"
+      }
+    },
+    "client": {
+      "projects_posted": {
+        "title": "Proiecte postate",
+        "value": "5",
+        "change": "+2 această lună"
+      },
+      "budget_spent": {
+        "title": "Buget cheltuit",
+        "value": "12,000 RON",
+        "change": "+25% această lună"
+      },
+      "projects_completed": {
+        "title": "Proiecte finalizate",
+        "value": "3",
+        "change": "Rată de succes 100%"
+      },
+      "active_providers": {
+        "title": "Prestatori activi",
+        "value": "8",
+        "change": "+2 colaboratori noi"
+      }
+    }
+  },
+  "quick_actions": {
+    "title": "Acțiuni rapide",
+    "description": {
+      "provider": "Acțiuni frecvente pentru gestionarea activității tale",
+      "client": "Începe un proiect nou sau gestionează proiectele existente"
+    },
+    "provider": {
+      "add_services": "Adaugă servicii",
+      "edit_profile": "Editează profil",
+      "take_tests": "Susține teste"
+    },
+    "client": {
+      "new_project": "Proiect nou",
+      "search_services": "Caută servicii",
+      "explore_projects": "Explorează proiecte"
+    }
+  },
+  "activity": {
+    "title": "Activitate recentă",
+    "provider": {
+      "completed_project": {
+        "title": "Proiect finalizat cu succes",
+        "meta": "Website E-commerce • Acum 2 ore"
+      },
+      "new_request": {
+        "title": "Cerere nouă de proiect",
+        "meta": "Aplicație mobile • Acum 5 ore"
+      },
+      "new_review": {
+        "title": "Recenzie nouă primită",
+        "meta": "5 stele de la Maria P. • Ieri"
+      }
+    },
+    "client": {
+      "project_accepted": {
+        "title": "Prestatorul a acceptat proiectul",
+        "meta": "Website React • Acum 1 oră"
+      },
+      "budget_proposal": {
+        "title": "Propunere de buget primită",
+        "meta": "3,200 RON pentru Logo Design • Acum 3 ore"
+      },
+      "new_project": {
+        "title": "Proiect nou postat",
+        "meta": "Aplicație mobile • Ieri"
+      }
+    }
+  },
+  "filters": {
+    "search_placeholder": "Caută proiecte după titlu sau descriere...",
+    "active": "Filtre active:",
+    "search_label": "Căutare: {term}",
+    "status_label": "Status: {status}",
+    "sort_label": "Sortare: {label} ({order})",
+    "sort_order": {
+      "asc": "Crescător",
+      "desc": "Descrescător"
+    },
+    "reset_all": "Resetează toate",
+    "status": {
+      "all": "Toate statusurile",
+      "pending_responses": "Așteaptă răspunsuri",
+      "in_progress": "În progres",
+      "completed": "Finalizate",
+      "cancelled": "Anulate",
+      "pending": "În așteptare",
+      "accepted": "Acceptate",
+      "rejected": "Respinse",
+      "budget_proposed": "Buget propus"
+    },
+    "sort": {
+      "newest": "Cele mai noi",
+      "oldest": "Cele mai vechi",
+      "budget": "Buget",
+      "title": "Titlu"
+    }
+  },
+  "pagination": {
+    "showing": "Afișând {start} - {end} din {total} proiecte",
+    "previous": "Anterior",
+    "next": "Următor"
+  },
+  "projects": {
+    "title": {
+      "provider": "Cereri de proiecte",
+      "client": "Proiectele mele"
+    },
+    "found": "{count} proiecte găsite",
+    "new_project": "Proiect nou",
+    "empty": {
+      "title": {
+        "provider": "Nu ai cereri de proiecte",
+        "client": "Nu ai proiecte create"
+      },
+      "description": {
+        "provider": "Când clienții vor crea proiecte și te vor selecta, le vei vedea aici",
+        "client": "Creează primul tău proiect pentru a începe colaborarea cu prestatorii"
+      },
+      "cta": "Creează primul proiect"
+    }
+  },
+  "services": {
+    "title": {
+      "provider": "Serviciile mele",
+      "client": "Servicii favorite"
+    },
+    "description": {
+      "provider": "Gestionează serviciile pe care le oferi",
+      "client": "Serviciile pe care le urmărești"
+    },
+    "empty": {
+      "title": {
+        "provider": "Nu oferi încă servicii",
+        "client": "Nu ai servicii favorite"
+      },
+      "description": {
+        "provider": "Adaugă servicii pentru a începe să primești comenzi",
+        "client": "Salvează serviciile care te interesează pentru acces rapid"
+      },
+      "cta": "Adaugă primul serviciu"
+    }
+  },
+  "messages": {
+    "title": "Mesaje",
+    "description": "Conversațiile tale cu clienții și prestatorii",
+    "empty": {
+      "title": "Nu ai mesaje",
+      "description": "Conversațiile tale vor apărea aici"
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Setări profil"
+    },
+    "notifications": {
+      "title": "Setări notificări",
+      "email": {
+        "title": "Notificări email",
+        "description": "Primește notificări prin email"
+      },
+      "push": {
+        "title": "Notificări push",
+        "description": "Notificări în browser"
+      }
+    },
+    "security": {
+      "title": "Securitate cont",
+      "change_password": "Schimbă parola",
+      "two_factor": "Autentificare cu 2 factori",
+      "language_preferences": "Preferințe limbă"
+    },
+    "billing": {
+      "title": "Facturare",
+      "payment_methods": "Metode de plată",
+      "invoices": "Istoric facturi"
+    }
+  },
+  "actions": {
+    "edit": "Editează"
+  },
+  "payments": {
+    "loading_session": "Se încarcă sesiunea de plată...",
+    "processing": "Se procesează...",
+    "pay": "Plătește",
+    "processing_error": "Eroare la plată: {message}",
+    "generic_error": "Eroare la procesarea plății",
+    "success_redirect": "Plata a fost efectuată cu succes! Redirecționare...",
+    "error_with_message": "Eroare la plată: {message}",
+    "title": "Finalizează plata",
+    "description": "Introdu detaliile cardului pentru a confirma plata în siguranță."
+  },
+  "stripe": {
+    "verifying": "Se verifică contul Stripe...",
+    "incomplete": {
+      "title": "Contul nu este încă verificat complet.",
+      "description": "Te rugăm să finalizezi toți pașii din onboarding Stripe.",
+      "cta": "Înapoi la dashboard"
+    },
+    "verified": {
+      "title": "Contul tău Stripe a fost verificat!",
+      "redirect": "Redirectare către dashboard..."
+    }
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "hero": {
+    "badge": "📚 Centrul de Ajutor",
+    "title": "Răspunsuri rapide pentru <highlight>încrederea ta</highlight>",
+    "description": "Găsește soluții, ghiduri și contactează echipa noastră atunci când ai nevoie de suport dedicat.",
+    "search_placeholder": "Caută în întrebări frecvente...",
+    "tags": {
+      "live_support": "Suport live",
+      "guided_resources": "Resurse ghidate",
+      "updated_faq": "FAQ actualizat"
+    }
+  },
+  "support": {
+    "eyebrow": "Suport imediat",
+    "title": "Alege canalul care îți oferă răspunsul perfect",
+    "description": "Echipa Trustora este pregătită să te ghideze pas cu pas.",
+    "options": {
+      "chat": {
+        "title": "Chat live",
+        "description": "Vorbește direct cu echipa noastră de suport",
+        "availability": "Luni-Vineri, 9:00-18:00",
+        "action": "Începe chat"
+      },
+      "phone": {
+        "title": "Suport telefonic",
+        "description": "Sună-ne pentru asistență imediată",
+        "availability": "+40 123 456 789",
+        "action": "Sună acum"
+      },
+      "email": {
+        "title": "Suport email",
+        "description": "Trimite-ne un email detaliat",
+        "availability": "Răspuns în 2-4 ore",
+        "action": "Trimite email"
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "Întrebări frecvente",
+    "title": "Tot ce trebuie să știi despre Trustora",
+    "description": "Răspunsuri rapide, actualizate și ușor de parcurs.",
+    "categories": {
+      "general": {
+        "title": "Întrebări generale",
+        "items": [
+          {
+            "question": "Ce este Trustora și cum funcționează?",
+            "answer": "Trustora este o platformă românească care conectează clienții cu experți IT verificați. Poți căuta servicii, compara oferte și colabora direct cu furnizorii prin platforma noastră securizată."
+          },
+          {
+            "question": "Este gratuit să folosesc Trustora?",
+            "answer": "Da, înregistrarea și căutarea serviciilor sunt complet gratuite. Plătești doar pentru serviciile pe care le comanzi, fără taxe ascunse."
+          },
+          {
+            "question": "Cum sunt verificați experții de pe platformă?",
+            "answer": "Toți furnizorii trec printr-un proces riguros de verificare care include validarea identității, portofoliului, referințelor și competențelor tehnice."
+          },
+          {
+            "question": "În cât timp primesc oferte pentru proiectul meu?",
+            "answer": "De obicei, primești primele oferte în câteva ore după publicarea proiectului. Majoritatea clienților primesc 3-5 oferte în prima zi."
+          }
+        ]
+      },
+      "payments": {
+        "title": "Plăți și facturare",
+        "items": [
+          {
+            "question": "Ce metode de plată acceptați?",
+            "answer": "Acceptăm carduri de credit/debit (Visa, Mastercard), transfer bancar și plăți prin PayPal. Toate tranzacțiile sunt securizate SSL."
+          },
+          {
+            "question": "Când se efectuează plata către furnizor?",
+            "answer": "Plata se face în etape (milestones) stabilite în contract. Banii sunt eliberați către furnizor doar după confirmarea ta că etapa a fost finalizată satisfăcător."
+          },
+          {
+            "question": "Pot primi factură pentru serviciile comandate?",
+            "answer": "Da, toți furnizorii înregistrați ca PFA sau SRL pot emite facturi. Specifică această cerință când postezi proiectul."
+          },
+          {
+            "question": "Ce se întâmplă dacă nu sunt mulțumit de rezultat?",
+            "answer": "Avem o politică de protecție a clientului. Dacă serviciul nu corespunde specificațiilor, poți solicita revizuiri gratuite sau rambursarea banilor."
+          }
+        ]
+      },
+      "projects": {
+        "title": "Gestionarea proiectelor",
+        "items": [
+          {
+            "question": "Cum postez un proiect nou?",
+            "answer": "Apasă pe \"Postează Proiect\", completează detaliile (descriere, buget, deadline) și publică. Vei primi oferte de la experți interesați în câteva ore."
+          },
+          {
+            "question": "Pot modifica proiectul după ce l-am publicat?",
+            "answer": "Da, poți edita descrierea, bugetul și alte detalii până când accepți o ofertă. După aceea, modificările se fac prin acordul ambelor părți."
+          },
+          {
+            "question": "Cum comunic cu furnizorii?",
+            "answer": "Toată comunicarea se face prin sistemul de mesagerie integrat al platformei, care păstrează istoricul conversațiilor și fișierelor partajate."
+          },
+          {
+            "question": "Pot lucra cu același furnizor pentru mai multe proiecte?",
+            "answer": "Absolut! Poți invita direct furnizorii cu care ai colaborat anterior la proiecte noi, fără să mai postezi public."
+          }
+        ]
+      },
+      "security": {
+        "title": "Siguranță și confidențialitate",
+        "items": [
+          {
+            "question": "Cât de sigure sunt datele mele pe platformă?",
+            "answer": "Folosim criptare SSL de nivel bancar și respectăm GDPR. Datele tale sunt stocate securizat și nu sunt partajate cu terțe părți fără acordul tău."
+          },
+          {
+            "question": "Cum protejez proprietatea intelectuală a proiectului?",
+            "answer": "Recomandăm semnarea unui NDA (acord de confidențialitate) înainte de a împărtăși detalii sensibile. Oferim template-uri gratuite."
+          },
+          {
+            "question": "Ce fac dacă suspectez o activitate frauduloasă?",
+            "answer": "Raportează imediat echipei noastre prin sistemul de raportare. Investigăm toate cazurile în 24 de ore și luăm măsuri corespunzătoare."
+          }
+        ]
+      }
+    }
+  },
+  "resources": {
+    "eyebrow": "Resurse utile",
+    "title": "Instrumente care te ajută să fii în control",
+    "description": "Ghiduri, tutoriale și template-uri pregătite de echipa Trustora.",
+    "items": [
+      {
+        "title": "Ghid pentru începători",
+        "description": "Învață să folosești Trustora pas cu pas",
+        "type": "Ghid PDF"
+      },
+      {
+        "title": "Video tutoriale",
+        "description": "Tutoriale video pentru toate funcționalitățile",
+        "type": "Serie video"
+      },
+      {
+        "title": "Template-uri de contracte",
+        "description": "Modele de contracte și NDA-uri",
+        "type": "Descărcări"
+      },
+      {
+        "title": "Best practices",
+        "description": "Sfaturi pentru proiecte de succes",
+        "type": "Articol"
+      }
+    ]
+  },
+  "contact": {
+    "eyebrow": "Contactează-ne",
+    "title": "Nu ai găsit răspunsul?",
+    "description": "Trimite-ne o întrebare și îți răspundem în cel mai scurt timp.",
+    "form": {
+      "title": "Contactează suportul",
+      "description": "Completează formularul de mai jos și te vom contacta în maxim 2 ore.",
+      "fields": {
+        "name": {
+          "label": "Nume",
+          "placeholder": "Numele tău"
+        },
+        "email": {
+          "label": "Email",
+          "placeholder": "email@exemplu.ro"
+        },
+        "subject": {
+          "label": "Subiect",
+          "placeholder": "Despre ce vrei să vorbești?"
+        },
+        "message": {
+          "label": "Mesaj",
+          "placeholder": "Descrie problema ta în detaliu..."
+        }
+      },
+      "submit": "Trimite mesajul"
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "hero": {
+    "badge": "📞 Contact us",
+    "title": "We're here to <highlight>help you</highlight>",
+    "description": "Have a question, a suggestion, or want to collaborate with us? The Trustora team is ready to respond and support you."
+  },
+  "info": {
+    "email": {
+      "title": "Email",
+      "primary": "contact@Trustora.ro",
+      "secondary": "support@Trustora.ro",
+      "description": "We respond within 2 hours"
+    },
+    "phone": {
+      "title": "Phone",
+      "primary": "+40 123 456 789",
+      "secondary": "+40 987 654 321",
+      "description": "Mon-Fri, 9:00-18:00"
+    },
+    "address": {
+      "title": "Address",
+      "primary": "Example Street 123",
+      "secondary": "Bucharest, Romania, 010101",
+      "description": "Visit by appointment"
+    },
+    "hours": {
+      "title": "Hours",
+      "primary": "Mon - Fri: 9:00 - 18:00",
+      "secondary": "Saturday: 10:00 - 14:00",
+      "description": "Sunday closed"
+    }
+  },
+  "form": {
+    "eyebrow": "Contact form",
+    "title": "Send us a message",
+    "fields": {
+      "name": {
+        "label": "Name *",
+        "placeholder": "Your full name"
+      },
+      "email": {
+        "label": "Email *",
+        "placeholder": "email@example.com"
+      },
+      "phone": {
+        "label": "Phone",
+        "placeholder": "+40 123 456 789"
+      },
+      "company": {
+        "label": "Company",
+        "placeholder": "Company name"
+      },
+      "subject": {
+        "label": "Subject *",
+        "placeholder": "What would you like to discuss?"
+      },
+      "message": {
+        "label": "Message *",
+        "placeholder": "Describe your request in detail..."
+      }
+    },
+    "privacy": {
+      "consent": "I agree to the",
+      "link": "Privacy Policy"
+    },
+    "submit": "Send message"
+  },
+  "quick": {
+    "eyebrow": "Quick contact",
+    "title": "Quick contact",
+    "chat": {
+      "title": "Live chat",
+      "description": "Speak directly with our support team",
+      "status": "● Online now",
+      "response_time": "Average response time: 2 minutes",
+      "cta": "Start chat"
+    }
+  },
+  "departments": {
+    "title": "Specialized departments",
+    "support": {
+      "title": "Customer support",
+      "email": "support@Trustora.ro",
+      "description": "Questions about services and projects"
+    },
+    "partnerships": {
+      "title": "Partnerships",
+      "email": "partnerships@Trustora.ro",
+      "description": "Collaborations and business opportunities"
+    },
+    "press": {
+      "title": "Press & media",
+      "email": "press@Trustora.ro",
+      "description": "Information for journalists and media"
+    },
+    "technical": {
+      "title": "Technical support",
+      "email": "technical@Trustora.ro",
+      "description": "Technical issues and bugs"
+    }
+  },
+  "offices": {
+    "title": "Our offices",
+    "subtitle": "We are present in Romania's major cities",
+    "primary": "Headquarters",
+    "bucharest": {
+      "city": "Bucharest",
+      "address": "Example Street 123, Sector 1",
+      "phone": "+40 123 456 789",
+      "email": "bucharest@Trustora.ro"
+    },
+    "cluj": {
+      "city": "Cluj-Napoca",
+      "address": "Demo Street 45, Downtown",
+      "phone": "+40 234 567 890",
+      "email": "cluj@Trustora.ro"
+    },
+    "timisoara": {
+      "city": "Timisoara",
+      "address": "Test Boulevard 67",
+      "phone": "+40 345 678 901",
+      "email": "timisoara@Trustora.ro"
+    }
+  },
+  "map": {
+    "title": "Our location",
+    "subtitle": "Come meet us at our Bucharest office",
+    "placeholder": {
+      "title": "Interactive map",
+      "address": "Example Street 123, Bucharest"
+    }
+  },
+  "cta": {
+    "title": "Ready to start your project?",
+    "description": "Don't wait! Contact us today and let's turn your idea into reality.",
+    "primary": "Start a project",
+    "secondary": "Schedule a meeting"
+  }
+}

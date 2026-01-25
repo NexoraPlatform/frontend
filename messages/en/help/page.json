@@ -1,0 +1,180 @@
+{
+  "hero": {
+    "badge": "📚 Help Center",
+    "title": "Quick answers you can <highlight>trust</highlight>",
+    "description": "Find solutions, guides, and reach our team whenever you need dedicated support.",
+    "search_placeholder": "Search the FAQs...",
+    "tags": {
+      "live_support": "Live support",
+      "guided_resources": "Guided resources",
+      "updated_faq": "Updated FAQ"
+    }
+  },
+  "support": {
+    "eyebrow": "Instant support",
+    "title": "Choose the channel that fits your needs",
+    "description": "The Trustora team is ready to guide you step by step.",
+    "options": {
+      "chat": {
+        "title": "Live chat",
+        "description": "Speak directly with our support team",
+        "availability": "Mon-Fri, 9:00-18:00",
+        "action": "Start chat"
+      },
+      "phone": {
+        "title": "Phone support",
+        "description": "Call us for immediate assistance",
+        "availability": "+40 123 456 789",
+        "action": "Call now"
+      },
+      "email": {
+        "title": "Email support",
+        "description": "Send us a detailed email",
+        "availability": "Response in 2-4 hours",
+        "action": "Send email"
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "Frequently asked questions",
+    "title": "Everything you need to know about Trustora",
+    "description": "Quick, updated, and easy-to-scan answers.",
+    "categories": {
+      "general": {
+        "title": "General questions",
+        "items": [
+          {
+            "question": "What is Trustora and how does it work?",
+            "answer": "Trustora is a Romanian platform that connects clients with vetted IT experts. You can search services, compare offers, and collaborate directly through our secure platform."
+          },
+          {
+            "question": "Is Trustora free to use?",
+            "answer": "Yes, signing up and browsing services are completely free. You only pay for the services you order, with no hidden fees."
+          },
+          {
+            "question": "How are experts verified on the platform?",
+            "answer": "All providers go through a rigorous verification process including identity, portfolio, references, and technical skills validation."
+          },
+          {
+            "question": "How quickly will I receive offers for my project?",
+            "answer": "Typically, you'll receive your first offers within a few hours after publishing. Most clients get 3-5 offers on the first day."
+          }
+        ]
+      },
+      "payments": {
+        "title": "Payments & billing",
+        "items": [
+          {
+            "question": "What payment methods do you accept?",
+            "answer": "We accept credit/debit cards (Visa, Mastercard), bank transfer, and PayPal. All transactions are secured via SSL."
+          },
+          {
+            "question": "When is the provider paid?",
+            "answer": "Payment is released in milestones set in the contract. Funds are released only after you confirm each stage is completed satisfactorily."
+          },
+          {
+            "question": "Can I receive an invoice for ordered services?",
+            "answer": "Yes. All providers registered as sole proprietors or companies can issue invoices. Specify this requirement when posting your project."
+          },
+          {
+            "question": "What happens if I'm not satisfied with the result?",
+            "answer": "We offer client protection. If the service doesn't meet specifications, you can request free revisions or a refund."
+          }
+        ]
+      },
+      "projects": {
+        "title": "Project management",
+        "items": [
+          {
+            "question": "How do I post a new project?",
+            "answer": "Click \"Post Project\", fill in the details (description, budget, deadline), and publish. You'll receive offers from interested experts within hours."
+          },
+          {
+            "question": "Can I modify a project after publishing it?",
+            "answer": "Yes, you can edit the description, budget, and other details until you accept an offer. After that, changes require agreement from both parties."
+          },
+          {
+            "question": "How do I communicate with providers?",
+            "answer": "All communication happens through the platform's built-in messaging system, which keeps a history of conversations and shared files."
+          },
+          {
+            "question": "Can I work with the same provider on multiple projects?",
+            "answer": "Absolutely! You can directly invite providers you've worked with before to new projects without posting publicly."
+          }
+        ]
+      },
+      "security": {
+        "title": "Security & privacy",
+        "items": [
+          {
+            "question": "How secure is my data on the platform?",
+            "answer": "We use bank-level SSL encryption and comply with GDPR. Your data is stored securely and not shared with third parties without your consent."
+          },
+          {
+            "question": "How do I protect the intellectual property of my project?",
+            "answer": "We recommend signing an NDA before sharing sensitive details. We provide free templates."
+          },
+          {
+            "question": "What should I do if I suspect fraudulent activity?",
+            "answer": "Report it immediately via our reporting system. We investigate all cases within 24 hours and take appropriate action."
+          }
+        ]
+      }
+    }
+  },
+  "resources": {
+    "eyebrow": "Helpful resources",
+    "title": "Tools that keep you in control",
+    "description": "Guides, tutorials, and templates curated by the Trustora team.",
+    "items": [
+      {
+        "title": "Beginner guide",
+        "description": "Learn how to use Trustora step by step",
+        "type": "PDF guide"
+      },
+      {
+        "title": "Video tutorials",
+        "description": "Video walkthroughs for all features",
+        "type": "Video series"
+      },
+      {
+        "title": "Contract templates",
+        "description": "Contract and NDA templates",
+        "type": "Downloads"
+      },
+      {
+        "title": "Best practices",
+        "description": "Tips for successful projects",
+        "type": "Article"
+      }
+    ]
+  },
+  "contact": {
+    "eyebrow": "Contact us",
+    "title": "Didn't find the answer?",
+    "description": "Send us a question and we'll reply as soon as possible.",
+    "form": {
+      "title": "Contact support",
+      "description": "Fill in the form below and we'll reach out within 2 hours.",
+      "fields": {
+        "name": {
+          "label": "Name",
+          "placeholder": "Your name"
+        },
+        "email": {
+          "label": "Email",
+          "placeholder": "email@example.com"
+        },
+        "subject": {
+          "label": "Subject",
+          "placeholder": "What would you like to discuss?"
+        },
+        "message": {
+          "label": "Message",
+          "placeholder": "Describe your issue in detail..."
+        }
+      },
+      "submit": "Send message"
+    }
+  }
+}

@@ -9,40 +9,17 @@ import {AlertCircle} from "lucide-react";
 import {Footer} from "@/components/footer";
 import { Card, CardContent } from '@/components/ui/card';
 import {formatDistanceToNow} from "date-fns";
-import {ro} from "date-fns/locale";
+import {enUS, ro} from "date-fns/locale";
 import {Badge} from "@/components/ui/badge";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { formatDeadline } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
+import { getTranslations } from 'next-intl/server';
 
-import type {Metadata} from "next";
-import {generateSEO} from "@/lib/seo";
-
-type ProjectDetailPageProps = {
-    params: {
-        id: string;
-    }
-}
-
-export async function generateMetadata({ params }: ProjectDetailPageProps): Promise<Metadata> {
-    const { id } = params;
-    let projectTitle: string | undefined
-
-    try {
-        projectTitle = await apiClient.getProjectNameByProjectUrl(id)
-    } catch {
-    }
-
-    return generateSEO({
-        title: projectTitle ? `${projectTitle} | Proiect Detaliat` : 'Proiect Detaliat',
-        description: projectTitle
-            ? `Vezi detalii despre ${projectTitle}, inclusiv servicii oferite și evaluări.`
-            : 'Vezi detalii despre proiectul selectat, inclusiv informații despre prestatori și tehnologii utilizate.',
-        url: `/projects/${id}`,
-    })
-}
 
 export default async function ProjectDetailClient({ id, locale }: {  id: string; locale: Locale; }) {
+    const t = await getTranslations({ locale });
+    const dateLocale = locale === 'en' ? enUS : ro;
     const project = await apiClient.getProjectBySlug(id);
 
     if (!project) {
@@ -53,7 +30,7 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                 <div className="container mx-auto px-4 py-20">
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{'Proiectul nu a fost găsit'}</AlertDescription>
+                        <AlertDescription>{t('projects.detail.not_found')}</AlertDescription>
                     </Alert>
                 </div>
                 <Footer />
@@ -69,13 +46,13 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                 <section className="px-6 pb-10 hero-gradient">
                     <div className="max-w-6xl mx-auto">
                         <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                            <span className="text-[#1BC47D]">●</span> Detalii proiect
+                            <span className="text-[#1BC47D]">●</span> {t('projects.detail.badge')}
                         </Badge>
                         <h1 className="text-3xl lg:text-4xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
                             {project.title.replace(/^Proiect(\s+)/i, "")}
                         </h1>
                         <p className="mt-3 text-base text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
-                            {project.description || "Nu există o descriere pentru acest proiect."}
+                            {project.description || t('projects.detail.description_fallback')}
                         </p>
                     </div>
                 </section>
@@ -87,33 +64,45 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                 <CardContent className="p-8">
                                     <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                         <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
-                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Adaugat</div>
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.added')}
+                                            </div>
                                             <div className="text-2xl font-bold text-[#1BC47D]">
                                                 {formatDistanceToNow(new Date(project.created_at), {
                                                     addSuffix: true,
-                                                    locale: ro
+                                                    locale: dateLocale
                                                 })}
                                             </div>
                                         </div>
 
                                         <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
-                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Durata proiect</div>
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.duration')}
+                                            </div>
                                             <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
                                                 {formatDeadline(project.project_duration, locale)}
                                             </div>
                                         </div>
 
                                         <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
-                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Status proiect</div>
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.status')}
+                                            </div>
                                             <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                {project.completedAt ? 'Finalizat' : 'Nefinalizat' }
+                                                {project.completedAt
+                                                    ? t('projects.detail.status.completed')
+                                                    : t('projects.detail.status.incomplete')}
                                             </div>
                                         </div>
 
                                         <div className="text-center p-4 bg-white/80 border border-slate-100 rounded-lg dark:bg-[#0F172A] dark:border-[#1E2A3D]">
-                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">Prestatori selectati</div>
+                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                {t('projects.detail.stats.selected_providers')}
+                                            </div>
                                             <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                {project.selected_providers.length > 0 ? project.selected_providers.length : 'N/A'}
+                                                {project.selected_providers.length > 0
+                                                    ? project.selected_providers.length
+                                                    : t('projects.detail.stats.not_available')}
                                             </div>
                                         </div>
                                     </div>
@@ -122,7 +111,7 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                         || project?.custom_services?.length > 0) && (
                                         <div className="my-6">
                                             <div className="text-sm font-medium mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                Tehnologii Proiect:
+                                                {t('projects.detail.technologies')}
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {project.existing_services.map((tech: any, index: number) => (
@@ -137,7 +126,7 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                     {project?.recommended_team?.length > 0 && (
                                         <div className="my-6">
                                             <div className="text-sm font-medium mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                Structura recomandata de echipa:
+                                                {t('projects.detail.team_structure')}
                                             </div>
                                             <ul className="list-disc flex flex-wrap" style={{ gap: '1.6rem' }}>
                                                 {project?.recommended_team?.map((team: any, index: number) => (
@@ -145,16 +134,17 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                                         key={index}
                                                         className="text-sm font-medium basis-[16.66%] min-w-[150px]"
                                                     >
-                                                        Serviciu: <span className="text-emerald-green">{team.service}</span>
+                                                        {t('projects.detail.team.service')}{' '}
+                                                        <span className="text-emerald-green">{team.service}</span>
                                                         <ul className="list-disc pl-5 space-y-2">
                                                             <li className="text-slate-500 dark:text-[#A3ADC2]">
-                                                                <span className="font-normal">Rol:</span> {team.role}
+                                                                <span className="font-normal">{t('projects.detail.team.role')}</span> {team.role}
                                                             </li>
                                                             <li className="text-slate-500 dark:text-[#A3ADC2]">
-                                                                <span className="font-normal">Nivel de experiență:</span> {team.experience_level}
+                                                                <span className="font-normal">{t('projects.detail.team.experience')}</span> {team.experience_level}
                                                             </li>
                                                             <li className="text-slate-500 dark:text-[#A3ADC2]">
-                                                                <span className="font-normal">Număr de prestatori:</span> {team.count}
+                                                                <span className="font-normal">{t('projects.detail.team.count')}</span> {team.count}
                                                             </li>
                                                         </ul>
                                                     </li>

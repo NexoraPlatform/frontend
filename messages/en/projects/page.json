@@ -1,0 +1,321 @@
+{
+  "list": {
+    "filters": {
+      "all": "All",
+      "search_placeholder": "Search projects...",
+      "category_label": "Category",
+      "category_search_placeholder": "Search...",
+      "technologies_label": "Technologies",
+      "technologies_selected": "{count} selected",
+      "technologies_search_placeholder": "Search...",
+      "budget_label": "Budget",
+      "budget_presets": {
+        "all": "All",
+        "range1": "500 - 2,000 lei",
+        "range2": "2,000 - 5,000 lei",
+        "range3": "5,000 - 10,000 lei",
+        "range4": "10,000+ lei"
+      },
+      "active_filters": "{count} active filters"
+    },
+    "hero": {
+      "badge": "Trustora projects",
+      "title": "Projects",
+      "description": "Find projects that match you and bid on the ones that interest you, in a safe and verified ecosystem."
+    },
+    "empty": "No projects matched your filters",
+    "card": {
+      "recommended": "Recommended",
+      "budget": "Budget",
+      "fixed": "Fixed project",
+      "hourly": "Hourly",
+      "deadline": "Deadline",
+      "offers": "Offers received",
+      "posted": "Posted",
+      "more_technologies": "+{count} more",
+      "details_button": "Details"
+    }
+  },
+  "provider_card": {
+    "avatar_alt": "Provider image {firstName} {lastName}",
+    "location_fallback": "Romania"
+  },
+  "detail": {
+    "not_found": "Project not found",
+    "badge": "Project details",
+    "description_fallback": "There is no description for this project.",
+    "stats": {
+      "added": "Added",
+      "duration": "Project duration",
+      "status": "Project status",
+      "selected_providers": "Selected providers",
+      "not_available": "N/A"
+    },
+    "status": {
+      "completed": "Completed",
+      "incomplete": "Incomplete"
+    },
+    "technologies": "Project technologies:",
+    "team_structure": "Recommended team structure:",
+    "team": {
+      "service": "Service:",
+      "role": "Role:",
+      "experience": "Experience level:",
+      "count": "Number of providers:"
+    },
+    "metadata": {
+      "title": "Project details",
+      "title_with_project": "{title} | Project details",
+      "description": "See details about the selected project, including providers and used technologies.",
+      "description_with_project": "See details about {title}, including offered services and reviews."
+    }
+  },
+  "new": {
+    "hero": {
+      "badge": "New project",
+      "title": "Add new project",
+      "description": "Describe your project and receive offers from top providers."
+    },
+    "tabs": {
+      "details": "Project details",
+      "providers": "Suggested providers",
+      "review": "Review & submit"
+    },
+    "sections": {
+      "general_info": "General information"
+    },
+    "fields": {
+      "title": "Project title",
+      "title_placeholder": "e.g. Modern website for my business",
+      "description": "Detailed description",
+      "description_placeholder": "Describe what you want to build, your goals, and expectations...",
+      "requirements": "Specific requirements",
+      "requirements_placeholder": "Technical requirements, specific features, required integrations..."
+    },
+    "technologies": {
+      "title": "Services & technologies",
+      "description": "Select the services needed for your project",
+      "selected": "Selected services ({count})",
+      "add_custom": "Add custom technology",
+      "add_custom_placeholder": "e.g. GraphQL, Redis, etc."
+    },
+    "ai_loading": {
+      "analyzing": "Analyzing information...",
+      "generating": "Generating information...",
+      "verifying": "Verifying data...",
+      "finalizing": "Finalizing..."
+    },
+    "errors": {
+      "title_required": "Title is required",
+      "description_required": "Description is required",
+      "budget_required": "Budget is required",
+      "budget_type_required": "Budget type is required",
+      "deadline_required": "Project duration is required",
+      "technologies_required": "Select at least one technology",
+      "milestones_required": "Add at least one milestone for each provider",
+      "milestones_incomplete": "Complete the title and budget for each milestone",
+      "milestone_total": "Milestones total must match the overall budget",
+      "milestone_budget": "Milestone budgets must match each provider's allocated budget",
+      "providers_load": "Couldn't load suggested providers",
+      "complete_required": "Complete the required fields before submitting the project.",
+      "select_provider": "Select at least one provider before submitting the project",
+      "budget_allocation": "Allocated budget must match the project budget",
+      "create_project": "There was an error creating the project"
+    },
+    "providers": {
+      "location_fallback": "Romania",
+      "title": "Suggested providers",
+      "subtitle": "Choose providers to invite for your project.",
+      "count": "{count} providers • Page {currentPage} of {totalPages}",
+      "no_suggestions": "No suggestions available yet.",
+      "loading": "Loading suggested providers...",
+      "empty_title": "No providers found",
+      "empty_description": "Try adjusting your filters or check back later.",
+      "search_placeholder": "Search providers...",
+      "filters": {
+        "services": "Services",
+        "services_count": "{count} services",
+        "services_label": "Filter by services",
+        "no_services": "No services available",
+        "reset": "Reset",
+        "levels": "Levels",
+        "levels_count": "{count} levels",
+        "levels_label": "Filter by level",
+        "reset_levels": "Reset levels",
+        "active": "Active filters",
+        "reset_all": "Reset all",
+        "reset_filters": "Reset filters"
+      },
+      "none_title": "No providers on this page",
+      "none_description": "No providers matched your filters.",
+      "none_page": "Try another page or reset filters.",
+      "level_default": "Intermediate",
+      "match_score": "Match {score}%",
+      "verified": "Verified",
+      "reviews": "{count} reviews",
+      "response_time": "Responds in {time} {unit}",
+      "hour_singular": "hour",
+      "hour_plural": "hours",
+      "why_fit": "Why they fit",
+      "active": "Active",
+      "profile": "Profile",
+      "message": "Message",
+      "pagination": "{start}-{end} of {total} providers",
+      "selected_count": "{count} providers selected",
+      "selected_message": "The project will be sent to the selected providers and you will receive offers soon."
+    },
+    "notifications": {
+      "new_project_title": "🚀 New project available!",
+      "new_project_message": "A client is looking for services for: {title}. Budget: {budget} RON"
+    },
+    "budget_types": {
+      "fixed": "Fixed project price",
+      "hourly": "Hourly rate",
+      "milestone": "Milestone payment"
+    },
+    "availability": {
+      "available": "Available",
+      "busy": "Busy",
+      "unavailable": "Unavailable",
+      "unknown": "Unknown"
+    },
+    "github": {
+      "title": "GitHub repo",
+      "description": "Connect a repository if your selected services require one.",
+      "connect_label": "Connect your GitHub account",
+      "connect_description": "Required to collaborate on project repositories.",
+      "repository_title": "Project repository",
+      "platform_repo": "Platform-hosted repository",
+      "provider_repo": "Provider-owned repository",
+      "client_repo": "Client-owned repository",
+      "connect_first": "Connect GitHub first to continue."
+    },
+    "budget": {
+      "title": "Budget",
+      "type_label": "Budget type",
+      "fixed_label": "Fixed price",
+      "hourly_label": "Hourly rate",
+      "amount_label": "Budget amount {suffix}",
+      "hourly_suffix": "(per hour)",
+      "fixed_suffix": "(total)",
+      "hourly_placeholder": "e.g. 200",
+      "fixed_placeholder": "e.g. 8,000"
+    },
+    "deadline": {
+      "label": "Project duration",
+      "placeholder": "Select duration",
+      "options": {
+        "one_day": "1 day",
+        "one_week": "1 week",
+        "two_weeks": "2 weeks",
+        "three_weeks": "3 weeks",
+        "one_month": "1 month",
+        "three_months": "3 months",
+        "six_months": "6 months",
+        "one_year": "1 year",
+        "one_plus_year": "1+ years"
+      }
+    },
+    "ai": {
+      "title": "AI assistance",
+      "description": "Use AI to refine your project details and recommendations.",
+      "suggested": "Suggested updates",
+      "fields": {
+        "title": "Title:",
+        "description": "Description:",
+        "technologies": "Technologies:",
+        "team_structure": "Team structure:",
+        "role": "Role:",
+        "level": "Level:",
+        "estimated": "estimated",
+        "deadline": "Deadline:",
+        "estimated_budget": "Estimated budget:",
+        "payment_plan": "Payment plan:",
+        "unspecified": "Unspecified",
+        "milestones": "Milestones:",
+        "note": "Note:"
+      },
+      "actions": {
+        "use_title": "Use title",
+        "use_description": "Use description",
+        "use_technologies": "Use technologies",
+        "add_additional_services": "Add additional services",
+        "use_deadline": "Use deadline",
+        "use_budget": "Use budget",
+        "use_milestones": "Use milestones",
+        "improve_description": "Improve description"
+      },
+      "people": {
+        "singular": "person",
+        "plural": "people"
+      },
+      "additional_services_label": "Suggested additional services:",
+      "milestone_count": " • {count} milestones",
+      "milestone_item": "{title} - {amount} {currency}"
+    },
+    "actions": {
+      "continue_to_providers": "Continue to providers",
+      "back_to_details": "Back to details",
+      "review_final": "Final review",
+      "back_to_providers": "Back to providers",
+      "submitting": "Submitting...",
+      "submit_project": "Submit project"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "review": {
+      "title": "Project review",
+      "subtitle": "Review all details before submitting the project",
+      "details_title": "Project details",
+      "labels": {
+        "title": "Title:",
+        "category": "Category:",
+        "budget": "Budget:",
+        "platform_fee": "Platform fee:",
+        "total": "Total:",
+        "deadline": "Deadline:"
+      },
+      "technologies_title": "Technologies ({count})",
+      "selected_providers_title": "Selected providers ({count})",
+      "split_evenly": "Split evenly",
+      "budget_summary": {
+        "total": "Total budget",
+        "allocated": "Allocated",
+        "remaining": "Remaining"
+      },
+      "budget_remaining_positive": "You still have {amount} {currency} to allocate",
+      "budget_remaining_negative": "You have exceeded the budget by {amount} {currency}",
+      "milestones": {
+        "title": "Milestones per provider",
+        "description": "Add milestones after selecting providers for projects longer than a month.",
+        "apply_ai": "Apply AI milestones",
+        "provider_fallback": "Provider #{id}",
+        "add": "Add milestone",
+        "empty": "There are no milestones yet for this provider.",
+        "name_label": "Milestone name",
+        "budget_label": "Milestone budget ({currency})",
+        "name_placeholder": "e.g. Discovery",
+        "budget_placeholder": "e.g. 1500",
+        "delete_aria": "Delete milestone",
+        "total_provider": "Total milestones: {amount} {currency}",
+        "summary_total": "Total milestones: {amount} {currency}",
+        "summary_difference": "Difference: {amount} {currency}"
+      },
+      "match_score": "• {score}% match",
+      "allocated_budget_label": "Allocated budget:",
+      "description_title": "Description",
+      "requirements_title": "Specific requirements"
+    },
+    "skills": {
+      "junior": "Junior",
+      "medium": "Intermediate",
+      "senior": "Senior",
+      "expert": "Expert"
+    },
+    "currency": {
+      "ron": "RON"
+    }
+  }
+}

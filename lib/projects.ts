@@ -345,13 +345,22 @@ export function formatBudgetRange({
   budget,
   budget_min,
   budget_max,
+  locale = 'ro'
 }: {
   budget?: number;
   budget_min?: number;
   budget_max?: number;
+  locale?: Locale;
 }) {
   const minValue = budget_min ?? budget;
   const maxValue = budget_max ?? budget;
+
+  const labels: Record<Locale, { from: string; to: string; unspecified: string }> = {
+    ro: { from: 'de la', to: 'până la', unspecified: 'Nespecificat' },
+    en: { from: 'from', to: 'up to', unspecified: 'Unspecified' },
+  };
+
+  const t = labels[locale] ?? labels.ro;
 
   if (minValue !== undefined && maxValue !== undefined) {
     if (minValue === maxValue) {
@@ -361,14 +370,14 @@ export function formatBudgetRange({
   }
 
   if (minValue !== undefined) {
-    return `de la ${formatCurrency(minValue)}`;
+    return `${t.from} ${formatCurrency(minValue)}`;
   }
 
   if (maxValue !== undefined) {
-    return `până la ${formatCurrency(maxValue)}`;
+    return `${t.to} ${formatCurrency(maxValue)}`;
   }
 
-  return 'Nespecificat';
+  return t.unspecified;
 }
 
 export function formatDeadline(value: string, locale: Locale = 'ro') {
@@ -400,8 +409,8 @@ export function formatDeadline(value: string, locale: Locale = 'ro') {
   return labels[locale]?.[value] ?? labels.ro[value] ?? value;
 }
 
-export function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('ro-RO', {
+export function formatDate(value: string, locale: Locale = 'ro') {
+  return new Date(value).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

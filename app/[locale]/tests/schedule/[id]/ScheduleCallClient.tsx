@@ -8,12 +8,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import Cal, { getCalApi } from "@calcom/embed-react";
 import apiClient from "@/lib/api";
+import { useTranslations } from "next-intl";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 
-export default function ScheduleCallClient({ id }: {  id: string; }) {
+export default function ScheduleCallClient({ id }: { id: string; }) {
+    const t = useTranslations('tests.schedule');
     const router = useRouter();
-    const [ service, setService ] = useState<any>(null);
+    const [service, setService] = useState<any>(null);
     const { user, loading } = useAuth();
+    const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider');
 
     useEffect(() => {
         if (!loading && !user) {
@@ -23,8 +26,8 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
 
     useEffect(() => {
         (async function () {
-            const cal = await getCalApi({"namespace":"30min"});
-            cal("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+            const cal = await getCalApi({ "namespace": "30min" });
+            cal("ui", { "hideEventTypeDetails": false, "layout": "month_view" });
         })();
     }, []);
 
@@ -47,7 +50,7 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
                 <TrustoraThemeStyles />
                 <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                    <p>Se încarcă...</p>
+                    <p>{t('loading')}</p>
                 </div>
             </div>
         );
@@ -57,10 +60,9 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
         return null;
     }
 
-    if (user.id !== service.user_id || (!service && !service.call_schedule) || service.call_schedule.date_time) {
+    if (user.id !== service?.user_id || (!service && !service?.call_schedule) || service?.call_schedule?.date_time) {
         router.push('/dashboard');
     }
-    const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider');
 
     return (
         <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
@@ -73,11 +75,11 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
                     <div className="flex items-center justify-between section-divider pb-6">
                         <div>
                             <h1 className="text-3xl font-bold mb-2">
-                                Bun venit, {user.firstName}!
+                                {t('welcome', { name: user.firstName })}
                             </h1>
                             <p className="text-muted-foreground">
                                 {isProvider
-                                    ? 'Programeaza-te pentru un call 1:1 cu un operator Trustora'
+                                    ? t('description')
                                     : ''
                                 }
                             </p>
@@ -95,12 +97,12 @@ export default function ScheduleCallClient({ id }: {  id: string; }) {
 
                 <div className="glass-card border-emerald-100/70 p-6">
                     <Cal namespace="verificare-identitate"
-                         calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&service_id=${service.service.name}`}
-                         style={{width:"100%",height:"100%",overflow:"scroll"}}
-                         config={{
-                             "layout":"month_view",
-                             "theme":"auto",
-                         }}
+                        calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&service_id=${service.service.name}`}
+                        style={{ width: "100%", height: "100%", overflow: "scroll" }}
+                        config={{
+                            "layout": "month_view",
+                            "theme": "auto",
+                        }}
                     />
                 </div>
 
