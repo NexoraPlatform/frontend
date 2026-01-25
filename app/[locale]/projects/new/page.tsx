@@ -2,7 +2,7 @@
 
 import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { usePathname, useRouter } from '@/lib/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -120,11 +120,11 @@ interface SuggestedProvider {
 }
 
 
-const aiLoadingMessages = [
-    "Se analizează informațiile...",
-    "Se generează informațiile...",
-    "Se verifică datele...",
-    "Finalizare..."
+const aiLoadingMessageKeys = [
+    'projects.new.ai_loading.analyzing',
+    'projects.new.ai_loading.generating',
+    'projects.new.ai_loading.verifying',
+    'projects.new.ai_loading.finalizing',
 ];
 
 type TechnologySelected = {
@@ -169,6 +169,8 @@ type SelectedProvider = {
 
 export default function NewProjectPage() {
     const locale = useLocale() as Locale;
+    const t = useTranslations();
+    const currencyLabel = t('projects.new.currency.ron');
     useEffect(() => {
         setDayjsLocale(locale);
     }, [locale]);
@@ -217,6 +219,10 @@ export default function NewProjectPage() {
     const [error, setError] = useState('');
     const [newTechnology, setNewTechnology] = useState('');
     const [index] = useState(0);
+    const aiLoadingMessages = useMemo(
+        () => aiLoadingMessageKeys.map((key) => t(key)),
+        [t]
+    );
     const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [providerSearchTerm, setProviderSearchTerm] = useState('');
@@ -368,12 +374,12 @@ export default function NewProjectPage() {
         })();
     }, [loading, userLoading, user, refreshUser, router, pathname, searchParams]);
 
-    const skillLevels = [
-        { value: 'JUNIOR', label: 'Junior', color: 'bg-green-100 text-green-800', icon: '🌱' },
-        { value: 'MEDIU', label: 'Mediu', color: 'bg-blue-100 text-blue-800', icon: '⚡' },
-        { value: 'SENIOR', label: 'Senior', color: 'bg-purple-100 text-purple-800', icon: '🚀' },
-        { value: 'EXPERT', label: 'Expert', color: 'bg-orange-100 text-orange-800', icon: '👑' }
-    ];
+    const skillLevels = useMemo(() => ([
+        { value: 'JUNIOR', label: t('projects.new.skills.junior'), color: 'bg-green-100 text-green-800', icon: '🌱' },
+        { value: 'MEDIU', label: t('projects.new.skills.medium'), color: 'bg-blue-100 text-blue-800', icon: '⚡' },
+        { value: 'SENIOR', label: t('projects.new.skills.senior'), color: 'bg-purple-100 text-purple-800', icon: '🚀' },
+        { value: 'EXPERT', label: t('projects.new.skills.expert'), color: 'bg-orange-100 text-orange-800', icon: '👑' }
+    ]), [t]);
 
     const markedNamesSet = useMemo(() => {
         const names = [
@@ -423,26 +429,26 @@ export default function NewProjectPage() {
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
         if (!formData.title.trim()) {
-            newErrors.title = 'Titlul este obligatoriu';
+            newErrors.title = t('projects.new.errors.title_required');
         }
         if (!formData.description.trim()) {
-            newErrors.lastName = 'Descrierea este obligatoriu';
+            newErrors.lastName = t('projects.new.errors.description_required');
         }
         // if (!formData.visibility.trim()) {
         //     newErrors.visibility = 'Tipul proiect este obligatoriu';
         // }
         if (String(formData.budget).trim() === '') {
-            newErrors.budget = 'Bugetul este obligatoriu';
+            newErrors.budget = t('projects.new.errors.budget_required');
         }
         if (!formData.budgetType.trim()) {
-            newErrors.budgetType = 'Tipul de buget este obligatoriu';
+            newErrors.budgetType = t('projects.new.errors.budget_type_required');
         }
         if (!formData.deadline.trim()) {
-            newErrors.deadline = 'Durata proiect este obligatoriu';
+            newErrors.deadline = t('projects.new.errors.deadline_required');
         }
 
         if (formData.technologies.length === 0) {
-            newErrors.technologies = 'Selecteaza minim o tehnologie';
+            newErrors.technologies = t('projects.new.errors.technologies_required');
         }
 
         if (isLongProject && selectedProviders.length > 0) {
@@ -450,7 +456,7 @@ export default function NewProjectPage() {
                 !providerMilestones[provider.id] || providerMilestones[provider.id].length === 0
             ));
             if (hasMissingMilestones) {
-                newErrors.milestones = 'Adaugă cel puțin un milestone pentru fiecare prestator';
+                newErrors.milestones = t('projects.new.errors.milestones_required');
             } else {
                 const hasInvalidMilestone = selectedProviders.some((provider) => (
                     (providerMilestones[provider.id] ?? []).some(
@@ -458,14 +464,14 @@ export default function NewProjectPage() {
                     )
                 ));
                 if (hasInvalidMilestone) {
-                    newErrors.milestones = 'Completează titlul și bugetul pentru fiecare milestone';
+                    newErrors.milestones = t('projects.new.errors.milestones_incomplete');
                 }
             }
 
             if (String(formData.budget).trim() !== '') {
                 const milestoneTotal = getMilestoneTotal();
                 if (milestoneTotal !== Number(formData.budget)) {
-                    newErrors.milestoneTotal = 'Suma milestone-urilor trebuie să fie egală cu bugetul total';
+                    newErrors.milestoneTotal = t('projects.new.errors.milestone_total');
                 }
             }
 
@@ -481,7 +487,7 @@ export default function NewProjectPage() {
                 return providerTotal !== allocated;
             });
             if (hasBudgetMismatch) {
-                newErrors.milestoneBudget = 'Bugetele milestone-urilor trebuie să fie egale cu bugetul alocat fiecărui prestator';
+                newErrors.milestoneBudget = t('projects.new.errors.milestone_budget');
             }
         }
 
@@ -567,7 +573,7 @@ export default function NewProjectPage() {
                         reviewCount: user.reviewCount ?? 0,
                         completedProjects: user.completedProjects ?? 0,
                         responseTime: user.responseTime ?? '—',
-                        location: user.location ?? 'România',
+                        location: user.location ?? t('projects.new.providers.location_fallback'),
                         isVerified: Boolean(user.isVerified),
                         level: user.level ?? '—',
                         skills,
@@ -590,11 +596,11 @@ export default function NewProjectPage() {
             setSuggestedProviders(providers);
             setFoundSuggestedProvider(apiData.found);
         } catch (error: any) {
-            setError('Nu s-au putut încărca prestatorii sugerați');
+            setError(t('projects.new.errors.providers_load'));
         } finally {
             setLoadingProviders(false);
         }
-    }, [buildProviderMatchPayload]);
+    }, [buildProviderMatchPayload, t]);
 
     useEffect(() => {
         if (formData.serviceId && formData.technologies.length > 0) {
@@ -742,19 +748,19 @@ export default function NewProjectPage() {
         e.preventDefault();
 
         if (!validate()) {
-            setError('Completează câmpurile obligatorii înainte de a trimite proiectul.');
+            setError(t('projects.new.errors.complete_required'));
             return;
         }
 
         if (selectedProviders.length === 0) {
-            setError('Selectează cel puțin un prestator pentru a trimite proiectul');
+            setError(t('projects.new.errors.select_provider'));
             return;
         }
 
         // Validate budget allocation
         const totalAllocated = getTotalAllocatedBudget();
         if (Math.abs(totalAllocated - Number(formData.budget)) > 1) {
-            setError('Bugetul total alocat trebuie să fie egal cu bugetul proiectului');
+            setError(t('projects.new.errors.budget_allocation'));
             return;
         }
 
@@ -793,8 +799,11 @@ export default function NewProjectPage() {
                 try {
                     await apiClient.sendNotification({
                         userIds: selectedProviders.map(p => p.id),
-                        title: '🚀 Proiect Nou Disponibil!',
-                        message: `Un client caută servicii pentru: ${formData.title}. Buget: ${formData.budget} RON`,
+                        title: t('projects.new.notifications.new_project_title'),
+                        message: t('projects.new.notifications.new_project_message', {
+                            title: formData.title,
+                            budget: formData.budget,
+                        }),
                         type: 'PROJECT_ADDED',
                         data: {
                             projectId: createdProject.id,
@@ -816,7 +825,7 @@ export default function NewProjectPage() {
 
             router.push('/dashboard?tab=projects&success=project-created');
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare la crearea proiectului');
+            setError(error.message || t('projects.new.errors.create_project'));
         } finally {
             setSubmitting(false);
         }
@@ -824,9 +833,9 @@ export default function NewProjectPage() {
 
     const getBudgetTypeLabel = (type: string) => {
         switch (type) {
-            case 'FIXED': return 'Preț Fix per Proiect';
-            case 'HOURLY': return 'Tarif pe Oră';
-            case 'MILESTONE': return 'Plată per Milestone';
+            case 'FIXED': return t('projects.new.budget_types.fixed');
+            case 'HOURLY': return t('projects.new.budget_types.hourly');
+            case 'MILESTONE': return t('projects.new.budget_types.milestone');
             default: return type;
         }
     };
@@ -834,13 +843,13 @@ export default function NewProjectPage() {
     const getAvailabilityStatus = (status: string) => {
         switch (status) {
             case 'AVAILABLE':
-                return { color: 'bg-green-100 text-green-800', label: 'Disponibil', icon: CheckCircle };
+                return { color: 'bg-green-100 text-green-800', label: t('projects.new.availability.available'), icon: CheckCircle };
             case 'BUYS':
-                return { color: 'bg-yellow-100 text-yellow-800', label: 'Ocupat', icon: Clock };
+                return { color: 'bg-yellow-100 text-yellow-800', label: t('projects.new.availability.busy'), icon: Clock };
             case 'UNAVAILABLE':
-                return { color: 'bg-red-100 text-red-800', label: 'Indisponibil', icon: AlertCircle };
+                return { color: 'bg-red-100 text-red-800', label: t('projects.new.availability.unavailable'), icon: AlertCircle };
             default:
-                return { color: 'bg-gray-100 text-gray-800', label: 'Necunoscut', icon: AlertCircle };
+                return { color: 'bg-gray-100 text-gray-800', label: t('projects.new.availability.unknown'), icon: AlertCircle };
         }
     };
 
@@ -893,10 +902,10 @@ export default function NewProjectPage() {
     const generateDescription = async () => {
         const newErrors: { [key: string]: string } = {};
         if (!formData.title.trim()) {
-            newErrors.title = 'Titlul este obligatoriu';
+            newErrors.title = t('projects.new.errors.title_required');
         }
         if (!formData.description.trim()) {
-            newErrors.description = 'Descrierea este obligatoriu';
+            newErrors.description = t('projects.new.errors.description_required');
         }
 
         setErrors(newErrors);
@@ -1048,13 +1057,13 @@ export default function NewProjectPage() {
                 <section className="px-6 pb-10 hero-gradient">
                     <div className="max-w-5xl mx-auto text-center">
                         <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                            <span className="text-[#1BC47D]">●</span> Proiect nou
+                            <span className="text-[#1BC47D]">●</span> {t('projects.new.hero.badge')}
                         </Badge>
                         <h1 className="text-3xl lg:text-4xl font-bold mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            Adaugă Proiect Nou
+                            {t('projects.new.hero.title')}
                         </h1>
                         <p className="text-base text-slate-600 max-w-3xl mx-auto dark:text-[#A3ADC2]">
-                            Descrie proiectul tău și primește oferte de la cei mai buni prestatori.
+                            {t('projects.new.hero.description')}
                         </p>
                     </div>
                 </section>
@@ -1075,21 +1084,21 @@ export default function NewProjectPage() {
                                         value="details"
                                         className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
                                     >
-                                        Detalii Proiect
+                                        {t('projects.new.tabs.details')}
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="providers"
                                         disabled={!formData.serviceId || formData.technologies.length === 0}
                                         className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
                                     >
-                                        Prestatori Sugerați
+                                        {t('projects.new.tabs.providers')}
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="review"
                                         disabled={selectedProviders.length === 0}
                                         className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
                                     >
-                                        Revizuire & Trimitere
+                                        {t('projects.new.tabs.review')}
                                     </TabsTrigger>
                                 </TabsList>
 
@@ -1101,42 +1110,46 @@ export default function NewProjectPage() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <FileText className="w-5 h-5" />
-                                                <span>Informații Generale</span>
+                                                <span>{t('projects.new.sections.general_info')}</span>
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             <div>
-                                                <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">Titlu Proiect <span className="text-red-500">*</span></Label>
+                                                <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">
+                                                    {t('projects.new.fields.title')} <span className="text-red-500">*</span>
+                                                </Label>
                                                 <Input
                                                     id="title"
                                                     className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
                                                     value={formData.title}
                                                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                    placeholder="ex: Website modern pentru afacerea mea"
+                                                    placeholder={t('projects.new.fields.title_placeholder')}
                                                     required
                                                 />
                                             </div>
 
                                             <div>
-                                                <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">Descriere Detaliată <span className="text-red-500">*</span></Label>
+                                                <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">
+                                                    {t('projects.new.fields.description')} <span className="text-red-500">*</span>
+                                                </Label>
                                                 <Textarea
                                                     id="description"
                                                     className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
                                                     value={formData.description}
                                                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                                    placeholder="Descrie în detaliu ce vrei să realizezi, care sunt obiectivele și așteptările tale..."
+                                                    placeholder={t('projects.new.fields.description_placeholder')}
                                                     rows={5}
                                                     required
                                                 />
                                             </div>
 
                                             <div>
-                                                <Label htmlFor="requirements">Cerințe Specifice</Label>
+                                                <Label htmlFor="requirements">{t('projects.new.fields.requirements')}</Label>
                                                 <Textarea
                                                     id="requirements"
                                                     value={formData.requirements}
                                                     onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                                                    placeholder="Cerințe tehnice, funcționalități specifice, integrări necesare..."
+                                                    placeholder={t('projects.new.fields.requirements_placeholder')}
                                                     rows={3}
                                                 />
                                             </div>
@@ -1181,16 +1194,20 @@ export default function NewProjectPage() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <Code className="w-5 h-5" />
-                                                <span className={errors.technologies ? "text-red-500" : ""}>Servicii și Tehnologii</span>
+                                                <span className={errors.technologies ? "text-red-500" : ""}>
+                                                    {t('projects.new.technologies.title')}
+                                                </span>
                                             </CardTitle>
                                             <CardDescription>
-                                                Selectează serviciile necesare pentru proiectul tău
+                                                {t('projects.new.technologies.description')}
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             {formData.technologies.length > 0 && (
                                                 <div>
-                                                    <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>Servicii Selectate ({formData.technologies.length})</Label>
+                                                    <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>
+                                                        {t('projects.new.technologies.selected', { count: formData.technologies.length })}
+                                                    </Label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {formData.technologies.map((tech) => (
                                                             <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
@@ -1210,13 +1227,15 @@ export default function NewProjectPage() {
 
                                             {/* Adaugă tehnologie personalizată */}
                                             <div>
-                                                <Label className={errors.technologies ? "text-red-500" : ""}>Adaugă Tehnologie Personalizată</Label>
+                                                <Label className={errors.technologies ? "text-red-500" : ""}>
+                                                    {t('projects.new.technologies.add_custom')}
+                                                </Label>
                                                 <div className="flex space-x-2 mt-2">
                                                     <Input
                                                         value={newTechnology}
                                                         className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
                                                         onChange={(e) => setNewTechnology(e.target.value)}
-                                                        placeholder="ex: GraphQL, Redis, etc."
+                                                        placeholder={t('projects.new.technologies.add_custom_placeholder')}
                                                         onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
                                                     />
                                                     <Button type="button" onClick={addCustomTechnology} variant="outline">
@@ -1268,25 +1287,25 @@ export default function NewProjectPage() {
                                             <CardHeader>
                                                 <CardTitle className="flex items-center space-x-2">
                                                     <GithubIcon className="w-5 h-5" />
-                                                    Repo Github
+                                                    {t('projects.new.github.title')}
                                                 </CardTitle>
                                                 <CardDescription>
-                                                    Creaza repoul pentru proiect
+                                                    {t('projects.new.github.description')}
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent className="space-y-6">
                                                 <div className="space-y-6">
                                                 <Label>
-                                                        Conecteaza-ti contul Github
-                                                        <span className="block text-xs text-muted-foreground">
-                                                                Pentru a putea crea un repo este nevoie sa iti conectezi contul de github.
-                                                            </span>
-                                                    </Label>
+                                                    {t('projects.new.github.connect_label')}
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        {t('projects.new.github.connect_description')}
+                                                    </span>
+                                                </Label>
                                                     <GithubConnect isConnected={!!user?.github_token} />
                                                 </div>
 
                                                 <div className="p-4 border rounded-lg bg-card">
-                                                    <h3 className="font-semibold mb-4">Repository GitHub</h3>
+                                                    <h3 className="font-semibold mb-4">{t('projects.new.github.repository_title')}</h3>
                                                     <RadioGroup
                                                         value={formData.githubRepoTarget}
                                                         onValueChange={(value) =>
@@ -1297,7 +1316,7 @@ export default function NewProjectPage() {
                                                         <div className="flex items-center space-x-2">
                                                             <RadioGroupItem value="platform" id="github-platform" />
                                                             <Label htmlFor="github-platform">
-                                                                Repo pe Trustora (Recomandat)
+                                                                {t('projects.new.github.platform_repo')}
                                                                 {/*<span className="block text-xs text-muted-foreground">*/}
                                                                 {/*    Noi deținem repo-ul, tu ești colaborator.*/}
                                                                 {/*</span>*/}
@@ -1310,10 +1329,10 @@ export default function NewProjectPage() {
                                                                 disabled={!user?.github_token}
                                                             />
                                                             <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                Repo pe contul prestatorului
+                                                                {t('projects.new.github.provider_repo')}
                                                                 {!user?.github_token && (
                                                                     <span className="block text-xs text-red-500">
-                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                        {t('projects.new.github.connect_first')}
                                                                 </span>
                                                                 )}
                                                             </Label>
@@ -1325,10 +1344,10 @@ export default function NewProjectPage() {
                                                                 disabled={!user?.github_token}
                                                             />
                                                             <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                Repo pe contul clientului
+                                                                {t('projects.new.github.client_repo')}
                                                                 {!user?.github_token && (
                                                                     <span className="block text-xs text-red-500">
-                                                                    Trebuie să conectezi contul de GitHub mai întâi.
+                                                                        {t('projects.new.github.connect_first')}
                                                                 </span>
                                                                 )}
                                                             </Label>
@@ -1343,12 +1362,14 @@ export default function NewProjectPage() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <DollarSign className="w-5 h-5" />
-                                                <span>Buget și Timeline</span>
+                                                <span>{t('projects.new.budget.title')}</span>
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             <div>
-                                                <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>Tip Buget <span className="text-red-500">*</span></Label>
+                                                <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>
+                                                    {t('projects.new.budget.type_label')} <span className="text-red-500">*</span>
+                                                </Label>
                                                 <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
                                                             value={formData.budgetType}
                                                             onValueChange={(value) => {
@@ -1357,11 +1378,11 @@ export default function NewProjectPage() {
                                                             }}>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="FIXED" id="fixed" />
-                                                        <Label htmlFor="fixed">Preț Fix per Proiect</Label>
+                                                        <Label htmlFor="fixed">{t('projects.new.budget.fixed_label')}</Label>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="HOURLY" id="hourly" />
-                                                        <Label htmlFor="hourly">Tarif pe Oră</Label>
+                                                        <Label htmlFor="hourly">{t('projects.new.budget.hourly_label')}</Label>
                                                     </div>
                                                 </RadioGroup>
                                             </div>
@@ -1369,7 +1390,12 @@ export default function NewProjectPage() {
                                             <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
-                                                        Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} <span className="text-red-500">*</span>
+                                                        {t('projects.new.budget.amount_label', {
+                                                            suffix: formData.budgetType === 'HOURLY'
+                                                                ? t('projects.new.budget.hourly_suffix')
+                                                                : t('projects.new.budget.fixed_suffix'),
+                                                        })}{' '}
+                                                        <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
                                                         id="budget"
@@ -1377,30 +1403,34 @@ export default function NewProjectPage() {
                                                         type="number"
                                                         value={formData.budget}
                                                         onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                                        placeholder={formData.budgetType === 'HOURLY' ? '50' : '2500'}
+                                                        placeholder={formData.budgetType === 'HOURLY'
+                                                            ? t('projects.new.budget.hourly_placeholder')
+                                                            : t('projects.new.budget.fixed_placeholder')}
                                                         required={!skipValidation}
                                                     />
                                                 </div>
 
                                                 <div>
-                                                    <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">Durata proiect <span className="text-red-500">*</span></Label>
+                                                    <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">
+                                                        {t('projects.new.deadline.label')} <span className="text-red-500">*</span>
+                                                    </Label>
                                                     <Select
                                                         value={formData.deadline}
                                                         onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
                                                     >
                                                         <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
-                                                            <SelectValue placeholder="Selectează termenul limită" />
+                                                            <SelectValue placeholder={t('projects.new.deadline.placeholder')} />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="1day">1 zi</SelectItem>
-                                                            <SelectItem value="1week">1 saptamana</SelectItem>
-                                                            <SelectItem value="2weeks">2 saptamani</SelectItem>
-                                                            <SelectItem value="3weeks">3 saptamani</SelectItem>
-                                                            <SelectItem value="1month">1 luna</SelectItem>
-                                                            <SelectItem value="3months">3 luni</SelectItem>
-                                                            <SelectItem value="6months">6 luni</SelectItem>
-                                                            <SelectItem value="1year">1 an</SelectItem>
-                                                            <SelectItem value="1plusyear">1+ ani</SelectItem>
+                                                            <SelectItem value="1day">{t('projects.new.deadline.options.one_day')}</SelectItem>
+                                                            <SelectItem value="1week">{t('projects.new.deadline.options.one_week')}</SelectItem>
+                                                            <SelectItem value="2weeks">{t('projects.new.deadline.options.two_weeks')}</SelectItem>
+                                                            <SelectItem value="3weeks">{t('projects.new.deadline.options.three_weeks')}</SelectItem>
+                                                            <SelectItem value="1month">{t('projects.new.deadline.options.one_month')}</SelectItem>
+                                                            <SelectItem value="3months">{t('projects.new.deadline.options.three_months')}</SelectItem>
+                                                            <SelectItem value="6months">{t('projects.new.deadline.options.six_months')}</SelectItem>
+                                                            <SelectItem value="1year">{t('projects.new.deadline.options.one_year')}</SelectItem>
+                                                            <SelectItem value="1plusyear">{t('projects.new.deadline.options.one_plus_year')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
@@ -1414,24 +1444,24 @@ export default function NewProjectPage() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center space-x-2">
                                                 <AutoAwesomeIcon className="w-5 h-5" />
-                                                <span>Genereaza cu AI</span>
+                                                <span>{t('projects.new.ai.title')}</span>
                                             </CardTitle>
                                             <CardDescription className="flex items-center space-x-2">
-                                                Bazat pe cerintele scrise in descriere + restul informatiilor genereaza o descriere mai detaliată, sugereaza tehnologiile si/sau serviciile pentru proiect + buget recomandat.
+                                                {t('projects.new.ai.description')}
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
                                             {generatedAiOutput.title.trim() && (
-                                                <h2 className="font-bold">Informatii sugerate:</h2>
+                                                <h2 className="font-bold">{t('projects.new.ai.suggested')}</h2>
                                             )}
                                             {generatedAiOutput?.title.trim() && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Titlu: </span> {generatedAiOutput?.title}
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
                                                         <TitleIcon />
-                                                        Foloseste titlu
+                                                        {t('projects.new.ai.actions.use_title')}
                                                     </a>
                                                 </>
                                             )}
@@ -1439,12 +1469,12 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.description.trim() && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Descriere: </span> {generatedAiOutput?.description}
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
                                                         <DescriptionIcon />
-                                                        Foloseste descrierea
+                                                        {t('projects.new.ai.actions.use_description')}
                                                     </a>
                                                 </>
                                             )}
@@ -1452,7 +1482,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.technologies.length > 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Tehnologii sugerate: </span>
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.technologies')}</span>
                                                         <ul className="ml-6 list-disc">
                                                             {generatedAiOutput?.technologies.map((tech, index) => (
                                                                 <li key={index}>{tech}</li>
@@ -1462,7 +1492,7 @@ export default function NewProjectPage() {
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
                                                         <AddCircleIcon />
-                                                        Foloseste Tehnologii
+                                                        {t('projects.new.ai.actions.use_technologies')}
                                                     </a>
                                                 </>
                                             )}
@@ -1470,7 +1500,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.additional_services.length > 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Servicii aditionale sugerate: </span>
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.additional_services_label')}</span>
                                                         <ul className="ml-6 list-disc">
                                                             {generatedAiOutput?.additional_services.map((tech, index) => (
                                                                 <li key={index}>{tech}</li>
@@ -1480,19 +1510,20 @@ export default function NewProjectPage() {
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
                                                         <AddCircleIcon />
-                                                        Adauga Servicii Aditionale
+                                                        {t('projects.new.ai.actions.add_additional_services')}
                                                     </a>
                                                 </>
                                             )}
 
                                             {generatedAiOutput?.team_structure.length > 0 && (
                                                 <div>
-                                                    <span className="text-sm text-black font-bold">Structura echipa: </span>
+                                                    <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.team_structure')}</span>
                                                     {generatedAiOutput?.team_structure.map((team, index) => {
                                                         const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
                                                         return (
                                                             <div key={index}>
-                                                                <span className="text-sm text-black font-bold">Rol:</span> {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? 'persoana' : 'persoane'} - Nivel {typedTeam.level}  - {typedTeam.estimated_cost} RON estimat
+                                                                <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
+                                                                {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - {typedTeam.estimated_cost} {currencyLabel} {t('projects.new.ai.fields.estimated')}
                                                             </div>
                                                         );
                                                     })}
@@ -1503,11 +1534,11 @@ export default function NewProjectPage() {
                                             {generatedAiOutput.deadline.trim() && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Durata proiect: </span> {formatDeadline(generatedAiOutput?.deadline, locale)}
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
                                                         <AccessTimeFilledIcon />
-                                                        Foloseste durata recomandata
+                                                        {t('projects.new.ai.actions.use_deadline')}
                                                     </a>
                                                 </>
                                             )}
@@ -1515,7 +1546,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.estimated_budget !== 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Buget total estimat: </span> {generatedAiOutput?.estimated_budget} {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.estimated_budget')}</span> {generatedAiOutput?.estimated_budget} {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => {
@@ -1523,30 +1554,36 @@ export default function NewProjectPage() {
                                                            handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
                                                        }}>
                                                         <EuroIcon />
-                                                        Foloseste Bugetul
+                                                        {t('projects.new.ai.actions.use_budget')}
                                                     </a>
                                                 </>
                                             )}
 
                                             {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
-                                                <div>
-                                                    <span className="text-sm text-black font-bold">Plan de plată: </span>
-                                                    {generatedAiOutput?.payment_plan || 'Nespecificat'}
-                                                    {generatedAiOutput?.milestone_count ? ` • ${generatedAiOutput.milestone_count} milestones` : ''}
-                                                </div>
+                                                    <div>
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
+                                                        {generatedAiOutput?.payment_plan || t('projects.new.ai.fields.unspecified')}
+                                                    {generatedAiOutput?.milestone_count
+                                                        ? t('projects.new.ai.milestone_count', { count: generatedAiOutput.milestone_count })
+                                                        : ''}
+                                                    </div>
                                             )}
 
                                             {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Milestones sugerate: </span>
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.milestones')}</span>
                                                         <ul className="ml-6 list-disc">
                                                             {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
                                                                 <li key={index}>
                                                                     {group.provider_role ? `${group.provider_role}: ` : ''}
                                                                     {group.milestones.map((milestone, milestoneIndex) => (
                                                                         <span key={milestoneIndex}>
-                                                                            {milestone.title} - {milestone.amount} RON
+                                                                            {t('projects.new.ai.milestone_item', {
+                                                                                title: milestone.title,
+                                                                                amount: milestone.amount,
+                                                                                currency: currencyLabel,
+                                                                            })}
                                                                             {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
                                                                         </span>
                                                                     ))}
@@ -1557,21 +1594,21 @@ export default function NewProjectPage() {
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
                                                         <AddCircleIcon />
-                                                        Folosește Milestones
+                                                        {t('projects.new.ai.actions.use_milestones')}
                                                     </a>
                                                 </>
                                             )}
 
                                             {(generatedAiOutput?.notes ?? '').trim() && (
                                                 <div>
-                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes ?? ''}
+                                                    <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
                                                 </div>
                                             )}
 
                                             <div className="col-span-2">
                                                 <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
                                                     <AutoAwesomeIcon className="w-4 h-4 me-2" />
-                                                    Imbunătățește Descrierea cu AI
+                                                    {t('projects.new.ai.actions.improve_description')}
                                                 </Button>
                                             </div>
                                         </CardContent>
@@ -1589,7 +1626,7 @@ export default function NewProjectPage() {
                                     disabled={formData.technologies.length === 0}
                                     className="px-8"
                                 >
-                                    Continuă la Prestatori
+                                    {t('projects.new.actions.continue_to_providers')}
                                     <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </div>
@@ -1601,14 +1638,20 @@ export default function NewProjectPage() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Users className="w-5 h-5" />
-                                        <span>Prestatori Sugerați</span>
+                                        <span>{t('projects.new.providers.title')}</span>
                                         <Badge variant="outline">
-                                            {filteredProviders.length} găsiți • Pagina {currentPage} din {totalPages}
+                                            {t('projects.new.providers.count', {
+                                                count: filteredProviders.length,
+                                                currentPage,
+                                                totalPages,
+                                            })}
                                         </Badge>
                                     </CardTitle>
                                     <CardDescription>
-                                        Prestatori care se potrivesc cu cerințele proiectului tău<br />
-                                        <span className="text-red-500 font-bold">{!foundSuggestedProvider ? 'Nu avem sugestii de prestatori dar puteti folosi urmatorii prestatori' : ''}</span>
+                                        {t('projects.new.providers.subtitle')}<br />
+                                        <span className="text-red-500 font-bold">
+                                            {!foundSuggestedProvider ? t('projects.new.providers.no_suggestions') : ''}
+                                        </span>
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -1616,15 +1659,15 @@ export default function NewProjectPage() {
                                         <div className="flex items-center justify-center py-12">
                                             <div className="text-center">
                                                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                                                <p className="text-muted-foreground">Căutăm cei mai potriviți prestatori...</p>
+                                                <p className="text-muted-foreground">{t('projects.new.providers.loading')}</p>
                                             </div>
                                         </div>
                                     ) : suggestedProviders.length === 0 ? (
                                         <div className="text-center py-12">
                                             <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium mb-2">Nu am găsit prestatori</h3>
+                                            <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.empty_title')}</h3>
                                             <p className="text-muted-foreground">
-                                                Încearcă să modifici serviciul sau tehnologiile selectate
+                                                {t('projects.new.providers.empty_description')}
                                             </p>
                                         </div>
                                     ) : (
@@ -1637,7 +1680,7 @@ export default function NewProjectPage() {
                                                         <div className="relative">
                                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                                                             <Input
-                                                                placeholder="Caută prestatori după nume, locație sau skills..."
+                                                                placeholder={t('projects.new.providers.search_placeholder')}
                                                                 value={providerSearchTerm}
                                                                 onChange={(e) => setProviderSearchTerm(e.target.value)}
                                                                 className="pl-10"
@@ -1654,8 +1697,8 @@ export default function NewProjectPage() {
                                                                         <Filter className="w-4 h-4" />
                                                                         <span>
                                                                             {selectedServiceFilters.length === 0
-                                                                                ? 'Filtrează servicii'
-                                                                                : `${selectedServiceFilters.length} servicii`
+                                                                                ? t('projects.new.providers.filters.services')
+                                                                                : t('projects.new.providers.filters.services_count', { count: selectedServiceFilters.length })
                                                                             }
                                                                         </span>
                                                                     </div>
@@ -1664,7 +1707,7 @@ export default function NewProjectPage() {
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
                                                                 <div className="p-2 max-h-80 overflow-y-auto">
-                                                                    <div className="text-sm font-medium mb-2">Filtrează după servicii:</div>
+                                                                    <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.services_label')}</div>
                                                                     {availableServices.map((service) => (
                                                                         <div key={service.id} className="flex items-center space-x-2 py-1">
                                                                             <Checkbox
@@ -1688,7 +1731,7 @@ export default function NewProjectPage() {
                                                                     ))}
                                                                     {availableServices.length === 0 && (
                                                                         <div className="text-sm text-muted-foreground py-2">
-                                                                            Nu există servicii disponibile
+                                                                            {t('projects.new.providers.filters.no_services')}
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -1701,7 +1744,7 @@ export default function NewProjectPage() {
                                                                             className="w-full text-xs"
                                                                         >
                                                                             <X className="w-3 h-3 mr-1" />
-                                                                            Resetează filtrele
+                                                                            {t('projects.new.providers.filters.reset')}
                                                                         </Button>
                                                                     </div>
                                                                 )}
@@ -1713,13 +1756,15 @@ export default function NewProjectPage() {
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="outline" className="min-w-40">
                                                                 <Target className="w-4 h-4 mr-2" />
-                                                                {skillLevelFilter.length > 0 ? `${skillLevelFilter.length} niveluri` : 'Nivel Skill'}
+                                                                {skillLevelFilter.length > 0
+                                                                    ? t('projects.new.providers.filters.levels_count', { count: skillLevelFilter.length })
+                                                                    : t('projects.new.providers.filters.levels')}
                                                                 <ChevronDown className="w-4 h-4 ml-2" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
                                                             <div className="p-2">
-                                                                <div className="text-sm font-medium mb-2">Selectează nivelurile:</div>
+                                                                <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.levels_label')}</div>
                                                                 {skillLevels.map(level => (
                                                                     <div key={level.value} className="flex items-center space-x-2 py-1">
                                                                         <Checkbox
@@ -1746,7 +1791,7 @@ export default function NewProjectPage() {
                                                                             onClick={() => setSkillLevelFilter([])}
                                                                             className="w-full text-xs"
                                                                         >
-                                                                            Resetează Nivelurile
+                                                                            {t('projects.new.providers.filters.reset_levels')}
                                                                         </Button>
                                                                     </div>
                                                                 )}
@@ -1758,7 +1803,7 @@ export default function NewProjectPage() {
                                                 {/* Active Filters Display */}
                                                 {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
                                                     <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="text-sm text-muted-foreground">Filtre active:</span>
+                                                        <span className="text-sm text-muted-foreground">{t('projects.new.providers.filters.active')}</span>
 
                                                         {providerSearchTerm && (
                                                             <Badge variant="secondary" className="flex items-center space-x-1">
@@ -1815,7 +1860,7 @@ export default function NewProjectPage() {
                                                                 }}
                                                                 className="text-xs h-6"
                                                             >
-                                                                Resetează toate
+                                                                {t('projects.new.providers.filters.reset_all')}
                                                             </Button>
                                                         )}
                                                     </div>
@@ -1825,11 +1870,11 @@ export default function NewProjectPage() {
                                             {currentProviders.length === 0 ? (
                                                 <div className="text-center py-8">
                                                     <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">Nu s-au găsit prestatori</h3>
+                                                    <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.none_title')}</h3>
                                                     <p className="text-muted-foreground mb-4">
                                                         {filteredProviders.length === 0
-                                                            ? "Încearcă să modifici filtrele sau să selectezi alte tehnologii"
-                                                            : "Nu există prestatori pe această pagină. Încearcă o altă pagină."
+                                                            ? t('projects.new.providers.none_description')
+                                                            : t('projects.new.providers.none_page')
                                                         }
                                                     </p>
                                                     <Button
@@ -1841,7 +1886,7 @@ export default function NewProjectPage() {
                                                             setCurrentPage(1);
                                                         }}
                                                     >
-                                                        Resetează Filtrele
+                                                        {t('projects.new.providers.filters.reset_filters')}
                                                     </Button>
                                                 </div>
                                             ) : (
@@ -1850,6 +1895,7 @@ export default function NewProjectPage() {
                                                         {currentProviders.map((provider) => {
                                                             const passedReasons = provider.matchReasons.filter(reason => reason.passed);
                                                             const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
+                                                            const availabilityStatus = getAvailabilityStatus(provider.availability);
                                                             return (
                                                                 <Card
                                                                     key={provider.id}
@@ -1890,16 +1936,16 @@ export default function NewProjectPage() {
                                                                                             'bg-blue-100 text-blue-800'
                                                                                         }>
                                                                                             {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
+                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
                                                                                         </Badge>
                                                                                     </div>
                                                                                     <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
                                                                                         <Badge className="bg-green-100 text-green-800">
-                                                                                            {provider.matchScore}% potrivire
+                                                                                            {t('projects.new.providers.match_score', { score: provider.matchScore })}
                                                                                         </Badge>
                                                                                         {provider.isVerified && (
                                                                                             <Badge className="bg-blue-100 text-blue-800">
-                                                                                                Verificat
+                                                                                                {t('projects.new.providers.verified')}
                                                                                             </Badge>
                                                                                         )}
                                                                                     </div>
@@ -1908,7 +1954,7 @@ export default function NewProjectPage() {
                                                                                         <div className="flex items-center space-x-1">
                                                                                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                                                                                             <span className="font-medium">{provider.rating}</span>
-                                                                                            <span>({provider.reviewCount} recenzii)</span>
+                                                                                            <span>({t('projects.new.providers.reviews', { count: provider.reviewCount })})</span>
                                                                                         </div>
                                                                                         <div className="flex items-center space-x-1">
                                                                                             <MapPin className="w-4 h-4" />
@@ -1916,7 +1962,14 @@ export default function NewProjectPage() {
                                                                                         </div>
                                                                                         <div className="flex items-center space-x-1">
                                                                                             <Clock className="w-4 h-4" />
-                                                                                            <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
+                                                                                            <span>
+                                                                                                {t('projects.new.providers.response_time', {
+                                                                                                    time: provider.responseTime,
+                                                                                                    unit: provider.responseTime === "1"
+                                                                                                        ? t('projects.new.providers.hour_singular')
+                                                                                                        : t('projects.new.providers.hour_plural'),
+                                                                                                })}
+                                                                                            </span>
                                                                                         </div>
                                                                                     </div>
 
@@ -1942,7 +1995,7 @@ export default function NewProjectPage() {
                                                                                         <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                                                                             {/* Coloana 1: Passed */}
                                                                                             <div>
-                                                                                                <h4 className="text-sm font-medium text-green-600 mb-2">De ce este potrivit:</h4>
+                                                                                                <h4 className="text-sm font-medium text-green-600 mb-2">{t('projects.new.providers.why_fit')}</h4>
                                                                                                 <ul className="text-sm text-muted-foreground space-y-1">
                                                                                                     {passedReasons.map((reason, index) => (
                                                                                                         <li key={`passed-${index}`} className="flex items-center space-x-2">
@@ -1981,19 +2034,19 @@ export default function NewProjectPage() {
                                                                                 {/*</div>*/}
 
                                                                                 <div className={`flex items-center justify-end space-x-2 mb-3`}>
-                                                                                    <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
+                                                                                    <Badge className={`${availabilityStatus.color}`}>
                                                                                         {
                                                                                             (() => {
-                                                                                                const Icon = getAvailabilityStatus(provider.availability).icon;
+                                                                                                const Icon = availabilityStatus.icon;
                                                                                                 return <Icon className="mr-1 w-4 h-4" />;
                                                                                             })()
                                                                                         }
-                                                                                        {provider.availability}
+                                                                                        {availabilityStatus.label}
                                                                                     </Badge>
 
                                                                                 </div>
                                                                                 <div className="text-xs text-muted-foreground">
-                                                                                    Activ {getLastActiveText(provider.lastActive)}
+                                                                                    {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
                                                                                 </div>
 
                                                                                 <div className="flex space-x-2 mt-4">
@@ -2001,13 +2054,13 @@ export default function NewProjectPage() {
                                                                                        className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
                                                                                     >
                                                                                         <Eye className="w-3 h-3 mr-1" />
-                                                                                        Profil
+                                                                                        {t('projects.new.providers.profile')}
                                                                                     </a>
                                                                                     <a
                                                                                         className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
                                                                                     >
                                                                                         <MessageSquare className="w-3 h-3 mr-1" />
-                                                                                        Mesaj
+                                                                                        {t('projects.new.providers.message')}
                                                                                     </a>
                                                                                 </div>
 
@@ -2023,7 +2076,11 @@ export default function NewProjectPage() {
                                                     {totalPages > 1 && (
                                                         <div className="flex items-center justify-between pt-6 border-t">
                                                             <div className="text-sm text-muted-foreground">
-                                                                Afișând {indexOfFirstProvider + 1}-{Math.min(indexOfLastProvider, filteredProviders.length)} din {filteredProviders.length} prestatori
+                                                                {t('projects.new.providers.pagination', {
+                                                                    start: indexOfFirstProvider + 1,
+                                                                    end: Math.min(indexOfLastProvider, filteredProviders.length),
+                                                                    total: filteredProviders.length,
+                                                                })}
                                                             </div>
 
                                                             <div className="flex items-center space-x-2">
@@ -2035,7 +2092,7 @@ export default function NewProjectPage() {
                                                                     className="flex items-center space-x-1"
                                                                 >
                                                                     <ArrowLeft className="w-4 h-4" />
-                                                                    <span>Anterior</span>
+                                                                    <span>{t('projects.new.pagination.previous')}</span>
                                                                 </Button>
 
                                                                 <div className="flex items-center space-x-1">
@@ -2076,7 +2133,7 @@ export default function NewProjectPage() {
                                                                     disabled={currentPage === totalPages}
                                                                     className="flex items-center space-x-1"
                                                                 >
-                                                                    <span>Următor</span>
+                                                                    <span>{t('projects.new.pagination.next')}</span>
                                                                     <ArrowRight className="w-4 h-4" />
                                                                 </Button>
                                                             </div>
@@ -2092,11 +2149,13 @@ export default function NewProjectPage() {
                                             <div className="flex items-center space-x-2 mb-2">
                                                 <CheckCircle className="w-5 h-5 text-green-600" />
                                                 <span className="font-medium text-green-800 dark:text-green-200">
-                          {selectedProviders.length} prestatori selectați
-                        </span>
+                                                    {t('projects.new.providers.selected_count', {
+                                                        count: selectedProviders.length,
+                                                    })}
+                                                </span>
                                             </div>
                                             <p className="text-sm text-green-700 dark:text-green-300">
-                                                Proiectul va fi trimis către prestatorii selectați și vei primi oferte în curând.
+                                                {t('projects.new.providers.selected_message')}
                                             </p>
                                         </div>
                                     )}
@@ -2109,7 +2168,7 @@ export default function NewProjectPage() {
                                     variant="outline"
                                     onClick={() => setActiveTab('details')}
                                 >
-                                    Înapoi la Detalii
+                                    {t('projects.new.actions.back_to_details')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -2117,7 +2176,7 @@ export default function NewProjectPage() {
                                     disabled={selectedProviders.length === 0}
                                     className="btn-primary px-8"
                                 >
-                                    Revizuire Finală
+                                    {t('projects.new.actions.review_final')}
                                     <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </div>
@@ -2129,10 +2188,10 @@ export default function NewProjectPage() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Target className="w-5 h-5" />
-                                        <span>Revizuire Proiect</span>
+                                        <span>{t('projects.new.review.title')}</span>
                                     </CardTitle>
                                     <CardDescription>
-                                        Verifică toate detaliile înainte de a trimite proiectul
+                                        {t('projects.new.review.subtitle')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
@@ -2140,15 +2199,15 @@ export default function NewProjectPage() {
                                     <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div className="space-y-4">
                                             <div>
-                                                <h4 className="font-semibold mb-2">Detalii Proiect</h4>
+                                                <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
                                                 <div className="space-y-2 text-sm">
-                                                    <div><strong>Titlu:</strong> {formData.title}</div>
-                                                    <div><strong>Categorie:</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
-                                                    <div><strong>Buget:</strong> {formData.budget.toLocaleString()} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
-                                                    <div><strong>Comision platforma:</strong> {(Number(formData.budget ?? 0) * 12/100).toLocaleString()} RON</div>
-                                                    <div><strong>Total:</strong> {(Number(formData.budget ?? 0) + (Number(formData.budget ?? 0) * 12/100)).toLocaleString()} RON</div>
+                                                    <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
+                                                    <div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
+                                                    <div><strong>{t('projects.new.review.labels.budget')}</strong> {formData.budget.toLocaleString()} {currencyLabel} ({getBudgetTypeLabel(formData.budgetType)})</div>
+                                                    <div><strong>{t('projects.new.review.labels.platform_fee')}</strong> {(Number(formData.budget ?? 0) * 12/100).toLocaleString()} {currencyLabel}</div>
+                                                    <div><strong>{t('projects.new.review.labels.total')}</strong> {(Number(formData.budget ?? 0) + (Number(formData.budget ?? 0) * 12/100)).toLocaleString()} {currencyLabel}</div>
                                                     {formData.deadline && (
-                                                        <div><strong>Deadline:</strong> {formatDeadline(formData.deadline, locale)}</div>
+                                                        <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
                                                     )}
                                                     {/*<div>*/}
                                                     {/*    <strong>Tip proiect:</strong>*/}
@@ -2160,7 +2219,7 @@ export default function NewProjectPage() {
                                             </div>
 
                                             <div>
-                                                <h4 className="font-semibold mb-2">Tehnologii ({formData.technologies.length})</h4>
+                                                <h4 className="font-semibold mb-2">{t('projects.new.review.technologies_title', { count: formData.technologies.length })}</h4>
                                                 <div className="flex flex-wrap gap-1">
                                                     {formData.technologies.map((tech) => (
                                                         <Badge key={tech.id} variant="outline" className="text-xs">
@@ -2174,7 +2233,7 @@ export default function NewProjectPage() {
                                         <div>
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-semibold">Prestatori Selectați ({selectedProviders.length})</h3>
+                                                    <h3 className="text-lg font-semibold">{t('projects.new.review.selected_providers_title', { count: selectedProviders.length })}</h3>
                                                     <div className="flex items-center space-x-2">
                                                         <Button
                                                             type="button"
@@ -2184,7 +2243,7 @@ export default function NewProjectPage() {
                                                             disabled={selectedProviders.length === 0}
                                                         >
                                                             <DollarSign className="w-4 h-4 mr-1" />
-                                                            Împarte Egal
+                                                            {t('projects.new.review.split_evenly')}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -2194,17 +2253,17 @@ export default function NewProjectPage() {
                                                     <CardContent className="p-4">
                                                         <div className="grid grid-cols-3 gap-4 text-sm">
                                                             <div>
-                                                                <div className="font-medium text-blue-900 dark:text-blue-100">Buget Total</div>
-                                                                <div className="text-lg font-bold text-blue-600">{Number(formData.budget).toLocaleString()} RON</div>
+                                                                <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
+                                                                <div className="text-lg font-bold text-blue-600">{Number(formData.budget).toLocaleString()} {currencyLabel}</div>
                                                             </div>
                                                             <div>
-                                                                <div className="font-medium text-green-900 dark:text-green-100">Alocat</div>
-                                                                <div className="text-lg font-bold text-green-600">{getTotalAllocatedBudget().toLocaleString()} RON</div>
+                                                                <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
+                                                                <div className="text-lg font-bold text-green-600">{getTotalAllocatedBudget().toLocaleString()} {currencyLabel}</div>
                                                             </div>
                                                             <div>
-                                                                <div className="font-medium text-orange-900 dark:text-orange-100">Rămas</div>
+                                                                <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
                                                                 <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                                                    {getRemainingBudget().toLocaleString()} RON
+                                                                    {getRemainingBudget().toLocaleString()} {currencyLabel}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2213,8 +2272,14 @@ export default function NewProjectPage() {
                                                                 <AlertCircle className="h-4 w-4" />
                                                                 <AlertDescription className="text-orange-800">
                                                                     {getRemainingBudget() > 0
-                                                                        ? `Mai ai ${getRemainingBudget().toLocaleString()} RON de alocat`
-                                                                        : `Ai depășit bugetul cu ${Math.abs(getRemainingBudget()).toLocaleString()} RON`
+                                                                        ? t('projects.new.review.budget_remaining_positive', {
+                                                                            amount: getRemainingBudget().toLocaleString(),
+                                                                            currency: currencyLabel,
+                                                                        })
+                                                                        : t('projects.new.review.budget_remaining_negative', {
+                                                                            amount: Math.abs(getRemainingBudget()).toLocaleString(),
+                                                                            currency: currencyLabel,
+                                                                        })
                                                                     }
                                                                 </AlertDescription>
                                                             </Alert>
@@ -2227,9 +2292,9 @@ export default function NewProjectPage() {
                                                         <CardHeader>
                                                             <div className="flex items-center justify-between">
                                                                 <div>
-                                                                    <CardTitle className="text-base">Milestones per prestator</CardTitle>
+                                                                    <CardTitle className="text-base">{t('projects.new.review.milestones.title')}</CardTitle>
                                                                     <CardDescription>
-                                                                        Adaugă milestones după selectarea prestatorilor pentru proiecte mai lungi de o lună.
+                                                                        {t('projects.new.review.milestones.description')}
                                                                     </CardDescription>
                                                                 </div>
                                                                 <Button
@@ -2240,7 +2305,7 @@ export default function NewProjectPage() {
                                                                     disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
                                                                 >
                                                                     <AutoAwesomeIcon className="w-4 h-4 mr-2" />
-                                                                    Aplică milestones AI
+                                                                    {t('projects.new.review.milestones.apply_ai')}
                                                                 </Button>
                                                             </div>
                                                         </CardHeader>
@@ -2253,7 +2318,7 @@ export default function NewProjectPage() {
                                                                     <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
                                                                         <div className="flex items-center justify-between">
                                                                             <div className="font-medium">
-                                                                                {provider ? `${provider.firstName} ${provider.lastName}` : `Prestator #${selectedProvider.id}`}
+                                                                                {provider ? `${provider.firstName} ${provider.lastName}` : t('projects.new.review.milestones.provider_fallback', { id: selectedProvider.id })}
                                                                             </div>
                                                                             <Button
                                                                                 type="button"
@@ -2262,35 +2327,35 @@ export default function NewProjectPage() {
                                                                                 onClick={() => addProviderMilestone(selectedProvider.id)}
                                                                             >
                                                                                 <Plus className="w-4 h-4 mr-2" />
-                                                                                Adaugă milestone
+                                                                                {t('projects.new.review.milestones.add')}
                                                                             </Button>
                                                                         </div>
                                                                         {milestones.length === 0 ? (
                                                                             <div className="text-sm text-muted-foreground">
-                                                                                Nu există milestones încă pentru acest prestator.
+                                                                                {t('projects.new.review.milestones.empty')}
                                                                             </div>
                                                                         ) : (
                                                                             <div className="space-y-3">
                                                                                 {milestones.map((milestone, index) => (
                                                                                     <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
                                                                                         <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>Nume milestone</Label>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>{t('projects.new.review.milestones.name_label')}</Label>
                                                                                             <Input
                                                                                                 id={`provider-${selectedProvider.id}-milestone-title-${index}`}
                                                                                                 value={milestone.title}
                                                                                                 onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
-                                                                                                placeholder="ex: Discovery"
+                                                                                                placeholder={t('projects.new.review.milestones.name_placeholder')}
                                                                                             />
                                                                                         </div>
                                                                                         <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>Buget milestone (RON)</Label>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label', { currency: currencyLabel })}</Label>
                                                                                             <Input
                                                                                                 id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
                                                                                                 type="number"
                                                                                                 min="0"
                                                                                                 value={milestone.amount}
                                                                                                 onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
-                                                                                                placeholder="ex: 1500"
+                                                                                                placeholder={t('projects.new.review.milestones.budget_placeholder')}
                                                                                             />
                                                                                         </div>
                                                                                         <Button
@@ -2298,7 +2363,7 @@ export default function NewProjectPage() {
                                                                                             variant="ghost"
                                                                                             size="icon"
                                                                                             onClick={() => removeProviderMilestone(selectedProvider.id, index)}
-                                                                                            aria-label="Șterge milestone"
+                                                                                            aria-label={t('projects.new.review.milestones.delete_aria')}
                                                                                         >
                                                                                             <X className="w-4 h-4" />
                                                                                         </Button>
@@ -2307,7 +2372,10 @@ export default function NewProjectPage() {
                                                                             </div>
                                                                         )}
                                                                         <div className="text-sm text-muted-foreground">
-                                                                            Total milestones: {milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0).toLocaleString()} RON
+                                                                            {t('projects.new.review.milestones.total_provider', {
+                                                                                amount: milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0).toLocaleString(),
+                                                                                currency: currencyLabel,
+                                                                            })}
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -2320,8 +2388,15 @@ export default function NewProjectPage() {
                                                             )}
 
                                                             <div className="text-sm text-muted-foreground">
-                                                                Total milestones: {getMilestoneTotal().toLocaleString()} RON •
-                                                                Diferență: {(Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString()} RON
+                                                                {t('projects.new.review.milestones.summary_total', {
+                                                                    amount: getMilestoneTotal().toLocaleString(),
+                                                                    currency: currencyLabel,
+                                                                })}{' '}
+                                                                •{' '}
+                                                                {t('projects.new.review.milestones.summary_difference', {
+                                                                    amount: (Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString(),
+                                                                    currency: currencyLabel,
+                                                                })}
                                                             </div>
                                                         </CardContent>
                                                     </Card>
@@ -2349,11 +2424,11 @@ export default function NewProjectPage() {
                                                                                 'bg-blue-100 text-blue-800'
                                                                             }>
                                                                                 {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
+                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
                                                                             </Badge>
                                                                         </div>
                                                                         <div className="text-xs text-muted-foreground">
-                                                                            • {provider.matchScore}% potrivire
+                                                                            {t('projects.new.review.match_score', { score: provider.matchScore })}
                                                                         </div>
                                                                         <div className="flex flex-wrap gap-1 mb-3">
                                                                             {provider.skills.map((skill, index) =>
@@ -2375,7 +2450,7 @@ export default function NewProjectPage() {
                                                                 <div className="mt-3 flex items-center justify-between">
                                                                     <div className="flex items-center space-x-3">
                                                                         <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
-                                                                            Buget alocat:
+                                                                            {t('projects.new.review.allocated_budget_label')}
                                                                         </Label>
                                                                         <div className="flex items-center space-x-2">
                                                                             <Input
@@ -2387,7 +2462,7 @@ export default function NewProjectPage() {
                                                                                 min="0"
                                                                                 max={Number(formData.budget)}
                                                                             />
-                                                                            <span className="text-sm text-muted-foreground">RON</span>
+                                                                            <span className="text-sm text-muted-foreground">{currencyLabel}</span>
                                                                         </div>
                                                                     </div>
                                                                     <Button
@@ -2407,7 +2482,7 @@ export default function NewProjectPage() {
                                     </div>
 
                                     <div>
-                                        <h4 className="font-semibold mb-2">Descriere</h4>
+                                        <h4 className="font-semibold mb-2">{t('projects.new.review.description_title')}</h4>
                                         <div className="bg-muted p-4 rounded-lg text-sm">
                                             {formData.description}
                                         </div>
@@ -2415,7 +2490,7 @@ export default function NewProjectPage() {
 
                                     {formData.requirements && (
                                         <div>
-                                            <h4 className="font-semibold mb-2">Cerințe Specifice</h4>
+                                            <h4 className="font-semibold mb-2">{t('projects.new.review.requirements_title')}</h4>
                                             <div className="bg-muted p-4 rounded-lg text-sm">
                                                 {formData.requirements}
                                             </div>
@@ -2430,7 +2505,7 @@ export default function NewProjectPage() {
                                     variant="outline"
                                     onClick={() => setActiveTab('providers')}
                                 >
-                                    Înapoi la Prestatori
+                                    {t('projects.new.actions.back_to_providers')}
                                 </Button>
                                 <Button
                                     type="submit"
@@ -2440,12 +2515,12 @@ export default function NewProjectPage() {
                                     {submitting ? (
                                         <>
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Se trimite...
+                                            {t('projects.new.actions.submitting')}
                                         </>
                                     ) : (
                                         <>
                                             <Zap className="w-4 h-4 mr-2" />
-                                            Trimite Proiectul
+                                            {t('projects.new.actions.submit_project')}
                                         </>
                                     )}
                                 </Button>

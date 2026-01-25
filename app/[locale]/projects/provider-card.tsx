@@ -5,12 +5,14 @@ import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {MapPin, Star} from "lucide-react";
 import ProviderService from "./[id]/provider-service";
 import { useRouter } from '@/lib/navigation';
+import { useTranslations } from 'next-intl';
 
 interface ProviderCardProps {
     provider: any;
 }
 export default function ProviderCard({ provider}: ProviderCardProps) {
     const router = useRouter();
+    const t = useTranslations();
 
     return (
         <Card
@@ -21,7 +23,13 @@ export default function ProviderCard({ provider}: ProviderCardProps) {
             <CardContent className="p-6">
                 <div className="flex items-start space-x-4">
                     <Avatar className="w-10 h-10">
-                        <AvatarImage src={provider.avatar} alt={`Imagine prestator ${provider.firstName} ${provider.lastName}`} />
+                        <AvatarImage
+                            src={provider.avatar}
+                            alt={t('projects.provider_card.avatar_alt', {
+                                firstName: provider.firstName,
+                                lastName: provider.lastName,
+                            })}
+                        />
                         <AvatarFallback>
                             {provider.firstName?.[0]}{provider.lastName?.[0]}
                         </AvatarFallback>
@@ -37,7 +45,7 @@ export default function ProviderCard({ provider}: ProviderCardProps) {
 
                                         <div className="flex items-center space-x-1">
                                             <MapPin className="w-3 h-3" />
-                                            <span>{provider.location || 'România'}</span>
+                                            <span>{provider.location || t('projects.provider_card.location_fallback')}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
