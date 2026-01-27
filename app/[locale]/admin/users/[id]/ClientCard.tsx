@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslations } from 'next-intl';
 
 export default function ClientCard({
                                        formData,
@@ -15,14 +16,22 @@ export default function ClientCard({
     loading?: boolean;
     error?: string;
 }) {
+  const t = useTranslations();
+    const title = t('admin.users.detail_card.client_title');
+    const idLabel = t('admin.users.detail_card.id');
+    const nameLabel = t('admin.users.detail_card.name');
+    const emailLabel = t('admin.users.detail_card.email');
+    const roleLabel = t('admin.users.detail_card.role');
+    const phoneLabel = t('admin.users.detail_card.phone');
+
     return (
         <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Client Details</h2>
-            <p><strong>ID:</strong> {formData.id}</p>
-            <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
-            <p><strong>Email:</strong> {formData.email}</p>
-            <p><strong>Role:</strong> {formData.role}</p>
-            <p><strong>Phone:</strong> {formData.phone}</p>
+            <h2 className="text-xl font-semibold mb-4">{title}</h2>
+            <p><strong>{idLabel}</strong> {formData.id}</p>
+            <p><strong>{nameLabel}</strong> {formData.firstName} {formData.lastName}</p>
+            <p><strong>{emailLabel}</strong> {formData.email}</p>
+            <p><strong>{roleLabel}</strong> {formData.role}</p>
+            <p><strong>{phoneLabel}</strong> {formData.phone}</p>
         </div>
     );
 }

@@ -1,98 +1,37 @@
 "use client";
 
-import {useState, useEffect, useMemo} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { ChevronDown, Heart, Loader2, Share2 } from 'lucide-react';
+import Image from 'next/image';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Search,
-  Filter,
-  Star,
-  Clock,
-  Heart,
-  Share2,
-} from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import apiClient from "@/lib/api";
-import {MuiIcon} from "@/components/MuiIcons";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import apiClient from '@/lib/api';
+import { Locale } from '@/types/locale';
+
+type LocalizedText = string | Record<string, string>;
 
 interface ServiceCategory {
   id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  icon: string;
-  image: string | null;
-  sortOrder: number;
-  isActive: boolean;
-  parent_id: number | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-}
-
-interface ServiceProviderPivot {
-  service_id: number;
-  user_id: number;
-  created_at: string | null;
-  updated_at: string | null;
+  name: LocalizedText;
 }
 
 interface ServiceProvider {
   id: number;
-  email: string;
-  email_verified_at: string | null;
   firstName: string;
   lastName: string;
   avatar: string;
-  phone: string | null;
-  company: string | null;
-  website: string | null;
-  role: string;
   rating: string;
-  reviewCount: number;
-  callVerified: boolean;
-  status: string;
-  last_login_at: string | null;
-  last_active_at: string | null;
-  timezone: string | null;
-  language: string;
-  created_at: string;
-  updated_at: string;
-  testVerified: boolean;
-  profile_url: string | null;
-  stripe_account_id: string | null;
-  is_online: boolean;
-  last_seen: string | null;
-  oldest_work_experience: string | null;
-  next_available_job: string | null;
-  pivot: ServiceProviderPivot;
 }
 
 interface Service {
   id: number;
-  name: string;
-  slug: string;
-  description: string;
-  tags: string[];
-  isActive: boolean;
-  category_id: number;
-  status: string;
+  name: LocalizedText;
+  description: LocalizedText;
+  tags?: string[];
+  skills?: LocalizedText[];
   isFeatured: boolean;
-  orderCount: number;
-  rating: string;
-  reviewCount: number;
-  viewCount: number;
-  favoriteCount: number;
-  price: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
   category: ServiceCategory;
   providers: ServiceProvider[];
 }
@@ -106,481 +45,730 @@ interface ServicesResponse {
 }
 
 type Category = {
-    id: string | number;
-    name: string;
-    icon?: string | null;
-    parent_id: string | number | null;
+  id: string | number;
+  name: LocalizedText;
 };
 
-type CategoryNode = Category & { children: CategoryNode[] };
+type Technology = {
+  id?: number | string;
+  name?: LocalizedText;
+  category_id?: number | string;
+  categoryId?: number | string;
+  category?: string;
+  parent_category?: string;
+};
 
-const PER_PAGE = 12;
+const ITEMS_PER_PAGE = 12;
+
+function getLocalizedText(value: LocalizedText | null | undefined, locale: Locale) {
+  if (!value) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
+}
+
+function extractTechnologiesFromServices(services: Service[], locale: Locale): Technology[] {
+  const uniqueTechs = new Map<string, Technology>();
+
+  services.forEach((service) => {
+    const serviceName = getLocalizedText(service.name, locale);
+    const skills = service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? [];
+    const tags = service.tags ?? [];
+    const categoryName =
+      typeof service.category === 'string'
+        ? service.category
+        : service.category
+          ? getLocalizedText(service.category.name, locale) || String(service.category?.name ?? '')
+          : '';
+
+    [serviceName, ...skills, ...tags].forEach((name) => {
+      const normalized = name?.trim();
+      if (!normalized) {
+        return;
+      }
+      const key = `${categoryName}::${normalized}`;
+      if (!uniqueTechs.has(key)) {
+        uniqueTechs.set(key, { name: normalized, category: categoryName || undefined });
+      }
+    });
+  });
+
+  return Array.from(uniqueTechs.values());
+}
+
+function normalizeServicesByCategoryResponse(response: Record<string, Technology[]>): Service[] {
+  return Object.entries(response).flatMap(([category, services]) =>
+    (services || []).map((service, index) => {
+      const categoryName = service.category ?? category;
+      const categoryIdRaw = service.category_id ?? service.categoryId ?? category;
+      const categoryId =
+        typeof categoryIdRaw === 'number'
+          ? categoryIdRaw
+          : Number.isFinite(Number(categoryIdRaw))
+            ? Number(categoryIdRaw)
+            : 0;
+      const fallbackCategory: ServiceCategory = {
+        id: categoryId,
+        name: categoryName ?? category,
+      };
+
+      const numericId =
+        typeof service.id === 'number'
+          ? service.id
+          : Number.isFinite(Number(service.id))
+            ? Number(service.id)
+            : index;
+
+      return {
+        id: numericId,
+        name: service.name ?? categoryName ?? category,
+        description: '',
+        isFeatured: false,
+        providers: [],
+        category:
+          typeof service.category === 'string' || !service.category
+            ? fallbackCategory
+            : service.category,
+        tags: [],
+        skills: [],
+      };
+    })
+  );
+}
+
+function isServicesResponse(
+  response: ServicesResponse | Service[] | Record<string, Technology[]> | null | undefined
+): response is ServicesResponse {
+  if (!response || typeof response !== 'object') {
+    return false;
+  }
+  if (!('services' in response)) {
+    return false;
+  }
+  const services = (response as ServicesResponse).services;
+  return (
+    Array.isArray(services) &&
+    services.every((service) => service && typeof service === 'object' && 'description' in service)
+  );
+}
+
+function getServicesFromResponse(
+  response:
+    | ServicesResponse
+    | Service[]
+    | Record<string, Technology[]>
+    | null
+    | undefined
+): Service[] {
+  if (!response) {
+    return [];
+  }
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (isServicesResponse(response)) {
+    return response.services || [];
+  }
+  return normalizeServicesByCategoryResponse(response);
+}
 
 export default function ServicesPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  // const [priceRange, setPriceRange] = useState([0, 5000]);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('relevance');
-  // const [pricingTypeFilter, setPricingTypeFilter] = useState('all');
-  const [servicesData, setServicesData] = useState<ServicesResponse | null>(null);
-  const [categoriesData, setCategoriesData] = useState<any[]>([]);
-  const [allServices, setAllServices] = useState<ServicesResponse | null>(null);
+  const locale = useLocale() as Locale;
+  const t = useTranslations();
+  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [technologies, setTechnologies] = useState<Technology[]>([]);
+  const [allTechnologies, setAllTechnologies] = useState<Technology[]>([]);
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      const response = await apiClient.getServices({
-        search: searchTerm || undefined,
-        categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
-        // minPrice: priceRange[0],
-        // maxPrice: priceRange[1],
-        skills: selectedSkills.length > 0 ? selectedSkills : undefined,
-        sortBy,
-        page: 1,
-        limit: PER_PAGE
-      });
-        const getAllServices = await apiClient.getServices();
-        setAllServices(getAllServices)
-      setServicesData(response);
-    };
+  const [selectedServiceType, setSelectedServiceType] = useState('All');
+  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>(['All']);
 
-    fetchServices();
-  }, [searchTerm, selectedCategory, selectedSkills, sortBy]);
+  const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [wishlist, setWishlist] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const response = await apiClient.getCategories();
-      setCategoriesData(response);
-    };
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
+  const wishlistedLabel = t('services.actions.wishlisted');
+  const addLabel = t('services.actions.add');
+  const shareLabel = t('services.actions.share');
 
-    fetchCategories();
+  const fetchAllServices = useCallback(async () => {
+    const firstResponse: ServicesResponse = await apiClient.getServices({
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+    });
+    const firstPageServices = getServicesFromResponse(firstResponse);
+    const totalPages = firstResponse?.totalPages ?? 1;
+
+    if (totalPages <= 1) {
+      return firstPageServices;
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        apiClient.getServices({ page: index + 2, limit: ITEMS_PER_PAGE })
+      )
+    );
+
+    const remainingServices = remainingPages.flatMap((pageResponse) =>
+      getServicesFromResponse(pageResponse)
+    );
+
+    return [...firstPageServices, ...remainingServices];
   }, []);
 
-  const categories = categoriesData || [];
-  const services = servicesData?.services || [];
+  useEffect(() => {
+    const initializeFilters = async () => {
+      try {
+        const [categoriesResponse, servicesList] = await Promise.all([
+          apiClient.getCategories(),
+          fetchAllServices(),
+        ]);
 
-  // const pricingTypes = [
-  //   { value: 'all', label: 'Toate tipurile' },
-  //   { value: 'FIXED', label: 'Preț Fix' },
-  //   { value: 'HOURLY', label: 'Pe Oră' },
-  //   { value: 'DAILY', label: 'Pe Zi' },
-  //   { value: 'WEEKLY', label: 'Pe Săptămână' },
-  //   { value: 'MONTHLY', label: 'Pe Lună' },
-  //   { value: 'CUSTOM', label: 'Negociabil' }
-  // ];
+        setCategories(categoriesResponse || []);
+        const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
+        setAllTechnologies(extractedTechnologies);
+        setTechnologies(extractedTechnologies);
 
-  const handleSkillToggle = (skill: string) => {
+      } catch (error) {
+        console.error('Failed to load filters:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
 
-    setSelectedSkills(prev =>
-      prev.includes(skill)
-        ? prev.filter(s => s !== skill)
-        : [...prev, skill]
+    initializeFilters();
+  }, [fetchAllServices, locale]);
+
+  const loadServices = useCallback(
+    async (pageNum: number, isReset = false) => {
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
+      setIsLoading(true);
+
+      try {
+        const response: ServicesResponse = await apiClient.getServices({
+          categoryId: selectedServiceType !== 'All' ? selectedServiceType : undefined,
+          skills:
+            selectedTechnologies.length > 0 && !selectedTechnologies.includes('All')
+              ? selectedTechnologies
+              : undefined,
+          page: pageNum + 1,
+          limit: ITEMS_PER_PAGE,
+        });
+
+        const newServices = response?.services || [];
+
+        if (newServices.length < ITEMS_PER_PAGE) {
+          setHasMore(false);
+        }
+
+        if (isReset) {
+          setServices(newServices);
+        } else {
+          setServices((prev) => [...prev, ...newServices]);
+        }
+      } catch (error) {
+        console.error('Failed to load services:', error);
+      } finally {
+        setIsLoading(false);
+        isLoadingRef.current = false;
+      }
+    },
+    [selectedServiceType, selectedTechnologies]
+  );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !isLoading) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
     );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoading]);
+
+  useEffect(() => {
+    setPage(0);
+    setHasMore(true);
+    loadServices(0, true);
+  }, [selectedServiceType, selectedTechnologies, loadServices]);
+
+  useEffect(() => {
+    if (page > 0) {
+      loadServices(page);
+    }
+  }, [page, loadServices]);
+
+  const handleServiceTypeChange = async (serviceType: string) => {
+    setSelectedServiceType(serviceType);
+    setSelectedTechnologies(['All']);
+
+    if (serviceType === 'All') {
+      setTechnologies(allTechnologies);
+      return;
+    }
+
+    try {
+      const servicesResponse = await apiClient.getServicesByCategoryId(serviceType);
+      const servicesList = getServicesFromResponse(servicesResponse);
+      setTechnologies(extractTechnologiesFromServices(servicesList, locale));
+    } catch (error) {
+      console.error('Failed to update technologies:', error);
+    }
   };
 
-  // const getPricingDisplay = (provider: any) => {
-  //   switch (provider.pricingType) {
-  //     case 'HOURLY':
-  //       return `${provider.hourlyRate || provider.basePrice} RON/oră`;
-  //     case 'DAILY':
-  //       return `${provider.dailyRate || provider.basePrice} RON/zi`;
-  //     case 'WEEKLY':
-  //       return `${provider.weeklyRate || provider.basePrice} RON/săptămână`;
-  //     case 'MONTHLY':
-  //       return `${provider.monthlyRate || provider.basePrice} RON/lună`;
-  //     case 'CUSTOM':
-  //       return provider.negotiable ? 'Preț negociabil' : `de la ${provider.basePrice} RON`;
-  //     default:
-  //       return `${provider.basePrice} RON`;
-  //   }
-  // };
+  const handleTechnologiesUpdate = async () => {
+    const servicesList =
+      selectedServiceType === 'All'
+        ? await fetchAllServices()
+        : getServicesFromResponse(
+          await apiClient.getServicesByCategoryId(selectedServiceType)
+        );
 
-  // type PricingType = 'FIXED' | 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM';
-
-  // const getPricingTypeBadge = (pricingType: string) => {
-  //   const types: Record<PricingType, { label: string; color: string }> = {
-  //     FIXED: { label: 'Fix', color: 'bg-blue-100 text-blue-800' },
-  //     HOURLY: { label: 'Pe Oră', color: 'bg-green-100 text-green-800' },
-  //     DAILY: { label: 'Pe Zi', color: 'bg-purple-100 text-purple-800' },
-  //     WEEKLY: { label: 'Pe Săptămână', color: 'bg-orange-100 text-orange-800' },
-  //     MONTHLY: { label: 'Pe Lună', color: 'bg-red-100 text-red-800' },
-  //     CUSTOM: { label: 'Negociabil', color: 'bg-gray-100 text-gray-800' },
-  //   };
-  //
-  //   // Asigură-te că pricingType e de tip PricingType (type guard)
-  //   if (!Object.keys(types).includes(pricingType)) {
-  //     pricingType = 'FIXED'; // fallback
-  //   }
-  //
-  //   const type = types[pricingType as PricingType];
-  //   return <Badge className={type.color}>{type.label}</Badge>;
-  // };
-  //
-  // const getLowestPrice = (providers: any[]) => {
-  //   if (!providers || providers.length === 0) return 0;
-  //   return Math.min(...providers.map(p => p.basePrice));
-  // };
-
-  const getHighestRating = (providers: any[]) => {
-    if (!providers || providers.length === 0) return 0;
-    return Math.max(...providers.map(p => p.rating || 0));
+    const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
+    setTechnologies(extractedTechnologies);
+    if (selectedServiceType === 'All') {
+      setAllTechnologies(extractedTechnologies);
+    }
   };
+
+  const handleWishlistToggle = (serviceId: number) => {
+    setWishlist((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(serviceId)) {
+        updated.delete(serviceId);
+      } else {
+        updated.add(serviceId);
+      }
+      return updated;
+    });
+  };
+
+  const serviceTypeOptions = useMemo(
+    () => [{ id: 'All', name: t('services.filters.all') }, ...categories],
+    [t, categories]
+  );
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <TrustoraThemeStyles />
+        <Header />
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-[#1BC47D] animate-spin" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+      <TrustoraThemeStyles />
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-bold mb-4">
-            Servicii IT cu Tarife Personalizate
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Descoperă peste 500 de experți verificați cu tarife personalizate pentru fiecare serviciu
-          </p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input
-                  placeholder="Caută servicii, tehnologii sau experți..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 py-6 text-lg"
-                />
-              </div>
-            </div>
-              <CategorySelect categories={categories} selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+      <main className="pt-8 pb-16 px-6 bg-slate-50 dark:bg-[#070C14] min-h-screen" role="main" aria-label={t('services.page.aria_label')}>
+        <div className="max-w-7xl mx-auto mb-12">
+          <div className="mb-8">
+            <h1 className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
+              {t('services.page.title')}
+            </h1>
+            <p className="text-lg text-slate-600 dark:text-[#A3ADC2]">
+              {t('services.page.subtitle')}
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-80 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Filter className="w-5 h-5" />
-                  <span>Filtrează Rezultatele</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Pricing Type Filter */}
-                {/*<div>*/}
-                {/*  <h3 className="font-semibold mb-3">Tip Tarif</h3>*/}
-                {/*  <Select value={pricingTypeFilter} onValueChange={setPricingTypeFilter}>*/}
-                {/*    <SelectTrigger>*/}
-                {/*      <SelectValue />*/}
-                {/*    </SelectTrigger>*/}
-                {/*    <SelectContent>*/}
-                {/*      {pricingTypes.map(type => (*/}
-                {/*        <SelectItem key={type.value} value={type.value}>*/}
-                {/*          {type.label}*/}
-                {/*        </SelectItem>*/}
-                {/*      ))}*/}
-                {/*    </SelectContent>*/}
-                {/*  </Select>*/}
-                {/*</div>*/}
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <FilterSidebar
+              serviceTypes={serviceTypeOptions}
+              technologies={technologies}
+              selectedServiceType={selectedServiceType}
+              selectedTechnologies={selectedTechnologies}
+              onServiceTypeChange={handleServiceTypeChange}
+              onTechnologiesChange={setSelectedTechnologies}
+              onTechnologiesUpdate={handleTechnologiesUpdate}
+              labels={{
+                filterTitle: t('services.filters.title'),
+                serviceTypeLabel: t('services.filters.service_type'),
+                technologiesLabel: t('services.filters.technologies'),
+                allLabel: t('services.filters.all'),
+                showMoreLabel: t('services.filters.show_more'),
+                showLessLabel: t('services.filters.show_less'),
+                otherCategoryLabel: t('services.filters.other'),
+              }}
+              locale={locale}
+            />
 
-                {/* Price Range */}
-                {/*<div>*/}
-                {/*  <h3 className="font-semibold mb-3">Buget (RON)</h3>*/}
-                {/*  <div className="space-y-3">*/}
-                {/*    <Slider*/}
-                {/*      value={priceRange}*/}
-                {/*      onValueChange={setPriceRange}*/}
-                {/*      max={5000}*/}
-                {/*      min={0}*/}
-                {/*      step={100}*/}
-                {/*      className="w-full"*/}
-                {/*    />*/}
-                {/*    <div className="flex justify-between text-sm text-muted-foreground">*/}
-                {/*      <span>{priceRange[0]} RON</span>*/}
-                {/*      <span>{priceRange[1]} RON</span>*/}
-                {/*    </div>*/}
-                {/*  </div>*/}
-                {/*</div>*/}
-
-                {/* Skills Filter */}
-                <div>
-                  <h3 className="font-semibold mb-3">Tehnologii & Skills</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {allServices?.services.map((skill: any) => (
-                      <div key={skill.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={skill.id}
-                          checked={selectedSkills.includes(skill.id)}
-                          onCheckedChange={() => handleSkillToggle(skill.id)}
-                        />
-                        <label htmlFor={skill.id} className="text-sm cursor-pointer">
-                          {skill.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Clear Filters */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    // setPriceRange([0, 5000]);
-                    setSelectedSkills([]);
-                    setSearchTerm('');
-                    // setPricingTypeFilter('all');
-                  }}
-                >
-                  Resetează Filtrele
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Services Grid */}
-          <div className="flex-1">
-            {/*<div className="flex justify-between items-center mb-6">*/}
-            {/*  <p className="text-muted-foreground">*/}
-            {/*    {`${services?.length} servicii găsite`}*/}
-            {/*  </p>*/}
-            {/*  <Select value={sortBy} onValueChange={setSortBy}>*/}
-            {/*    <SelectTrigger className="w-48">*/}
-            {/*      <SelectValue />*/}
-            {/*    </SelectTrigger>*/}
-            {/*    <SelectContent>*/}
-            {/*      <SelectItem value="relevance">Recomandate</SelectItem>*/}
-            {/*      <SelectItem value="price_low">Preț: Mic → Mare</SelectItem>*/}
-            {/*      <SelectItem value="price_high">Preț: Mare → Mic</SelectItem>*/}
-            {/*      <SelectItem value="rating">Rating Cel Mai Mare</SelectItem>*/}
-            {/*      <SelectItem value="newest">Cele Mai Noi</SelectItem>*/}
-            {/*    </SelectContent>*/}
-            {/*  </Select>*/}
-            {/*</div>*/}
-
-              <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                {services.map((service: any) => (
-                  <Card key={service.id} className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/20">
-                    <CardHeader>
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-2">
-                          {service.isFeatured && (
-                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
-                              ⭐ Recomandat
-                            </Badge>
-                          )}
-                          <Badge variant="secondary">
-                            {service.category?.name}
-                          </Badge>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Heart className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8">
-                            <Share2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <CardTitle className="text-xl mb-2 group-hover:text-primary transition-colors">
-                        {service.name}
-                      </CardTitle>
-                      <CardDescription className="text-sm line-clamp-2">
-                        {service.description}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent>
-                      {/* Providers Preview */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {service.providers?.length || 0} prestatori disponibili
-                          </span>
-                          <div className="flex items-center space-x-1">
-                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">
-                              {getHighestRating(service.providers)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Top 3 providers preview */}
-                        <div className="space-y-2">
-                          {(service.providers || []).slice(0, 3).map((provider: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarImage src={provider?.avatar} />
-                                  <AvatarFallback className="text-xs">
-                                    {provider?.firstName?.[0]}{provider?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm font-medium">
-                                  {provider?.firstName} {provider?.lastName}
-                                </span>
-                                {/*{getPricingTypeBadge(provider?.pricingType)}*/}
-                              </div>
-                              <div className="text-right">
-
-                                <div className="flex items-center space-x-1">
-                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                  <span className="text-xs">{provider.rating || 0}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {service.providers?.length > 3 && (
-                          <div className="text-center mt-2">
-                            <span className="text-xs text-muted-foreground">
-                              +{service.providers.length - 3} prestatori în plus
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Skills */}
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {(service.skills || []).slice(0, 3).map((skill: string) => (
-                          <Badge key={skill} variant="outline" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {(service.skills || []).length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{(service.skills || []).length - 3}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Service Details */}
-                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                        {/*<div className="flex items-center space-x-1">*/}
-                        {/*  <Users className="w-4 h-4" />*/}
-                        {/*  <span>{service.orderCount || 0} comenzi</span>*/}
-                        {/*</div>*/}
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span>Livrare flexibilă</span>
-                        </div>
-                          <div className="text-xs text-muted-foreground">
-                              {service.providers?.length || 0} prestatori
-                          </div>
-                      </div>
-
-                      {/* Price and CTA */}
-                      {/*<div className="flex items-center justify-between">*/}
-                      {/*  <div>*/}
-                      {/*    <div className="text-xs text-muted-foreground">*/}
-                      {/*      {service.providers?.length || 0} prestatori*/}
-                      {/*    </div>*/}
-                      {/*  </div>*/}
-                      {/*  <Button className="px-6">*/}
-                      {/*    Vezi Oferte*/}
-                      {/*  </Button>*/}
-                      {/*</div>*/}
-                    </CardContent>
-                  </Card>
+            <div className="lg:col-span-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                {services.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    locale={locale}
+                    onWishlistToggle={handleWishlistToggle}
+                    isWishlisted={wishlist.has(service.id)}
+                    labels={{
+                      wishlistedLabel,
+                      addLabel,
+                      shareLabel,
+                    }}
+                  />
                 ))}
               </div>
 
-            {/* Load More */}
-            {services.length > PER_PAGE && (
-              <div className="text-center mt-12">
-                <Button variant="outline" size="lg" className="px-8">
-                  Încarcă Mai Multe Servicii
-                </Button>
-              </div>
-            )}
+              {isLoading && (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-[#1BC47D] animate-spin" />
+                </div>
+              )}
 
-            {/* No Results */}
-            {services.length === 0 && (
-              <div className="text-center py-20">
-                <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Nu am găsit servicii</h3>
-                <p className="text-muted-foreground">
-                  Încearcă să modifici filtrele sau termenii de căutare
-                </p>
-              </div>
-            )}
+              {!isLoading && services.length === 0 && (
+                <div className="text-center py-16">
+                  <p className="text-lg text-slate-500 dark:text-[#A3ADC2]">
+                    {t('services.results.no_services')}
+                  </p>
+                </div>
+              )}
+
+              <div ref={observerTarget} className="h-4" />
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>
   );
 }
 
-function buildCategoryTree(items: Category[]): CategoryNode[] {
-    // 1) normalizăm nodurile (ignorăm orice `children` venit din API ca să evităm dublurile)
-    const map = new Map<string | number, CategoryNode>();
-    for (const it of items) {
-        map.set(it.id, { ...it, children: [] });
-    }
-
-    // 2) legăm copiii de părinți după parent_id
-    const roots: CategoryNode[] = [];
-    for (const node of map.values()) {
-        if (node.parent_id != null && map.has(node.parent_id)) {
-            map.get(node.parent_id)!.children.push(node);
-        } else {
-            roots.push(node);
-        }
-    }
-    return roots;
-}
-
-function renderCategoryTree(nodes: CategoryNode[], depth = 0): React.ReactNode {
-    const pad = depth * 16; // indent px per nivel
-    return nodes.flatMap((cat) => {
-        const me = (
-            <SelectItem key={`cat-${cat.id}`} value={String(cat.id)}>
-                <div className="flex items-center space-x-2" style={{ paddingLeft: pad }}>
-                    {cat.icon ? <MuiIcon icon={cat.icon} size={18} className="opacity-80" /> : null}
-                    <span>{cat.name}</span>
-                </div>
-            </SelectItem>
-        );
-
-        if (!cat.children.length) return [me];
-        return [me, renderCategoryTree(cat.children, depth + 1)];
-    });
-}
-
-function CategorySelect({
-                                   categories,
-                                   selectedCategory,
-                            onCategoryChange,
-                               }: {
-    categories: Category[];
-    selectedCategory: string;
-    onCategoryChange: (val: string) => void;
+function FilterSidebar({
+  serviceTypes,
+  technologies,
+  selectedServiceType,
+  selectedTechnologies,
+  onServiceTypeChange,
+  onTechnologiesChange,
+  onTechnologiesUpdate,
+  labels,
+  locale,
+}: {
+  serviceTypes: Category[];
+  technologies: Technology[];
+  selectedServiceType: string;
+  selectedTechnologies: string[];
+  onServiceTypeChange: (type: string) => void;
+  onTechnologiesChange: (techs: string[]) => void;
+  onTechnologiesUpdate: () => Promise<void>;
+  labels: {
+    filterTitle: string;
+    serviceTypeLabel: string;
+    technologiesLabel: string;
+    allLabel: string;
+    showMoreLabel: string;
+    showLessLabel: string;
+    otherCategoryLabel: string;
+  };
+  locale: Locale;
 }) {
-    const tree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const [expandedTechs, setExpandedTechs] = useState(false);
+  const [isUpdatingTechs, setIsUpdatingTechs] = useState(false);
 
-    return (
-        <Select value={selectedCategory} onValueChange={onCategoryChange}>
-            <SelectTrigger className="w-full lg:w-64 py-6">
-                <SelectValue placeholder="Selectează categoria" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">
-                    <div className="flex items-center space-x-2">
-                        <Filter className="w-4 h-4" />
-                        <span>Toate Categoriile</span>
-                    </div>
-                </SelectItem>
+  const INITIAL_TECH_DISPLAY = 6;
+  const visibleTechs = expandedTechs ? technologies : technologies.slice(0, INITIAL_TECH_DISPLAY);
+  const hasMoreTechs = technologies.length > INITIAL_TECH_DISPLAY;
+  const groupedTechs = useMemo(() => {
+    const grouped = new Map<string, Technology[]>();
 
-                {renderCategoryTree(tree)}
-            </SelectContent>
-        </Select>
-    );
+    visibleTechs.forEach((tech) => {
+      const category = tech.category ?? labels.otherCategoryLabel;
+      const items = grouped.get(category) ?? [];
+      items.push(tech);
+      grouped.set(category, items);
+    });
+
+    return Array.from(grouped.entries());
+  }, [labels.otherCategoryLabel, visibleTechs]);
+
+  const techListRef = useRef<HTMLDivElement>(null);
+  const showMoreButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleTechToggle = (tech: string) => {
+    if (tech === 'All') {
+      onTechnologiesChange(['All']);
+      return;
+    }
+
+    const updated = selectedTechnologies.includes(tech)
+      ? selectedTechnologies.filter((t) => t !== tech)
+      : [...selectedTechnologies.filter((t) => t !== 'All'), tech];
+
+    onTechnologiesChange(updated.length > 0 ? updated : ['All']);
+  };
+
+  const handleShowMore = async () => {
+    if (!expandedTechs) {
+      setIsUpdatingTechs(true);
+      try {
+        await onTechnologiesUpdate();
+      } finally {
+        setIsUpdatingTechs(false);
+      }
+      setExpandedTechs(true);
+      return;
+    }
+    setExpandedTechs(false);
+  };
+
+  useEffect(() => {
+    if (!expandedTechs || !techListRef.current) return;
+    const lastItem = techListRef.current.querySelector('label:last-of-type');
+    if (lastItem) {
+      lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+    showMoreButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [expandedTechs]);
+
+  return (
+    <div className="w-full lg:w-80 bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] p-6 h-fit lg:sticky lg:top-24">
+      <h3 className="text-lg font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-6">{labels.filterTitle}</h3>
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
+            {labels.serviceTypeLabel}
+          </label>
+          <select
+            value={selectedServiceType}
+            onChange={(event) => onServiceTypeChange(event.target.value)}
+            className="w-full px-4 py-2 border border-slate-200 dark:border-[#1E2A3D] rounded-lg focus:outline-none focus:border-[#1BC47D] focus:ring-2 focus:ring-[#1BC47D]/20 text-slate-700 dark:text-[#E6EDF3] bg-white dark:bg-[#0B1220]"
+          >
+            {serviceTypes.map((type) => (
+              <option key={type.id} value={String(type.id)}>
+                {getLocalizedText(type.name, locale)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-4">
+            {labels.technologiesLabel}
+          </label>
+          <div ref={techListRef} className="space-y-2 mb-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedTechnologies.includes('All')}
+                onChange={() => handleTechToggle('All')}
+                className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
+              />
+              <span className="text-sm text-slate-700 dark:text-[#E6EDF3]">{labels.allLabel}</span>
+            </label>
+            {groupedTechs.map(([category, techs]) => (
+              <div key={category} className="space-y-2">
+                <p className="text-xs font-semibold text-slate-500 dark:text-[#6B7285] uppercase tracking-wide mt-4">
+                  {category}
+                </p>
+                {techs.map((tech) => {
+                  const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
+                  return (
+                    <label key={name} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTechnologies.includes(name)}
+                        onChange={() => handleTechToggle(name)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-[#E6EDF3]">{name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {hasMoreTechs && (
+            <button
+              ref={showMoreButtonRef}
+              onClick={handleShowMore}
+              disabled={isUpdatingTechs}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-[#1BC47D] border border-[#1BC47D]/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-[rgba(27,196,125,0.1)] transition-colors disabled:opacity-50"
+            >
+              {expandedTechs ? labels.showLessLabel : labels.showMoreLabel}
+              <ChevronDown
+                size={16}
+                className={`transition-transform ${expandedTechs ? 'rotate-180' : ''}`}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceCard({
+  service,
+  locale,
+  onWishlistToggle,
+  isWishlisted,
+  labels,
+}: {
+  service: Service;
+  locale: Locale;
+  onWishlistToggle: (serviceId: number) => void;
+  isWishlisted: boolean;
+  labels: {
+    wishlistedLabel: string;
+    addLabel: string;
+    shareLabel: string;
+  };
+}) {
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const t = useTranslations('services.results');
+  const providerCount = service.providers?.length || 0;
+  const technologies = [
+    ...(service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? []),
+    ...(service.tags ?? []),
+  ].filter(Boolean);
+  const uniqueTechnologies = Array.from(new Set(technologies));
+  const remainingProviders = Math.max(0, providerCount - 3);
+  const serviceType = service.isFeatured ? t('recommended') : t('standard');
+  const moreLabel = t('more_label', { count: uniqueTechnologies.length - 3 });
+
+  // For the bold count, we use the raw template and split as before to avoid Intl errors
+  // while maintaining the exact styling.
+  const providersAvailableTemplate = t.raw('providers_available');
+  const providersAvailableParts = typeof providersAvailableTemplate === 'string'
+    ? providersAvailableTemplate.split('{count}')
+    : ['', ''];
+
+  const providersMoreLabel = t('providers_more_label', { count: remainingProviders });
+
+  const handleWishlist = async () => {
+    setIsWishlistLoading(true);
+    try {
+      onWishlistToggle(service.id);
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] overflow-visible hover:shadow-lg transition-all duration-300">
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <span className="inline-block px-3 py-1 bg-slate-100 dark:bg-[#111B2D] text-slate-700 dark:text-[#E6EDF3] text-xs font-bold rounded-full">
+            {getLocalizedText(service.category?.name, locale)}
+          </span>
+          <span className="text-slate-400 dark:text-[#6B7285] text-sm font-medium">{serviceType}</span>
+        </div>
+
+        <h3 className="text-lg font-bold text-midnight-blue dark:text-[#E6EDF3] mb-2 line-clamp-2">
+          {getLocalizedText(service.name, locale)}
+        </h3>
+
+        <p className="text-sm text-slate-600 dark:text-[#A3ADC2] mb-4 line-clamp-2 leading-relaxed">
+          {getLocalizedText(service.description, locale)}
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {uniqueTechnologies.slice(0, 3).map((tech) => (
+            <span key={tech} className="text-xs bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] text-emerald-700 dark:text-[#1BC47D] px-2 py-1 rounded">
+              {tech}
+            </span>
+          ))}
+          {uniqueTechnologies.length > 3 && (
+            <span className="text-xs text-slate-500 dark:text-[#A3ADC2]">
+              {moreLabel}
+            </span>
+          )}
+        </div>
+
+        <div className="mb-6 pb-6 border-b border-slate-200 dark:border-[#1E2A3D]">
+          <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-3">
+            {providersAvailableParts[0]}
+            <span className="font-bold text-midnight-blue dark:text-[#E6EDF3]">{providerCount}</span>
+            {providersAvailableParts[1] ?? ''}
+          </p>
+
+          <div className="flex items-center gap-2">
+            {service.providers && service.providers.length > 0 ? (
+              <>
+                <div className="flex -space-x-2">
+                  {service.providers.slice(0, 3).map((provider) => {
+                    const providerName = `${provider.firstName} ${provider.lastName}`;
+                    return (
+                      <div key={provider.id} className="relative group">
+                        <Image
+                          src={provider.avatar || '/placeholder-avatar.png'}
+                          alt={providerName}
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                        />
+                        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100">
+                          {providerName}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {remainingProviders > 0 && (
+                  <span className="text-xs text-slate-600 dark:text-[#A3ADC2] font-medium">
+                    {providersMoreLabel}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-sm text-slate-500 dark:text-[#A3ADC2]">{t('no_providers')}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleWishlist}
+            disabled={isWishlistLoading}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all duration-200 ${isWishlisted
+              ? 'bg-red-50 text-error-red border border-error-red'
+              : 'bg-slate-50 dark:bg-[#111B2D] text-slate-600 dark:text-[#A3ADC2] border border-slate-200 dark:border-[#1E2A3D] hover:border-error-red hover:bg-red-50'
+              } ${isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
+            <span className="text-sm font-medium">
+              {isWishlisted ? labels.wishlistedLabel : labels.addLabel}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-slate-50 dark:bg-[#111B2D] text-slate-600 dark:text-[#A3ADC2] border border-slate-200 dark:border-[#1E2A3D] hover:border-emerald-green hover:bg-emerald-50 hover:text-emerald-green transition-all duration-200"
+          >
+            <Share2 size={16} />
+            <span className="text-sm font-medium">{labels.shareLabel}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -1,0 +1,83 @@
+{
+  "project_requests": {
+    "hero": {
+      "badge": "Trustora client hub",
+      "title": "My project requests",
+      "description": "Track provider responses and secure payments with escrow for safe collaborations."
+    },
+    "empty": {
+      "title": "You have no project requests",
+      "description": "Create your first project to start collaborating with providers.",
+      "cta": "Create project"
+    },
+    "project": {
+      "total_budget": "Total budget: {amount} RON",
+      "created": "Created",
+      "selected_providers": "{count} selected providers",
+      "technologies": "Project technologies"
+    },
+    "providers": {
+      "title": "Provider responses",
+      "location_fallback": "Romania",
+      "allocated": "Allocated: {amount} RON",
+      "response_received": "Response received",
+      "milestone_budget": "Allocated budget: {amount} RON"
+    },
+    "budget": {
+      "approved": "Budget approved!",
+      "rejected": "Budget rejected",
+      "new_proposal": "New budget proposal",
+      "original": "Original budget: {amount} RON",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "budget_proposed": "Budget proposed"
+    },
+    "actions": {
+      "secure_payment": "Secure payment",
+      "view_details": "View details",
+      "messages": "Messages"
+    },
+    "stripe": {
+      "load_error": "Stripe failed to load.",
+      "not_ready": "Stripe is not ready.",
+      "session_not_ready": "The payment session is not ready yet.",
+      "payment_error": "Payment error"
+    },
+    "errors": {
+      "generic": "Error: {message}"
+    },
+    "checkout": {
+      "title": "Secure payment",
+      "description": "Protect your investment with escrow",
+      "project_label": "Project:",
+      "project_value": "Project value:",
+      "platform_fee": "Platform fee (12%):",
+      "total_value": "Total value:",
+      "how_it_works": {
+        "title": "How escrow works",
+        "step_1": "Funds are securely held",
+        "step_2": "Providers work on the project",
+        "step_3": "Funds are released upon completion"
+      },
+      "guarantee": {
+        "title": "100% guaranteed protection",
+        "description": "Your funds are safe until the project is completed to spec."
+      },
+      "card_details": "Payment card details",
+      "success": "Payment authorized successfully! Providers can start working.",
+      "processing": "Processing...",
+      "secure_amount": "Secure {amount} RON",
+      "cancel": "Cancel",
+      "footer": {
+        "ssl": "SSL secured",
+        "pci": "PCI compliant",
+        "stripe": "Stripe powered"
+      }
+    }
+  }
+}

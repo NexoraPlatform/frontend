@@ -15,8 +15,8 @@ interface SEOProps {
 
 export function generateSEO({
                                 title,
-                                description = "Nexora - Modern web solutions for the next generation. Build, deploy, and scale your applications with our cutting-edge platform.",
-                                keywords = ['nexora', 'web development', 'modern applications', 'next generation', 'platform', 'servicii IT', 'dezvoltare web', 'design', 'marketing digital', 'freelanceri România', 'aplicații mobile', 'SEO', 'WordPress', 'React', 'prestatori IT'],
+                                description = "Trustora - Modern web solutions for the next generation. Build, deploy, and scale your applications with our cutting-edge platform.",
+                                keywords = ['Trustora', 'web development', 'modern applications', 'next generation', 'platform', 'servicii IT', 'dezvoltare web', 'design', 'marketing digital', 'freelanceri România', 'aplicații mobile', 'SEO', 'WordPress', 'React', 'prestatori IT'],
                                 image = "/og-image.jpg",
                                 url,
                                 type = "website",
@@ -25,9 +25,9 @@ export function generateSEO({
                                 authors,
                                 section,
                             }: SEOProps = {}): Metadata {
-    const siteTitle = "Nexora"
+    const siteTitle = "Trustora"
     const fullTitle = title ? `${title} | ${siteTitle}` : siteTitle
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nexora.dev"
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://Trustora.dev"
     const fullUrl = url ? `${baseUrl}${url}` : baseUrl
     const fullImage = image.startsWith('http') ? image : `${baseUrl}${image}`
 
@@ -35,9 +35,9 @@ export function generateSEO({
         title: fullTitle,
         description,
         keywords: keywords.join(', '),
-        authors: authors ? authors.map(name => ({ name })) : [{ name: 'Nexora Team' }],
-        creator: 'Nexora',
-        publisher: 'Nexora',
+        authors: authors ? authors.map(name => ({ name })) : [{ name: 'Trustora Team' }],
+        creator: 'Trustora',
+        publisher: 'Trustora',
         formatDetection: {
             email: false,
             address: false,
@@ -78,8 +78,8 @@ export function generateSEO({
             title: fullTitle,
             description,
             images: [fullImage],
-            creator: '@nexora',
-            site: '@nexora',
+            creator: '@Trustora',
+            site: '@Trustora',
         },
         robots: {
             index: true,
@@ -104,7 +104,7 @@ export function generateStructuredData(data: {
     type: 'Organization' | 'WebSite' | 'Article' | 'BreadcrumbList' | 'FAQPage'
     [key: string]: any
 }) {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nexora.dev"
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://Trustora.dev"
 
     const structuredData = {
         '@context': 'https://schema.org',
@@ -116,15 +116,15 @@ export function generateStructuredData(data: {
         return {
             '@context': 'https://schema.org',
             '@type': 'Organization',
-            name: 'Nexora',
+            name: 'Trustora',
             url: baseUrl,
             logo: `${baseUrl}/logo.webp`,
             description: 'Modern web solutions for the next generation',
             foundingDate: '2024',
             sameAs: [
-                'https://twitter.com/nexora',
-                'https://linkedin.com/company/nexora',
-                'https://github.com/nexora',
+                'https://twitter.com/Trustora',
+                'https://linkedin.com/company/Trustora',
+                'https://github.com/Trustora',
             ],
             contactPoint: {
                 '@type': 'ContactPoint',
@@ -140,7 +140,7 @@ export function generateStructuredData(data: {
         return {
             '@context': 'https://schema.org',
             '@type': 'WebSite',
-            name: 'Nexora',
+            name: 'Trustora',
             url: baseUrl,
             description: 'Modern web solutions for the next generation',
             potentialAction: {

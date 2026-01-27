@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,12 +29,15 @@ import {
   Zap
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useTranslations } from 'next-intl';
 
 export default function TestsPage() {
   const { user, loading } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [testInProgress, setTestInProgress] = useState(false);
   const router = useRouter();
+  const t = useTranslations('tests.dashboard');
+  const tMeta = useTranslations('tests.metadata');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -43,10 +47,11 @@ export default function TestsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
+        <TrustoraThemeStyles />
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Se încarcă...</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     );
@@ -58,13 +63,14 @@ export default function TestsPage() {
 
   if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+        <TrustoraThemeStyles />
         <Header />
         <div className="container mx-auto px-4 py-20">
-          <Alert variant="destructive">
+          <Alert className="glass-card border-red-200/70">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Doar prestatorii pot accesa testele de competență.
+              {t('provider_only')}
             </AlertDescription>
           </Alert>
         </div>
@@ -76,10 +82,10 @@ export default function TestsPage() {
   const categories = [
     {
       id: 'web-development',
-      name: 'Dezvoltare Web',
+      name: tMeta('web_development.name'),
       icon: Code,
-      description: 'HTML, CSS, JavaScript, React, Vue, Angular, Node.js',
-      difficulty: 'Intermediar',
+      description: tMeta('web_development.description'),
+      difficulty: tMeta('difficulty.intermediate'),
       duration: 45,
       questions: 25,
       passingScore: 80,
@@ -89,10 +95,10 @@ export default function TestsPage() {
     },
     {
       id: 'mobile-development',
-      name: 'Dezvoltare Mobile',
+      name: tMeta('mobile_development.name'),
       icon: Smartphone,
-      description: 'React Native, Flutter, iOS, Android, Kotlin, Swift',
-      difficulty: 'Avansat',
+      description: tMeta('mobile_development.description'),
+      difficulty: tMeta('difficulty.advanced'),
       duration: 60,
       questions: 30,
       passingScore: 85,
@@ -102,10 +108,10 @@ export default function TestsPage() {
     },
     {
       id: 'ui-ux-design',
-      name: 'Design UI/UX',
+      name: tMeta('ui_ux_design.name'),
       icon: Palette,
-      description: 'Figma, Adobe XD, Sketch, Principii de design, UX Research',
-      difficulty: 'Intermediar',
+      description: tMeta('ui_ux_design.description'),
+      difficulty: tMeta('difficulty.intermediate'),
       duration: 40,
       questions: 20,
       passingScore: 75,
@@ -115,10 +121,10 @@ export default function TestsPage() {
     },
     {
       id: 'digital-marketing',
-      name: 'Marketing Digital',
+      name: tMeta('digital_marketing.name'),
       icon: TrendingUp,
-      description: 'SEO, SEM, Social Media, Google Analytics, Facebook Ads',
-      difficulty: 'Începător',
+      description: tMeta('digital_marketing.description'),
+      difficulty: tMeta('difficulty.beginner'),
       duration: 35,
       questions: 20,
       passingScore: 70,
@@ -128,10 +134,10 @@ export default function TestsPage() {
     },
     {
       id: 'database-admin',
-      name: 'Administrare Baze de Date',
+      name: tMeta('database_admin.name'),
       icon: Database,
-      description: 'MySQL, PostgreSQL, MongoDB, Redis, Optimizare',
-      difficulty: 'Avansat',
+      description: tMeta('database_admin.description'),
+      difficulty: tMeta('difficulty.advanced'),
       duration: 50,
       questions: 25,
       passingScore: 85,
@@ -141,10 +147,10 @@ export default function TestsPage() {
     },
     {
       id: 'cybersecurity',
-      name: 'Securitate Cibernetică',
+      name: tMeta('cybersecurity.name'),
       icon: Shield,
-      description: 'Penetration Testing, OWASP, Cryptografie, Network Security',
-      difficulty: 'Expert',
+      description: tMeta('cybersecurity.description'),
+      difficulty: tMeta('difficulty.expert'),
       duration: 75,
       questions: 35,
       passingScore: 90,
@@ -155,17 +161,17 @@ export default function TestsPage() {
   ];
 
   const colors: Record<string, string> = {
-    Incepator: 'bg-green-100 text-green-800',
-    Intermediar: 'bg-yellow-100 text-yellow-800',
-    Avansat: 'bg-orange-100 text-orange-800',
-    Expert: 'bg-red-100 text-red-800',
+    [tMeta('difficulty.beginner')]: 'bg-green-100 text-green-800',
+    [tMeta('difficulty.intermediate')]: 'bg-yellow-100 text-yellow-800',
+    [tMeta('difficulty.advanced')]: 'bg-orange-100 text-orange-800',
+    [tMeta('difficulty.expert')]: 'bg-red-100 text-red-800',
   };
 
   const getDifficultyBadge = (difficulty: string) => {
     return (
-        <Badge className={colors[difficulty] || colors['Intermediar']}>
-          {difficulty}
-        </Badge>
+      <Badge className={colors[difficulty] || colors[tMeta('difficulty.intermediate')]}>
+        {difficulty}
+      </Badge>
     );
   };
 
@@ -188,41 +194,41 @@ export default function TestsPage() {
       setTestInProgress(false);
       setSelectedCategory(null);
       // Simulare finalizare test
-      alert('Test finalizat! Rezultatul va fi procesat în câteva minute.');
+      alert(t('categories.completed'));
     }, 3000);
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+      <TrustoraThemeStyles />
       <Header />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Trophy className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Teste de Competență</h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Demonstrează-ți expertiza și obține certificări pentru a oferi servicii pe platformă.
-            Fiecare test validează cunoștințele tale în domeniul respectiv.
+          <h1 className="text-4xl font-bold mb-4 text-[var(--text-near-black)] dark:text-white">{t('title')}</h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            {t('subtitle')}
           </p>
         </div>
 
         {/* Progress Overview */}
-        <Card className="mb-8 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <Card className="mb-8 glass-card border-emerald-100/60">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Progresul tău</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('progress.title')}</h3>
                 <p className="text-muted-foreground">
-                  Ai finalizat 0 din {categories.length} teste disponibile
+                  {t('progress.completed', { completed: 0, total: categories.length })}
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-blue-600">0%</div>
+                <div className="text-3xl font-bold text-emerald-600">0%</div>
                 <Progress value={0} className="w-32 mt-2" />
               </div>
             </div>
@@ -231,18 +237,18 @@ export default function TestsPage() {
 
         {/* Test in Progress */}
         {testInProgress && (
-          <Alert className="mb-8 border-blue-200 bg-blue-50">
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <Alert className="mb-8 glass-card border-emerald-100/80">
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
             <AlertDescription>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold mb-1">Test în progres...</h3>
+                  <h3 className="font-semibold mb-1">{t('in_progress.title')}</h3>
                   <p className="text-sm">
-                    Testul pentru {categories.find(c => c.id === selectedCategory)?.name} este în desfășurare.
+                    {t('in_progress.description', { category: categories.find(c => c.id === selectedCategory)?.name ?? '' })}
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setTestInProgress(false)}>
-                  Anulează
+                <Button variant="outline" onClick={() => setTestInProgress(false)} className="border-emerald-200/70">
+                  {t('in_progress.cancel')}
                 </Button>
               </div>
             </AlertDescription>
@@ -254,11 +260,10 @@ export default function TestsPage() {
           {categories.map((category) => (
             <Card
               key={category.id}
-              className={`group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl ${
-                category.status === 'locked' 
-                  ? 'opacity-60 cursor-not-allowed' 
-                  : 'hover:border-blue-300 cursor-pointer hover:scale-105'
-              }`}
+              className={`group relative overflow-hidden glass-card border transition-all duration-300 hover:shadow-xl ${category.status === 'locked'
+                ? 'opacity-60 cursor-not-allowed'
+                : 'hover:border-emerald-200/80 cursor-pointer hover:scale-[1.02]'
+                }`}
             >
               <div className={`h-2 bg-gradient-to-r ${category.color}`} />
 
@@ -284,22 +289,22 @@ export default function TestsPage() {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center space-x-1">
                       <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span>{category.duration} minute</span>
+                      <span>{t('categories.duration', { minutes: category.duration })}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <BookOpen className="w-4 h-4 text-muted-foreground" />
-                      <span>{category.questions} întrebări</span>
+                      <span>{t('categories.questions', { count: category.questions })}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center space-x-1">
                       <Target className="w-4 h-4 text-muted-foreground" />
-                      <span>Nota de trecere: {category.passingScore}%</span>
+                      <span>{t('categories.passing_score', { score: category.passingScore })}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Award className="w-4 h-4 text-muted-foreground" />
-                      <span>Certificare</span>
+                      <span>{t('categories.certification')}</span>
                     </div>
                   </div>
                 </div>
@@ -308,32 +313,32 @@ export default function TestsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-green-600">
                       <CheckCircle className="w-4 h-4" />
-                      <span className="text-sm font-medium">Test finalizat cu succes</span>
+                      <span className="text-sm font-medium">{t('categories.completed')}</span>
                     </div>
                     <Button variant="outline" className="w-full" disabled>
                       <Award className="w-4 h-4 mr-2" />
-                      Certificat Obținut
+                      {t('categories.certificate')}
                     </Button>
                   </div>
                 ) : category.status === 'locked' ? (
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-gray-500">
                       <Shield className="w-4 h-4" />
-                      <span className="text-sm">Necesită certificări anterioare</span>
+                      <span className="text-sm">{t('categories.requires_previous')}</span>
                     </div>
                     <Button variant="outline" className="w-full" disabled>
                       <Shield className="w-4 h-4 mr-2" />
-                      Blocat
+                      {t('categories.locked')}
                     </Button>
                   </div>
                 ) : (
                   <Button
-                    className="w-full"
+                    className="w-full btn-primary"
                     onClick={() => startTest(category.id)}
                     disabled={testInProgress}
                   >
                     <PlayCircle className="w-4 h-4 mr-2" />
-                    Începe Testul
+                    {t('categories.start_button')}
                   </Button>
                 )}
               </CardContent>
@@ -342,22 +347,22 @@ export default function TestsPage() {
         </div>
 
         {/* Info Section */}
-        <Card className="mt-12 border-2 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+        <Card className="mt-12 glass-card border-amber-200/70">
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
                 <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-                  Cum funcționează testarea?
+                <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                  {t('info.title')}
                 </h3>
-                <div className="text-yellow-800 dark:text-yellow-200 text-sm space-y-2">
-                  <p>• <strong>Testele sunt obligatorii</strong> pentru a oferi servicii în categoriile respective</p>
-                  <p>• <strong>Fiecare test</strong> conține întrebări practice și teoretice</p>
-                  <p>• <strong>Nota de trecere</strong> variază în funcție de dificultatea categoriei</p>
-                  <p>• <strong>Certificările</strong> sunt valabile 2 ani și pot fi reînnoite</p>
-                  <p>• <strong>Poți relua testul</strong> după 30 de zile dacă nu treci prima dată</p>
+                <div className="text-amber-800 dark:text-amber-200 text-sm space-y-2">
+                  <p>• <strong>{t('info.items.mandatory')}</strong></p>
+                  <p>• <strong>{t('info.items.content')}</strong></p>
+                  <p>• <strong>{t('info.items.pass_score')}</strong></p>
+                  <p>• <strong>{t('info.items.validity')}</strong></p>
+                  <p>• <strong>{t('info.items.retake')}</strong></p>
                 </div>
               </div>
             </div>

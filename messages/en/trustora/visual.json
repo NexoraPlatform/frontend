@@ -1,0 +1,11 @@
+{
+  "visual": {
+    "title": "Stripe + Notary + Marketplace",
+    "money_label": "Money",
+    "money_subtitle": "Escrow layer",
+    "contracts_label": "Contracts",
+    "contracts_subtitle": "Digital execution",
+    "verification_label": "Verification",
+    "verification_subtitle": "Identity layer"
+  }
+}

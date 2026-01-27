@@ -1,9 +1,10 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { chatService } from '@/lib/chat';
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useNotifications } from '@/contexts/notification-context';
 import { toast } from 'sonner';
 
 export interface ChatGroup {
@@ -25,7 +26,7 @@ export interface ChatGroup {
     last_message?: {
         id: string;
         content: string;
-        translations?: Record<string, string>;
+        translations?: string;
         sender_id: string;
         timestamp: string;
         isRead: boolean;
@@ -44,7 +45,7 @@ export interface ChatMessage {
     content: string;
     originalContent?: string;
     isCensored: boolean;
-    translations?: Record<string, string>;
+    translations?: string | Record<string, string>;
     attachments?: {
         id: string;
         name: string;
@@ -107,6 +108,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
+    const { notifications, loading: notificationsLoading } = useNotifications();
     const [groups, setGroups] = useState<ChatGroup[]>([]);
     const [activeGroup, setActiveGroup] = useState<ChatGroup | null>(null);
     const [messages, setMessages] = useState<{ [groupId: string]: ChatMessage[] }>({});
@@ -117,6 +119,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
     const [groupOnline, setGroupOnline] = useState<Record<string, string[]>>({});
     const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const groupsRef = useRef<ChatGroup[]>([]);
 
     const openPanel = (group?: ChatGroup) => {
         if (group) setActiveGroup(group);
@@ -125,6 +128,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const closePanel = () => setIsPanelOpen(false);
 
     const startedRef = React.useRef(false);
+    const seenNotificationIdsRef = useRef<Set<string>>(new Set());
+    const seededNotificationsRef = useRef(false);
 
     const upsertMessage = useCallback((msg: ChatMessage) => {
         setMessages(prev => {
@@ -188,7 +193,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
         try {
             setLoading(true);
-            const token = localStorage.getItem('auth_token');
+            const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
             if (token) {
                 await chatService.connect(user.id, token);
                 setIsConnected(true);
@@ -197,9 +202,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     setupEventListeners();
                     listenersReadyRef.current = true;
                 }
-
-                await refreshGroups();
             }
+
+            await refreshGroups();
         } catch (e) {
             console.error('Failed to initialize chat:', e);
             toast.error('Nu s-a putut conecta la chat');
@@ -227,6 +232,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         window.addEventListener('beforeunload', onUnload);
         return () => window.removeEventListener('beforeunload', onUnload);
     }, []);
+
+    useEffect(() => {
+        groupsRef.current = groups;
+    }, [groups]);
+
+    useEffect(() => {
+        if (notificationsLoading) return;
+        if (!seededNotificationsRef.current) {
+            notifications.forEach(n => seenNotificationIdsRef.current.add(n.id));
+            seededNotificationsRef.current = true;
+            return;
+        }
+
+        const newMessageNotifications = notifications.filter(n => {
+            if (seenNotificationIdsRef.current.has(n.id)) return false;
+            seenNotificationIdsRef.current.add(n.id);
+            return n.type === 'MESSAGE' && !n.isRead;
+        });
+
+        if (newMessageNotifications.length > 0) {
+            void refreshGroups();
+        }
+    }, [notifications, notificationsLoading, refreshGroups]);
 
     const isUserOnline = useCallback((userId: string | number) => {
         return onlineUsers.includes(String(userId));
@@ -282,7 +310,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                         last_message: {
                             id: String(message.id),
                             content: String(message.content ?? ''),
-                            translations: message.translations ?? {},
+                            translations: typeof message.translations === 'string' ? message.translations : undefined,
                             sender_id: String(message.sender_id),
                             timestamp: message.timestamp ?? new Date().toISOString(),
                             isRead: false,
@@ -296,16 +324,38 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             ));
 
             if (message.sender_id !== user?.id && (!activeGroup || activeGroup.id !== message.groupId)) {
-                toast(`💬 ${message.senderName}`, {
-                    description: message.content.substring(0, 100),
-                    action: {
-                        label: 'Vezi',
-                        onClick: () => {
-                            const group = groups.find(g => g.id === message.groupId);
-                            if (group) setActiveGroup(group);
-                        },
-                    },
-                });
+                const openGroup = async () => {
+                    const findGroup = () =>
+                        groupsRef.current.find(g => String(g.id) === String(message.groupId));
+                    let group = findGroup();
+                    if (!group) {
+                        await refreshGroups();
+                        group = findGroup();
+                    }
+                    if (group) {
+                        setActiveGroup(group);
+                        openPanel(group);
+                        await loadMessages(group.id, 1);
+                    }
+                };
+
+                toast.custom(() => (
+                    <button
+                        type="button"
+                        onClick={() => void openGroup()}
+                        className="w-full text-left"
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="text-sm font-semibold">💬 {message.senderName}</div>
+                                <div className="text-xs text-muted-foreground line-clamp-2">
+                                    {message.content.substring(0, 100)}
+                                </div>
+                            </div>
+                            <span className="text-xs font-semibold text-emerald-600">Vezi</span>
+                        </div>
+                    </button>
+                ), { duration: 6000 });
             }
         });
 
@@ -360,7 +410,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                             sender_id: String(message.sender_id),
                             timestamp: message.timestamp ?? new Date().toISOString(),
                             isRead: true,
-                            translations: message.translations ?? {},
+                            translations: typeof message.translations === 'string' ? message.translations : undefined,
                         },
                         updated_at: message.timestamp ?? g.updated_at,
                     }
@@ -426,7 +476,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const connect = async (): Promise<boolean> => {
         if (!user) return false;
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
             if (token) {
                 return await chatService.connect(user.id, token);
             }

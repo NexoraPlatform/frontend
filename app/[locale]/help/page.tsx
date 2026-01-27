@@ -3,116 +3,116 @@ import {generateSEO} from "@/lib/seo";
 import HelpPageComponent from "@/app/[locale]/help/help-page";
 import { Footer } from "@/components/footer";
 import { Header } from '@/components/header';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { getTranslations } from 'next-intl/server';
 
+type HelpPageProps = {
+  params: Promise<{
+    locale: string;
+  }>;
+};
 
-export const metadata: Metadata = generateSEO({
-  title: 'FAQ - Întrebări Frecvente',
-  description: 'Ai o intrebare? Verifica sectiunea de întrebări frecvente pentru răspunsuri rapide la cele mai comune întrebări despre Nexora.',
-  url: '/help',
-})
+export async function generateMetadata({ params }: HelpPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const isEnglish = locale?.toLowerCase().startsWith('en');
 
-export default function HelpPage() {
+  return generateSEO({
+    title: isEnglish ? 'FAQ - Frequently Asked Questions' : 'FAQ - Întrebări Frecvente',
+    description: isEnglish
+      ? 'Have a question? Check the FAQ section for fast answers to the most common questions about Trustora.'
+      : 'Ai o intrebare? Verifica sectiunea de întrebări frecvente pentru răspunsuri rapide la cele mai comune întrebări despre Trustora.',
+    url: '/help',
+  });
+}
+
+export default async function HelpPage() {
+    const t = await getTranslations();
     const faqCategories = [
         {
             id: "general",
-            title: "Întrebări Generale",
+            title: t('help.faq.categories.general.title'),
             iconKey: "HelpCircle",
             faqs: [
                 {
-                    question: "Ce este Nexora și cum funcționează?",
-                    answer:
-                        "Nexora este o platformă românească care conectează clienții cu experți IT verificați. Poți căuta servicii, compara oferte, și colabora direct cu furnizorii prin platforma noastră securizată.",
+                    question: t('help.faq.categories.general.items.0.question'),
+                    answer: t('help.faq.categories.general.items.0.answer'),
                 },
                 {
-                    question: "Este gratuit să folosesc Nexora?",
-                    answer:
-                        "Da, înregistrarea și căutarea serviciilor sunt complet gratuite. Plătești doar pentru serviciile pe care le comanzi, fără taxe ascunse.",
+                    question: t('help.faq.categories.general.items.1.question'),
+                    answer: t('help.faq.categories.general.items.1.answer'),
                 },
                 {
-                    question: "Cum sunt verificați experții de pe platformă?",
-                    answer:
-                        "Toți furnizorii trec printr-un proces riguros de verificare care include validarea identității, portofoliului, referințelor și competențelor tehnice.",
+                    question: t('help.faq.categories.general.items.2.question'),
+                    answer: t('help.faq.categories.general.items.2.answer'),
                 },
                 {
-                    question: "În cât timp primesc oferte pentru proiectul meu?",
-                    answer:
-                        "De obicei, primești primele oferte în câteva ore după publicarea proiectului. Majoritatea clienților primesc 3-5 oferte în prima zi.",
+                    question: t('help.faq.categories.general.items.3.question'),
+                    answer: t('help.faq.categories.general.items.3.answer'),
                 },
             ],
         },
         {
             id: "payments",
-            title: "Plăți și Facturare",
+            title: t('help.faq.categories.payments.title'),
             iconKey: "CreditCard",
             faqs: [
                 {
-                    question: "Ce metode de plată acceptați?",
-                    answer:
-                        "Acceptăm carduri de credit/debit (Visa, Mastercard), transfer bancar, și plăți prin PayPal. Toate tranzacțiile sunt securizate SSL.",
+                    question: t('help.faq.categories.payments.items.0.question'),
+                    answer: t('help.faq.categories.payments.items.0.answer'),
                 },
                 {
-                    question: "Când se efectuează plata către furnizor?",
-                    answer:
-                        "Plata se face în etape (milestones) stabilite în contract. Banii sunt eliberați către furnizor doar după confirmarea ta că etapa a fost finalizată satisfăcător.",
+                    question: t('help.faq.categories.payments.items.1.question'),
+                    answer: t('help.faq.categories.payments.items.1.answer'),
                 },
                 {
-                    question: "Pot primi factură pentru serviciile comandate?",
-                    answer:
-                        "Da, toți furnizorii înregistrați ca PFA sau SRL pot emite facturi. Specifică această cerință când postezi proiectul.",
+                    question: t('help.faq.categories.payments.items.2.question'),
+                    answer: t('help.faq.categories.payments.items.2.answer'),
                 },
                 {
-                    question: "Ce se întâmplă dacă nu sunt mulțumit de rezultat?",
-                    answer:
-                        "Avem o politică de protecție a clientului. Dacă serviciul nu corespunde specificațiilor, poți solicita revizuiri gratuite sau rambursarea banilor.",
+                    question: t('help.faq.categories.payments.items.3.question'),
+                    answer: t('help.faq.categories.payments.items.3.answer'),
                 },
             ],
         },
         {
             id: "projects",
-            title: "Gestionarea Proiectelor",
+            title: t('help.faq.categories.projects.title'),
             iconKey: "FileText",
             faqs: [
                 {
-                    question: "Cum postez un proiect nou?",
-                    answer:
-                        'Apasă pe "Postează Proiect", completează detaliile (descriere, buget, deadline), și publică. Vei primi oferte de la experți interesați în câteva ore.',
+                    question: t('help.faq.categories.projects.items.0.question'),
+                    answer: t('help.faq.categories.projects.items.0.answer'),
                 },
                 {
-                    question: "Pot modifica proiectul după ce l-am publicat?",
-                    answer:
-                        "Da, poți edita descrierea, bugetul și alte detalii până când accepți o ofertă. După aceea, modificările se fac prin acordul ambelor părți.",
+                    question: t('help.faq.categories.projects.items.1.question'),
+                    answer: t('help.faq.categories.projects.items.1.answer'),
                 },
                 {
-                    question: "Cum comunic cu furnizorii?",
-                    answer:
-                        "Toată comunicarea se face prin sistemul de mesagerie integrat al platformei, care păstrează istoricul conversațiilor și fișierelor partajate.",
+                    question: t('help.faq.categories.projects.items.2.question'),
+                    answer: t('help.faq.categories.projects.items.2.answer'),
                 },
                 {
-                    question: "Pot lucra cu același furnizor pentru mai multe proiecte?",
-                    answer:
-                        "Absolut! Poți invita direct furnizorii cu care ai colaborat anterior la proiecte noi, fără să mai postezi public.",
+                    question: t('help.faq.categories.projects.items.3.question'),
+                    answer: t('help.faq.categories.projects.items.3.answer'),
                 },
             ],
         },
         {
             id: "security",
-            title: "Siguranță și Confidențialitate",
+            title: t('help.faq.categories.security.title'),
             iconKey: "Shield",
             faqs: [
                 {
-                    question: "Cât de sigure sunt datele mele pe platformă?",
-                    answer:
-                        "Folosim criptare SSL de nivel bancar și respectăm GDPR. Datele tale sunt stocate securizat și nu sunt partajate cu terțe părți fără acordul tău.",
+                    question: t('help.faq.categories.security.items.0.question'),
+                    answer: t('help.faq.categories.security.items.0.answer'),
                 },
                 {
-                    question: "Cum protejez proprietatea intelectuală a proiectului?",
-                    answer:
-                        "Recomandăm semnarea unui NDA (acord de confidențialitate) înainte de a împărtăși detalii sensibile. Oferim template-uri gratuite.",
+                    question: t('help.faq.categories.security.items.1.question'),
+                    answer: t('help.faq.categories.security.items.1.answer'),
                 },
                 {
-                    question: "Ce fac dacă suspectez o activitate frauduloasă?",
-                    answer:
-                        "Raportează imediat echipei noastre prin sistemul de raportare. Investigăm toate cazurile în 24 de ore și luăm măsuri corespunzătoare.",
+                    question: t('help.faq.categories.security.items.2.question'),
+                    answer: t('help.faq.categories.security.items.2.answer'),
                 },
             ],
         },
@@ -120,65 +120,66 @@ export default function HelpPage() {
 
     const supportOptions = [
         {
-            title: "Chat Live",
-            description: "Vorbește direct cu echipa noastră de suport",
+            title: t('help.support.options.chat.title'),
+            description: t('help.support.options.chat.description'),
             iconKey: "MessageCircle",
-            availability: "Luni-Vineri, 9:00-18:00",
-            action: "Începe Chat",
+            availability: t('help.support.options.chat.availability'),
+            action: t('help.support.options.chat.action'),
             primary: true,
         },
         {
-            title: "Suport Telefonic",
-            description: "Sună-ne pentru asistență imediată",
+            title: t('help.support.options.phone.title'),
+            description: t('help.support.options.phone.description'),
             iconKey: "Phone",
-            availability: "+40 123 456 789",
-            action: "Sună Acum",
+            availability: t('help.support.options.phone.availability'),
+            action: t('help.support.options.phone.action'),
             primary: false,
         },
         {
-            title: "Email Support",
-            description: "Trimite-ne un email detaliat",
+            title: t('help.support.options.email.title'),
+            description: t('help.support.options.email.description'),
             iconKey: "Mail",
-            availability: "Răspuns în 2-4 ore",
-            action: "Trimite Email",
+            availability: t('help.support.options.email.availability'),
+            action: t('help.support.options.email.action'),
             primary: false,
         },
     ] as const;
 
     const resources = [
         {
-            title: "Ghid pentru Începători",
-            description: "Învață să folosești Nexora pas cu pas",
+            title: t('help.resources.items.0.title'),
+            description: t('help.resources.items.0.description'),
             iconKey: "BookOpen",
-            type: "PDF Guide",
+            type: t('help.resources.items.0.type'),
             link: "#",
         },
         {
-            title: "Video Tutorials",
-            description: "Tutoriale video pentru toate funcționalitățile",
+            title: t('help.resources.items.1.title'),
+            description: t('help.resources.items.1.description'),
             iconKey: "Video",
-            type: "Video Series",
+            type: t('help.resources.items.1.type'),
             link: "#",
         },
         {
-            title: "Template-uri de Contracte",
-            description: "Modele de contracte și NDA-uri",
+            title: t('help.resources.items.2.title'),
+            description: t('help.resources.items.2.description'),
             iconKey: "Download",
-            type: "Downloads",
+            type: t('help.resources.items.2.type'),
             link: "#",
         },
         {
-            title: "Best Practices",
-            description: "Sfaturi pentru proiecte de succes",
+            title: t('help.resources.items.3.title'),
+            description: t('help.resources.items.3.description'),
             iconKey: "CheckCircle",
-            type: "Article",
+            type: t('help.resources.items.3.type'),
             link: "#",
         },
     ] as const;
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-white dark:bg-[#070C14]">
             <Header />
+            <TrustoraThemeStyles />
             <HelpPageComponent
                 faqCategories={faqCategories as any}
                 supportOptions={supportOptions as any}

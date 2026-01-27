@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ import {
 import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages} from "@/hooks/use-api";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 interface ProviderProfileProps {
     id: any;
@@ -395,7 +396,8 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
                 <Header />
                 <div className="container mx-auto px-4 py-20">
                     <div className="flex justify-center items-center">
@@ -409,7 +411,8 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
     if (!provider) {
         return (
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
                 <Header />
                 <div className="container mx-auto px-4 py-20">
                     <Alert variant="destructive">
@@ -436,13 +439,14 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     const lastActiveProvider = Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60));
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
             <Header />
 
             <div className="container mx-auto px-4 py-8">
                 {/* Provider Header */}
                 <div className="mb-8">
-                    <Card className="border-2 shadow-lg">
+                    <Card className="glass-card border-emerald-100/60 shadow-lg">
                         <CardContent className="p-8">
                             <div className="flex flex-col lg:flex-row gap-8">
                                 {/* Avatar and Basic Info */}
@@ -455,7 +459,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             </AvatarFallback>
                                         </Avatar>
                                         {provider.isVerified && (
-                                            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white">
+                                            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-[var(--emerald-green)] rounded-full flex items-center justify-center border-4 border-white">
                                                 <Verified className="w-5 h-5 text-white" />
                                             </div>
                                         )}
@@ -471,12 +475,12 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                 {availabilityStatus.label}
                                             </Badge>
                                             {provider.isVerified ? (
-                                                <Badge className="bg-blue-100 text-blue-800">
+                                                <Badge className="bg-emerald-100 text-emerald-800">
                                                     <CheckCircle className="w-3 h-3 mr-1" />
                                                     Verificat
                                                 </Badge>
                                             ) : (
-                                                <Badge className="bg-blue-100 text-red-800">
+                                                <Badge className="bg-amber-100 text-amber-800">
                                                     <ShieldAlert className="w-3 h-3 mr-1" />
                                                     Neverificat
                                                 </Badge>
@@ -527,20 +531,20 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                                     {/* Quick Stats */}
                                     <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                        <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                            <div className="text-2xl font-bold text-blue-600">{provider.completedProjects}</div>
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-[var(--midnight-blue)]">{provider.completedProjects}</div>
                                             <div className="text-sm text-muted-foreground">Proiecte finalizate</div>
                                         </div>
-                                        <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                            <div className="text-2xl font-bold text-green-600">{provider.responseTime} {provider.responseTime == 1 ? 'ora' : 'ore'}</div>
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-[var(--emerald-green)]">{provider.responseTime} {provider.responseTime == 1 ? 'ora' : 'ore'}</div>
                                             <div className="text-sm text-muted-foreground">Timp de răspuns</div>
                                         </div>
-                                        <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                            <div className="text-2xl font-bold text-purple-600">{provider.availability.hoursPerWeek}h</div>
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-[var(--midnight-blue)]">{provider.availability.hoursPerWeek}h</div>
                                             <div className="text-sm text-muted-foreground">Pe săptămână</div>
                                         </div>
-                                        <div className="text-center p-3 bg-muted/30 rounded-lg">
-                                            <div className="text-2xl font-bold text-orange-600">
+                                        <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
+                                            <div className="text-2xl font-bold text-amber-500">
                                                 {new Date().getFullYear() - new Date(provider.firstJob).getFullYear()}+
                                             </div>
                                             <div className="text-sm text-muted-foreground">Ani experiență</div>
@@ -559,7 +563,12 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                         {provider.website && (
                                             <div className="flex items-center space-x-2 text-sm">
                                                 <Globe className="w-4 h-4 text-muted-foreground" />
-                                                <a href={provider.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                <a
+                                                    href={provider.website}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[var(--emerald-green)] hover:underline"
+                                                >
                                                     {provider.website}
                                                 </a>
                                             </div>
@@ -568,7 +577,9 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                         <div className="flex items-center space-x-2 text-sm">
                                             <Clock className="w-4 h-4 text-muted-foreground" />
 
-                                            <span className={`${lastActiveProvider === 0 && 'text-green-600'}`}>Activ acum {lastActiveProvider !== 0 && lastActiveProvider + `ore`}</span>
+                                            <span className={`${lastActiveProvider === 0 && 'text-[var(--emerald-green)]'}`}>
+                                                Activ acum {lastActiveProvider !== 0 && lastActiveProvider + `ore`}
+                                            </span>
                                         </div>
                                         <div className="flex items-center space-x-2 text-sm">
                                             <Globe className="w-4 h-4 text-muted-foreground" />
@@ -579,7 +590,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                                 {/* Action Buttons */}
                                 <div className="flex flex-col space-y-3 lg:w-64">
-                                    <Button size="lg" onClick={handleContactProvider} className="w-full">
+                                    <Button size="lg" onClick={handleContactProvider} className="btn-primary w-full">
                                         <MessageSquare className="w-4 h-4 mr-2" />
                                         Contactează
                                     </Button>
@@ -599,7 +610,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                 {/* Detailed Information Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="flex w-full justify-around flex-wrap gap-2">
+                    <TabsList className="flex w-full justify-around flex-wrap gap-2 glass-card p-2">
                         <TabsTrigger value="overview">Prezentare</TabsTrigger>
                         {services.length > 0 && (<TabsTrigger value="services">Servicii</TabsTrigger>)}
                         {provider.portfolio.length > 0 && (<TabsTrigger value="portfolio">Portofoliu</TabsTrigger>)}
@@ -642,7 +653,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                             {/* Languages */}
                             {provider.languages.length > 0 && (
-                                <Card>
+                                <Card className="glass-card">
                                     <CardHeader>
                                         <CardTitle className="flex items-center space-x-2">
                                             <Languages className="w-5 h-5" />
@@ -669,7 +680,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                             {/* Certifications */}
                             {provider.certifications.length > 0 && (
-                                <Card>
+                                <Card className="glass-card">
                                     <CardHeader>
                                         <CardTitle className="flex items-center space-x-2">
                                             <Award className="w-5 h-5" />
@@ -709,7 +720,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                             {/* Education */}
                             {provider.education.length > 0 && (
-                                <Card>
+                                <Card className="glass-card">
                                     <CardHeader>
                                         <CardTitle className="flex items-center space-x-2">
                                             <GraduationCap className="w-5 h-5" />
@@ -737,7 +748,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                     <TabsContent value="services" className="space-y-6">
                         <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
                             {services.map((service: any) => (
-                                <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                                <Card key={service.id} className="glass-card hover:shadow-lg transition-shadow">
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -774,7 +785,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                 <span>100% finalizare</span>
                                             </div>
                                         </div>
-                                        <Button className="w-full">
+                                        <Button className="btn-primary w-full">
                                             Vezi Detalii Serviciu
                                         </Button>
                                     </CardContent>
@@ -787,7 +798,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                     <TabsContent value="portfolio" className="space-y-6">
                         <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {provider.portfolio.map((project: any, index: number) => (
-                                <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
+                                <Card key={index} className="glass-card overflow-hidden hover:shadow-lg transition-shadow">
                                     <div className="aspect-video bg-muted relative overflow-hidden">
                                         <Image
                                             src={project.image}
@@ -821,7 +832,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                     <TabsContent value="experience" className="space-y-6">
                         <div className={`grid xs:grid-cols-1 ${provider.education.length > 0 || provider.workHistory.length > 0 ? 'lg:grid-cols-1' : 'lg:grid-cols-0'} gap-6`}>
                             {provider.workHistory.length > 0 && (
-                                <Card>
+                                <Card className="glass-card">
                                     <CardHeader>
                                         <CardTitle className="flex items-center space-x-2">
                                             <Briefcase className="w-5 h-5" />
@@ -868,7 +879,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                             )}
 
                             {provider.education.length > 0 && (
-                                <Card>
+                                <Card className="glass-card">
                                     <CardHeader>
                                         <CardTitle className="flex items-center space-x-2">
                                             <GraduationCap className="w-5 h-5" />
@@ -906,7 +917,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                     <TabsContent value="reviews" className="space-y-6">
                         <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Reviews Summary */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle>Rezumat Recenzii</CardTitle>
                                 </CardHeader>
@@ -949,7 +960,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                             {/* Recent Reviews */}
                             <div className="lg:col-span-2 space-y-4">
                                 {reviews.map((review: any) => (
-                                    <Card key={review.id}>
+                                    <Card key={review.id} className="glass-card">
                                         <CardContent className="p-6">
                                             <div className="flex items-start space-x-4">
                                                 <Avatar className="w-12 h-12">
@@ -977,7 +988,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                     </div>
                                                     <p className="text-muted-foreground mb-2">{review.comment}</p>
                                                     {review.verified && (
-                                                        <Badge className="bg-green-100 text-green-800 text-xs">
+                                                        <Badge className="bg-emerald-100 text-emerald-800 text-xs">
                                                             <CheckCircle className="w-3 h-3 mr-1" />
                                                             Comandă Verificată
                                                         </Badge>
@@ -1002,7 +1013,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                     <TabsContent value="availability" className="space-y-6">
                         <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Current Status */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Clock className="w-5 h-5" />
@@ -1029,7 +1040,9 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                         <div className="flex items-center justify-between">
                                             <span>Următoarea disponibilitate:</span>
                                             <span className="font-medium">
-                                                {provider.availability.status === 'AVAILABLE' ? (<span className="text-green-500">Imediat</span>) : new Date(provider.availability.nextAvailable).toLocaleDateString('ro-RO')}
+                                                {provider.availability.status === 'AVAILABLE' ? (
+                                                    <span className="text-[var(--emerald-green)]">Imediat</span>
+                                                ) : new Date(provider.availability.nextAvailable).toLocaleDateString('ro-RO')}
                       </span>
                                         </div>
                                         <div className="flex items-center justify-between">
@@ -1041,7 +1054,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                             </Card>
 
                             {/* Working Hours */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <CalendarIcon className="w-5 h-5" />
@@ -1087,7 +1100,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                         </div>
 
                         {/* Contact Information */}
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <MessageSquare className="w-5 h-5" />
@@ -1128,7 +1141,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                     href={provider.website}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-sm text-blue-600 hover:underline"
+                                                    className="text-sm text-[var(--emerald-green)] hover:underline"
                                                 >
                                                     {provider.website}
                                                 </a>
@@ -1139,7 +1152,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                                 <div className="mt-6 pt-6 border-t">
                                     <div className="flex space-x-4">
-                                        <Button onClick={handleContactProvider} className="flex-1">
+                                        <Button onClick={handleContactProvider} className="btn-primary flex-1">
                                             <MessageSquare className="w-4 h-4 mr-2" />
                                             Trimite Mesaj
                                         </Button>
@@ -1156,7 +1169,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                 {/* Floating Action Button for Mobile */}
                 <div className="fixed bottom-6 right-6 lg:hidden">
-                    <Button size="lg" onClick={handleContactProvider} className="rounded-full shadow-lg">
+                    <Button size="lg" onClick={handleContactProvider} className="btn-primary rounded-full shadow-lg">
                         <MessageSquare className="w-5 h-5" />
                     </Button>
                 </div>

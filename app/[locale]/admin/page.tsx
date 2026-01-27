@@ -1,7 +1,8 @@
 "use client";
 
-import {useEffect, useState} from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useMemo } from 'react';
+import { Link } from '@/lib/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,17 +17,18 @@ import {
   Plus,
   FolderPlus,
   UserPlus,
-  Eye,
+  UserCheck,
   ArrowRight,
-  Activity,
   Bell,
   BookOpen,
   IdCardLanyard,
-  TrendingDown
+  TrendingDown,
+  History
 } from 'lucide-react';
-import CallIcon from "@mui/icons-material/Call";
-import apiClient from "@/lib/api";
-import {Can} from "@/components/Can";
+import CallIcon from '@mui/icons-material/Call';
+import apiClient from '@/lib/api';
+import { Can } from '@/components/Can';
+import ActivityFeed from '@/components/ActivityFeed';
 
 interface AdminStats {
   totalUsers: number;
@@ -40,7 +42,7 @@ interface AdminStats {
   totalPendingProjects: number;
   currentMonthVsLastMonthProjects: number;
   totalRevenue: number;
-  currentMonthRevenue: number
+  currentMonthRevenue: number;
   currentMonthVsLastMonthRevenue: number;
   pendingUsers: number;
   pendingServices: number;
@@ -50,28 +52,96 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState<AdminStats | null>(null);
-
+  const t = useTranslations();
   useEffect(() => {
     const fetchStats = async () => {
-        try {
-            const response = await apiClient.getAdminStats();
-
-            if (!response.ok) {
-              throw new Error('Failed to fetch stats');
-            }
-            setStatsData(response);
-        } catch (error) {
-            console.error('Error fetching stats:', error);
+      try {
+        const response = await apiClient.getAdminStats();
+        if (!response.ok) {
+          throw new Error('Failed to fetch stats');
         }
-    }
-
+        setStatsData(response);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
     fetchStats();
   }, []);
 
+  const dashboardTitle = t('admin.dashboard.title');
+  const dashboardSubtitle = t('admin.dashboard.subtitle');
 
-  const stats = [
+  const statsUsersTitle = t('admin.dashboard.stats.users');
+  const statsServicesTitle = t('admin.dashboard.stats.services');
+  const statsRevenueTitle = t('admin.dashboard.stats.revenue');
+  const statsProjectsTitle = t('admin.dashboard.stats.projects');
+
+  const quickActionsTitle = t('admin.dashboard.quick_actions.title');
+  const quickActionsDescription = t('admin.dashboard.quick_actions.description');
+  const addUserTitle = t('admin.dashboard.quick_actions.add_user.title');
+  const addUserDescription = t('admin.dashboard.quick_actions.add_user.description');
+  const addCategoryTitle = t('admin.dashboard.quick_actions.add_category.title');
+  const addCategoryDescription = t('admin.dashboard.quick_actions.add_category.description');
+  const addTestTitle = t('admin.dashboard.quick_actions.add_test.title');
+  const addTestDescription = t('admin.dashboard.quick_actions.add_test.description');
+  const viewReportsTitle = t('admin.dashboard.quick_actions.view_reports.title');
+  const viewReportsDescription = t('admin.dashboard.quick_actions.view_reports.description');
+
+  const sectionsTitle = t('admin.dashboard.sections.title');
+  const sectionsDescription = t('admin.dashboard.sections.description');
+  const usersSectionTitle = t('admin.dashboard.sections.users.title');
+  const usersSectionDescription = t('admin.dashboard.sections.users.description');
+  const servicesSectionTitle = t('admin.dashboard.sections.services.title');
+  const servicesSectionDescription = t('admin.dashboard.sections.services.description');
+  const categoriesSectionTitle = t('admin.dashboard.sections.categories.title');
+  const categoriesSectionDescription = t('admin.dashboard.sections.categories.description');
+  const categoriesSectionStats = t('admin.dashboard.sections.categories.stats');
+  const testsSectionTitle = t('admin.dashboard.sections.tests.title');
+  const testsSectionDescription = t('admin.dashboard.sections.tests.description');
+  const testsSectionStats = t('admin.dashboard.sections.tests.stats');
+  const callsSectionTitle = t('admin.dashboard.sections.calls.title');
+  const callsSectionDescription = t('admin.dashboard.sections.calls.description');
+  const projectsSectionTitle = t('admin.dashboard.sections.projects.title');
+  const projectsSectionDescription = t('admin.dashboard.sections.projects.description');
+  const disputesSectionTitle = t('admin.dashboard.sections.disputes.title');
+  const disputesSectionDescription = t('admin.dashboard.sections.disputes.description');
+  const disputesSectionStats = t('admin.dashboard.sections.disputes.stats');
+  const legalClausesSectionTitle = t('admin.dashboard.sections.legal_clauses.title');
+  const legalClausesSectionDescription = t('admin.dashboard.sections.legal_clauses.description');
+  const legalClausesSectionStats = t('admin.dashboard.sections.legal_clauses.stats');
+  const newsletterSectionTitle = t('admin.dashboard.sections.newsletter.title');
+  const newsletterSectionDescription = t('admin.dashboard.sections.newsletter.description');
+  const newsletterSectionStats = t('admin.dashboard.sections.newsletter.stats');
+  const auditLogsSectionTitle = "Audit Logs";
+  const auditLogsSectionDescription = "View system changes";
+  const activitiesSectionTitle = "Activities";
+  const activitiesSectionDescription = "System event history";
+  const rolesSectionTitle = t('admin.dashboard.sections.roles.title');
+  const rolesSectionDescription = t('admin.dashboard.sections.roles.description');
+  const rolesSectionStats = t('admin.dashboard.sections.roles.stats');
+  const analyticsSectionTitle = t('admin.dashboard.sections.analytics.title');
+  const analyticsSectionDescription = t('admin.dashboard.sections.analytics.description');
+  const analyticsSectionStats = t('admin.dashboard.sections.analytics.stats');
+  const earlyAccessSectionTitle = t('admin.dashboard.sections.early_access.title');
+  const earlyAccessSectionDescription = t('admin.dashboard.sections.early_access.description');
+  const earlyAccessSectionStats = t('admin.dashboard.sections.early_access.stats');
+
+
+  const systemStatusTitle = t('admin.dashboard.system_status.title');
+  const serverStatusLabel = t('admin.dashboard.system_status.server_status');
+  const databaseLabel = t('admin.dashboard.system_status.database');
+  const apiResponseLabel = t('admin.dashboard.system_status.api_response');
+  const providerRatesLabel = t('admin.dashboard.system_status.provider_rates');
+  const competencyTestsLabel = t('admin.dashboard.system_status.competency_tests');
+  const onlineLabel = t('admin.dashboard.system_status.online');
+  const healthyLabel = t('admin.dashboard.system_status.healthy');
+  const fastLabel = t('admin.dashboard.system_status.fast');
+  const flexibleLabel = t('admin.dashboard.system_status.flexible');
+  const activeLabel = t('admin.dashboard.system_status.active');
+
+  const stats = useMemo(() => [
     {
-      title: 'Utilizatori Inregistrati',
+      title: statsUsersTitle,
       value: statsData?.totalUsers || 0,
       change: Math.round(statsData?.currentMonthVsLastMonthUsers || 0),
       current: statsData?.currentMonthUsers || 0,
@@ -80,7 +150,7 @@ export default function AdminDashboard() {
       href: '/admin/users'
     },
     {
-      title: 'Servicii Active',
+      title: statsServicesTitle,
       value: statsData?.activeServices || '0',
       change: Math.round(statsData?.currentMonthVsLastMonthServices || 0),
       current: statsData?.currentMonthServices || 0,
@@ -89,7 +159,7 @@ export default function AdminDashboard() {
       href: '/admin/services'
     },
     {
-      title: 'Venituri Totale',
+      title: statsRevenueTitle,
       value: `${statsData?.totalRevenue || '0'} RON`,
       change: Math.round(statsData?.currentMonthVsLastMonthRevenue || 0),
       current: statsData?.currentMonthRevenue || 0,
@@ -98,7 +168,7 @@ export default function AdminDashboard() {
       href: '/admin/orders'
     },
     {
-      title: 'Proiecte Procesate',
+      title: statsProjectsTitle,
       value: statsData?.totalProjects || 0,
       change: Math.round(statsData?.currentMonthVsLastMonthProjects || 0),
       current: statsData?.currentMonthProjects || 0,
@@ -106,185 +176,264 @@ export default function AdminDashboard() {
       color: 'text-purple-600',
       href: '/admin/orders'
     }
-  ];
+  ], [statsUsersTitle, statsServicesTitle, statsRevenueTitle, statsProjectsTitle, statsData]);
 
-  const quickActions = [
+  const quickActions = useMemo(() => [
     {
-      title: 'Adaugă Utilizator',
-      description: 'Creează un cont nou pentru un utilizator',
+      title: addUserTitle,
+      description: addUserDescription,
       icon: UserPlus,
       href: '/admin/users/new',
       color: 'bg-blue-500'
     },
     {
-      title: 'Adaugă Categorie',
-      description: 'Creează o categorie nouă pentru servicii',
+      title: addCategoryTitle,
+      description: addCategoryDescription,
       icon: FolderPlus,
       href: '/admin/categories/new',
       color: 'bg-green-500'
     },
     {
-      title: 'Adaugă Test',
-      description: 'Creează un test de competență nou',
+      title: addTestTitle,
+      description: addTestDescription,
       icon: BookOpen,
       href: '/admin/tests/new',
       color: 'bg-purple-500'
     },
     {
-      title: 'Vezi Rapoarte',
-      description: 'Analizează performanța platformei',
+      title: viewReportsTitle,
+      description: viewReportsDescription,
       icon: BarChart3,
       href: '/admin/analytics',
       color: 'bg-orange-500'
     }
-  ];
+  ], [
+    addUserTitle,
+    addUserDescription,
+    addCategoryTitle,
+    addCategoryDescription,
+    addTestTitle,
+    addTestDescription,
+    viewReportsTitle,
+    viewReportsDescription
+  ]);
 
-  const adminSections = [
+  const adminSections = useMemo(() => [
     {
-      title: 'Gestionare Utilizatori',
-      description: 'Administrează utilizatorii platformei',
+      title: usersSectionTitle,
+      description: usersSectionDescription,
       icon: Users,
       href: '/admin/users',
-      stats: `${statsData?.totalUsers || 0} utilizatori`,
+      stats: t('admin.dashboard.sections.users.stats_template', { count: statsData?.totalUsers || 0 }),
       pending: statsData?.pendingUsers || 0,
       role: 'admin',
-      permissions: ['users.read'],
+      permissions: ['users.read']
     },
     {
-      title: 'Gestionare Servicii',
-      description: 'Administrează serviciile cu tarife personalizate',
+      title: earlyAccessSectionTitle,
+      description: earlyAccessSectionDescription,
+      icon: UserCheck,
+      href: '/admin/early-access',
+      stats: earlyAccessSectionStats,
+      pending: 0,
+      role: 'admin'
+    },
+    {
+      title: servicesSectionTitle,
+      description: servicesSectionDescription,
       icon: FileText,
       href: '/admin/services',
-      stats: `${statsData?.activeServices || 0} servicii active`,
+      stats: t('admin.dashboard.sections.services.stats_template', { count: statsData?.activeServices || 0 }),
       pending: statsData?.pendingServices || 0,
       role: 'admin'
     },
     {
-      title: 'Gestionare Categorii',
-      description: 'Organizează categoriile de servicii',
+      title: categoriesSectionTitle,
+      description: categoriesSectionDescription,
       icon: FolderPlus,
       href: '/admin/categories',
-      stats: 'Categorii și subcategorii',
+      stats: categoriesSectionStats,
       pending: 0,
       role: 'admin'
     },
     {
-      title: 'Gestionare Teste',
-      description: 'Administrează testele de competență',
+      title: testsSectionTitle,
+      description: testsSectionDescription,
       icon: BookOpen,
       href: '/admin/tests',
-      stats: 'Teste pentru toate nivelurile',
+      stats: testsSectionStats,
       pending: 0,
       role: 'admin'
     },
     {
-      title: 'Gestionare Call-uri',
-      description: 'Administrează call-urile de verificare',
+      title: callsSectionTitle,
+      description: callsSectionDescription,
       icon: CallIcon,
       href: '/admin/calls',
-      stats: `${statsData?.totalScheduleCalls || 0} call-uri programate`,
+      stats: t('admin.dashboard.sections.calls.stats_template', { count: statsData?.totalScheduleCalls || 0 }),
       pending: statsData?.pendingCalls || 0,
       role: 'admin'
     },
     {
-      title: 'Gestionare Proiecte',
-      description: 'Monitorizează proiectele și plățile',
+      title: projectsSectionTitle,
+      description: projectsSectionDescription,
       icon: TrendingUp,
       href: '/admin/orders',
-      stats: `${statsData?.totalProjects || 0} proiecte procesate`,
+      stats: t('admin.dashboard.sections.projects.stats_template', { count: statsData?.totalProjects || 0 }),
       pending: statsData?.totalPendingProjects || 0,
       role: 'admin'
     },
     {
-      title: 'Gestionare Dispute',
-      description: 'Rezolvă disputele între utilizatori',
+      title: disputesSectionTitle,
+      description: disputesSectionDescription,
       icon: Shield,
       href: '/admin/disputes',
-      stats: 'Dispute și reclamații',
+      stats: disputesSectionStats,
       pending: 0,
       role: 'admin'
     },
     {
-      title: 'Gestionare Roluri',
-      description: 'Creaza sau editeaza roluri',
+      title: legalClausesSectionTitle,
+      description: legalClausesSectionDescription,
+      icon: FileText,
+      href: '/admin/legal/clauses',
+      stats: legalClausesSectionStats,
+      pending: 0,
+      roles: ['admin', 'legal'],
+      permissions: ['legal.clauses.read']
+    },
+    {
+      title: newsletterSectionTitle,
+      description: newsletterSectionDescription,
+      icon: Bell,
+      href: '/admin/newsletter',
+      stats: newsletterSectionStats,
+      pending: 0,
+      role: 'admin'
+    },
+    {
+      title: activitiesSectionTitle,
+      description: activitiesSectionDescription,
+      icon: History,
+      href: '/admin/activity',
+      stats: '',
+      pending: 0,
+      role: 'admin'
+    },
+    {
+      title: auditLogsSectionTitle,
+      description: auditLogsSectionDescription,
+      icon: History,
+      href: '/admin/audit-logs',
+      stats: '',
+      pending: 0,
+      role: 'admin'
+    },
+    {
+      title: rolesSectionTitle,
+      description: rolesSectionDescription,
       icon: IdCardLanyard,
       href: '/admin/roles',
-      stats: 'Roluri și permisiuni',
+      stats: rolesSectionStats,
       pending: 0,
       role: 'superuser'
     },
     {
-      title: 'Analytics & Rapoarte',
-      description: 'Analizează performanța platformei',
+      title: analyticsSectionTitle,
+      description: analyticsSectionDescription,
       icon: BarChart3,
       href: '/admin/analytics',
-      stats: 'Statistici detaliate',
+      stats: analyticsSectionStats,
       pending: 0,
       role: 'admin'
     }
-  ];
+  ], [
+    usersSectionTitle,
+    usersSectionDescription,
+    servicesSectionTitle,
+    servicesSectionDescription,
+    categoriesSectionTitle,
+    categoriesSectionDescription,
+    categoriesSectionStats,
+    testsSectionTitle,
+    testsSectionDescription,
+    testsSectionStats,
+    callsSectionTitle,
+    callsSectionDescription,
+    projectsSectionTitle,
+    projectsSectionDescription,
+    t,
+    disputesSectionTitle,
+    disputesSectionDescription,
+    disputesSectionStats,
+    legalClausesSectionTitle,
+    legalClausesSectionDescription,
+    legalClausesSectionStats,
+    newsletterSectionTitle,
+    newsletterSectionDescription,
+    newsletterSectionStats,
+    rolesSectionTitle,
+    rolesSectionDescription,
+    rolesSectionStats,
+    analyticsSectionTitle,
+    analyticsSectionDescription,
+    analyticsSectionStats,
+    earlyAccessSectionTitle,
+    earlyAccessSectionDescription,
+    earlyAccessSectionStats,
+    statsData
+  ]);
 
-  const recentActivity = [
-    {
-      type: 'user',
-      message: 'Utilizator nou înregistrat',
-      time: 'Acum 5 minute',
-      icon: Users,
-      color: 'text-blue-500'
-    },
-    {
-      type: 'order',
-      message: 'Comandă nouă finalizată',
-      time: 'Acum 12 minute',
-      icon: TrendingUp,
-      color: 'text-green-500'
-    },
-    {
-      type: 'service',
-      message: 'Serviciu nou cu tarif personalizat',
-      time: 'Acum 25 minute',
-      icon: FileText,
-      color: 'text-yellow-500'
-    },
-    {
-      type: 'test',
-      message: 'Test nou de competență creat',
-      time: 'Acum 45 minute',
-      icon: BookOpen,
-      color: 'text-purple-500'
-    },
-    {
-      type: 'dispute',
-      message: 'Dispută nouă raportată',
-      time: 'Acum 1 oră',
-      icon: Shield,
-      color: 'text-red-500'
-    }
-  ];
+
+  const systemStatus = useMemo(() => [
+    { label: serverStatusLabel, value: onlineLabel },
+    { label: databaseLabel, value: healthyLabel },
+    { label: apiResponseLabel, value: fastLabel },
+    { label: providerRatesLabel, value: flexibleLabel },
+    { label: competencyTestsLabel, value: activeLabel }
+  ], [
+    serverStatusLabel,
+    onlineLabel,
+    databaseLabel,
+    healthyLabel,
+    apiResponseLabel,
+    fastLabel,
+    providerRatesLabel,
+    flexibleLabel,
+    competencyTestsLabel,
+    activeLabel
+  ]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Panou de Administrare</h1>
-        <p className="text-muted-foreground">
-          Gestionează platforma Nexora cu tarife flexibile și teste de competență
-        </p>
+      <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-8 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
+        <div className="relative flex flex-col gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Trustora Admin
+          </span>
+          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{dashboardTitle}</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+            {dashboardSubtitle}
+          </p>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {stats.map((stat, index) => (
           <Link key={index} href={stat.href}>
-            <Card className="border-2 hover:shadow-lg transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+            <Card className="group h-full border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-card dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)] dark:hover:border-sky-500/40 dark:hover:bg-slate-900">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold flex">{stat.value}
-                      <span className={`ms-2 ${stat?.current <= 0 ? 'text-red-500' : 'text-green-500'} text-xs flex items-center`}>
+                    <p className="text-2xl font-semibold text-foreground flex flex-wrap items-center gap-2">
+                      {stat.value}
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${stat?.current <= 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                         <span className="text-muted-foreground">(</span>
                         {stat?.current} &nbsp;{stat?.current <= 0
                           ? <TrendingDown className="text-red-500 w-5 h-5" />
@@ -292,14 +441,17 @@ export default function AdminDashboard() {
                         <span className="text-muted-foreground">)</span>
                       </span>
                     </p>
-                    {stat?.change && (<p className="text-xs text-muted-foreground mt-1">
-                      <span className={`${stat?.change < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                        {stat?.change}% această lună
+                    {stat?.change && (<p className="text-xs text-muted-foreground mt-2">
+                      <span className={`font-semibold ${stat?.change < 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
+                        {t('admin.dashboard.stats.change_template', { percent: stat?.change })}
                       </span>
                     </p>)}
                   </div>
-                  <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform`}>
-                    <stat.icon className="w-6 h-6" />
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-2xl bg-sky-500/20 blur-xl transition-opacity group-hover:opacity-100 opacity-0" />
+                    <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-background/60 ${stat.color} dark:border-slate-800/70 dark:bg-slate-950/70`}>
+                      <stat.icon className="w-6 h-6" />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -308,34 +460,34 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid xs:grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8">
+      <div className="grid xs:grid-cols-1 lg:grid-cols-[2.6fr_1fr] gap-8">
         {/* Quick Actions */}
         <div>
-          <Card>
+          <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Plus className="w-5 h-5" />
-                <span>Acțiuni Rapide</span>
+                <span>{quickActionsTitle}</span>
               </CardTitle>
-              <CardDescription>
-                Acțiuni frecvente pentru administrarea platformei
+              <CardDescription className="text-muted-foreground">
+                {quickActionsDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
                   <Link key={index} href={action.href}>
-                    <Card className="border-2 hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+                    <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
-                          <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                          <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                             <action.icon className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold mb-1">{action.title}</h3>
+                            <h3 className="font-semibold mb-1 text-foreground">{action.title}</h3>
                             <p className="text-sm text-muted-foreground">{action.description}</p>
                           </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
                         </div>
                       </CardContent>
                     </Card>
@@ -346,49 +498,49 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Admin Sections */}
-          <Card className="mt-6">
+          <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Settings className="w-5 h-5" />
-                <span>Secțiuni Administrare</span>
+                <span>{sectionsTitle}</span>
               </CardTitle>
-              <CardDescription>
-                Accesează toate secțiunile de administrare
+              <CardDescription className="text-muted-foreground">
+                {sectionsDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                 {adminSections.map((section, index) => (
-                    <Can
-                        key={index}
-                        {...(
-                            section.role === 'superuser'
-                                ? { superuser: true }
-                                : { roles: [section.role as string] }
-                        )}
-                        allPerms={section.permissions || []}
-                    >
+                  <Can
+                    key={index}
+                    {...(
+                      section.role === 'superuser'
+                        ? { superuser: true }
+                        : { roles: section.roles ?? [section.role as string] }
+                    )}
+                    allPerms={section.permissions || []}
+                  >
                     <Link href={section.href}>
-                      <Card className="border hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer group">
+                      <Card className="group h-full border border-border/60 bg-background/60 text-foreground transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:text-slate-100 dark:hover:border-sky-500/40 dark:hover:bg-slate-950">
                         <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start space-x-3">
-                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                <section.icon className="w-5 h-5 text-primary" />
+                              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
+                                <section.icon className="w-5 h-5 text-sky-600 dark:text-sky-300" />
                               </div>
                               <div>
-                                <h3 className="font-semibold mb-1">{section.title}</h3>
+                                <h3 className="font-semibold mb-1 text-foreground">{section.title}</h3>
                                 <p className="text-sm text-muted-foreground mb-2">{section.description}</p>
-                                <p className="text-xs text-muted-foreground">{section.stats}</p>
+                                <p className="text-xs text-muted-foreground/80">{section.stats}</p>
                               </div>
                             </div>
                             <div className="flex flex-col items-end space-y-1">
                               {section.pending > 0 && (
                                 <Badge variant="destructive" className="text-xs w-max">
-                                  {section.pending} în așteptare
+                                  {t('admin.dashboard.pending_template', { count: section.pending })}
                                 </Badge>
                               )}
-                              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
                             </div>
                           </div>
                         </CardContent>
@@ -403,68 +555,26 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="w-5 h-5" />
-                <span>Activitate Recentă</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className={`w-8 h-8 rounded-full bg-muted flex items-center justify-center ${activity.color}`}>
-                      <activity.icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t">
-                <Link href="/admin/activity">
-                  <Button variant="outline" className="w-full">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Vezi Toată Activitatea
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          <ActivityFeed />
 
           {/* System Status */}
-          <Card className="mt-6">
+
+          {/* System Status */}
+          <Card className="mt-6 border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-foreground">
                 <Bell className="w-5 h-5" />
-                <span>Status Sistem</span>
+                <span>{systemStatusTitle}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Server Status</span>
-                  <Badge className="bg-green-100 text-green-800">Online</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Database</span>
-                  <Badge className="bg-green-100 text-green-800">Healthy</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">API Response</span>
-                  <Badge className="bg-green-100 text-green-800">Fast</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Tarife Prestatori</span>
-                  <Badge className="bg-blue-100 text-blue-800">Flexibile</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Teste Competență</span>
-                  <Badge className="bg-purple-100 text-purple-800">Active</Badge>
-                </div>
+                {systemStatus.map((status, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{status.label}</span>
+                    <Badge className="border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">{status.value}</Badge>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

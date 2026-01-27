@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useCallback} from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,25 @@ import {
     XCircle, LucideIcon
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { useLocale, useTranslations } from 'next-intl';
+import { Locale } from '@/types/locale';
+
+const STATUS_STYLE_MAP: Record<OrderStatus, { color: string; icon: LucideIcon }> = {
+    PENDING: { color: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200', icon: Clock },
+    ACCEPTED: { color: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200', icon: CheckCircle },
+    IN_PROGRESS: { color: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200', icon: Clock },
+    DELIVERED: { color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200', icon: CheckCircle },
+    COMPLETED: { color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200', icon: CheckCircle },
+    CANCELLED: { color: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200', icon: XCircle },
+    DISPUTED: { color: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200', icon: AlertCircle },
+};
+
+const PAYMENT_STYLE_MAP: Record<PaymentStatus, string> = {
+    PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200',
+    PAID: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
+    FAILED: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200',
+    REFUNDED: 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200',
+};
 
 export type OrderType = {
     id: string;
@@ -79,12 +98,65 @@ export type PaymentStatus =
     | 'PAID';
 
 export default function OrderDetailsPage({ id }: { id: string }) {
+    const locale = useLocale() as Locale;
+  const t = useTranslations();
+    const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
+
     const [order, setOrder] = useState<OrderType | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [error, setError] = useState('');
     const [newStatus, setNewStatus] = useState('');
     const [adminNotes, setAdminNotes] = useState('');
+
+    const notFoundLabel = t('admin.orders.not_found');
+    const orderLabel = t('admin.orders.order_label');
+    const detailSubtitle = t('admin.orders.detail_subtitle');
+    const orderDetailsTitle = t('admin.orders.details_title');
+    const categoryLabel = t('admin.orders.category_label');
+    const requirementsTitle = t('admin.orders.requirements_title');
+    const clientNotesTitle = t('admin.orders.client_notes_title');
+    const providerNotesTitle = t('admin.orders.provider_notes_title');
+    const deliverablesTitle = t('admin.orders.deliverables_title');
+    const participantsTitle = t('admin.orders.participants_title');
+    const clientLabel = t('admin.orders.client_label');
+    const providerLabel = t('admin.orders.provider_label');
+    const messageButton = t('admin.orders.message_button');
+    const profileButton = t('admin.orders.profile_button');
+    const financialTitle = t('admin.orders.financial_title');
+    const orderValueLabel = t('admin.orders.order_value_label');
+    const platformFeeLabel = t('admin.orders.platform_fee_label');
+    const providerReceivesLabel = t('admin.orders.provider_receives_label');
+    const paymentStatusLabel = t('admin.orders.payment_status_label');
+    const timelineTitle = t('admin.orders.timeline_title');
+    const orderPlacedLabel = t('admin.orders.order_placed_label');
+    const deliveryDueLabel = t('admin.orders.delivery_due_label');
+    const currentStatusLabel = t('admin.orders.current_status_label');
+    const adminActionsTitle = t('admin.orders.admin_actions_title');
+    const updateStatusLabel = t('admin.orders.update_status_label');
+    const adminNotesLabel = t('admin.orders.admin_notes_label');
+    const adminNotesPlaceholder = t('admin.orders.admin_notes_placeholder');
+    const saveChanges = t('admin.orders.save_changes');
+    const updatingLabel = t('admin.orders.updating');
+    const downloadInvoice = t('admin.orders.download_invoice');
+    const messageHistory = t('admin.orders.message_history');
+
+    const statusLabels = {
+        PENDING: t('admin.orders.statuses.pending'),
+        ACCEPTED: t('admin.orders.statuses.accepted'),
+        IN_PROGRESS: t('admin.orders.statuses.in_progress'),
+        DELIVERED: t('admin.orders.statuses.delivered'),
+        COMPLETED: t('admin.orders.statuses.completed'),
+        CANCELLED: t('admin.orders.statuses.cancelled'),
+        DISPUTED: t('admin.orders.statuses.disputed'),
+    } as const;
+
+    const paymentStatusLabels = {
+        PENDING: t('admin.orders.payment_statuses.pending'),
+        PAID: t('admin.orders.payment_statuses.paid'),
+        FAILED: t('admin.orders.payment_statuses.failed'),
+        REFUNDED: t('admin.orders.payment_statuses.refunded'),
+    } as const;
 
     const loadOrder = useCallback(async () => {
         try {
@@ -128,11 +200,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             setOrder(mockOrder);
             setNewStatus(mockOrder.status);
         } catch (error: any) {
-            setError('Nu s-a putut încărca comanda');
+            setError(t('admin.orders.load_error'));
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, t]);
 
     useEffect(() => {
         loadOrder();
@@ -156,57 +228,33 @@ export default function OrderDetailsPage({ id }: { id: string }) {
             });
             setError('');
         } catch (error: any) {
-            setError('Nu s-a putut actualiza statusul');
+            setError(t('admin.orders.update_error'));
         } finally {
             setUpdating(false);
         }
     };
 
     const getStatusBadge = (status: OrderStatus) => {
-        const statusConfig: Record<OrderStatus, {
-            color: string;
-            icon: LucideIcon;
-            label: string;
-        }> = {
-            PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'În așteptare' },
-            ACCEPTED: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle, label: 'Acceptat' },
-            IN_PROGRESS: { color: 'bg-purple-100 text-purple-800', icon: Clock, label: 'În progres' },
-            DELIVERED: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Livrat' },
-            COMPLETED: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Finalizat' },
-            CANCELLED: { color: 'bg-red-100 text-red-800', icon: XCircle, label: 'Anulat' },
-            DISPUTED: { color: 'bg-orange-100 text-orange-800', icon: AlertCircle, label: 'Disputat' }
-        };
-
-        const config = statusConfig[status] || statusConfig['PENDING'];
-        const Icon = config.icon;
-
+        const style = STATUS_STYLE_MAP[status] || STATUS_STYLE_MAP['PENDING'];
+        const label = statusLabels[status];
+        const Icon = style.icon;
         return (
-            <Badge className={config.color}>
+            <Badge className={style.color}>
                 <Icon className="w-3 h-3 mr-1" />
-                {config.label}
+                {label}
             </Badge>
         );
     };
 
     const getPaymentStatusBadge = (status: PaymentStatus) => {
-        const statusConfig: Record<PaymentStatus, {
-            color: string;
-            label: string;
-        }> = {
-            'PENDING': { color: 'bg-yellow-100 text-yellow-800', label: 'În așteptare' },
-            'PAID': { color: 'bg-green-100 text-green-800', label: 'Plătit' },
-            'FAILED': { color: 'bg-red-100 text-red-800', label: 'Eșuat' },
-            'REFUNDED': { color: 'bg-gray-100 text-gray-800', label: 'Rambursat' }
-        };
-
-        const config = statusConfig[status] || statusConfig['PENDING'];
-
-        return <Badge className={config.color}>{config.label}</Badge>;
+        const className = PAYMENT_STYLE_MAP[status] || PAYMENT_STYLE_MAP['PENDING'];
+        const label = paymentStatusLabels[status];
+        return <Badge className={className}>{label}</Badge>;
     };
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
                 <div className="flex justify-center items-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin" />
                 </div>
@@ -216,32 +264,46 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
     if (!order) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>Comanda nu a fost găsită</AlertDescription>
+                    <AlertDescription>{notFoundLabel}</AlertDescription>
                 </Alert>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/orders">
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-3xl font-bold">Comandă #{order.orderNumber}</h1>
-                    <p className="text-muted-foreground">
-                        Detalii complete despre comandă și progres
-                    </p>
+        <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+            <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.2),_rgba(15,23,42,0)_60%)]" />
+                <div className="relative flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Link href="/admin/orders">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            Trustora Admin
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {getStatusBadge(order.status)}
+                        {getPaymentStatusBadge(order.paymentStatus)}
+                    </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    {getStatusBadge(order.status)}
-                    {getPaymentStatusBadge(order.paymentStatus)}
+                <div className="relative mt-4">
+                    <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
+                        {orderLabel} #{order.orderNumber}
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+                        {detailSubtitle}
+                    </p>
                 </div>
             </div>
 
@@ -254,34 +316,34 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
             <div className="grid xs:grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <FileText className="w-5 h-5" />
-                                <span>Detalii Comandă</span>
+                                <span>{orderDetailsTitle}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <h4 className="font-semibold text-lg text-blue-600 mb-2">
+                                <h4 className="font-semibold text-lg text-sky-700 dark:text-sky-400 mb-2">
                                     {order.service.title}
                                 </h4>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    Categorie: {order.service.category.name}
+                                    {categoryLabel} {order.service.category.name}
                                 </p>
                             </div>
 
                             <div>
-                                <h5 className="font-medium mb-2">Cerințe Client:</h5>
-                                <p className="text-sm bg-muted p-3 rounded-lg">
+                                <h5 className="font-medium mb-2">{requirementsTitle}</h5>
+                                <p className="text-sm rounded-lg border border-border/50 bg-muted/40 p-3 text-muted-foreground dark:border-slate-800/70 dark:bg-slate-900/60">
                                     {order.requirements}
                                 </p>
                             </div>
 
                             {order.clientNotes && (
                                 <div>
-                                    <h5 className="font-medium mb-2">Notițe Client:</h5>
-                                    <p className="text-sm bg-blue-50 p-3 rounded-lg">
+                                    <h5 className="font-medium mb-2">{clientNotesTitle}</h5>
+                                    <p className="text-sm rounded-lg border border-sky-200/50 bg-sky-50 p-3 text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100">
                                         {order.clientNotes}
                                     </p>
                                 </div>
@@ -289,8 +351,8 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
                             {order.providerNotes && (
                                 <div>
-                                    <h5 className="font-medium mb-2">Notițe Prestator:</h5>
-                                    <p className="text-sm bg-green-50 p-3 rounded-lg">
+                                    <h5 className="font-medium mb-2">{providerNotesTitle}</h5>
+                                    <p className="text-sm rounded-lg border border-emerald-200/50 bg-emerald-50 p-3 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
                                         {order.providerNotes}
                                     </p>
                                 </div>
@@ -298,11 +360,11 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
                             {order.deliverables && order.deliverables.length > 0 && (
                                 <div>
-                                    <h5 className="font-medium mb-2">Livrabile:</h5>
+                                    <h5 className="font-medium mb-2">{deliverablesTitle}</h5>
                                     <ul className="space-y-1">
                                         {order.deliverables.map((item, index) => (
                                             <li key={index} className="flex items-center space-x-2 text-sm">
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                                <CheckCircle className="w-4 h-4 text-emerald-500" />
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -312,17 +374,17 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <User className="w-5 h-5" />
-                                <span>Participanți</span>
+                                <span>{participantsTitle}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-3">
-                                    <h5 className="font-medium text-blue-600">Client</h5>
+                                    <h5 className="font-medium text-sky-600 dark:text-sky-300">{clientLabel}</h5>
                                     <div className="flex items-center space-x-3">
                                         <Avatar className="w-12 h-12">
                                             <AvatarImage src={order.client.avatar} />
@@ -340,19 +402,19 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                         </div>
                                     </div>
                                     <div className="flex space-x-2">
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                             <MessageSquare className="w-4 h-4 mr-1" />
-                                            Mesaj
+                                            {messageButton}
                                         </Button>
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                             <Eye className="w-4 h-4 mr-1" />
-                                            Profil
+                                            {profileButton}
                                         </Button>
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <h5 className="font-medium text-green-600">Prestator</h5>
+                                    <h5 className="font-medium text-emerald-600 dark:text-emerald-300">{providerLabel}</h5>
                                     <div className="flex items-center space-x-3">
                                         <Avatar className="w-12 h-12">
                                             <AvatarImage src={order.provider.avatar} />
@@ -370,13 +432,13 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                         </div>
                                     </div>
                                     <div className="flex space-x-2">
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200">
                                             <MessageSquare className="w-4 h-4 mr-1" />
-                                            Mesaj
+                                            {messageButton}
                                         </Button>
-                                        <Button size="sm" variant="outline">
+                                        <Button size="sm" variant="outline" className="hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200">
                                             <Eye className="w-4 h-4 mr-1" />
-                                            Profil
+                                            {profileButton}
                                         </Button>
                                     </div>
                                 </div>
@@ -386,102 +448,102 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                 </div>
 
                 <div className="space-y-6">
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <DollarSign className="w-5 h-5" />
-                                <span>Informații Financiare</span>
+                                <span>{financialTitle}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Valoare comandă:</span>
-                                <span className="font-bold text-lg text-green-600">
+                                <span className="text-sm text-muted-foreground">{orderValueLabel}</span>
+                                <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
                                   {order.amount.toLocaleString()} RON
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Comision platformă (5%):</span>
+                                <span className="text-sm text-muted-foreground">{platformFeeLabel}</span>
                                 <span className="font-medium">
                                   {(order.amount * 0.05).toLocaleString()} RON
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Prestator primește:</span>
+                                <span className="text-sm text-muted-foreground">{providerReceivesLabel}</span>
                                 <span className="font-medium">
                                   {(order.amount * 0.95).toLocaleString()} RON
                                 </span>
                             </div>
                             <div className="pt-2 border-t">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm">Status plată:</span>
+                                    <span className="text-sm">{paymentStatusLabel}</span>
                                     {getPaymentStatusBadge(order.paymentStatus)}
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <Calendar className="w-5 h-5" />
-                                <span>Timeline</span>
+                                <span>{timelineTitle}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Comandă plasată:</span>
-                                <span>{new Date(order.createdAt).toLocaleDateString('ro-RO')}</span>
+                                <span className="text-muted-foreground">{orderPlacedLabel}</span>
+                                <span>{new Date(order.createdAt).toLocaleDateString(dateLocale)}</span>
                             </div>
                             {order.deliveryDate && (
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Termen livrare:</span>
-                                    <span>{new Date(order.deliveryDate).toLocaleDateString('ro-RO')}</span>
+                                    <span className="text-muted-foreground">{deliveryDueLabel}</span>
+                                    <span>{new Date(order.deliveryDate).toLocaleDateString(dateLocale)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Status actual:</span>
+                                <span className="text-muted-foreground">{currentStatusLabel}</span>
                                 {getStatusBadge(order.status)}
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/60 bg-card/80 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <Edit className="w-5 h-5" />
-                                <span>Acțiuni Admin</span>
+                                <span>{adminActionsTitle}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
                                 <label className="text-sm font-medium mb-2 block">
-                                    Actualizează Status:
+                                    {updateStatusLabel}
                                 </label>
                                 <Select value={newStatus} onValueChange={setNewStatus}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="PENDING">În așteptare</SelectItem>
-                                        <SelectItem value="ACCEPTED">Acceptat</SelectItem>
-                                        <SelectItem value="IN_PROGRESS">În progres</SelectItem>
-                                        <SelectItem value="DELIVERED">Livrat</SelectItem>
-                                        <SelectItem value="COMPLETED">Finalizat</SelectItem>
-                                        <SelectItem value="CANCELLED">Anulat</SelectItem>
-                                        <SelectItem value="DISPUTED">Disputat</SelectItem>
+                                        <SelectItem value="PENDING">{statusLabels.PENDING}</SelectItem>
+                                        <SelectItem value="ACCEPTED">{statusLabels.ACCEPTED}</SelectItem>
+                                        <SelectItem value="IN_PROGRESS">{statusLabels.IN_PROGRESS}</SelectItem>
+                                        <SelectItem value="DELIVERED">{statusLabels.DELIVERED}</SelectItem>
+                                        <SelectItem value="COMPLETED">{statusLabels.COMPLETED}</SelectItem>
+                                        <SelectItem value="CANCELLED">{statusLabels.CANCELLED}</SelectItem>
+                                        <SelectItem value="DISPUTED">{statusLabels.DISPUTED}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div>
                                 <label className="text-sm font-medium mb-2 block">
-                                    Notițe Admin:
+                                    {adminNotesLabel}
                                 </label>
                                 <Textarea
                                     value={adminNotes}
                                     onChange={(e) => setAdminNotes(e.target.value)}
-                                    placeholder="Adaugă notițe pentru această comandă..."
+                                    placeholder={adminNotesPlaceholder}
                                     rows={3}
                                 />
                             </div>
@@ -494,24 +556,24 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                                 {updating ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Se actualizează...
+                                        {updatingLabel}
                                     </>
                                 ) : (
                                     <>
                                         <Save className="w-4 h-4 mr-2" />
-                                        Salvează Modificările
+                                        {saveChanges}
                                     </>
                                 )}
                             </Button>
 
                             <div className="pt-4 border-t space-y-2">
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                     <Download className="w-4 h-4 mr-2" />
-                                    Descarcă Factură
+                                    {downloadInvoice}
                                 </Button>
-                                <Button variant="outline" className="w-full">
+                                <Button variant="outline" className="w-full hover:border-sky-500/40 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-200">
                                     <MessageSquare className="w-4 h-4 mr-2" />
-                                    Istoric Mesaje
+                                    {messageHistory}
                                 </Button>
                             </div>
                         </CardContent>

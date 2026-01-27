@@ -1,26 +1,76 @@
-import NextAuth from 'next-auth';
 
-declare module 'next-auth' {
+import NextAuth, { DefaultSession } from "next-auth";
+import { JWT } from "next-auth/jwt";
+import { AccessRole } from "@/lib/access";
+
+declare module "next-auth" {
+  /**
+   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
+   */
   interface Session {
+    accessToken?: string;
     user: {
       id: string;
       email: string;
-      name: string;
-      image?: string;
-      role: string;
-      isVerified: boolean;
-    };
+      firstName: string;
+      lastName: string;
+      location?: string;
+      language?: string;
+      bio?: string;
+      role?: string;
+      avatar?: string;
+      testVerified?: boolean;
+      callVerified?: boolean;
+      stripe_account_id?: string;
+      roles?: AccessRole[];
+      permissions?: string[];
+      is_superuser?: boolean;
+      github_token?: string;
+      github_nickname?: string;
+    } & DefaultSession["user"];
   }
 
   interface User {
-    role: string;
-    isVerified: boolean;
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    location?: string;
+    language?: string;
+    bio?: string;
+    role?: string;
+    avatar?: string;
+    testVerified?: boolean;
+    callVerified?: boolean;
+    stripe_account_id?: string;
+    roles?: AccessRole[];
+    permissions?: string[];
+    is_superuser?: boolean;
+    access_token?: string; // Sometimes returned from backend login
+    github_token?: string;
+    github_nickname?: string;
   }
 }
 
-declare module 'next-auth/jwt' {
+declare module "next-auth/jwt" {
+  /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
   interface JWT {
-    role: string;
-    isVerified: boolean;
+    accessToken?: string;
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    roles?: AccessRole[];
+    permissions?: string[];
+    is_superuser?: boolean;
+    testVerified?: boolean;
+    callVerified?: boolean;
+    stripe_account_id?: string;
+    language?: string;
+    location?: string;
+    avatar?: string;
+    bio?: string;
+    github_token?: string;
+    github_nickname?: string;
+    role?: string;
   }
 }

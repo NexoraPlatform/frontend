@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/lib/navigation';
 import apiClient from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { CheckCircle, Loader2 } from 'lucide-react';
 
 export default function StripeSuccessClient() {
+    const t = useTranslations();
     const [loading, setLoading] = useState(true);
     const [isVerified, setIsVerified] = useState(false);
     const router = useRouter();
@@ -32,28 +37,52 @@ export default function StripeSuccessClient() {
     }, [router]);
 
     if (loading) {
-        return <p className="text-center mt-10">Se verifică contul Stripe...</p>;
+        return (
+            <div className="max-w-xl mx-auto">
+                <Card className="glass-card">
+                    <CardContent className="py-12 text-center">
+                        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-[#1BC47D]" />
+                        <p className="text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.stripe.verifying')}</p>
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
 
     if (!isVerified) {
         return (
-            <div className="text-center mt-10">
-                <p>Contul nu este încă verificat complet.</p>
-                <p>Te rugăm să finalizezi toți pașii din onboarding Stripe.</p>
-                <button
-                    onClick={() => router.push('/dashboard')}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
-                >
-                    Înapoi la dashboard
-                </button>
+            <div className="max-w-xl mx-auto">
+                <Card className="glass-card">
+                    <CardContent className="py-10 text-center space-y-3">
+                        <p className="text-lg font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {t('dashboard.stripe.incomplete.title')}
+                        </p>
+                        <p className="text-slate-500 dark:text-[#A3ADC2]">
+                            {t('dashboard.stripe.incomplete.description')}
+                        </p>
+                        <Button
+                            onClick={() => router.push('/dashboard')}
+                            className="btn-primary mt-4"
+                        >
+                            {t('dashboard.stripe.incomplete.cta')}
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div className="text-center mt-10">
-            <p className="text-green-600 font-semibold text-xl">Contul tău Stripe a fost verificat!</p>
-            <p>Redirectare către dashboard...</p>
+        <div className="max-w-xl mx-auto">
+            <Card className="glass-card">
+                <CardContent className="py-12 text-center space-y-3">
+                    <CheckCircle className="mx-auto h-10 w-10 text-[#1BC47D]" />
+                    <p className="text-xl font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {t('dashboard.stripe.verified.title')}
+                    </p>
+                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.stripe.verified.redirect')}</p>
+                </CardContent>
+            </Card>
         </div>
     );
 }

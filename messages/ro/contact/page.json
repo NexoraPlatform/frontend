@@ -1,0 +1,139 @@
+{
+  "hero": {
+    "badge": "📞 Contactează-ne",
+    "title": "Suntem aici să <highlight>te ajutăm</highlight>",
+    "description": "Ai o întrebare, o sugestie sau vrei să colaborezi cu noi? Echipa Trustora este gata să îți răspundă și să te sprijine."
+  },
+  "info": {
+    "email": {
+      "title": "Email",
+      "primary": "contact@Trustora.ro",
+      "secondary": "suport@Trustora.ro",
+      "description": "Răspundem în maxim 2 ore"
+    },
+    "phone": {
+      "title": "Telefon",
+      "primary": "+40 123 456 789",
+      "secondary": "+40 987 654 321",
+      "description": "Luni-Vineri, 9:00-18:00"
+    },
+    "address": {
+      "title": "Adresă",
+      "primary": "Mamaia Sat, Navodari, România, 905700",
+      "secondary": "Mamaia Sat, Navodari, România, 905700",
+      "description": "Vizitează-ne cu programare"
+    },
+    "hours": {
+      "title": "Program",
+      "primary": "Luni - Vineri: 9:00 - 18:00",
+      "secondary": "Sâmbătă: 10:00 - 14:00",
+      "description": "Duminică închis"
+    }
+  },
+  "form": {
+    "eyebrow": "Formular de contact",
+    "title": "Trimite-ne un mesaj",
+    "fields": {
+      "name": {
+        "label": "Nume *",
+        "placeholder": "Numele tău complet"
+      },
+      "email": {
+        "label": "Email *",
+        "placeholder": "email@exemplu.ro"
+      },
+      "phone": {
+        "label": "Telefon",
+        "placeholder": "+40 123 456 789"
+      },
+      "company": {
+        "label": "Companie",
+        "placeholder": "Numele companiei"
+      },
+      "subject": {
+        "label": "Subiect *",
+        "placeholder": "Despre ce vrei să vorbești?"
+      },
+      "message": {
+        "label": "Mesaj *",
+        "placeholder": "Descrie în detaliu cererea ta..."
+      }
+    },
+    "privacy": {
+      "consent": "Sunt de acord cu",
+      "link": "Politica de Confidențialitate"
+    },
+    "submit": "Trimite mesajul"
+  },
+  "quick": {
+    "eyebrow": "Contact rapid",
+    "title": "Contact rapid",
+    "chat": {
+      "title": "Chat live",
+      "description": "Vorbește direct cu echipa noastră de suport",
+      "status": "● Online acum",
+      "response_time": "Timp mediu de răspuns: 2 minute",
+      "cta": "Începe chat"
+    }
+  },
+  "departments": {
+    "title": "Departamente specializate",
+    "support": {
+      "title": "Suport clienți",
+      "email": "suport@Trustora.ro",
+      "description": "Pentru întrebări despre servicii și proiecte"
+    },
+    "partnerships": {
+      "title": "Parteneriate",
+      "email": "parteneriate@Trustora.ro",
+      "description": "Colaborări și oportunități de business"
+    },
+    "press": {
+      "title": "Presă & media",
+      "email": "presa@Trustora.ro",
+      "description": "Informații pentru jurnaliști și media"
+    },
+    "technical": {
+      "title": "Suport tehnic",
+      "email": "tehnic@Trustora.ro",
+      "description": "Probleme tehnice și bug-uri"
+    }
+  },
+  "offices": {
+    "title": "Birourile noastre",
+    "subtitle": "Suntem prezenți în principalele orașe din România",
+    "primary": "Sediu principal",
+    "bucharest": {
+      "city": "București",
+      "address": "Strada Exemplu nr. 123, Sector 1",
+      "phone": "+40 123 456 789",
+      "email": "bucuresti@Trustora.ro"
+    },
+    "cluj": {
+      "city": "Cluj-Napoca",
+      "address": "Strada Demo nr. 45, Centru",
+      "phone": "+40 234 567 890",
+      "email": "cluj@Trustora.ro"
+    },
+    "timisoara": {
+      "city": "Timișoara",
+      "address": "Bulevardul Test nr. 67",
+      "phone": "+40 345 678 901",
+      "email": "timisoara@Trustora.ro"
+    }
+  },
+  "map": {
+    "title": "Locația noastră",
+    "subtitle": "Vino să ne cunoști la sediul din București",
+    "placeholder": {
+      "title": "Hartă interactivă",
+      "address": "Strada Exemplu nr. 123, București"
+    }
+  },
+  "cta": {
+    "title": "Pregătit să începi proiectul tău?",
+    "description": "Nu mai aștepta! Contactează-ne astăzi și să transformăm împreună ideea ta în realitate.",
+    "primary": "Începe un proiect",
+    "secondary": "Programează o întâlnire"
+  }
+}

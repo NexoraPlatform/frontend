@@ -1,3 +1,7 @@
+const createNextIntlPlugin = require('next-intl/plugin');
+
+const withNextIntl = createNextIntlPlugin();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Performance optimizations
@@ -43,6 +47,14 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
       }
     ],
     formats: ['image/avif', 'image/webp'],
@@ -56,8 +68,8 @@ const nextConfig = {
   // Experimental features for performance
   experimental: {
     // CSS optimization
-    optimizeCss: true,
-    reactCompiler: true,
+    optimizeCss: process.env.NEXT_OPTIMIZE_CSS === 'true',
+    reactCompiler: process.env.NEXT_REACT_COMPILER === 'true',
 
     // Package imports optimization
     optimizePackageImports: [
@@ -159,4 +171,6 @@ const withBundleAnalyzer = process.env.ANALYZE === 'true'
     ? require('@next/bundle-analyzer')({ enabled: true })
     : (config) => config;
 
-module.exports = withBundleAnalyzer(nextConfig);
+
+
+module.exports = withNextIntl(withBundleAnalyzer(nextConfig));

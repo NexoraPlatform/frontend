@@ -1,0 +1,268 @@
+{
+  "hero": {
+    "badge": "Trustora Dashboard",
+    "welcome": "Welcome, {name}! 👋",
+    "subtitle": {
+      "provider": "Manage your services and active projects",
+      "client": "Track your projects and find the right experts"
+    },
+    "role": {
+      "provider": "Provider",
+      "client": "Client"
+    },
+    "stripe": {
+      "manage": "Edit Stripe Account Details",
+      "connect": "Connect Stripe Account"
+    }
+  },
+  "tabs": {
+    "overview": "Overview",
+    "projects": "Projects",
+    "services": "Services",
+    "messages": "Messages",
+    "settings": "Settings"
+  },
+  "loading": {
+    "dashboard": "Loading dashboard...",
+    "projects": "Loading...",
+    "page": "Loading page..."
+  },
+  "errors": {
+    "projects_load_failed": "Couldn't load projects: {message}",
+    "generic": "Error: {message}"
+  },
+  "notifications": {
+    "project_accepted": "Project accepted",
+    "project_rejected": "Project rejected",
+    "budget_proposed": "Budget proposal sent"
+  },
+  "overview": {
+    "provider": {
+      "active_projects": {
+        "title": "Active projects",
+        "value": "3",
+        "change": "+2 this month"
+      },
+      "monthly_revenue": {
+        "title": "Monthly revenue",
+        "value": "4,500 RON",
+        "change": "+15% vs last month"
+      },
+      "average_rating": {
+        "title": "Average rating",
+        "value": "4.8",
+        "change": "+0.2 this month"
+      },
+      "new_requests": {
+        "title": "New requests",
+        "value": "7",
+        "change": "+3 today"
+      }
+    },
+    "client": {
+      "projects_posted": {
+        "title": "Projects posted",
+        "value": "5",
+        "change": "+2 this month"
+      },
+      "budget_spent": {
+        "title": "Budget spent",
+        "value": "12,000 RON",
+        "change": "+25% this month"
+      },
+      "projects_completed": {
+        "title": "Projects completed",
+        "value": "3",
+        "change": "100% success rate"
+      },
+      "active_providers": {
+        "title": "Active providers",
+        "value": "8",
+        "change": "+2 new collaborators"
+      }
+    }
+  },
+  "quick_actions": {
+    "title": "Quick actions",
+    "description": {
+      "provider": "Frequent actions to manage your activity",
+      "client": "Start a new project or manage existing ones"
+    },
+    "provider": {
+      "add_services": "Add services",
+      "edit_profile": "Edit profile",
+      "take_tests": "Take tests"
+    },
+    "client": {
+      "new_project": "New project",
+      "search_services": "Search services",
+      "explore_projects": "Explore projects"
+    }
+  },
+  "activity": {
+    "title": "Recent activity",
+    "provider": {
+      "completed_project": {
+        "title": "Project completed successfully",
+        "meta": "E-commerce website • 2 hours ago"
+      },
+      "new_request": {
+        "title": "New project request",
+        "meta": "Mobile app • 5 hours ago"
+      },
+      "new_review": {
+        "title": "New review received",
+        "meta": "5 stars from Maria P. • Yesterday"
+      }
+    },
+    "client": {
+      "project_accepted": {
+        "title": "Provider accepted the project",
+        "meta": "React website • 1 hour ago"
+      },
+      "budget_proposal": {
+        "title": "Budget proposal received",
+        "meta": "3,200 RON for Logo Design • 3 hours ago"
+      },
+      "new_project": {
+        "title": "New project posted",
+        "meta": "Mobile app • Yesterday"
+      }
+    }
+  },
+  "filters": {
+    "search_placeholder": "Search projects by title or description...",
+    "active": "Active filters:",
+    "search_label": "Search: {term}",
+    "status_label": "Status: {status}",
+    "sort_label": "Sort: {label} ({order})",
+    "sort_order": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "reset_all": "Reset all",
+    "status": {
+      "all": "All statuses",
+      "pending_responses": "Awaiting responses",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "budget_proposed": "Budget proposed"
+    },
+    "sort": {
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "budget": "Budget",
+      "title": "Title"
+    }
+  },
+  "pagination": {
+    "showing": "Showing {start} - {end} of {total} projects",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "projects": {
+    "title": {
+      "provider": "Project requests",
+      "client": "My projects"
+    },
+    "found": "{count} projects found",
+    "new_project": "New project",
+    "empty": {
+      "title": {
+        "provider": "You have no project requests",
+        "client": "You have no projects yet"
+      },
+      "description": {
+        "provider": "When clients create projects and select you, you'll see them here",
+        "client": "Create your first project to start collaborating with providers"
+      },
+      "cta": "Create your first project"
+    }
+  },
+  "services": {
+    "title": {
+      "provider": "My services",
+      "client": "Favorite services"
+    },
+    "description": {
+      "provider": "Manage the services you offer",
+      "client": "The services you're following"
+    },
+    "empty": {
+      "title": {
+        "provider": "You don't offer services yet",
+        "client": "You have no favorite services"
+      },
+      "description": {
+        "provider": "Add services to start receiving orders",
+        "client": "Save services you're interested in for quick access"
+      },
+      "cta": "Add your first service"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "description": "Your conversations with clients and providers",
+    "empty": {
+      "title": "You have no messages",
+      "description": "Your conversations will show up here"
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Profile settings"
+    },
+    "notifications": {
+      "title": "Notification settings",
+      "email": {
+        "title": "Email notifications",
+        "description": "Receive email notifications"
+      },
+      "push": {
+        "title": "Push notifications",
+        "description": "Browser notifications"
+      }
+    },
+    "security": {
+      "title": "Account security",
+      "change_password": "Change password",
+      "two_factor": "Two-factor authentication",
+      "language_preferences": "Language preferences"
+    },
+    "billing": {
+      "title": "Billing",
+      "payment_methods": "Payment methods",
+      "invoices": "Invoice history"
+    }
+  },
+  "actions": {
+    "edit": "Edit"
+  },
+  "payments": {
+    "loading_session": "Loading payment session...",
+    "processing": "Processing...",
+    "pay": "Pay",
+    "processing_error": "Payment error: {message}",
+    "generic_error": "Payment processing error",
+    "success_redirect": "Payment successful! Redirecting...",
+    "error_with_message": "Payment error: {message}",
+    "title": "Complete payment",
+    "description": "Enter your card details to confirm the payment securely."
+  },
+  "stripe": {
+    "verifying": "Verifying Stripe account...",
+    "incomplete": {
+      "title": "Your account is not fully verified yet.",
+      "description": "Please complete all steps in Stripe onboarding.",
+      "cta": "Back to dashboard"
+    },
+    "verified": {
+      "title": "Your Stripe account has been verified!",
+      "redirect": "Redirecting to dashboard..."
+    }
+  }
+}

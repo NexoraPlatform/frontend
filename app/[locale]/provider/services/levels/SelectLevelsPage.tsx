@@ -2,9 +2,11 @@
 export const dynamic = 'force-dynamic';
 
 import {useState, useEffect, ForwardRefExoticComponent, RefAttributes} from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -170,7 +172,7 @@ export default function SelectLevelsPageClient() {
 
     if (loading || loadingServices) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
             </div>
         );
@@ -181,7 +183,8 @@ export default function SelectLevelsPageClient() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
             <Header />
 
             <div className="container mx-auto px-4 py-8">
@@ -198,39 +201,39 @@ export default function SelectLevelsPageClient() {
                     </div>
                     <div className="text-right">
                         <div className="text-sm text-muted-foreground">Pasul 2 din 4</div>
-                        <div className="text-lg font-semibold">Niveluri Competență</div>
+                        <div className="text-lg font-semibold text-[var(--midnight-blue)] dark:text-white">Niveluri Competență</div>
                     </div>
                 </div>
 
                 {/* Progress */}
-                <div className="mb-8">
+                <div className="mb-8 glass-card p-4">
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            <div className="w-8 h-8 bg-[var(--emerald-green)] text-white rounded-full flex items-center justify-center text-sm font-bold">
                                 ✓
                             </div>
-                            <span className="font-medium text-green-600">Selectare Servicii</span>
+                            <span className="font-medium text-[var(--emerald-green)]">Selectare Servicii</span>
                         </div>
-                        <div className="flex-1 h-0.5 bg-green-600"></div>
+                        <div className="flex-1 h-0.5 bg-[var(--emerald-green)]/40"></div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            <div className="w-8 h-8 bg-[var(--emerald-green)] text-white rounded-full flex items-center justify-center text-sm font-bold">
                                 2
                             </div>
-                            <span className="font-medium text-blue-600">Niveluri Competență</span>
+                            <span className="font-medium text-[var(--emerald-green)]">Niveluri Competență</span>
                         </div>
-                        <div className="flex-1 h-0.5 bg-gray-200"></div>
+                        <div className="flex-1 h-0.5 bg-slate-200"></div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">
+                            <div className="w-8 h-8 bg-slate-200 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold">
                                 3
                             </div>
-                            <span className="text-gray-500">Teste & Certificare</span>
+                            <span className="text-slate-500">Teste & Certificare</span>
                         </div>
-                        <div className="flex-1 h-0.5 bg-gray-200"></div>
+                        <div className="flex-1 h-0.5 bg-slate-200"></div>
                         <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">
+                            <div className="w-8 h-8 bg-slate-200 text-slate-500 rounded-full flex items-center justify-center text-sm font-bold">
                                 4
                             </div>
-                            <span className="text-gray-500">Setare Tarife</span>
+                            <span className="text-slate-500">Setare Tarife</span>
                         </div>
                     </div>
                 </div>
@@ -243,17 +246,17 @@ export default function SelectLevelsPageClient() {
                 )}
 
                 {/* Info Card */}
-                <Card className="mb-8 border-purple-200 bg-purple-50 dark:bg-purple-950/20">
+                <Card className="mb-8 glass-card border-emerald-100/60 bg-white/80 dark:bg-white/5">
                     <CardContent className="p-6">
                         <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-[var(--emerald-green)] rounded-xl flex items-center justify-center">
                                 <Award className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                                <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">
                                     Alege nivelul potrivit pentru tine
                                 </h3>
-                                <div className="text-purple-800 dark:text-purple-200 text-sm space-y-1">
+                                <div className="text-slate-600 dark:text-slate-300 text-sm space-y-1">
                                     <p>• <strong>Nivelul influențează</strong> dificultatea testului și tarifele recomandate</p>
                                     <p>• <strong>Poți începe cu Junior</strong> și să avansezi ulterior</p>
                                     <p>• <strong>Testele sunt adaptate</strong> la nivelul selectat</p>
@@ -274,11 +277,11 @@ export default function SelectLevelsPageClient() {
                         const levelInfo = getLevelInfo(selectedLevel);
 
                         return (
-                            <Card key={service.id} className="border-2">
+                            <Card key={service.id} className="glass-card border-emerald-100/60">
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center space-x-4">
-                                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-[#0B1C2D] to-[#1BC47D] rounded-xl flex items-center justify-center">
                                                 <IconComponent className="w-8 h-8 text-white" />
                                             </div>
                                             <div>
@@ -327,9 +330,9 @@ export default function SelectLevelsPageClient() {
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center space-x-2">
                                                     <span className="text-2xl">{levelInfo.icon}</span>
-                                                    <Badge className={levelInfo.color}>
-                                                        {levelInfo.label}
-                                                    </Badge>
+                                                <Badge className={levelInfo.color}>
+                                                    {levelInfo.label}
+                                                </Badge>
                                                     <span className="text-sm text-muted-foreground">
                             {levelInfo.description}
                           </span>
@@ -341,15 +344,15 @@ export default function SelectLevelsPageClient() {
 
                                             <div className="grid grid-cols-3 gap-4 text-sm">
                                                 <div className="flex items-center space-x-2">
-                                                    <Target className="w-4 h-4 text-blue-500" />
+                                                    <Target className="w-4 h-4 text-[var(--emerald-green)]" />
                                                     <span>Durată: {levelInfo.testDuration} min</span>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
-                                                    <Star className="w-4 h-4 text-yellow-500" />
+                                                    <Star className="w-4 h-4 text-amber-500" />
                                                     <span>Nota de trecere: {levelInfo.passingScore}%</span>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
-                                                    <Zap className="w-4 h-4 text-purple-500" />
+                                                    <Zap className="w-4 h-4 text-emerald-500" />
                                                     <span>Dificultate: {levelInfo.difficulty}</span>
                                                 </div>
                                             </div>
@@ -362,11 +365,11 @@ export default function SelectLevelsPageClient() {
                 </div>
 
                 {/* Summary */}
-                <Card className="mb-8 border-green-200 bg-green-50 dark:bg-green-950/20">
+                <Card className="mb-8 glass-card border-emerald-100/60 bg-emerald-50/60 dark:bg-emerald-500/10">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                                <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">
                                     Rezumat Selecție ({services.length} servicii)
                                 </h3>
                                 <div className="space-y-1">
@@ -385,7 +388,7 @@ export default function SelectLevelsPageClient() {
                                     })}
                                 </div>
                             </div>
-                            <CheckCircle className="w-8 h-8 text-green-500" />
+                            <CheckCircle className="w-8 h-8 text-[var(--emerald-green)]" />
                         </div>
                     </CardContent>
                 </Card>
@@ -399,7 +402,7 @@ export default function SelectLevelsPageClient() {
 
                     <Button
                         onClick={handleContinue}
-                        className="px-8"
+                        className="btn-primary px-8"
                     >
                         Continuă la Teste
                         <ArrowRight className="w-4 h-4 ml-2" />

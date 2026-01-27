@@ -1,23 +1,21 @@
-// middleware.ts (or src/middleware.ts)
-import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt } from 'jose'; // npm i jose
+// middleware.ts
+import { NextResponse } from 'next/server';
+import createMiddleware from 'next-intl/middleware';
+import { auth } from '@/auth';
 import {
   checkRequirement,
   type AccessUser,
   type AccessRole,
   type Requirement,
 } from '@/lib/access';
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.API_URL ||
-    'https://nexorabe.dacars.ro/api';
+import { defaultLocale } from '@/lib/i18n';
+import { locales, localePrefix } from '@/lib/navigation';
 
 type RouteRule = { pattern: RegExp; require: Requirement | 'auth-only' };
 
 // Define protections
 const ROUTE_RULES: RouteRule[] = [
-  // /admin -> role "admin" OR superuser (superuser bypass by default)
+  // /admin -> role "admin" OR superuser
   { pattern: /\/admin(\/|$)/i, require: { roles: ['admin'] } },
 
   // authenticated-only sections
@@ -28,16 +26,18 @@ const ROUTE_RULES: RouteRule[] = [
   { pattern: /\/provider\/services(\/|$)/i, require: { roles: ['provider'] } },
   { pattern: /^\/provider\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
   { pattern: /\/tests(\/|$)/i, require: { roles: ['provider'] } },
-  { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
+  // { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
   { pattern: /\/projects\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
-
-  // examples:
-  // { pattern: /\/billing(\/|$)/i, require: { permissions: ['users.read'] } },
-  // { pattern: /\/super(\/|$)/i, require: { superuser: true } },
 ];
 
-const AUTH_PAGES = new Set<string>(['/auth/signin', '/auth/signup']);
+const AUTH_PAGES = new Set(['/auth/signin', '/auth/signup']);
+
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix,
+});
 
 function findRequirement(pathname: string): Requirement | 'auth-only' | null {
   for (const r of ROUTE_RULES) {
@@ -46,255 +46,233 @@ function findRequirement(pathname: string): Requirement | 'auth-only' | null {
   return null;
 }
 
-// ---- Normalizers ----
+// ---- Helper Functions ----
 
-function normalizeRoles(input: any): AccessRole[] {
-  if (!input) return [];
-  // Accept roles as array of objects with slug, or array of string slugs
-  if (Array.isArray(input)) {
-    return input
-        .map((r) => {
-          if (typeof r === 'string') {
-            return { slug: r } as AccessRole;
-          }
-          if (r && typeof r === 'object') {
-            const slug = r.slug ?? r.name ?? r.code ?? '';
-            const perms: any[] = Array.isArray(r.permissions) ? r.permissions : [];
-            return {
-              id: r.id,
-              slug,
-              permissions: perms
-                  .map((p) => {
-                    if (typeof p === 'string') return { slug: p };
-                    if (p && typeof p === 'object') return { id: p.id, slug: p.slug ?? p.name ?? '' };
-                    return null;
-                  })
-                  .filter(Boolean) as { id?: number | string; slug: string }[],
-            } as AccessRole;
-          }
-          return null;
-        })
-        .filter(Boolean) as AccessRole[];
-  }
-  return [];
-}
-
-function buildUserFromPayload(payload: any): AccessUser {
-  const roles = normalizeRoles(payload.roles ?? payload.user?.roles ?? []);
-  const extraPerms: string[] =
-      (payload.permissions ??
-          payload.perms ??
-          payload.user?.permissions ??
-          []) as string[];
-
-  return {
-    id: String(payload.id ?? payload.sub ?? payload.user?.id ?? ''),
-    email: String(payload.email ?? payload.user?.email ?? ''),
-    firstName: payload.firstName ?? payload.user?.firstName,
-    lastName: payload.lastName ?? payload.user?.lastName,
-    location: payload.location ?? payload.user?.location,
-    language: payload.language ?? payload.user?.language,
-    bio: payload.bio ?? payload.user?.bio,
-    avatar: payload.avatar ?? payload.user?.avatar,
-    testVerified: payload.testVerified ?? payload.user?.testVerified,
-    callVerified: payload.callVerified ?? payload.user?.callVerified,
-    stripe_account_id: payload.stripe_account_id ?? payload.user?.stripe_account_id,
-
-    roles,
-    permissions: Array.isArray(extraPerms) ? extraPerms : [],
-    is_superuser:
-        payload.is_superuser ??
-        payload.superuser ??
-        payload.user?.isSuperUser ??
-        false,
-  };
-}
-
-function buildUserFromProfile(profile: any): AccessUser | null {
-  const data = profile?.user ? profile.user : profile;
-
-  const roles = normalizeRoles(data?.roles);
-  const extraPerms: string[] = Array.isArray(data?.permissions) ? data.permissions : [];
-
-  const user: AccessUser = {
-    id: String(data?.id ?? ''),
-    email: String(data?.email ?? ''),
-    firstName: data?.firstName,
-    lastName: data?.lastName,
-    location: data?.location,
-    language: data?.language,
-    bio: data?.bio,
-    avatar: data?.avatar,
-    testVerified: data?.testVerified,
-    callVerified: data?.callVerified,
-    stripe_account_id: data?.stripe_account_id,
-
-    roles,
-    permissions: extraPerms,
-    is_superuser:
-        data?.is_superuser ??
-        // treat role slug 'superuser' as superuser
-        (Array.isArray(roles) && roles.some(r => r.slug?.toLowerCase() === 'superuser')) ??
-        false,
-  };
-
-  if (!user.id && !user.email) return null;
-  return user;
-}
-
-// ---- Token decode / fetch profile ----
-
-function tryDecodeUserFromJwt(token?: string): AccessUser | null {
-  if (!token || !token.includes('.')) return null;
-  try {
-    const payload: any = decodeJwt(token);
-    const user = buildUserFromPayload(payload);
-    if (!user.id && !user.email) return null;
-    return user;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchUserFromApi(token: string): Promise<AccessUser | null> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return buildUserFromProfile(data);
-  } catch {
-    return null;
-  }
-}
-
-function redirectToSignin(req: NextRequest) {
+function redirectToSignin(req: any, locale: string) {
   const url = req.nextUrl.clone();
-  url.pathname = '/auth/signin';
+  url.pathname = `/${locale}/auth/signin`;
   url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
   return NextResponse.redirect(url);
 }
 
-const locales = ['ro', 'en'];
-const defaultLocale = 'ro';
-
-function getLocale(request: NextRequest): string {
-  // Check if locale is in pathname
-  const pathname = request.nextUrl.pathname;
-  const pathnameIsMissingLocale = locales.every(
-      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+function isEarlyAccessEnabled() {
+  return (
+    process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true' ||
+    process.env.EARLY_ACCESS_FUNNEL === 'true'
   );
-
-  // Redirect if there is no locale
-  if (pathnameIsMissingLocale) {
-    // Try to get locale from Accept-Language header
-    const acceptLanguage = request.headers.get('Accept-Language');
-    let locale = defaultLocale;
-
-    if (acceptLanguage) {
-      const preferredLanguages = acceptLanguage
-          .split(',')
-          .map(lang => lang.split(';')[0].trim().toLowerCase());
-
-      for (const lang of preferredLanguages) {
-        if (lang.startsWith('ro')) {
-          locale = 'ro';
-          break;
-        } else if (lang.startsWith('en')) {
-          locale = 'en';
-          break;
-        }
-      }
-    }
-
-    return locale;
-  }
-
-  return locales.find((locale) => pathname.startsWith(`/${locale}`)) || defaultLocale;
 }
 
-// ---- Middleware ----
+function isOpenSoonEnabled() {
+  return (
+    process.env.NEXT_PUBLIC_OPEN_SOON === 'true' ||
+    process.env.OPEN_SOON === 'true' ||
+    process.env.NEXT_PUBLIC_OPEN_SOON_ENABLED === 'true' ||
+    process.env.OPEN_SOON_ENABLED === 'true'
+  );
+}
 
-export default async function middleware(req: NextRequest) {
-  // keep a log while testing
-  // console.log('[MW] path', req.nextUrl.pathname);
+function isBasicAuthEnabled() {
+  return process.env.BASIC_AUTH_ENABLED === 'true' || process.env.BASIC_AUTH === 'true';
+}
 
+function getBasicAuthCredentials() {
+  const users = (process.env.BASIC_AUTH_USERS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const passwords = (process.env.BASIC_AUTH_PASSWORDS || '')
+    .split(',')
+    .map((value) => value.trim());
+
+  return users
+    .map((user, index) => {
+      const password = passwords[index];
+      if (!password) return null;
+      return { user, password };
+    })
+    .filter(Boolean) as Array<{ user: string; password: string }>;
+}
+
+function isBasicAuthAuthorized(request: any) {
+  const credentials = getBasicAuthCredentials();
+  if (credentials.length === 0) return true;
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+
+  try {
+    const base64Credentials = authHeader.split(' ')[1] ?? '';
+    const decoded = atob(base64Credentials);
+    const separatorIndex = decoded.indexOf(':');
+    if (separatorIndex === -1) return false;
+    const username = decoded.slice(0, separatorIndex);
+    const password = decoded.slice(separatorIndex + 1);
+
+    return credentials.some(
+      (credential) => credential.user === username && credential.password === password
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isAdminUser(user: AccessUser | null) {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  return Array.isArray(user.roles)
+    ? user.roles.some((role) =>
+        typeof role === 'string'
+          ? role.toLowerCase() === 'admin'
+          : role.slug?.toLowerCase() === 'admin'
+      )
+    : false;
+}
+
+// ---- Middleware Main ----
+
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
+  const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
+
+  if (isServiceWorkerScript) {
+    return NextResponse.next();
+  }
+  const intlResponse = intlMiddleware(req);
 
   if (
-      pathname.startsWith('/api') ||
-      pathname.startsWith('/_next') ||
+    intlResponse?.headers.get('location') ||
+    intlResponse?.headers.get('x-middleware-rewrite')
+  ) {
+    return intlResponse;
+  }
+
+  // Ignore static files and API
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
       pathname.includes('.') ||
-      pathname.startsWith('/favicon')
+      pathname.includes('manifest.json') ||
+    pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
   }
 
-  const pathnameIsMissingLocale = locales.every(
-      (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
-  );
-
-  if (pathnameIsMissingLocale) {
-    const locale = getLocale(req);
-    return NextResponse.redirect(
-        new URL(`/${locale}${pathname.startsWith('/') ? '' : '/'}${pathname}`, req.url)
-    );
+    if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
+      return new NextResponse('Authentication required.', {
+        status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="Trustora"',
+      },
+    });
   }
 
-  const token =
-      req.cookies.get('auth_token')?.value ||
-      req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
-      undefined;
+  const segments = pathname.split('/');
+  const locale = segments[1] || defaultLocale;
+  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/';
+  const normalizedPath =
+    pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-  // If authenticated, keep users away from signin/signup pages
-  if ((pathname === '/auth/signin' || pathname === '/auth/signup') && token) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+  // req.auth is the session object
+  const session = req.auth;
+  const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
+  const isAuthenticated = !!user;
+
+  if (isOpenSoonEnabled()) {
+    const openSoonRoutes = new Set([
+      '/open-soon',
+      '/auth/signin',
+      '/auth/signup',
+      '/privacy',
+      '/terms',
+      '/cookies',
+    ]);
+
+    const isOpenSoonRoute =
+      normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
+
+    if (isOpenSoonRoute) {
+      return intlResponse ?? NextResponse.next();
+    }
+
+    let adminBypass = false;
+    if (isAuthenticated) {
+      adminBypass = isAdminUser(user || null);
+    }
+
+    if (!adminBypass) {
+      const url = new URL(`/${locale}/open-soon`, req.url);
+      if (normalizedPath === '/') {
+        return NextResponse.rewrite(url);
+      }
+      return NextResponse.redirect(url);
+    }
   }
 
-  const requirement = findRequirement(pathname);
-  if (!requirement) return NextResponse.next();
+  if (isEarlyAccessEnabled()) {
+    const earlyAccessRoutes = new Set([
+      '/early-access',
+      '/early-access/client',
+      '/early-access/provider',
+      '/privacy',
+      '/terms',
+      '/cookies',
+    ]);
 
-  // Any protected route requires authentication
-  if (!token) return redirectToSignin(req);
+    const isEarlyAccessRoute =
+      normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
-  // auth-only routes skip RBAC
-  if (requirement === 'auth-only') return NextResponse.next();
+    if (isEarlyAccessRoute) {
+      return intlResponse ?? NextResponse.next();
+    }
 
-  // RBAC routes: get user via JWT or profile
-  let user = tryDecodeUserFromJwt(token);
+    let adminBypass = false;
+    if (isAuthenticated) {
+      adminBypass = isAdminUser(user || null);
+    }
 
-  const needsPerms = requirement.permissions && requirement.permissions.length > 0;
-  const needsRole = requirement.roles && requirement.roles.length > 0;
-  const needsSuper = !!requirement.superuser;
-
-  const hasEnoughClaims =
-      !!user &&
-      (!needsPerms || true) && // roles carry permissions; we can always fetch if missing later
-      (!needsRole || (user.roles && user.roles.length > 0)) &&
-      (!needsSuper || user.is_superuser !== undefined);
-
-  if (!hasEnoughClaims && token) {
-    user = await fetchUserFromApi(token);
+    if (!adminBypass) {
+      const url = new URL(`/${locale}/early-access`, req.url);
+      if (normalizedPath === '/') {
+        return NextResponse.rewrite(url);
+      }
+      return NextResponse.redirect(url);
+    }
   }
-  if (!user) return redirectToSignin(req);
 
-  const allowed = checkRequirement(user, requirement);
-  if (!allowed) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/access-denied';
-    url.searchParams.set('from', req.nextUrl.pathname); // optional: track where they came from
+  // 2. Auth Flow
+  // Redirect authenticated users away from auth pages
+  if (AUTH_PAGES.has(normalizedPath) && isAuthenticated) {
+    const url = new URL(`/${locale}/dashboard`, req.url);
+    url.search = req.nextUrl.search;
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
-}
+  // 3. Protected Routes
+  const requirement = findRequirement(normalizedPath);
 
-// Keep your permissive matcher that was working
+  if (!requirement) {
+    return intlResponse ?? NextResponse.next();
+  }
+
+  // 4. Token & Permission Checks
+  if (!isAuthenticated) return redirectToSignin(req, locale);
+
+  if (requirement === 'auth-only') return intlResponse ?? NextResponse.next();
+
+  const allowed = checkRequirement(user || null, requirement);
+
+  if (!allowed) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/${locale}/access-denied`;
+    url.searchParams.set('from', req.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
+
+  return intlResponse ?? NextResponse.next();
+});
+
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|non-critical\\.css|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)).*)',
   ],
 };

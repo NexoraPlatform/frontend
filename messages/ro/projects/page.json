@@ -1,0 +1,321 @@
+{
+  "list": {
+    "filters": {
+      "all": "Toate",
+      "search_placeholder": "Caută proiecte...",
+      "category_label": "Categorie",
+      "category_search_placeholder": "Caută...",
+      "technologies_label": "Tehnologii",
+      "technologies_selected": "{count} selectate",
+      "technologies_search_placeholder": "Caută...",
+      "budget_label": "Buget",
+      "budget_presets": {
+        "all": "Toate",
+        "range1": "500 - 2.000 lei",
+        "range2": "2.000 - 5.000 lei",
+        "range3": "5.000 - 10.000 lei",
+        "range4": "10.000+ lei"
+      },
+      "active_filters": "{count} filtre active"
+    },
+    "hero": {
+      "badge": "Proiecte Trustora",
+      "title": "Proiecte",
+      "description": "Găsește proiecte potrivite pentru tine și ofertează pe cele care te interesează, într-un ecosistem sigur și verificat."
+    },
+    "empty": "Nu au fost găsite proiecte care să se potrivească filtrelor tale",
+    "card": {
+      "recommended": "Recomandat",
+      "budget": "Buget",
+      "fixed": "Proiect fix",
+      "hourly": "Pe oră",
+      "deadline": "Deadline",
+      "offers": "Oferte primite",
+      "posted": "Postat",
+      "more_technologies": "+{count} mai multe",
+      "details_button": "Detalii"
+    }
+  },
+  "provider_card": {
+    "avatar_alt": "Imagine prestator {firstName} {lastName}",
+    "location_fallback": "România"
+  },
+  "detail": {
+    "not_found": "Proiectul nu a fost găsit",
+    "badge": "Detalii proiect",
+    "description_fallback": "Nu există o descriere pentru acest proiect.",
+    "stats": {
+      "added": "Adăugat",
+      "duration": "Durata proiect",
+      "status": "Status proiect",
+      "selected_providers": "Prestatori selectați",
+      "not_available": "N/A"
+    },
+    "status": {
+      "completed": "Finalizat",
+      "incomplete": "Nefinalizat"
+    },
+    "technologies": "Tehnologii proiect:",
+    "team_structure": "Structura recomandată de echipă:",
+    "team": {
+      "service": "Serviciu:",
+      "role": "Rol:",
+      "experience": "Nivel de experiență:",
+      "count": "Număr de prestatori:"
+    },
+    "metadata": {
+      "title": "Proiect detaliat",
+      "title_with_project": "{title} | Proiect detaliat",
+      "description": "Vezi detalii despre proiectul selectat, inclusiv informații despre prestatori și tehnologiile utilizate.",
+      "description_with_project": "Vezi detalii despre {title}, inclusiv servicii oferite și evaluări."
+    }
+  },
+  "new": {
+    "hero": {
+      "badge": "Proiect nou",
+      "title": "Adaugă proiect nou",
+      "description": "Descrie proiectul tău și primește oferte de la cei mai buni prestatori."
+    },
+    "tabs": {
+      "details": "Detalii proiect",
+      "providers": "Prestatori sugerați",
+      "review": "Revizuire & trimitere"
+    },
+    "sections": {
+      "general_info": "Informații generale"
+    },
+    "fields": {
+      "title": "Titlu proiect",
+      "title_placeholder": "ex: Website modern pentru afacerea mea",
+      "description": "Descriere detaliată",
+      "description_placeholder": "Descrie în detaliu ce vrei să realizezi, care sunt obiectivele și așteptările tale...",
+      "requirements": "Cerințe specifice",
+      "requirements_placeholder": "Cerințe tehnice, funcționalități specifice, integrări necesare..."
+    },
+    "technologies": {
+      "title": "Servicii și tehnologii",
+      "description": "Selectează serviciile necesare pentru proiectul tău",
+      "selected": "Servicii selectate ({count})",
+      "add_custom": "Adaugă tehnologie personalizată",
+      "add_custom_placeholder": "ex: GraphQL, Redis, etc."
+    },
+    "ai_loading": {
+      "analyzing": "Se analizează informațiile...",
+      "generating": "Se generează informațiile...",
+      "verifying": "Se verifică datele...",
+      "finalizing": "Finalizare..."
+    },
+    "errors": {
+      "title_required": "Titlul este obligatoriu",
+      "description_required": "Descrierea este obligatorie",
+      "budget_required": "Bugetul este obligatoriu",
+      "budget_type_required": "Tipul de buget este obligatoriu",
+      "deadline_required": "Durata proiectului este obligatorie",
+      "technologies_required": "Selectează minim o tehnologie",
+      "milestones_required": "Adaugă cel puțin un milestone pentru fiecare prestator",
+      "milestones_incomplete": "Completează titlul și bugetul pentru fiecare milestone",
+      "milestone_total": "Suma milestone-urilor trebuie să fie egală cu bugetul total",
+      "milestone_budget": "Bugetele milestone-urilor trebuie să fie egale cu bugetul alocat fiecărui prestator",
+      "providers_load": "Nu s-au putut încărca prestatorii sugerați",
+      "complete_required": "Completează câmpurile obligatorii înainte de a trimite proiectul.",
+      "select_provider": "Selectează cel puțin un prestator pentru a trimite proiectul",
+      "budget_allocation": "Bugetul total alocat trebuie să fie egal cu bugetul proiectului",
+      "create_project": "A apărut o eroare la crearea proiectului"
+    },
+    "providers": {
+      "location_fallback": "România",
+      "title": "Prestatori sugerați",
+      "subtitle": "Selectează prestatorii pe care vrei să-i inviți.",
+      "count": "{count} prestatori • Pagina {currentPage} din {totalPages}",
+      "no_suggestions": "Nu există sugestii disponibile momentan.",
+      "loading": "Se încarcă prestatorii sugerați...",
+      "empty_title": "Nu s-au găsit prestatori",
+      "empty_description": "Încearcă să ajustezi filtrele sau revino mai târziu.",
+      "search_placeholder": "Caută prestatori...",
+      "filters": {
+        "services": "Servicii",
+        "services_count": "{count} servicii",
+        "services_label": "Filtrează după servicii",
+        "no_services": "Nu sunt servicii disponibile",
+        "reset": "Resetează",
+        "levels": "Nivel",
+        "levels_count": "{count} niveluri",
+        "levels_label": "Filtrează după nivel",
+        "reset_levels": "Resetează nivelurile",
+        "active": "Filtre active",
+        "reset_all": "Resetează tot",
+        "reset_filters": "Resetează filtrele"
+      },
+      "none_title": "Nu există prestatori pe această pagină",
+      "none_description": "Nu există prestatori care să corespundă filtrelor.",
+      "none_page": "Încearcă o altă pagină sau resetează filtrele.",
+      "level_default": "Mediu",
+      "match_score": "Potrivire {score}%",
+      "verified": "Verificat",
+      "reviews": "{count} recenzii",
+      "response_time": "Răspunde în {time} {unit}",
+      "hour_singular": "oră",
+      "hour_plural": "ore",
+      "why_fit": "De ce este potrivit",
+      "active": "Activ",
+      "profile": "Profil",
+      "message": "Mesaj",
+      "pagination": "{start}-{end} din {total} prestatori",
+      "selected_count": "{count} prestatori selectați",
+      "selected_message": "Proiectul va fi trimis către prestatorii selectați și vei primi oferte în curând."
+    },
+    "notifications": {
+      "new_project_title": "🚀 Proiect nou disponibil!",
+      "new_project_message": "Un client caută servicii pentru: {title}. Buget: {budget} RON"
+    },
+    "budget_types": {
+      "fixed": "Preț fix per proiect",
+      "hourly": "Tarif pe oră",
+      "milestone": "Plată per milestone"
+    },
+    "availability": {
+      "available": "Disponibil",
+      "busy": "Ocupat",
+      "unavailable": "Indisponibil",
+      "unknown": "Necunoscut"
+    },
+    "github": {
+      "title": "Repo GitHub",
+      "description": "Conectează un repository dacă serviciile selectate necesită unul.",
+      "connect_label": "Conectează contul GitHub",
+      "connect_description": "Necesar pentru colaborarea pe repository-uri de proiect.",
+      "repository_title": "Repository pentru proiect",
+      "platform_repo": "Repository pe platformă",
+      "provider_repo": "Repository la prestator",
+      "client_repo": "Repository la client",
+      "connect_first": "Conectează GitHub pentru a continua."
+    },
+    "budget": {
+      "title": "Buget",
+      "type_label": "Tip buget",
+      "fixed_label": "Preț fix",
+      "hourly_label": "Tarif orar",
+      "amount_label": "Suma bugetului {suffix}",
+      "hourly_suffix": "(pe oră)",
+      "fixed_suffix": "(total)",
+      "hourly_placeholder": "ex: 200",
+      "fixed_placeholder": "ex: 8.000"
+    },
+    "deadline": {
+      "label": "Durata proiectului",
+      "placeholder": "Selectează durata",
+      "options": {
+        "one_day": "1 zi",
+        "one_week": "1 săptămână",
+        "two_weeks": "2 săptămâni",
+        "three_weeks": "3 săptămâni",
+        "one_month": "1 lună",
+        "three_months": "3 luni",
+        "six_months": "6 luni",
+        "one_year": "1 an",
+        "one_plus_year": "peste 1 an"
+      }
+    },
+    "ai": {
+      "title": "Asistență AI",
+      "description": "Folosește AI pentru a îmbunătăți detaliile proiectului și recomandările.",
+      "suggested": "Propuneri AI",
+      "fields": {
+        "title": "Titlu:",
+        "description": "Descriere:",
+        "technologies": "Tehnologii:",
+        "team_structure": "Structură echipă:",
+        "role": "Rol:",
+        "level": "Nivel:",
+        "estimated": "estimativ",
+        "deadline": "Deadline:",
+        "estimated_budget": "Buget estimat:",
+        "payment_plan": "Plan de plată:",
+        "unspecified": "Nespecificat",
+        "milestones": "Milestones:",
+        "note": "Notă:"
+      },
+      "actions": {
+        "use_title": "Folosește titlul",
+        "use_description": "Folosește descrierea",
+        "use_technologies": "Folosește tehnologiile",
+        "add_additional_services": "Adaugă servicii adiționale",
+        "use_deadline": "Folosește termenul",
+        "use_budget": "Folosește bugetul",
+        "use_milestones": "Folosește milestones",
+        "improve_description": "Îmbunătățește descrierea"
+      },
+      "people": {
+        "singular": "persoană",
+        "plural": "persoane"
+      },
+      "additional_services_label": "Servicii adiționale sugerate:",
+      "milestone_count": " • {count} milestones",
+      "milestone_item": "{title} - {amount} {currency}"
+    },
+    "actions": {
+      "continue_to_providers": "Continuă către prestatori",
+      "back_to_details": "Înapoi la detalii",
+      "review_final": "Revizuire finală",
+      "back_to_providers": "Înapoi la prestatori",
+      "submitting": "Se trimite...",
+      "submit_project": "Trimite proiectul"
+    },
+    "pagination": {
+      "previous": "Înapoi",
+      "next": "Înainte"
+    },
+    "review": {
+      "title": "Revizuire proiect",
+      "subtitle": "Verifică toate detaliile înainte de a trimite proiectul",
+      "details_title": "Detalii proiect",
+      "labels": {
+        "title": "Titlu:",
+        "category": "Categorie:",
+        "budget": "Buget:",
+        "platform_fee": "Comision platformă:",
+        "total": "Total:",
+        "deadline": "Deadline:"
+      },
+      "technologies_title": "Tehnologii ({count})",
+      "selected_providers_title": "Prestatori selectați ({count})",
+      "split_evenly": "Împarte egal",
+      "budget_summary": {
+        "total": "Buget total",
+        "allocated": "Alocat",
+        "remaining": "Rămas"
+      },
+      "budget_remaining_positive": "Mai ai {amount} {currency} de alocat",
+      "budget_remaining_negative": "Ai depășit bugetul cu {amount} {currency}",
+      "milestones": {
+        "title": "Milestones per prestator",
+        "description": "Adaugă milestones după selectarea prestatorilor pentru proiecte mai lungi de o lună.",
+        "apply_ai": "Aplică milestones AI",
+        "provider_fallback": "Prestator #{id}",
+        "add": "Adaugă milestone",
+        "empty": "Nu există milestones încă pentru acest prestator.",
+        "name_label": "Nume milestone",
+        "budget_label": "Buget milestone ({currency})",
+        "name_placeholder": "ex: Discovery",
+        "budget_placeholder": "ex: 1500",
+        "delete_aria": "Șterge milestone",
+        "total_provider": "Total milestones: {amount} {currency}",
+        "summary_total": "Total milestones: {amount} {currency}",
+        "summary_difference": "Diferență: {amount} {currency}"
+      },
+      "match_score": "• {score}% potrivire",
+      "allocated_budget_label": "Buget alocat:",
+      "description_title": "Descriere",
+      "requirements_title": "Cerințe specifice"
+    },
+    "skills": {
+      "junior": "Junior",
+      "medium": "Mediu",
+      "senior": "Senior",
+      "expert": "Expert"
+    },
+    "currency": {
+      "ron": "RON"
+    }
+  }
+}

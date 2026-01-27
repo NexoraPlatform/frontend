@@ -1,7 +1,8 @@
 "use client";
 
-import {useState, useEffect, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -45,18 +46,23 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
-import { apiClient } from '@/lib/api';
+import { apiClient, DashboardStatsResponse } from '@/lib/api';
 import { toast } from 'sonner';
-import Link from 'next/link';
-import {SiStripe} from "react-icons/si";
-import {Can} from "@/components/Can";
+import { Link } from '@/lib/navigation';
+import { SiStripe } from "react-icons/si";
+import { Can } from "@/components/Can";
 
 export default function DashboardClient() {
   const { user, loading } = useAuth();
+  const t = useTranslations();
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [projectsError, setProjectsError] = useState('');
+  const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider');
+  const isClient = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client');
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,10 +73,8 @@ export default function DashboardClient() {
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
   const router = useRouter();
-
   useEffect(() => {
     if (!loading && !user) {
-      console.log('Auth loading:', loading, 'User:', user);
       router.push('/auth/signin');
     }
   }, [user, loading, router]);
@@ -80,7 +84,7 @@ export default function DashboardClient() {
     setProjectsError('');
     try {
       let response;
-      if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
+      if (isProvider) {
         response = await apiClient.getProviderProjectRequests();
       } else {
         response = await apiClient.getClientProjectRequests();
@@ -90,15 +94,15 @@ export default function DashboardClient() {
       // Apply search filter
       if (searchTerm) {
         filteredProjects = filteredProjects.filter((project: any) =>
-            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.description.toLowerCase().includes(searchTerm.toLowerCase())
+          project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          project.description.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
 
       // Apply status filter
       if (statusFilter !== 'all') {
         filteredProjects = filteredProjects.filter((project: any) => {
-            if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
+          if (isProvider) {
             return project.status === statusFilter;
           } else {
             return project.status === statusFilter;
@@ -115,8 +119,8 @@ export default function DashboardClient() {
             bValue = b.title.toLowerCase();
             break;
           case 'budget':
-            aValue = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? a.budget : a.budget;
-            bValue = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? b.budget : b.budget;
+            aValue = isProvider ? a.budget : a.budget;
+            bValue = isProvider ? b.budget : b.budget;
             break;
           case 'oldest':
             aValue = new Date(a.created_at).getTime();
@@ -145,11 +149,30 @@ export default function DashboardClient() {
 
       setProjects(paginatedProjects);
     } catch (error: any) {
-      setProjectsError('Nu s-au putut încărca proiectele: ' + error.message);
+      setProjectsError(t('dashboard.errors.projects_load_failed', { message: error.message }));
     } finally {
       setLoadingProjects(false);
     }
-  }, [currentPage, searchTerm, sortBy, sortOrder, statusFilter, user?.roles]);
+  }, [currentPage, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
+
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const response = await apiClient.getDashboardStats();
+      setStats(response);
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && activeTab === 'overview') {
+      loadStats();
+    }
+  }, [user, activeTab, loadStats]);
+
 
   useEffect(() => {
     if (user && activeTab === 'projects') {
@@ -161,13 +184,13 @@ export default function DashboardClient() {
     try {
       await apiClient.respondToProjectRequest(projectId, { response, proposedBudget });
       let message = '';
-      if (response === 'ACCEPTED') message = 'Proiect acceptat';
-      else if (response === 'REJECTED') message = 'Proiect respins';
-      else if (response === 'NEW_PROPOSE') message = 'Propunere de buget trimisă';
+      if (response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
+      else if (response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
+      else if (response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
       toast.success(message);
       loadProjects();
     } catch (error: any) {
-      toast.error('Eroare: ' + error.message);
+      toast.error(t('dashboard.errors.generic', { message: error.message }));
     }
   };
 
@@ -233,80 +256,84 @@ export default function DashboardClient() {
     const visiblePages = getVisiblePages();
 
     return (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t">
-          <div className="text-sm text-muted-foreground">
-            Afișând {Math.min((currentPage - 1) * projectsPerPage + 1, projects.length)} - {Math.min(currentPage * projectsPerPage, projects.length)} din {projects.length} proiecte
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Anterior
-            </Button>
-
-            {visiblePages.map((page, index) => (
-                <Button
-                    key={index}
-                    variant={page === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                    disabled={page === '...'}
-                    className="w-10"
-                >
-                  {page}
-                </Button>
-            ))}
-
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-            >
-              Următor
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-[#1E2A3D]">
+        <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+          {t('dashboard.pagination.showing', {
+            start: Math.min((currentPage - 1) * projectsPerPage + 1, projects.length),
+            end: Math.min(currentPage * projectsPerPage, projects.length),
+            total: projects.length,
+          })}
         </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {t('dashboard.pagination.previous')}
+          </Button>
+
+          {visiblePages.map((page, index) => (
+            <Button
+              key={index}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => typeof page === 'number' && setCurrentPage(page)}
+              disabled={page === '...'}
+              className="w-10"
+            >
+              {page}
+            </Button>
+          ))}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            {t('dashboard.pagination.next')}
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
     );
   };
 
   const getClientStatusOptions = () => [
-    { value: 'all', label: 'Toate Statusurile' },
-    { value: 'PENDING_RESPONSES', label: 'Așteaptă Răspunsuri' },
-    { value: 'IN_PROGRESS', label: 'În Progres' },
-    { value: 'COMPLETED', label: 'Finalizate' },
-    { value: 'CANCELLED', label: 'Anulate' }
+    { value: 'all', label: t('dashboard.filters.status.all') },
+    { value: 'PENDING_RESPONSES', label: t('dashboard.filters.status.pending_responses') },
+    { value: 'IN_PROGRESS', label: t('dashboard.filters.status.in_progress') },
+    { value: 'COMPLETED', label: t('dashboard.filters.status.completed') },
+    { value: 'CANCELLED', label: t('dashboard.filters.status.cancelled') }
   ];
 
   const getProviderStatusOptions = () => [
-    { value: 'all', label: 'Toate Statusurile' },
-    { value: 'PENDING', label: 'În Așteptare' },
-    { value: 'ACCEPTED', label: 'Acceptate' },
-    { value: 'REJECTED', label: 'Respinse' },
-    { value: 'BUDGET_PROPOSED', label: 'Buget Propus' }
+    { value: 'all', label: t('dashboard.filters.status.all') },
+    { value: 'PENDING', label: t('dashboard.filters.status.pending') },
+    { value: 'ACCEPTED', label: t('dashboard.filters.status.accepted') },
+    { value: 'REJECTED', label: t('dashboard.filters.status.rejected') },
+    { value: 'BUDGET_PROPOSED', label: t('dashboard.filters.status.budget_proposed') }
   ];
 
   const getSortOptions = () => [
-    { value: 'newest', label: 'Cele Mai Noi' },
-    { value: 'oldest', label: 'Cele Mai Vechi' },
-    { value: 'budget', label: 'Buget' },
-    { value: 'title', label: 'Titlu' }
+    { value: 'newest', label: t('dashboard.filters.sort.newest') },
+    { value: 'oldest', label: t('dashboard.filters.sort.oldest') },
+    { value: 'budget', label: t('dashboard.filters.sort.budget') },
+    { value: 'title', label: t('dashboard.filters.sort.title') }
   ];
 
   if (loading) {
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Se încarcă dashboard-ul...</p>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>{t('dashboard.loading.dashboard')}</p>
         </div>
+      </div>
     );
   }
 
@@ -314,21 +341,91 @@ export default function DashboardClient() {
     return null;
   }
 
-  // Mock data for overview stats
+  // Data for overview stats
   const getOverviewStats = () => {
-      if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
+    if (isProvider) {
+      const providerStats = stats?.role === 'provider' ? stats.stats : null;
       return [
-        { title: 'Proiecte Active', value: '3', change: '+2 această lună', icon: Briefcase, color: 'text-blue-600' },
-        { title: 'Venituri Luna', value: '4,500 RON', change: '+15% față de luna trecută', icon: DollarSign, color: 'text-green-600' },
-        { title: 'Rating Mediu', value: '4.8', change: '+0.2 această lună', icon: Star, color: 'text-yellow-600' },
-        { title: 'Cereri Noi', value: '7', change: '+3 astăzi', icon: Bell, color: 'text-purple-600' }
+        {
+          title: t('dashboard.overview.provider.active_projects.title'),
+          value: providerStats?.active_projects.value ?? t('dashboard.overview.provider.active_projects.value'),
+          change: providerStats ?
+            `${providerStats.active_projects.change > 0 ? '+' : ''}${providerStats.active_projects.change} ${providerStats.active_projects.change_type}`
+            : t('dashboard.overview.provider.active_projects.change'),
+          icon: Briefcase,
+          color: 'text-blue-600'
+        },
+        {
+          title: t('dashboard.overview.provider.monthly_revenue.title'),
+          value: providerStats
+            ? `${providerStats.monthly_revenue.value} ${providerStats.monthly_revenue.currency}`
+            : t('dashboard.overview.provider.monthly_revenue.value'),
+          change: providerStats
+            ? `${providerStats.monthly_revenue.change_percentage}%`
+            : t('dashboard.overview.provider.monthly_revenue.change'),
+          icon: DollarSign,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.provider.average_rating.title'),
+          value: providerStats?.average_rating.value ?? t('dashboard.overview.provider.average_rating.value'),
+          change: providerStats ?
+            `${providerStats.average_rating.change > 0 ? '+' : ''}${providerStats.average_rating.change}`
+            : t('dashboard.overview.provider.average_rating.change'),
+          icon: Star,
+          color: 'text-yellow-600'
+        },
+        {
+          title: t('dashboard.overview.provider.new_requests.title'),
+          value: providerStats?.new_requests.value ?? t('dashboard.overview.provider.new_requests.value'),
+          change: providerStats ?
+            `${providerStats.new_requests.change > 0 ? '+' : ''}${providerStats.new_requests.change}`
+            : t('dashboard.overview.provider.new_requests.change'),
+          icon: Bell,
+          color: 'text-purple-600'
+        }
       ];
     } else {
+      const clientStats = stats?.role === 'client' ? stats.stats : null;
       return [
-        { title: 'Proiecte Postate', value: '5', change: '+2 această lună', icon: FileText, color: 'text-blue-600' },
-        { title: 'Buget Cheltuit', value: '12,000 RON', change: '+25% această lună', icon: DollarSign, color: 'text-green-600' },
-        { title: 'Proiecte Finalizate', value: '3', change: '100% rata de succes', icon: CheckCircle, color: 'text-green-600' },
-        { title: 'Prestatori Activi', value: '8', change: '+2 noi colaboratori', icon: Users, color: 'text-purple-600' }
+        {
+          title: t('dashboard.overview.client.projects_posted.title'),
+          value: clientStats?.projects_posted.value ?? t('dashboard.overview.client.projects_posted.value'),
+          change: clientStats ?
+            `${clientStats.projects_posted.change > 0 ? '+' : ''}${clientStats.projects_posted.change}`
+            : t('dashboard.overview.client.projects_posted.change'),
+          icon: FileText,
+          color: 'text-blue-600'
+        },
+        {
+          title: t('dashboard.overview.client.budget_spent.title'),
+          value: clientStats
+            ? `${clientStats.budget_spent.value} ${clientStats.budget_spent.currency}`
+            : t('dashboard.overview.client.budget_spent.value'),
+          change: clientStats
+            ? `${clientStats.budget_spent.change_percentage}%`
+            : t('dashboard.overview.client.budget_spent.change'),
+          icon: DollarSign,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.client.projects_completed.title'),
+          value: clientStats?.projects_completed.value ?? t('dashboard.overview.client.projects_completed.value'),
+          change: clientStats ?
+            `${clientStats.projects_completed.change > 0 ? '+' : ''}${clientStats.projects_completed.change}`
+            : t('dashboard.overview.client.projects_completed.change'),
+          icon: CheckCircle,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.client.active_providers.title'),
+          value: clientStats?.active_providers.value ?? t('dashboard.overview.client.active_providers.value'),
+          change: clientStats ?
+            `${clientStats.active_providers.change > 0 ? '+' : ''}${clientStats.active_providers.change}`
+            : t('dashboard.overview.client.active_providers.change'),
+          icon: Users,
+          color: 'text-purple-600'
+        }
       ];
     }
   };
@@ -336,70 +433,100 @@ export default function DashboardClient() {
   const overviewStats = getOverviewStats();
 
   return (
-      <div className="min-h-screen bg-background">
-        <Header />
+    <div className="min-h-screen bg-white dark:bg-[#070C14]">
+      <Header />
 
-        <div className="container mx-auto px-4 py-8">
+      <section className="pt-28 pb-10 px-6 hero-gradient">
+        <div className="max-w-6xl mx-auto">
           {/* Welcome Header */}
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+            <div>
+              <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                <span className="text-[#1BC47D]">●</span> {t('dashboard.hero.badge')}
+              </Badge>
+              <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                {t('dashboard.hero.welcome', { name: user.firstName })}
+              </h1>
+              <p className="text-slate-500 dark:text-[#A3ADC2]">
+                {isProvider
+                  ? t('dashboard.hero.subtitle.provider')
+                  : t('dashboard.hero.subtitle.client')
+                }
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
+                <AvatarImage src={user.avatar} />
+                <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
+                  {user.firstName[0]}{user.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
               <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  Bun venit, {user.firstName}! 👋
-                </h1>
-                <p className="text-muted-foreground">
-                  {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                      ? 'Gestionează-ți serviciile și proiectele active'
-                      : 'Urmărește-ți proiectele și găsește experții potriviți'
-                  }
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-16 h-16">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="text-lg">
-                    {user.firstName[0]}{user.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-semibold">{user.firstName} {user.lastName}</div>
-                  <Badge className={user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Prestator' : 'Client'}
-                  </Badge>
-                  <Button variant="outline" size="sm" className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                          onClick={getStripeOnboardingUrl}
-                  >
-                    <SiStripe className="w-4 h-4 mr-2 text-current" />
-                    {user.stripe_account_id ? 'Modifica Detalii Cont Stripe' : 'Conecteaza Cont Stripe'}
-                  </Button>
-
-                </div>
+                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
+                <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
+                  {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
+                  onClick={getStripeOnboardingUrl}
+                >
+                  <SiStripe className="w-4 h-4 mr-2 text-current" />
+                  {user.stripe_account_id ? t('dashboard.hero.stripe.manage') : t('dashboard.hero.stripe.connect')}
+                </Button>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
+      <section className="px-6 pb-20">
+        <div className="max-w-6xl mx-auto">
           {/* Dashboard Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview" className="flex items-center">
+            <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
+              <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Prezentare</span>
+                <span>{t('dashboard.tabs.overview')}</span>
               </TabsTrigger>
-              <TabsTrigger value="projects" className="flex items-center">
-                <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Proiecte</span>
-              </TabsTrigger>
-              <TabsTrigger value="services" className="flex items-center">
+              {isClient ? (
+                <div
+                  className=" rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                >
+                  <Link
+                    className="flex items-center justify-center"
+                    href="/client/project-requests">
+                    <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                    <span>{t('dashboard.tabs.projects')}</span>
+                  </Link>
+                </div>
+              ) : (
+                <TabsTrigger
+                  value="projects"
+                  className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+                >
+
+
+                  <>
+                    <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                    <span>{t('dashboard.tabs.projects')}</span>
+                  </>
+
+                </TabsTrigger>
+              )}
+
+              <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Target className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Servicii</span>
+                <span>{t('dashboard.tabs.services')}</span>
               </TabsTrigger>
-              <TabsTrigger value="messages" className="flex items-center">
+              <TabsTrigger value="messages" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <MessageSquare className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Mesaje</span>
+                <span>{t('dashboard.tabs.messages')}</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center">
+              <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Settings className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Setări</span>
+                <span>{t('dashboard.tabs.settings')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -408,160 +535,160 @@ export default function DashboardClient() {
               {/* Stats Cards */}
               <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {overviewStats.map((stat, index) => (
-                    <Card key={index} className="border-2 hover:shadow-lg transition-all duration-300">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground mb-1">
-                              {stat.title}
-                            </p>
-                            <p className="text-2xl font-bold">{stat.value}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {stat.change}
-                            </p>
-                          </div>
-                          <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color}`}>
-                            <stat.icon className="w-6 h-6" />
-                          </div>
+                  <Card key={index} className="glass-card shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500 mb-1 dark:text-[#A3ADC2]">
+                            {stat.title}
+                          </p>
+                          <p className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">{stat.value}</p>
+                          <p className="text-xs text-slate-400 mt-1 dark:text-[#6B7285]">
+                            {stat.change}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className={`w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center ${stat.color}`}>
+                          <stat.icon className="w-6 h-6" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
 
               {/* Quick Actions */}
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Zap className="w-5 h-5" />
-                    <span>Acțiuni Rapide</span>
+                    <span>{t('dashboard.quick_actions.title')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                        ? 'Acțiuni frecvente pentru gestionarea activității tale'
-                        : 'Începe un proiect nou sau gestionează proiectele existente'
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                    {isProvider
+                      ? t('dashboard.quick_actions.description.provider')
+                      : t('dashboard.quick_actions.description.client')
                     }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? (
-                        <>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/provider/services/select">
-                              <Plus className="w-6 h-6" />
-                              <span>Adaugă Servicii</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/provider/profile">
-                              <Edit className="w-6 h-6" />
-                              <span>Editează Profil</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/tests">
-                              <Award className="w-6 h-6" />
-                              <span>Susține Teste</span>
-                            </Link>
-                          </Button>
-                        </>
+                    {isProvider ? (
+                      <>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/provider/services/select">
+                            <Plus className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.add_services')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/provider/profile">
+                            <Edit className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.edit_profile')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/tests">
+                            <Award className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.take_tests')}</span>
+                          </Link>
+                        </Button>
+                      </>
                     ) : (
-                        <>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/projects/new">
-                              <Plus className="w-6 h-6" />
-                              <span>Proiect Nou</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/services">
-                              <Search className="w-6 h-6" />
-                              <span>Caută Servicii</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/projects">
-                              <Eye className="w-6 h-6" />
-                              <span>Explorează Proiecte</span>
-                            </Link>
-                          </Button>
-                        </>
+                      <>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/projects/new">
+                            <Plus className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.new_project')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/services">
+                            <Search className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.search_services')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/projects">
+                            <Eye className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.explore_projects')}</span>
+                          </Link>
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Recent Activity */}
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Clock className="w-5 h-5" />
-                    <span>Activitate Recentă</span>
+                    <span>{t('dashboard.activity.title')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? (
-                        <>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Proiect finalizat cu succes</p>
-                              <p className="text-xs text-muted-foreground">Website E-commerce • Acum 2 ore</p>
-                            </div>
+                    {isProvider ? (
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Bell className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Cerere nouă de proiect</p>
-                              <p className="text-xs text-muted-foreground">Aplicație Mobile • Acum 5 ore</p>
-                            </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.completed_project.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.completed_project.meta')}</p>
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                              <Star className="w-4 h-4 text-yellow-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Recenzie nouă primită</p>
-                              <p className="text-xs text-muted-foreground">5 stele de la Maria P. • Ieri</p>
-                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Bell className="w-4 h-4 text-blue-600" />
                           </div>
-                        </>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_request.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_request.meta')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                            <Star className="w-4 h-4 text-yellow-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_review.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_review.meta')}</p>
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                        <>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Prestator a acceptat proiectul</p>
-                              <p className="text-xs text-muted-foreground">Website React • Acum 1 oră</p>
-                            </div>
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <DollarSign className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Propunere de buget primită</p>
-                              <p className="text-xs text-muted-foreground">3,200 RON pentru Logo Design • Acum 3 ore</p>
-                            </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.project_accepted.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.project_accepted.meta')}</p>
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                              <Plus className="w-4 h-4 text-purple-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Proiect nou postat</p>
-                              <p className="text-xs text-muted-foreground">Aplicație Mobile • Ieri</p>
-                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
                           </div>
-                        </>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.budget_proposal.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.budget_proposal.meta')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.new_project.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.new_project.meta')}</p>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -571,7 +698,7 @@ export default function DashboardClient() {
             {/* Projects Tab */}
             <TabsContent value="projects" className="space-y-6">
               {/* Filters and Search */}
-              <Card>
+              <Card className="glass-card">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search Bar */}
@@ -579,13 +706,13 @@ export default function DashboardClient() {
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                         <Input
-                            placeholder="Caută proiecte după titlu sau descriere..."
-                            value={searchTerm}
-                            onChange={(e) => {
-                              setSearchTerm(e.target.value);
-                              setCurrentPage(1);
-                            }}
-                            className="pl-10"
+                          placeholder={t('dashboard.filters.search_placeholder')}
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                          }}
+                          className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
                         />
                       </div>
                     </div>
@@ -595,15 +722,15 @@ export default function DashboardClient() {
                       setStatusFilter(value);
                       setCurrentPage(1);
                     }}>
-                      <SelectTrigger className="w-full lg:w-64">
+                      <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
                         <Filter className="w-4 h-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {(user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
+                        {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -614,28 +741,28 @@ export default function DashboardClient() {
                         setSortBy(value);
                         setCurrentPage(1);
                       }}>
-                        <SelectTrigger className="w-full lg:w-48">
+                        <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {getSortOptions().map(option => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
 
                       <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={toggleSortOrder}
-                          className="flex-shrink-0"
+                        variant="outline"
+                        size="icon"
+                        onClick={toggleSortOrder}
+                        className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
                       >
                         {sortOrder === 'asc' ? (
-                            <ArrowUp className="w-4 h-4" />
+                          <ArrowUp className="w-4 h-4" />
                         ) : (
-                            <ArrowDown className="w-4 h-4" />
+                          <ArrowDown className="w-4 h-4" />
                         )}
                       </Button>
                     </div>
@@ -643,40 +770,43 @@ export default function DashboardClient() {
 
                   {/* Active Filters */}
                   {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
-                      <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
-                        <span className="text-sm font-medium text-muted-foreground">Filtre active:</span>
+                    <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                      <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
 
-                        {searchTerm && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>Căutare: {searchTerm}</span>
-                              <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                        )}
+                      {searchTerm && (
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
+                          <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )}
 
-                        {statusFilter !== 'all' && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>Status: {(user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label}</span>
-                              <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                        )}
+                      {statusFilter !== 'all' && (
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
+                          <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )}
 
-                        {(sortBy !== 'newest' || sortOrder !== 'desc') && (
-                            <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>Sortare: {getSortOptions().find(o => o.value === sortBy)?.label} ({sortOrder === 'asc' ? 'Crescător' : 'Descrescător'})</span>
-                              <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                        )}
+                      {(sortBy !== 'newest' || sortOrder !== 'desc') && (
+                        <Badge variant="secondary" className="flex items-center space-x-1">
+                          <span>{t('dashboard.filters.sort_label', {
+                            label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
+                            order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
+                          })}</span>
+                          <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )}
 
-                        <Button variant="outline" size="sm" onClick={resetFilters}>
-                          Resetează Toate
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
+                        {t('dashboard.filters.reset_all')}
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -684,84 +814,84 @@ export default function DashboardClient() {
               {/* Projects Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold">
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Cereri de Proiecte' : 'Proiectele Mele'}
+                  <h2 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                    {isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client')}
                   </h2>
-                  <p className="text-muted-foreground">
-                    {loadingProjects ? 'Se încarcă...' : `${projects.length} proiecte găsite`}
+                  <p className="text-slate-500 dark:text-[#A3ADC2]">
+                    {loadingProjects ? t('dashboard.loading.projects') : t('dashboard.projects.found', { count: projects.length })}
                   </p>
                 </div>
 
-                {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
-                    <Button asChild>
-                      <Link href="/projects/new">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Proiect Nou
-                      </Link>
-                    </Button>
+                {isClient && (
+                  <Button asChild className="btn-primary">
+                    <Link href="/projects/new">
+                      <Plus className="w-4 h-4 mr-2" />
+                      {t('dashboard.projects.new_project')}
+                    </Link>
+                  </Button>
                 )}
               </div>
 
               {/* Projects List */}
               {loadingProjects ? (
-                  <div className="flex justify-center items-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
               ) : projectsError ? (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{projectsError}</AlertDescription>
-                  </Alert>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{projectsError}</AlertDescription>
+                </Alert>
               ) : projects.length === 0 ? (
-                  <Card>
-                    <CardContent className="text-center py-20">
-                      <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold mb-2">
-                        {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Nu ai cereri de proiecte' : 'Nu ai proiecte create'}
-                      </h3>
-                      <p className="text-muted-foreground mb-6">
-                        {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                            ? 'Când clienții vor crea proiecte și te vor selecta, le vei vedea aici'
-                            : 'Creează primul tău proiect pentru a începe colaborarea cu prestatorii'
-                        }
-                      </p>
-                        <Can {...({ superuser: true } || { roles: ['client'] })}>
-                          <Button asChild>
-                            <Link href="/projects/new">
-                              <Plus className="w-4 h-4 mr-2" />
-                              Creează Primul Proiect
-                            </Link>
-                          </Button>
-                      </Can>
-                    </CardContent>
-                  </Card>
+                <Card className="glass-card">
+                  <CardContent className="text-center py-20">
+                    <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
+                    </h3>
+                    <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
+                      {isProvider
+                        ? t('dashboard.projects.empty.description.provider')
+                        : t('dashboard.projects.empty.description.client')
+                      }
+                    </p>
+                    <Can roles={['client']}>
+                      <Button asChild className="btn-primary">
+                        <Link href="/projects/new">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('dashboard.projects.empty.cta')}
+                        </Link>
+                      </Button>
+                    </Can>
+                  </CardContent>
+                </Card>
               ) : (
-                  <div className="space-y-6">
-                    {projects.map((project) => (
-                        <ProjectRequestCard
-                            key={project.id}
-                            project={project}
-                            onResponse={handleProjectResponse}
-                        />
-                    ))}
+                <div className="space-y-6">
+                  {projects.map((project) => (
+                    <ProjectRequestCard
+                      key={project.id}
+                      project={project}
+                      onResponse={handleProjectResponse}
+                    />
+                  ))}
 
-                    {renderPagination()}
-                  </div>
+                  {renderPagination()}
+                </div>
               )}
             </TabsContent>
 
             {/* Services Tab */}
             <TabsContent value="services" className="space-y-6">
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Target className="w-5 h-5" />
-                    <span>{user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Serviciile Mele' : 'Servicii Favorite'}</span>
+                    <span>{isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                        ? 'Gestionează serviciile pe care le oferi'
-                        : 'Serviciile pe care le urmărești'
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                    {isProvider
+                      ? t('dashboard.services.description.provider')
+                      : t('dashboard.services.description.client')
                     }
                   </CardDescription>
                 </CardHeader>
@@ -769,21 +899,21 @@ export default function DashboardClient() {
                   <div className="text-center py-12">
                     <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Nu oferi încă servicii' : 'Nu ai servicii favorite'}
+                      {isProvider ? t('dashboard.services.empty.title.provider') : t('dashboard.services.empty.title.client')}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                          ? 'Adaugă servicii pentru a începe să primești comenzi'
-                          : 'Salvează serviciile care te interesează pentru acces rapid'
+                      {isProvider
+                        ? t('dashboard.services.empty.description.provider')
+                        : t('dashboard.services.empty.description.client')
                       }
                     </p>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') && (
-                        <Button asChild>
-                          <Link href="/provider/services/select">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adaugă Primul Serviciu
-                          </Link>
-                        </Button>
+                    {isProvider && (
+                      <Button asChild>
+                        <Link href="/provider/services/select">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('dashboard.services.empty.cta')}
+                        </Link>
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -792,23 +922,21 @@ export default function DashboardClient() {
 
             {/* Messages Tab */}
             <TabsContent value="messages" className="space-y-6">
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <MessageSquare className="w-5 h-5" />
-                    <span>Mesaje</span>
+                    <span>{t('dashboard.messages.title')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    Conversațiile tale cu clienții și prestatorii
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                    {t('dashboard.messages.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-12">
                     <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Nu ai mesaje</h3>
-                    <p className="text-muted-foreground">
-                      Conversațiile tale vor apărea aici
-                    </p>
+                    <h3 className="text-lg font-medium mb-2">{t('dashboard.messages.empty.title')}</h3>
+                    <p className="text-muted-foreground">{t('dashboard.messages.empty.description')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -818,11 +946,11 @@ export default function DashboardClient() {
             <TabsContent value="settings" className="space-y-6">
               <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Profile Settings */}
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <User className="w-5 h-5" />
-                      <span>Setări Profil</span>
+                      <span>{t('dashboard.settings.profile.title')}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -838,9 +966,9 @@ export default function DashboardClient() {
                         <div className="text-sm text-muted-foreground">{user.email}</div>
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? '/provider/profile' : '/settings/profile'}>
+                        <Link href={isProvider ? '/provider/profile' : '/settings/profile'}>
                           <Edit className="w-4 h-4 mr-1" />
-                          Editează
+                          {t('dashboard.actions.edit')}
                         </Link>
                       </Button>
                     </div>
@@ -848,29 +976,29 @@ export default function DashboardClient() {
                 </Card>
 
                 {/* Notification Settings */}
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Bell className="w-5 h-5" />
-                      <span>Setări Notificări</span>
+                      <span>{t('dashboard.settings.notifications.title')}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">Email Notifications</div>
+                          <div className="font-medium">{t('dashboard.settings.notifications.email.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Primește notificări prin email
+                            {t('dashboard.settings.notifications.email.description')}
                           </div>
                         </div>
                         <input type="checkbox" defaultChecked className="rounded" />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">Push Notifications</div>
+                          <div className="font-medium">{t('dashboard.settings.notifications.push.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Notificări în browser
+                            {t('dashboard.settings.notifications.push.description')}
                           </div>
                         </div>
                         <input type="checkbox" defaultChecked className="rounded" />
@@ -880,56 +1008,57 @@ export default function DashboardClient() {
                 </Card>
 
                 {/* Account Settings */}
-                <Card>
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Shield className="w-5 h-5" />
-                      <span>Securitate Cont</span>
+                      <span>{t('dashboard.settings.security.title')}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <Button variant="outline" className="w-full justify-start">
                       <Settings className="w-4 h-4 mr-2" />
-                      Schimbă Parola
+                      {t('dashboard.settings.security.change_password')}
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                       <Shield className="w-4 h-4 mr-2" />
-                      Autentificare cu 2 Factori
+                      {t('dashboard.settings.security.two_factor')}
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                       <Globe className="w-4 h-4 mr-2" />
-                      Preferințe Limbă
+                      {t('dashboard.settings.security.language_preferences')}
                     </Button>
                   </CardContent>
                 </Card>
 
                 {/* Billing (for clients) */}
-                {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <DollarSign className="w-5 h-5" />
-                          <span>Facturare</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <Button variant="outline" className="w-full justify-start">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          Metode de Plată
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Istoric Facturi
-                        </Button>
-                      </CardContent>
-                    </Card>
+                {isClient && (
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <DollarSign className="w-5 h-5" />
+                        <span>{t('dashboard.settings.billing.title')}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Button variant="outline" className="w-full justify-start">
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        {t('dashboard.settings.billing.payment_methods')}
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start">
+                        <FileText className="w-4 h-4 mr-2" />
+                        {t('dashboard.settings.billing.invoices')}
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </TabsContent>
           </Tabs>
         </div>
+      </section>
 
-        <Footer />
-      </div>
+      <Footer />
+    </div>
   );
 }

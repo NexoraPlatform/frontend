@@ -167,6 +167,9 @@ export class NotificationService {
     }
 
     getPermissionStatus(): NotificationPermission {
+        if (!('Notification' in window)) {
+            return 'default';
+        }
         return Notification.permission;
     }
 }

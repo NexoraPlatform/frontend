@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,25 +13,33 @@ import {
     User,
     CheckCircle,
     XCircle,
-    AlertCircle,
     MapPin,
     Star,
     Eye,
     MessageSquare,
-    Shield,
     Loader2,
-    Globe
+    Banknote
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ro } from 'date-fns/locale';
-import {useAuth} from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import apiClient from "@/lib/api";
-import {MuiIcon} from "@/components/MuiIcons";
-import {Dialog, DialogContent} from "@/components/ui/dialog";
-import {DialogTitle} from "@mui/material";
-import {useRouter} from "next/navigation";
-import {toast} from "sonner";
-import {loadStripe} from "@stripe/stripe-js";
+import { MuiIcon } from "@/components/MuiIcons";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTrigger,
+    DialogTitle,
+    DialogDescription, DialogFooter, DialogClose
+} from "@/components/ui/dialog";
+import { useRouter } from '@/lib/navigation';
+import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { useLocale } from "next-intl";
+import { formatDeadline } from '@/lib/projects';
+import { Input } from "@/components/ui/input";
+import { Locale } from '@/types/locale';
 
 interface ProjectRequestCardProps {
     project: any;
@@ -55,6 +63,9 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
     const elementsRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const locale = useLocale() as Locale;
+    const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
+    const [newBudget, setNewBudget] = useState<number>(0);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -145,8 +156,10 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         const response = await apiClient.finishProject(projectId);
 
         const stripe = await stripePromise;
+    }
 
-
+    const handleMarkMilestoneAsComplete = async (projectId: number, milestone: number) => {
+        const response = await apiClient.markMilestoneAsComplete(projectId, milestone);
     }
 
     const handleBudgetResponse = async (
@@ -174,26 +187,10 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
             case 'REJECTED':
                 return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Respins</Badge>;
             case 'NEW_PROPOSE':
-                return <Badge className="bg-blue-100 text-blue-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
+                return <Badge className="bg-emerald-100 text-emerald-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
-    };
-
-    const formatDeadline = (value: string): string => {
-        const map: Record<string, string> = {
-            '1day': '1 zi',
-            '1week': 'O săptămână',
-            '2weeks': '2 săptămâni',
-            '3weeks': '3 săptămâni',
-            '1month': '1 lună',
-            '3months': '3 luni',
-            '6months': '6 luni',
-            '1year': '1 an',
-            '1plusyear': '1+ ani',
-        };
-
-        return map[value] || value;
     };
 
     if (loading) {
@@ -204,9 +201,18 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+    if (!user) {
         return null;
     }
+
+    const servicesMap = new Map(
+        (project?.existing_services ?? []).map((s: any) => [s.id, s])
+    );
+
+    const providerMilestones =
+        project.milestones
+            ?.find((m: any) => Number(m.providerId) === Number(user.id))
+            ?.milestones ?? [];
 
     return (
         <Card key={project.id} className="border-2">
@@ -220,6 +226,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         <CardDescription className="line-clamp-2">
                             {project.description}
                         </CardDescription>
+
                         <div className="flex items-center space-x-4 mt-3 text-sm text-muted-foreground">
                             <div className="flex items-center space-x-1">
                                 <DollarSign className="w-4 h-4" />
@@ -229,7 +236,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 <Calendar className="w-4 h-4" />
                                 <span>
                                     {project.project_duration
-                                        ? `Deadline: ${formatDeadline(project.project_duration)}`
+                                        ? `Deadline: ${formatDeadline(project.project_duration, locale)}`
                                         : 'Fără deadline fix'
                                     }
                                 </span>
@@ -237,11 +244,11 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                             <div className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
                                 <span>
-                            Creat {formatDistanceToNow(new Date(project.created_at), {
-                                    addSuffix: true,
-                                    locale: ro
-                                })}
-                          </span>
+                                    Creat {formatDistanceToNow(new Date(project.created_at), {
+                                        addSuffix: true,
+                                        locale: ro
+                                    })}
+                                </span>
                             </div>
                             <div className="flex items-center space-x-1">
                                 <User className="w-4 h-4" />
@@ -249,12 +256,8 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                             </div>
                         </div>
                     </div>
-                    {Array.from(
-                        new Map(
-                            project.existing_services.map((s:any) => [s.category.id, s.category])
-                        ).values()
-                    ).map((category: any) => (
-                        <Badge key={category.id} className="bg-blue-100 text-blue-800 inline-flex whitespace-nowrap me-1">
+                    {Array.from(servicesMap).map((category: any, index: number) => (
+                        <Badge key={index} className="bg-emerald-100 text-emerald-800 inline-flex whitespace-nowrap me-1">
                             {category.name}
                         </Badge>
                     ))}
@@ -266,17 +269,17 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                 {/* Technologies */}
                 {(project?.existing_services?.length > 0
                     || project?.custom_services?.length > 0) && (
-                    <div className="mb-4">
-                        <div className="text-sm font-medium mb-2">Tehnologii Proiect:</div>
-                        <div className="flex flex-wrap gap-1">
-                            {project.existing_services.map((tech: any, index: number) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                    {tech.name}
-                                </Badge>
-                            ))}
+                        <div className="mb-4">
+                            <div className="text-sm font-medium mb-2">Tehnologii Proiect:</div>
+                            <div className="flex flex-wrap gap-1">
+                                {project.existing_services.map((tech: any, index: number) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
+                                        {tech.name}
+                                    </Badge>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
                 {/* Providers List */}
                 <div>
@@ -323,16 +326,60 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                         </div>
                                     </div>
                                 </div>
+                                {(provider.provider_response === 'PENDING') && (
+                                    <Dialog
+                                        open={proposeNewBudgetProviderId === provider.id}
+                                        onOpenChange={(isOpen) => setProposeNewBudgetProviderId(isOpen ? provider.id : null)}
+                                    >
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline">Propunere buget nou</Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl">
+                                            <DialogHeader>
+                                                <DialogTitle>Propunere buget nou</DialogTitle>
+                                                <DialogDescription>
+                                                    Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex flex-col flex-wrap gap-1">
+                                                <div>Buget original: {provider.allocatedBudget?.toLocaleString()} RON</div>
+                                                <div>Introdu propunerea de buget:</div>
+                                                <div>
+                                                    <Input
+                                                        type="number"
+                                                        value={newBudget}
+                                                        onChange={(e) => setNewBudget(Number(e.target.value))}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">Anulează</Button>
+                                                </DialogClose>
+                                                <Button
+                                                    variant="default"
+                                                    onClick={() => {
+                                                        onResponse(project.id, 'NEW_PROPOSE', newBudget);
+                                                        setProposeNewBudgetProviderId(null);
+                                                    }}
+                                                >
+                                                    Salvează modificările
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
 
                                 {/* Budget Proposal */}
-                                {provider.status === 'NEW_PROPOSE' && (
-                                    <Alert className={`mt-3 border-blue-200 bg-blue-50`}>
+                                {(provider.provider_response === 'PENDING') && (
+                                    <Alert className={`mt-3 border-emerald-200 dark:bg-emerald-500/20 bg-emerald-50/70`}>
                                         <DollarSign className="h-4 w-4" />
                                         <AlertDescription>
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <div className="font-medium">Propunere de buget nou:</div>
-                                                    <div className="text-lg font-bold text-blue-600">
+                                                    <div className="text-lg font-bold text-emerald-600">
                                                         {provider.proposedBudget?.toLocaleString()} RON
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">
@@ -343,10 +390,19 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                                     <Button
                                                         size="sm"
                                                         onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
-                                                        disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
+                                                        disabled={responding === `${project.id}-${provider.id}` || provider.provider_response !== 'PENDING'}
                                                     >
                                                         <CheckCircle className="w-4 h-4 mr-1" />
                                                         Aprobă
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => setProposeNewBudgetProviderId(provider.id)}
+                                                        disabled={responding === `${project.id}-${provider.id}` || provider.provider_response !== 'PENDING'}
+                                                    >
+                                                        <Banknote className="w-4 h-4 mr-1" />
+                                                        Propune buget nou
                                                     </Button>
                                                     <Button
                                                         size="sm"
@@ -367,9 +423,45 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                 {provider.respondedAt && (
                                     <div className="mt-2 text-xs text-muted-foreground">
                                         Răspuns primit cu {formatDistanceToNow(new Date(provider.respondedAt), {
-                                        addSuffix: true,
-                                        locale: ro
-                                    })}
+                                            addSuffix: true,
+                                            locale: ro
+                                        })}
+                                    </div>
+                                )}
+                                {providerMilestones.length > 0 && (
+                                    <div className="mt-4 border-t pt-3">
+                                        <div className="text-sm font-medium mb-2">
+                                            Milestone-uri proiect
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {providerMilestones.map((milestone: any, index: number) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between rounded-md border p-2 text-sm"
+                                                >
+                                                    <div className="flex items-center justify-between gap-6">
+                                                        <span>{milestone.title}</span>
+                                                        <span>/</span>
+                                                        <span className="font-medium">
+                                                        Buget alocat: {milestone.amount.toLocaleString()} RON
+                                                    </span>
+                                                    </div>
+
+                                                    <span>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="default"
+                                                            onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
+                                                            disabled={milestone.status !== 'PENDING'}
+                                                            >
+
+                                                            {milestone.status === 'PENDING' ? 'Marcheaza milestone ca finalizat' : milestone.status === 'PAID' ? 'Platit' : milestone.status === 'REJECTED' ? 'Refuzat' : 'In asteptare'}
+                                                        </Button>
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -379,29 +471,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
 
                 {/* Project Actions */}
                 <div className="flex space-x-3 mt-6 pt-4 border-t">
-                    <div className="flex-1">
-                        <Button
-                            onClick={() => getClientSecret(project.id)}
-                            className="w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden group"
-                            size="lg"
-                        >
-                            {/* Animated background */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-                            <div className="relative flex items-center justify-center space-x-3">
-                                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30">
-                                    <Shield className="w-5 h-5" />
-                                </div>
-                                <div className="text-left">
-                                    <div className="font-bold text-lg leading-tight">Securizează Plata</div>
-                                    <div className="text-sm opacity-90 leading-tight">Protejează-ți investiția cu Escrow</div>
-                                </div>
-                            </div>
-
-                            {/* Pulse effect */}
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-400/20 to-teal-400/20 animate-pulse" />
-                        </Button>
-                    </div>
                     <Button variant="outline" size="sm" onClick={() => router.push(`/projects/${project.slug}`)}>
                         <Eye className="w-4 h-4 mr-2" />
                         Vezi Detalii
@@ -411,154 +481,6 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         Mesaje
                     </Button>
                 </div>
-                <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-                    <DialogContent className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-6 text-white">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <Shield className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <DialogTitle className="text-xl font-bold text-white">
-                                        Securizează Plata
-                                    </DialogTitle>
-                                    <p className="text-blue-100 text-sm">
-                                        Protejează-ți investiția cu escrow
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-blue-100">Proiect:</span>
-                                    <span className="font-semibold">{project.title}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm mt-2">
-                                    <span className="text-blue-100">Valoare totală:</span>
-                                    <span className="font-bold text-lg">{project.budget?.toLocaleString()} RON</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-6 space-y-6">
-                            <div className="text-center">
-                                <h3 className="font-semibold text-lg mb-2">Cum funcționează Escrow?</h3>
-                                <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="text-center">
-                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <span className="font-bold text-blue-600">1</span>
-                                        </div>
-                                        <p className="text-muted-foreground">Banii sunt blocați securizat</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <span className="font-bold text-purple-600">2</span>
-                                        </div>
-                                        <p className="text-muted-foreground">Prestatorii lucrează la proiect</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <span className="font-bold text-green-600">3</span>
-                                        </div>
-                                        <p className="text-muted-foreground">Banii sunt eliberați la finalizare</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                                <div className="flex items-start space-x-3">
-                                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                                    <div className="text-sm">
-                                        <div className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                                            Protecție 100% Garantată
-                                        </div>
-                                        <p className="text-green-700 dark:text-green-300">
-                                            Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Detalii Card de Plată
-                                </label>
-                                <div
-                                    id="card-element"
-                                    className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all"
-                                />
-                            </div>
-
-                            {errorMessage && (
-                                <Alert variant="destructive">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertDescription>{errorMessage}</AlertDescription>
-                                </Alert>
-                            )}
-
-                            {success && (
-                                <Alert className="border-green-200 bg-green-50">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <AlertDescription className="text-green-800">
-                                        Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-
-                            <div className="flex space-x-3">
-                                <Button
-                                    type="button"
-                                    onClick={() => handlePayment(project.id)}
-                                    disabled={loading}
-                                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Se procesează...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Shield className="w-4 h-4 mr-2" />
-                                            Securizează {project.budget?.toLocaleString()} RON
-                                        </>
-                                    )}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setCheckoutDialogOpen(false)}
-                                    className="px-6"
-                                >
-                                    Anulează
-                                </Button>
-                            </div>
-
-                            <div className="text-xs text-center text-muted-foreground pt-4 border-t">
-                                <div className="flex items-center justify-center space-x-4">
-                                    <div className="flex items-center space-x-1">
-                                        <Shield className="w-3 h-3" />
-                                        <span>SSL Securizat</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                        <CheckCircle className="w-3 h-3" />
-                                        <span>PCI Compliant</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                        <Globe className="w-3 h-3" />
-                                        <span>Stripe Powered</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="card-element" className="border p-2 rounded-md" />
-
-                        {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>}
-                        {success && <div className="text-green-500 text-sm">Plata a fost autorizată!</div>}
-
-                    </DialogContent>
-                </Dialog>
             </CardContent>
         </Card>
     );

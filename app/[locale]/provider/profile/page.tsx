@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useEffect, useRef, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 type Languages = {
     id: number;
@@ -511,7 +512,7 @@ export default function ProviderProfileEditPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
             </div>
         );
@@ -529,7 +530,8 @@ export default function ProviderProfileEditPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
             <Header />
 
             <div className="container mx-auto px-4 py-8">
@@ -546,7 +548,7 @@ export default function ProviderProfileEditPage() {
                             <Eye className="w-4 h-4 mr-2" />
                             Previzualizare
                         </Button>
-                        <Button onClick={handleSave} disabled={saving}>
+                        <Button className="btn-primary" onClick={handleSave} disabled={saving}>
                             {saving ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -578,7 +580,7 @@ export default function ProviderProfileEditPage() {
 
                 {/* Profile Edit Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-6 glass-card p-1">
                         <TabsTrigger value="basic">Informații de Bază</TabsTrigger>
                         <TabsTrigger value="availability">Disponibilitate</TabsTrigger>
                         <TabsTrigger value="languages">Limbi & Certificări</TabsTrigger>
@@ -589,7 +591,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Basic Information */}
                     <TabsContent value="basic" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <User className="w-5 h-5" />
@@ -639,7 +641,7 @@ export default function ProviderProfileEditPage() {
                                                 />
                                             )}
                                         </div>
-                                        <Button onClick={handleUpload} className="mt-4 w-full">
+                                        <Button onClick={handleUpload} className="btn-primary mt-4 w-full">
                                             Salvează imaginea
                                         </Button>
                                     </DialogContent>
@@ -733,7 +735,7 @@ export default function ProviderProfileEditPage() {
                                             id="location"
                                             value={profileData.location}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                                            placeholder="București, România"
+                                            placeholder="Mamaia Sat, Navodari, România, 905700"
                                         />
                                     </div>
                                 </div>
@@ -744,7 +746,7 @@ export default function ProviderProfileEditPage() {
                     {/* Availability */}
                     <TabsContent value="availability" className="space-y-6">
                         <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Clock className="w-5 h-5" />
@@ -835,7 +837,7 @@ export default function ProviderProfileEditPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Calendar className="w-5 h-5" />
@@ -905,7 +907,7 @@ export default function ProviderProfileEditPage() {
                     <TabsContent value="languages" className="space-y-6">
                         <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Languages */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Languages className="w-5 h-5" />
@@ -1022,7 +1024,7 @@ export default function ProviderProfileEditPage() {
                             {/*</Card>*/}
 
                             {/* Certifications */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Award className="w-5 h-5" />
@@ -1078,7 +1080,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Experience */}
                     <TabsContent value="experience" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Briefcase className="w-5 h-5" />
@@ -1146,7 +1148,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Education */}
                     <TabsContent value="education" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <GraduationCap className="w-5 h-5" />
@@ -1213,7 +1215,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Portfolio */}
                     <TabsContent value="portfolio" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Target className="w-5 h-5" />

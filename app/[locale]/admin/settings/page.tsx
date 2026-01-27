@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,686 +13,825 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import {
-  Settings,
-  ArrowLeft,
-  Save,
-  Globe,
-  DollarSign,
-  Mail,
-  Shield,
-  Bell,
-  Users,
-  AlertCircle,
-  CheckCircle,
-  Loader2, Clock
+    Settings,
+    ArrowLeft,
+    Save,
+    Globe,
+    DollarSign,
+    Mail,
+    Shield,
+    Bell,
+    Users,
+    AlertCircle,
+    CheckCircle,
+    Loader2,
+    Clock,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminSettingsPage() {
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [settings, setSettings] = useState({
-    siteName: 'Nexora',
-    siteDescription: 'Platforma românească pentru servicii IT profesionale',
-    siteUrl: 'https://nexora.ro',
-    adminEmail: 'admin@nexora.ro',
-    supportEmail: 'suport@nexora.ro',
+    const [loading, setLoading] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [settings, setSettings] = useState({
+        siteName: 'Trustora',
+        siteDescription: 'Platforma românească pentru servicii IT profesionale',
+        siteUrl: 'https://Trustora.ro',
+        adminEmail: 'admin@Trustora.ro',
+        supportEmail: 'suport@Trustora.ro',
 
-    platformCommission: '5',
-    minServicePrice: '50',
-    maxServicePrice: '50000',
-    defaultCurrency: 'RON',
-    allowGuestBrowsing: true,
-    requireEmailVerification: true,
-    autoApproveServices: false,
+        platformCommission: '5',
+        minServicePrice: '50',
+        maxServicePrice: '50000',
+        defaultCurrency: 'RON',
+        allowGuestBrowsing: true,
+        requireEmailVerification: true,
+        autoApproveServices: false,
 
-    stripeEnabled: true,
-    paypalEnabled: true,
-    bankTransferEnabled: false,
-    escrowEnabled: true,
+        stripeEnabled: true,
+        paypalEnabled: true,
+        bankTransferEnabled: false,
+        escrowEnabled: true,
 
-    emailProvider: 'sendgrid',
-    smtpHost: '',
-    smtpPort: '587',
-    smtpUser: '',
-    smtpPassword: '',
+        emailProvider: 'sendgrid',
+        smtpHost: '',
+        smtpPort: '587',
+        smtpUser: '',
+        smtpPassword: '',
 
-    twoFactorRequired: false,
-    passwordMinLength: '8',
-    sessionTimeout: '24',
-    maxLoginAttempts: '5',
+        twoFactorRequired: false,
+        passwordMinLength: '8',
+        sessionTimeout: '24',
+        maxLoginAttempts: '5',
 
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    marketingEmails: false,
+        emailNotifications: true,
+        smsNotifications: false,
+        pushNotifications: true,
+        marketingEmails: false,
 
-    maintenanceMode: false,
-    registrationOpen: true,
-    featuredServicesCount: '8',
-    recentServicesCount: '12'
-  });
+        maintenanceMode: false,
+        registrationOpen: true,
+        featuredServicesCount: '8',
+        recentServicesCount: '12',
+    });
+  const t = useTranslations();
+    // ====== Traduceri (TOP-LEVEL, în ordine fixă) ======
+    // Header
+    const pageTitle               = t('admin.settings.title');
+    const pageSubtitle            = t('admin.settings.subtitle');
+    const savingLabel             = t('admin.settings.saving');
+    const saveAllLabel            = t('admin.settings.save_all');
+    const savedSuccess            = t('admin.settings.saved_success');
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Tabs
+    const generalTab              = t('admin.settings.tabs.general');
+    const platformTab             = t('admin.settings.tabs.platform');
+    const paymentsTab             = t('admin.settings.tabs.payments');
+    const emailTab                = t('admin.settings.tabs.email');
+    const securityTab             = t('admin.settings.tabs.security');
+    const notificationsTab        = t('admin.settings.tabs.notifications');
 
-  const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
+    // Common labels
+    const activeLabel             = t('admin.settings.payments.active');
+    const inactiveLabel           = t('admin.settings.payments.inactive');
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <Link href="/admin">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Setări Platformă</h1>
-            <p className="text-muted-foreground">
-              Configurează setările generale ale platformei Nexora
-            </p>
-          </div>
-        </div>
-        <Button onClick={handleSave} disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Se salvează...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Salvează Toate
-            </>
-          )}
-        </Button>
-      </div>
+    // General section
+    const general_site_info_title = t('admin.settings.general.site_info_title');
+    const general_site_info_desc  = t('admin.settings.general.site_info_desc');
+    const general_site_name_label = t('admin.settings.general.site_name_label');
+    const general_site_desc_label = t('admin.settings.general.site_description_label');
+    const general_site_url_label  = t('admin.settings.general.site_url_label');
 
-      {saved && (
-        <Alert className="mb-6 border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Setările au fost salvate cu succes!
-          </AlertDescription>
-        </Alert>
-      )}
+    const general_contact_title   = t('admin.settings.general.contact_title');
+    const general_contact_desc    = t('admin.settings.general.contact_desc');
+    const general_admin_email_lbl = t('admin.settings.general.admin_email_label');
+    const general_support_email_lbl = t('admin.settings.general.support_email_label');
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="general" className="flex items-center space-x-2">
-            <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">General</span>
-          </TabsTrigger>
-          <TabsTrigger value="platform" className="flex items-center space-x-2">
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Platformă</span>
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center space-x-2">
-            <DollarSign className="w-4 h-4" />
-            <span className="hidden sm:inline">Plăți</span>
-          </TabsTrigger>
-          <TabsTrigger value="email" className="flex items-center space-x-2">
-            <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">Email</span>
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center space-x-2">
-            <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Securitate</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center space-x-2">
-            <Bell className="w-4 h-4" />
-            <span className="hidden sm:inline">Notificări</span>
-          </TabsTrigger>
-        </TabsList>
+    // Platform section
+    const platform_financial_title  = t('admin.settings.platform.financial_title');
+    const platform_financial_desc   = t('admin.settings.platform.financial_desc');
+    const platform_commission_label = t('admin.settings.platform.commission_label');
+    const platform_min_price_label  = t('admin.settings.platform.min_price_label');
+    const platform_max_price_label  = t('admin.settings.platform.max_price_label');
+    const platform_currency_label   = t('admin.settings.platform.currency_label');
 
-        <TabsContent value="general">
-          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Globe className="w-5 h-5" />
-                  <span>Informații Site</span>
-                </CardTitle>
-                <CardDescription>
-                  Configurează informațiile de bază ale site-ului
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="siteName">Nume Site</Label>
-                  <Input
-                    id="siteName"
-                    value={settings.siteName}
-                    onChange={(e) => updateSetting('siteName', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="siteDescription">Descriere Site</Label>
-                  <Textarea
-                    id="siteDescription"
-                    value={settings.siteDescription}
-                    onChange={(e) => updateSetting('siteDescription', e.target.value)}
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="siteUrl">URL Site</Label>
-                  <Input
-                    id="siteUrl"
-                    value={settings.siteUrl}
-                    onChange={(e) => updateSetting('siteUrl', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+    const platform_currency_opt_RON = t('admin.settings.platform.currency_options.RON');
+    const platform_currency_opt_EUR = t('admin.settings.platform.currency_options.EUR');
+    const platform_currency_opt_USD = t('admin.settings.platform.currency_options.USD');
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Mail className="w-5 h-5" />
-                  <span>Contact</span>
-                </CardTitle>
-                <CardDescription>
-                  Adresele de email pentru contact
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="adminEmail">Email Administrator</Label>
-                  <Input
-                    id="adminEmail"
-                    type="email"
-                    value={settings.adminEmail}
-                    onChange={(e) => updateSetting('adminEmail', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="supportEmail">Email Suport</Label>
-                  <Input
-                    id="supportEmail"
-                    type="email"
-                    value={settings.supportEmail}
-                    onChange={(e) => updateSetting('supportEmail', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+    const platform_user_title     = t('admin.settings.platform.user_title');
+    const platform_user_desc      = t('admin.settings.platform.user_desc');
+    const platform_guest_browse_label = t('admin.settings.platform.guest_browsing_label');
+    const platform_guest_browse_desc  = t('admin.settings.platform.guest_browsing_desc');
+    const platform_email_ver_label    = t('admin.settings.platform.email_verification_label');
+    const platform_email_ver_desc     = t('admin.settings.platform.email_verification_desc');
+    const platform_auto_approve_label = t('admin.settings.platform.auto_approve_label');
+    const platform_auto_approve_desc  = t('admin.settings.platform.auto_approve_desc');
+    const platform_reg_open_label     = t('admin.settings.platform.registration_open_label');
+    const platform_reg_open_desc      = t('admin.settings.platform.registration_open_desc');
 
-        <TabsContent value="platform">
-          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5" />
-                  <span>Setări Financiare</span>
-                </CardTitle>
-                <CardDescription>
-                  Configurează comisioanele și limitele de preț
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="platformCommission">Comision Platformă (%)</Label>
-                  <Input
-                    id="platformCommission"
-                    type="number"
-                    value={settings.platformCommission}
-                    onChange={(e) => updateSetting('platformCommission', e.target.value)}
-                    min="0"
-                    max="50"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="minServicePrice">Preț Minim Serviciu (RON)</Label>
-                  <Input
-                    id="minServicePrice"
-                    type="number"
-                    value={settings.minServicePrice}
-                    onChange={(e) => updateSetting('minServicePrice', e.target.value)}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="maxServicePrice">Preț Maxim Serviciu (RON)</Label>
-                  <Input
-                    id="maxServicePrice"
-                    type="number"
-                    value={settings.maxServicePrice}
-                    onChange={(e) => updateSetting('maxServicePrice', e.target.value)}
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="defaultCurrency">Moneda Implicită</Label>
-                  <Select value={settings.defaultCurrency} onValueChange={(value) => updateSetting('defaultCurrency', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="RON">RON - Leu Românesc</SelectItem>
-                      <SelectItem value="EUR">EUR - Euro</SelectItem>
-                      <SelectItem value="USD">USD - Dolar American</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+    // Payments section
+    const payments_methods_title  = t('admin.settings.payments.methods_title');
+    const payments_methods_desc   = t('admin.settings.payments.methods_desc');
+    const payments_stripe_label   = t('admin.settings.payments.stripe_label');
+    const payments_stripe_desc    = t('admin.settings.payments.stripe_desc');
+    const payments_paypal_label   = t('admin.settings.payments.paypal_label');
+    const payments_paypal_desc    = t('admin.settings.payments.paypal_desc');
+    const payments_bank_label     = t('admin.settings.payments.bank_transfer_label');
+    const payments_bank_desc      = t('admin.settings.payments.bank_transfer_desc');
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>Setări Utilizatori</span>
-                </CardTitle>
-                <CardDescription>
-                  Configurează comportamentul utilizatorilor
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Permite navigarea fără cont</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Utilizatorii pot vedea serviciile fără să se înregistreze
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.allowGuestBrowsing}
-                    onCheckedChange={(checked) => updateSetting('allowGuestBrowsing', checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Verificare email obligatorie</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Utilizatorii trebuie să își verifice email-ul
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.requireEmailVerification}
-                    onCheckedChange={(checked) => updateSetting('requireEmailVerification', checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Auto-aprobare servicii</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Serviciile sunt aprobate automat
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.autoApproveServices}
-                    onCheckedChange={(checked) => updateSetting('autoApproveServices', checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Înregistrări deschise</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Permite înregistrarea de utilizatori noi
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.registrationOpen}
-                    onCheckedChange={(checked) => updateSetting('registrationOpen', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+    const payments_security_title = t('admin.settings.payments.security_title');
+    const payments_security_desc  = t('admin.settings.payments.security_desc');
+    const payments_escrow_label   = t('admin.settings.payments.escrow_label');
+    const payments_escrow_desc    = t('admin.settings.payments.escrow_desc');
+    const payments_escrow_alert   = t('admin.settings.payments.escrow_alert');
 
-        <TabsContent value="payments">
-          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5" />
-                  <span>Metode de Plată</span>
-                </CardTitle>
-                <CardDescription>
-                  Activează sau dezactivează metodele de plată
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-blue-600" />
+    // Email config
+    const email_config_title      = t('admin.settings.email.config_title');
+    const email_config_desc       = t('admin.settings.email.config_desc');
+    const email_provider_label    = t('admin.settings.email.provider_label');
+    const email_provider_sendgrid = t('admin.settings.email.provider_options.sendgrid');
+    const email_provider_mailgun  = t('admin.settings.email.provider_options.mailgun');
+    const email_provider_smtp     = t('admin.settings.email.provider_options.smtp');
+
+    const email_smtp_host_label   = t('admin.settings.email.smtp.host_label');
+    const email_smtp_host_ph      = t('admin.settings.email.smtp.host_placeholder');
+    const email_smtp_port_label   = t('admin.settings.email.smtp.port_label');
+    const email_smtp_port_ph      = t('admin.settings.email.smtp.port_placeholder');
+    const email_smtp_user_label   = t('admin.settings.email.smtp.user_label');
+    const email_smtp_pass_label   = t('admin.settings.email.smtp.password_label');
+
+    // Security
+    const security_auth_title     = t('admin.settings.security.auth_title');
+    const security_auth_desc      = t('admin.settings.security.auth_desc');
+    const security_2fa_label      = t('admin.settings.security.two_factor_label');
+    const security_2fa_desc       = t('admin.settings.security.two_factor_desc');
+    const security_pwd_len_label  = t('admin.settings.security.password_length_label');
+    const security_max_attempts   = t('admin.settings.security.max_attempts_label');
+
+    const security_sessions_title = t('admin.settings.security.sessions_title');
+    const security_sessions_desc  = t('admin.settings.security.sessions_desc');
+    const security_session_timeout_label = t('admin.settings.security.session_timeout_label');
+    const security_session_timeout_desc  = t('admin.settings.security.session_timeout_desc');
+
+    // Notifications
+    const notif_title             = t('admin.settings.notifications.title');
+    const notif_desc              = t('admin.settings.notifications.desc');
+    const notif_email_label       = t('admin.settings.notifications.email_label');
+    const notif_email_desc        = t('admin.settings.notifications.email_desc');
+    const notif_sms_label         = t('admin.settings.notifications.sms_label');
+    const notif_sms_desc          = t('admin.settings.notifications.sms_desc');
+    const notif_push_label        = t('admin.settings.notifications.push_label');
+    const notif_push_desc         = t('admin.settings.notifications.push_desc');
+    const notif_marketing_label   = t('admin.settings.notifications.marketing_label');
+    const notif_marketing_desc    = t('admin.settings.notifications.marketing_desc');
+    // ====== /Traduceri ======
+
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (error) {
+            console.error('Error saving settings:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateSetting = (key: string, value: any) => {
+        setSettings((prev) => ({ ...prev, [key]: value }));
+    };
+
+    return (
+        <>
+            <TrustoraThemeStyles />
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14]">
+                <div className="container mx-auto px-4 py-10">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8">
+                        <div className="flex items-center space-x-4">
+                            <Link href="/admin">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{pageTitle}</h1>
+                                <p className="text-sm text-muted-foreground">{pageSubtitle}</p>
+                            </div>
+                        </div>
+                        <Button onClick={handleSave} disabled={loading} className="btn-primary">
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    {savingLabel}
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {saveAllLabel}
+                                </>
+                            )}
+                        </Button>
                     </div>
-                    <div>
-                      <Label>Stripe</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Carduri de credit și debit
-                      </p>
+
+                    {saved && (
+                        <Alert className="mb-6 border-emerald-200/70 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+                            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                            <AlertDescription className="text-emerald-800 dark:text-emerald-100">
+                                {savedSuccess}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    <Tabs defaultValue="general" className="space-y-6">
+                        <TabsList className="grid w-full grid-cols-2 gap-2 rounded-2xl border border-slate-200/60 bg-white/70 p-2 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60 sm:grid-cols-3 lg:grid-cols-6">
+                            <TabsTrigger
+                                value="general"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Globe className="w-4 h-4" />
+                                <span className="hidden sm:inline">{generalTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="platform"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span className="hidden sm:inline">{platformTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="payments"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <DollarSign className="w-4 h-4" />
+                                <span className="hidden sm:inline">{paymentsTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="email"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Mail className="w-4 h-4" />
+                                <span className="hidden sm:inline">{emailTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="security"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Shield className="w-4 h-4" />
+                                <span className="hidden sm:inline">{securityTab}</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="notifications"
+                                className="flex items-center justify-center space-x-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-900 dark:data-[state=active]:text-white"
+                            >
+                                <Bell className="w-4 h-4" />
+                                <span className="hidden sm:inline">{notificationsTab}</span>
+                            </TabsTrigger>
+                        </TabsList>
+
+                {/* GENERAL */}
+                <TabsContent value="general">
+                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Globe className="w-5 h-5" />
+                                    <span>{general_site_info_title}</span>
+                                </CardTitle>
+                                <CardDescription>
+                                    {general_site_info_desc}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label htmlFor="siteName">{general_site_name_label}</Label>
+                                    <Input
+                                        id="siteName"
+                                        value={settings.siteName}
+                                        onChange={(e) => updateSetting('siteName', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="siteDescription">{general_site_desc_label}</Label>
+                                    <Textarea
+                                        id="siteDescription"
+                                        value={settings.siteDescription}
+                                        onChange={(e) => updateSetting('siteDescription', e.target.value)}
+                                        rows={3}
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="siteUrl">{general_site_url_label}</Label>
+                                    <Input
+                                        id="siteUrl"
+                                        value={settings.siteUrl}
+                                        onChange={(e) => updateSetting('siteUrl', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Mail className="w-5 h-5" />
+                                    <span>{general_contact_title}</span>
+                                </CardTitle>
+                                <CardDescription>
+                                    {general_contact_desc}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label htmlFor="adminEmail">{general_admin_email_lbl}</Label>
+                                    <Input
+                                        id="adminEmail"
+                                        type="email"
+                                        value={settings.adminEmail}
+                                        onChange={(e) => updateSetting('adminEmail', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="supportEmail">{general_support_email_lbl}</Label>
+                                    <Input
+                                        id="supportEmail"
+                                        type="email"
+                                        value={settings.supportEmail}
+                                        onChange={(e) => updateSetting('supportEmail', e.target.value)}
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={settings.stripeEnabled ? "default" : "secondary"}>
-                      {settings.stripeEnabled ? "Activ" : "Inactiv"}
-                    </Badge>
-                    <Switch
-                      checked={settings.stripeEnabled}
-                      onCheckedChange={(checked) => updateSetting('stripeEnabled', checked)}
-                    />
-                  </div>
-                </div>
+                </TabsContent>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-yellow-600" />
+                {/* PLATFORM */}
+                <TabsContent value="platform">
+                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <DollarSign className="w-5 h-5" />
+                                    <span>{platform_financial_title}</span>
+                                </CardTitle>
+                                <CardDescription>
+                                    {platform_financial_desc}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label htmlFor="platformCommission">{platform_commission_label}</Label>
+                                    <Input
+                                        id="platformCommission"
+                                        type="number"
+                                        value={settings.platformCommission}
+                                        onChange={(e) => updateSetting('platformCommission', e.target.value)}
+                                        min="0"
+                                        max="50"
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="minServicePrice">{platform_min_price_label}</Label>
+                                    <Input
+                                        id="minServicePrice"
+                                        type="number"
+                                        value={settings.minServicePrice}
+                                        onChange={(e) => updateSetting('minServicePrice', e.target.value)}
+                                        min="0"
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="maxServicePrice">{platform_max_price_label}</Label>
+                                    <Input
+                                        id="maxServicePrice"
+                                        type="number"
+                                        value={settings.maxServicePrice}
+                                        onChange={(e) => updateSetting('maxServicePrice', e.target.value)}
+                                        min="0"
+                                        className="bg-white/80 dark:bg-slate-900/60"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="defaultCurrency">{platform_currency_label}</Label>
+                                    <Select
+                                        value={settings.defaultCurrency}
+                                        onValueChange={(value) => updateSetting('defaultCurrency', value)}
+                                    >
+                                        <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="RON">{platform_currency_opt_RON}</SelectItem>
+                                            <SelectItem value="EUR">{platform_currency_opt_EUR}</SelectItem>
+                                            <SelectItem value="USD">{platform_currency_opt_USD}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Users className="w-5 h-5" />
+                                    <span>{platform_user_title}</span>
+                                </CardTitle>
+                                <CardDescription>
+                                    {platform_user_desc}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>{platform_guest_browse_label}</Label>
+                                        <p className="text-sm text-muted-foreground">{platform_guest_browse_desc}</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.allowGuestBrowsing}
+                                        onCheckedChange={(checked) => updateSetting('allowGuestBrowsing', checked)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>{platform_email_ver_label}</Label>
+                                        <p className="text-sm text-muted-foreground">{platform_email_ver_desc}</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.requireEmailVerification}
+                                        onCheckedChange={(checked) => updateSetting('requireEmailVerification', checked)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>{platform_auto_approve_label}</Label>
+                                        <p className="text-sm text-muted-foreground">{platform_auto_approve_desc}</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.autoApproveServices}
+                                        onCheckedChange={(checked) => updateSetting('autoApproveServices', checked)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>{platform_reg_open_label}</Label>
+                                        <p className="text-sm text-muted-foreground">{platform_reg_open_desc}</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.registrationOpen}
+                                        onCheckedChange={(checked) => updateSetting('registrationOpen', checked)}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                    <div>
-                      <Label>PayPal</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Plăți prin PayPal
-                      </p>
+                </TabsContent>
+
+                {/* PAYMENTS */}
+                <TabsContent value="payments">
+                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <DollarSign className="w-5 h-5" />
+                                    <span>{payments_methods_title}</span>
+                                </CardTitle>
+                                <CardDescription>{payments_methods_desc}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {/* Stripe */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                                            <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-200" />
+                                        </div>
+                                        <div>
+                                            <Label>{payments_stripe_label}</Label>
+                                            <p className="text-sm text-muted-foreground">{payments_stripe_desc}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Badge
+                                            variant={settings.stripeEnabled ? 'default' : 'secondary'}
+                                            className={settings.stripeEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'}
+                                        >
+                                            {settings.stripeEnabled ? activeLabel : inactiveLabel}
+                                        </Badge>
+                                        <Switch
+                                            checked={settings.stripeEnabled}
+                                            onCheckedChange={(checked) => updateSetting('stripeEnabled', checked)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* PayPal */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                                            <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-200" />
+                                        </div>
+                                        <div>
+                                            <Label>{payments_paypal_label}</Label>
+                                            <p className="text-sm text-muted-foreground">{payments_paypal_desc}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Badge
+                                            variant={settings.paypalEnabled ? 'default' : 'secondary'}
+                                            className={settings.paypalEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'}
+                                        >
+                                            {settings.paypalEnabled ? activeLabel : inactiveLabel}
+                                        </Badge>
+                                        <Switch
+                                            checked={settings.paypalEnabled}
+                                            onCheckedChange={(checked) => updateSetting('paypalEnabled', checked)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Bank transfer */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                                            <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-200" />
+                                        </div>
+                                        <div>
+                                            <Label>{payments_bank_label}</Label>
+                                            <p className="text-sm text-muted-foreground">{payments_bank_desc}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Badge
+                                            variant={settings.bankTransferEnabled ? 'default' : 'secondary'}
+                                            className={settings.bankTransferEnabled ? 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200'}
+                                        >
+                                            {settings.bankTransferEnabled ? activeLabel : inactiveLabel}
+                                        </Badge>
+                                        <Switch
+                                            checked={settings.bankTransferEnabled}
+                                            onCheckedChange={(checked) => updateSetting('bankTransferEnabled', checked)}
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Shield className="w-5 h-5" />
+                                    <span>{payments_security_title}</span>
+                                </CardTitle>
+                                <CardDescription>{payments_security_desc}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>{payments_escrow_label}</Label>
+                                        <p className="text-sm text-muted-foreground">{payments_escrow_desc}</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.escrowEnabled}
+                                        onCheckedChange={(checked) => updateSetting('escrowEnabled', checked)}
+                                    />
+                                </div>
+
+                                <Alert className="border-amber-200/70 bg-amber-50/60 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>{payments_escrow_alert}</AlertDescription>
+                                </Alert>
+                            </CardContent>
+                        </Card>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={settings.paypalEnabled ? "default" : "secondary"}>
-                      {settings.paypalEnabled ? "Activ" : "Inactiv"}
-                    </Badge>
-                    <Switch
-                      checked={settings.paypalEnabled}
-                      onCheckedChange={(checked) => updateSetting('paypalEnabled', checked)}
-                    />
-                  </div>
-                </div>
+                </TabsContent>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-green-600" />
+                {/* EMAIL */}
+                <TabsContent value="email">
+                    <Card className="glass-card shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2">
+                                <Mail className="w-5 h-5" />
+                                <span>{email_config_title}</span>
+                            </CardTitle>
+                            <CardDescription>{email_config_desc}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <Label htmlFor="emailProvider">{email_provider_label}</Label>
+                                <Select
+                                    value={settings.emailProvider}
+                                    onValueChange={(value) => updateSetting('emailProvider', value)}
+                                >
+                                    <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="sendgrid">{email_provider_sendgrid}</SelectItem>
+                                        <SelectItem value="mailgun">{email_provider_mailgun}</SelectItem>
+                                        <SelectItem value="smtp">{email_provider_smtp}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {settings.emailProvider === 'smtp' && (
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="smtpHost">{email_smtp_host_label}</Label>
+                                        <Input
+                                            id="smtpHost"
+                                            value={settings.smtpHost}
+                                            onChange={(e) => updateSetting('smtpHost', e.target.value)}
+                                            placeholder={email_smtp_host_ph}
+                                            className="bg-white/80 dark:bg-slate-900/60"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="smtpPort">{email_smtp_port_label}</Label>
+                                        <Input
+                                            id="smtpPort"
+                                            value={settings.smtpPort}
+                                            onChange={(e) => updateSetting('smtpPort', e.target.value)}
+                                            placeholder={email_smtp_port_ph}
+                                            className="bg-white/80 dark:bg-slate-900/60"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="smtpUser">{email_smtp_user_label}</Label>
+                                        <Input
+                                            id="smtpUser"
+                                            value={settings.smtpUser}
+                                            onChange={(e) => updateSetting('smtpUser', e.target.value)}
+                                            className="bg-white/80 dark:bg-slate-900/60"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="smtpPassword">{email_smtp_pass_label}</Label>
+                                        <Input
+                                            id="smtpPassword"
+                                            type="password"
+                                            value={settings.smtpPassword}
+                                            onChange={(e) => updateSetting('smtpPassword', e.target.value)}
+                                            className="bg-white/80 dark:bg-slate-900/60"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* SECURITY */}
+                <TabsContent value="security">
+                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Shield className="w-5 h-5" />
+                                    <span>{security_auth_title}</span>
+                                </CardTitle>
+                                <CardDescription>{security_auth_desc}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label>{security_2fa_label}</Label>
+                                        <p className="text-sm text-muted-foreground">{security_2fa_desc}</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.twoFactorRequired}
+                                        onCheckedChange={(checked) => updateSetting('twoFactorRequired', checked)}
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="passwordMinLength">{security_pwd_len_label}</Label>
+                                <Input
+                                    id="passwordMinLength"
+                                    type="number"
+                                    value={settings.passwordMinLength}
+                                    onChange={(e) => updateSetting('passwordMinLength', e.target.value)}
+                                    min="6"
+                                    max="20"
+                                    className="bg-white/80 dark:bg-slate-900/60"
+                                />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="maxLoginAttempts">{security_max_attempts}</Label>
+                                <Input
+                                    id="maxLoginAttempts"
+                                    type="number"
+                                    value={settings.maxLoginAttempts}
+                                    onChange={(e) => updateSetting('maxLoginAttempts', e.target.value)}
+                                    min="3"
+                                    max="10"
+                                    className="bg-white/80 dark:bg-slate-900/60"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                        <Card className="glass-card shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Clock className="w-5 h-5" />
+                                    <span>{security_sessions_title}</span>
+                                </CardTitle>
+                                <CardDescription>{security_sessions_desc}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label htmlFor="sessionTimeout">{security_session_timeout_label}</Label>
+                                <Input
+                                    id="sessionTimeout"
+                                    type="number"
+                                    value={settings.sessionTimeout}
+                                    onChange={(e) => updateSetting('sessionTimeout', e.target.value)}
+                                    min="1"
+                                    max="168"
+                                    className="bg-white/80 dark:bg-slate-900/60"
+                                />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {security_session_timeout_desc}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                    <div>
-                      <Label>Transfer Bancar</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Plăți prin transfer bancar
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={settings.bankTransferEnabled ? "default" : "secondary"}>
-                      {settings.bankTransferEnabled ? "Activ" : "Inactiv"}
-                    </Badge>
-                    <Switch
-                      checked={settings.bankTransferEnabled}
-                      onCheckedChange={(checked) => updateSetting('bankTransferEnabled', checked)}
-                    />
-                  </div>
+                </TabsContent>
+
+                {/* NOTIFICATIONS */}
+                <TabsContent value="notifications">
+                    <Card className="glass-card shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2">
+                                <Bell className="w-5 h-5" />
+                                <span>{notif_title}</span>
+                            </CardTitle>
+                            <CardDescription>{notif_desc}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label>{notif_email_label}</Label>
+                                    <p className="text-sm text-muted-foreground">{notif_email_desc}</p>
+                                </div>
+                                <Switch
+                                    checked={settings.emailNotifications}
+                                    onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label>{notif_sms_label}</Label>
+                                    <p className="text-sm text-muted-foreground">{notif_sms_desc}</p>
+                                </div>
+                                <Switch
+                                    checked={settings.smsNotifications}
+                                    onCheckedChange={(checked) => updateSetting('smsNotifications', checked)}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label>{notif_push_label}</Label>
+                                    <p className="text-sm text-muted-foreground">{notif_push_desc}</p>
+                                </div>
+                                <Switch
+                                    checked={settings.pushNotifications}
+                                    onCheckedChange={(checked) => updateSetting('pushNotifications', checked)}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label>{notif_marketing_label}</Label>
+                                    <p className="text-sm text-muted-foreground">{notif_marketing_desc}</p>
+                                </div>
+                                <Switch
+                                    checked={settings.marketingEmails}
+                                    onCheckedChange={(checked) => updateSetting('marketingEmails', checked)}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5" />
-                  <span>Securitate Plăți</span>
-                </CardTitle>
-                <CardDescription>
-                  Configurează securitatea plăților
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Sistem Escrow</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Banii sunt ținuți în siguranță până la finalizarea proiectului
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.escrowEnabled}
-                    onCheckedChange={(checked) => updateSetting('escrowEnabled', checked)}
-                  />
-                </div>
-
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Sistemul Escrow este recomandat pentru protecția atât a clienților cât și a prestatorilor.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="email">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Mail className="w-5 h-5" />
-                <span>Configurare Email</span>
-              </CardTitle>
-              <CardDescription>
-                Configurează setările pentru trimiterea de email-uri
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label htmlFor="emailProvider">Furnizor Email</Label>
-                <Select value={settings.emailProvider} onValueChange={(value) => updateSetting('emailProvider', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sendgrid">SendGrid</SelectItem>
-                    <SelectItem value="mailgun">Mailgun</SelectItem>
-                    <SelectItem value="smtp">SMTP Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {settings.emailProvider === 'smtp' && (
-                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="smtpHost">SMTP Host</Label>
-                    <Input
-                      id="smtpHost"
-                      value={settings.smtpHost}
-                      onChange={(e) => updateSetting('smtpHost', e.target.value)}
-                      placeholder="smtp.gmail.com"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtpPort">SMTP Port</Label>
-                    <Input
-                      id="smtpPort"
-                      value={settings.smtpPort}
-                      onChange={(e) => updateSetting('smtpPort', e.target.value)}
-                      placeholder="587"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtpUser">SMTP User</Label>
-                    <Input
-                      id="smtpUser"
-                      value={settings.smtpUser}
-                      onChange={(e) => updateSetting('smtpUser', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtpPassword">SMTP Password</Label>
-                    <Input
-                      id="smtpPassword"
-                      type="password"
-                      value={settings.smtpPassword}
-                      onChange={(e) => updateSetting('smtpPassword', e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security">
-          <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5" />
-                  <span>Autentificare</span>
-                </CardTitle>
-                <CardDescription>
-                  Configurează securitatea autentificării
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Autentificare cu 2 factori obligatorie</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Toți utilizatorii trebuie să activeze 2FA
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.twoFactorRequired}
-                    onCheckedChange={(checked) => updateSetting('twoFactorRequired', checked)}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="passwordMinLength">Lungime minimă parolă</Label>
-                  <Input
-                    id="passwordMinLength"
-                    type="number"
-                    value={settings.passwordMinLength}
-                    onChange={(e) => updateSetting('passwordMinLength', e.target.value)}
-                    min="6"
-                    max="20"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="maxLoginAttempts">Încercări maxime de login</Label>
-                  <Input
-                    id="maxLoginAttempts"
-                    type="number"
-                    value={settings.maxLoginAttempts}
-                    onChange={(e) => updateSetting('maxLoginAttempts', e.target.value)}
-                    min="3"
-                    max="10"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5" />
-                  <span>Sesiuni</span>
-                </CardTitle>
-                <CardDescription>
-                  Configurează durata sesiunilor
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="sessionTimeout">Timeout sesiune (ore)</Label>
-                  <Input
-                    id="sessionTimeout"
-                    type="number"
-                    value={settings.sessionTimeout}
-                    onChange={(e) => updateSetting('sessionTimeout', e.target.value)}
-                    min="1"
-                    max="168"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Utilizatorii vor fi deconectați automat după această perioadă de inactivitate
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Bell className="w-5 h-5" />
-                <span>Setări Notificări</span>
-              </CardTitle>
-              <CardDescription>
-                Configurează tipurile de notificări activate
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Notificări Email</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Trimite notificări prin email pentru evenimente importante
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Notificări SMS</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Trimite notificări prin SMS pentru evenimente critice
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.smsNotifications}
-                  onCheckedChange={(checked) => updateSetting('smsNotifications', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Notificări Push</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Trimite notificări push în browser
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.pushNotifications}
-                  onCheckedChange={(checked) => updateSetting('pushNotifications', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Email-uri Marketing</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Permite trimiterea de email-uri promoționale
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.marketingEmails}
-                  onCheckedChange={(checked) => updateSetting('marketingEmails', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+            </div>
+        </>
+    );
 }

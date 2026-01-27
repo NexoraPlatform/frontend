@@ -1,0 +1,532 @@
+import { cn } from "@/lib/utils";
+
+type PrivacyContentProps = {
+  className?: string;
+  headingClassName?: string;
+  locale?: string;
+};
+
+function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentProps, "locale">) {
+  return (
+    <div className={cn("space-y-6 text-sm text-slate-600 dark:text-slate-300", className)}>
+      <div className="space-y-1">
+        <h2 className={cn("text-xl font-semibold text-slate-900 dark:text-white", headingClassName)}>
+          POLITICA DE CONFIDENȚIALITATE – TRUSTORA
+        </h2>
+        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Data intrării în vigoare: 17 ianuarie 2026
+        </p>
+      </div>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">1. INTRODUCERE</h3>
+        <p>
+          Confidențialitatea datelor dumneavoastră este fundamentală pentru Trustora (&quot;Noi&quot;, &quot;Platforma&quot;,
+          &quot;Compania&quot;). În calitate de infrastructură digitală de încredere (&quot;Digital Trust Infrastructure&quot;),
+          ne angajăm să protejăm informațiile personale ale Clienților și Furnizorilor (Provideri) care utilizează
+          serviciile noastre.
+        </p>
+        <p>
+          Această Politică explică modul în care colectăm, utilizăm, stocăm și protejăm datele dumneavoastră atunci când
+          accesați site-ul nostru (trustora.ro) și utilizați aplicația noastră.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">2. OPERATORUL DE DATE</h3>
+        <p>Operatorul datelor dumneavoastră cu caracter personal este:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Denumire Companie: PTECHIT S.R.L.</li>
+          <li>Sediu Social: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>
+          <li>Email contact GDPR: contact@trustora.ro</li>
+          <li>Reprezentant: Ion Arsene Claudiu</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">3. CE DATE COLECTĂM</h3>
+        <p>Colectăm datele necesare pentru a facilita contractarea B2B, plățile securizate și verificarea identității.</p>
+        <h4 className="font-semibold text-slate-900 dark:text-white">3.1. Date furnizate direct de dumneavoastră</h4>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Date de Cont: Nume, prenume, adresă de email, parolă (stocată criptat), număr de telefon.</li>
+          <li>
+            Date de Profil (Furnizori): CV-uri, portofoliu, abilități tehnice (admin/services), rata orară/pe proiect,
+            fotografie de profil.
+          </li>
+          <li>
+            Date de Identificare (KYC/KYB): Pentru verificarea identității, putem colecta copii ale actelor de identitate,
+            certificate de înregistrare a firmei (CUI/CIF), extrase bancare.
+          </li>
+          <li>
+            Notă: Procesarea documentelor sensibile de identitate se face predominant prin partenerul nostru Stripe,
+            conform standardelor bancare de securitate.
+          </li>
+          <li>
+            Date Financiare: Detalii cont bancar (IBAN), istoric tranzacții, detalii facturare. Nu stocăm numere complete
+            de card pe serverele noastre; acestea sunt procesate securizat de Stripe.
+          </li>
+          <li>
+            Comunicări: Mesajele trimise prin sistemul nostru de Chat (components/chat), detaliile despre apelurile video
+            programate (admin/calls) și fișierele încărcate în cadrul proiectelor.
+          </li>
+          <li>
+            Interviuri Video: Înregistrări sau note rezultate din procesul de verificare video a Furnizorilor, necesare
+            pentru validarea competențelor (&quot;Verified People&quot;).
+          </li>
+        </ul>
+        <h4 className="font-semibold text-slate-900 dark:text-white">3.2. Date colectate automat</h4>
+        <p>Când utilizați Platforma, codul nostru (ActivityTracker.tsx, analytics) colectează automat:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Adresa IP și date despre dispozitiv/browser.</li>
+          <li>
+            Jurnale de activitate (Log-uri): data și ora accesării, paginile vizitate, acțiunile efectuate (ex: semnarea
+            unui contract, aprobarea unui milestone).
+          </li>
+          <li>
+            Cookies și tehnologii similare (pentru menținerea sesiunii de autentificare și preferințe de limbă -
+            LocaleSwitcher).
+          </li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+          4. SCOPURILE ȘI TEMEIUL LEGAL AL PRELUCRĂRII
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full border-separate border-spacing-0 text-left text-sm">
+            <thead>
+              <tr>
+                <th className="border-b border-slate-200/60 pb-2 font-semibold text-slate-900 dark:border-slate-700 dark:text-white">
+                  Scopul Prelucrării
+                </th>
+                <th className="border-b border-slate-200/60 pb-2 font-semibold text-slate-900 dark:border-slate-700 dark:text-white">
+                  Temeiul Legal (GDPR)
+                </th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-600 dark:text-slate-300">
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Crearea și administrarea contului
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Executarea contractului (Termeni și Condiții)
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Procesarea plăților și Escrow
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Executarea contractului
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Verificarea identității (KYC/KYB)
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Obligație legală (prevenirea spălării banilor) și Interes Legitim (securitatea platformei)
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Facilitarea contractelor între Client și Provider
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Executarea contractului
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Comunicări de serviciu (notificări proiect)
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Executarea contractului
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Analiza performanței și securitate
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Interes Legitim (îmbunătățirea serviciilor)
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4">Marketing (Newsletter)</td>
+                <td className="py-2">Consimțământul dumneavoastră explicit</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">5. PARTAJAREA DATELOR CU TERȚI</h3>
+        <p>Nu vindem datele dumneavoastră. Le transmitem doar partenerilor necesari funcționării serviciului:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>
+            Procesatori de Plăți (Stripe): Pentru procesarea plăților, gestionarea conturilor &quot;Connected Accounts&quot; și
+            procedurile de verificare a identității. Politica lor de confidențialitate se aplică datelor colectate direct
+            de ei (dashboard/stripe/onboard).
+          </li>
+          <li>
+            Furnizori de Infrastructură: Servicii de hosting (ex: Vercel, AWS), baze de date (ex: Supabase/PostgreSQL) și
+            stocare fișiere.
+          </li>
+          <li>
+            Autorități: Dacă suntem obligați prin lege (ex: ANAF, autorități judiciare) să raportăm activități financiare
+            sau suspecte.
+          </li>
+          <li>Ceilalți Utilizatori: Clienții văd profilul profesional al Furnizorului.</li>
+          <li>Părțile implicate într-un Proiect văd datele de identificare necesare generării Contractului de Servicii.</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">6. TRANSFERUL INTERNAȚIONAL DE DATE</h3>
+        <p>Trustora operează predominant în Spațiul Economic European (SEE).</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Transferurile către Marea Britanie (UK) sunt acoperite de &quot;Decizia de Adecvare&quot; a Comisiei Europene.</li>
+          <li>
+            Dacă utilizăm furnizori din SUA (ex: pentru servicii de email sau analytics), ne asigurăm că aceștia participă
+            la Data Privacy Framework (DPF) sau semnăm Clauze Contractuale Standard (SCC) pentru a garanta protecția
+            datelor.
+          </li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">7. SECURITATEA DATELOR</h3>
+        <p>Implementăm măsuri tehnice și organizatorice robuste, reflectate în codul sursă al platformei:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Criptare: Datele sensibile sunt criptate în tranzit (SSL/TLS) și în repaus.</li>
+          <li>
+            Controlul Accesului: Folosim autentificare securizată (server-auth.ts, middleware.ts) și roluri de utilizator
+            stricte (Admin, Client, Provider) pentru a limita accesul la date (PermissionMatrixTab).
+          </li>
+          <li>Audit: Monitorizăm activitatea pentru a detecta tentativele de fraudă sau acces neautorizat (ActivityTracker).</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">8. PĂSTRAREA DATELOR (RETENTION)</h3>
+        <p>Vom păstra datele doar atât timp cât este necesar:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Datele Contului: Pe durata existenței contului + 30 de zile după ștergere (pentru backup).</li>
+          <li>
+            Date Financiare și Contractuale: Minim 5 sau 10 ani, conform obligațiilor legale fiscale și de arhivare din
+            România.
+          </li>
+          <li>Date Tehnice (Logs): Până la 12 luni, pentru securitate.</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">9. DREPTURILE DUMNEAVOASTRĂ</h3>
+        <p>Conform GDPR, aveți următoarele drepturi:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Dreptul de acces: Să cereți o copie a datelor pe care le deținem.</li>
+          <li>Dreptul la rectificare: Să corectați datele inexacte din profil (app/[locale]/provider/profile).</li>
+          <li>
+            Dreptul la ștergere (&quot;Dreptul de a fi uitat&quot;): Să solicitați ștergerea contului, cu excepția datelor pe
+            care suntem obligați legal să le păstrăm (ex: facturi).
+          </li>
+          <li>Dreptul la restricționare și opoziție.</li>
+          <li>Dreptul la portabilitatea datelor.</li>
+        </ul>
+        <p>Pentru exercitarea acestor drepturi, contactați-ne la contact@trustora.ro.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">10. POLITICA PRIVIND COOKIE-URILE</h3>
+        <p>Platforma folosește cookie-uri esențiale pentru:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Autentificare (să rămâneți logat).</li>
+          <li>Securitate (prevenirea atacurilor CSRF).</li>
+          <li>Preferințe (limbă, temă dark/light).</li>
+        </ul>
+        <p>
+          Puteți controla cookie-urile din setările browser-ului, dar dezactivarea celor esențiale poate afecta
+          funcționarea platformei.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">11. ACTUALIZĂRI</h3>
+        <p>
+          Putem actualiza periodic această Politică. Orice modificare majoră va fi notificată prin email sau printr-un
+          mesaj vizibil în Dashboard-ul aplicației.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentProps, "locale">) {
+  return (
+    <div className={cn("space-y-6 text-sm text-slate-600 dark:text-slate-300", className)}>
+      <div className="space-y-1">
+        <h2 className={cn("text-xl font-semibold text-slate-900 dark:text-white", headingClassName)}>
+          PRIVACY POLICY – TRUSTORA
+        </h2>
+        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Effective date: January 17, 2026
+        </p>
+      </div>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">1. INTRODUCTION</h3>
+        <p>
+          The privacy of your data is fundamental to Trustora (&quot;We&quot;, &quot;Platform&quot;, &quot;Company&quot;). As a
+          trusted digital infrastructure (&quot;Digital Trust Infrastructure&quot;), we are committed to protecting the
+          personal information of Clients and Providers who use our services.
+        </p>
+        <p>
+          This Policy explains how we collect, use, store, and protect your data when you access our website
+          (trustora.ro) and use our application.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">2. DATA CONTROLLER</h3>
+        <p>The controller of your personal data is:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Company name: PTECHIT S.R.L.</li>
+          <li>Registered office: Bdul. Mamaia Nord 14 CORP B2 Et. 2 Ap. 38 Cod 905700</li>
+          <li>GDPR contact email: contact@trustora.ro</li>
+          <li>Representative: Ion Arsene Claudiu</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">3. WHAT DATA WE COLLECT</h3>
+        <p>We collect data necessary to facilitate B2B contracting, secure payments, and identity verification.</p>
+        <h4 className="font-semibold text-slate-900 dark:text-white">3.1. Data provided directly by you</h4>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Account data: Name, surname, email address, password (stored encrypted), phone number.</li>
+          <li>
+            Profile data (Providers): CVs, portfolio, technical skills (admin/services), hourly/project rate, profile
+            photo.
+          </li>
+          <li>
+            Identification data (KYC/KYB): For identity verification, we may collect copies of identity documents,
+            company registration certificates (CUI/CIF), bank statements.
+          </li>
+          <li>
+            Note: Processing of sensitive identity documents is primarily handled by our partner Stripe, under banking
+            security standards.
+          </li>
+          <li>
+            Financial data: Bank account details (IBAN), transaction history, invoicing details. We do not store full
+            card numbers on our servers; these are processed securely by Stripe.
+          </li>
+          <li>
+            Communications: Messages sent through our Chat system (components/chat), details about scheduled video calls
+            (admin/calls), and files uploaded within projects.
+          </li>
+          <li>
+            Video interviews: Recordings or notes resulting from the providers&apos; video verification process, required
+            to validate skills (&quot;Verified People&quot;).
+          </li>
+        </ul>
+        <h4 className="font-semibold text-slate-900 dark:text-white">3.2. Data collected automatically</h4>
+        <p>When you use the Platform, our code (ActivityTracker.tsx, analytics) automatically collects:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>IP address and device/browser data.</li>
+          <li>
+            Activity logs: access date and time, pages visited, actions performed (e.g., signing a contract, approving a
+            milestone).
+          </li>
+          <li>
+            Cookies and similar technologies (to keep authentication sessions and language preferences - LocaleSwitcher).
+          </li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+          4. PURPOSES AND LEGAL BASIS FOR PROCESSING
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full border-separate border-spacing-0 text-left text-sm">
+            <thead>
+              <tr>
+                <th className="border-b border-slate-200/60 pb-2 font-semibold text-slate-900 dark:border-slate-700 dark:text-white">
+                  Processing purpose
+                </th>
+                <th className="border-b border-slate-200/60 pb-2 font-semibold text-slate-900 dark:border-slate-700 dark:text-white">
+                  Legal basis (GDPR)
+                </th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-600 dark:text-slate-300">
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Account creation and management
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Performance of contract (Terms and Conditions)
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Payment processing and escrow
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Performance of contract
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Identity verification (KYC/KYB)
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Legal obligation (anti-money laundering) and Legitimate interest (platform security)
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Facilitating contracts between Client and Provider
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Performance of contract
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Service communications (project notifications)
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Performance of contract
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
+                  Performance analysis and security
+                </td>
+                <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">
+                  Legitimate interest (service improvement)
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4">Marketing (Newsletter)</td>
+                <td className="py-2">Your explicit consent</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">5. SHARING DATA WITH THIRD PARTIES</h3>
+        <p>We do not sell your data. We only share it with partners necessary for service operation:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>
+            Payment processors (Stripe): For payment processing, management of &quot;Connected Accounts&quot;, and identity
+            verification procedures. Their privacy policy applies to data collected directly by them
+            (dashboard/stripe/onboard).
+          </li>
+          <li>
+            Infrastructure providers: Hosting services (e.g., Vercel, AWS), databases (e.g., Supabase/PostgreSQL), and
+            file storage.
+          </li>
+          <li>
+            Authorities: If required by law (e.g., ANAF, judicial authorities) to report financial or suspicious
+            activities.
+          </li>
+          <li>Other users: Clients see the provider&apos;s professional profile.</li>
+          <li>Parties involved in a Project see identification data required to generate the Service Contract.</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">6. INTERNATIONAL DATA TRANSFERS</h3>
+        <p>Trustora operates primarily within the European Economic Area (EEA).</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Transfers to the United Kingdom are covered by the European Commission&apos;s Adequacy Decision.</li>
+          <li>
+            If we use providers in the US (e.g., email or analytics services), we ensure they participate in the Data
+            Privacy Framework (DPF) or we sign Standard Contractual Clauses (SCC) to guarantee data protection.
+          </li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">7. DATA SECURITY</h3>
+        <p>We implement robust technical and organizational measures, reflected in the platform&apos;s source code:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Encryption: Sensitive data is encrypted in transit (SSL/TLS) and at rest.</li>
+          <li>
+            Access control: We use secure authentication (server-auth.ts, middleware.ts) and strict user roles (Admin,
+            Client, Provider) to limit data access (PermissionMatrixTab).
+          </li>
+          <li>Audit: We monitor activity to detect fraud attempts or unauthorized access (ActivityTracker).</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">8. DATA RETENTION</h3>
+        <p>We retain data only as long as necessary:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Account data: For the lifetime of the account + 30 days after deletion (for backups).</li>
+          <li>
+            Financial and contractual data: At least 5 or 10 years, in accordance with Romanian fiscal and archiving
+            obligations.
+          </li>
+          <li>Technical data (logs): Up to 12 months, for security.</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">9. YOUR RIGHTS</h3>
+        <p>Under GDPR, you have the following rights:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Right of access: Request a copy of the data we hold.</li>
+          <li>Right to rectification: Correct inaccurate profile data (app/[locale]/provider/profile).</li>
+          <li>
+            Right to erasure (&quot;Right to be forgotten&quot;): Request account deletion, except data we are legally required
+            to retain (e.g., invoices).
+          </li>
+          <li>Right to restriction and objection.</li>
+          <li>Right to data portability.</li>
+        </ul>
+        <p>To exercise these rights, contact us at contact@trustora.ro.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">10. COOKIE POLICY</h3>
+        <p>The platform uses essential cookies for:</p>
+        <ul className="space-y-1 pl-5 list-disc">
+          <li>Authentication (keeping you signed in).</li>
+          <li>Security (preventing CSRF attacks).</li>
+          <li>Preferences (language, dark/light theme).</li>
+        </ul>
+        <p>
+          You can control cookies in your browser settings, but disabling essential cookies may affect the platform&apos;s
+          functionality.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">11. UPDATES</h3>
+        <p>
+          We may periodically update this Policy. Any major change will be notified via email or a visible message in
+          the application Dashboard.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+export function PrivacyContent({ className, headingClassName, locale }: PrivacyContentProps) {
+  const isEnglish = locale?.toLowerCase().startsWith("en");
+
+  if (isEnglish) {
+    return <PrivacyContentEn className={className} headingClassName={headingClassName} />;
+  }
+
+  return <PrivacyContentRo className={className} headingClassName={headingClassName} />;
+}

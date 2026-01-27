@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import { Inter, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/contexts/auth-context"
@@ -10,6 +10,18 @@ import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
+import { GoogleTagManager } from '@next/third-parties/google'
+import {Partytown} from "@qwik.dev/partytown/react";
+import {TrustoraThemeStyles} from "@/components/trustora/theme-styles";
+import {Header} from "@/components/header";
+import {TrustoraHeroSection} from "@/components/trustora/hero-section";
+import {TrustoraPillarsSection} from "@/components/trustora/pillars-section";
+import {TrustoraMessagingSection} from "@/components/trustora/messaging-section";
+import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-language-section";
+import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
+import {Footer} from "@/components/footer";
+import OneSignalInit from "@/components/OneSignalInit";
+import {NextIntlClientProvider} from 'next-intl';
 
 const inter = Inter({
     subsets: ["latin"],
@@ -19,6 +31,14 @@ const inter = Inter({
     adjustFontFallback: true,
     fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Arial", "sans-serif"],
     weight: ["400", "500", "600", "700", "900"],
+})
+
+const jetbrainsMono = JetBrains_Mono({
+    subsets: ["latin"],
+    display: "swap",
+    preload: true,
+    variable: "--font-jetbrains-mono",
+    weight: ["500"],
 })
 
 // Separate viewport export for Next.js 15
@@ -41,6 +61,8 @@ const criticalCSS = `
     --font-inter: ${inter.style.fontFamily}, system-ui, sans-serif;
     --color-background: light-dark(#ffffff, #0f172a);
     --color-foreground: light-dark(#0f172a, #f8fafc);
+    --font-jetbrains-mono: ${jetbrainsMono.style.fontFamily}, ui-monospace, SFMono-Regular, SFMono-Regular, Menlo,
+        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 html {
@@ -123,11 +145,11 @@ body {
 `
 
 export const metadata: Metadata = generateSEO({
-    title: "Nexora - Marketplace de Servicii IT Premium",
+    title: "Trustora - Marketplace de Servicii IT Premium",
     description:
         "Conectează-te cu cei mai buni experți IT din România. Dezvoltare web, aplicații mobile, design UI/UX, marketing digital. Plăți securizate, experți verificați.",
     keywords: [
-        "nexora",
+        "Trustora",
         "servicii IT România",
         "dezvoltare web",
         "aplicații mobile",
@@ -149,26 +171,60 @@ export default function RootLayout({
                                    }: {
     children: React.ReactNode
 }) {
-    const organizationStructuredData = generateStructuredData({
-        type: "Organization",
-    })
 
-    const websiteStructuredData = generateStructuredData({
-        type: "WebSite",
-    })
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Trustora',
+        url: process.env.NEXT_PUBLIC_APP_URL,
+        potentialAction: {
+            '@type': 'SearchAction',
+            target: {
+                '@type': 'EntryPoint',
+                urlTemplate: `${process.env.NEXT_PUBLIC_APP_URL}/search?q={search_term_string}`
+            },
+            'query-input': 'required name=search_term_string'
+        },
+        publisher: {
+            '@type': 'Organization',
+            name: 'Trustora',
+            logo: {
+                '@type': 'ImageObject',
+                url: `${process.env.NEXT_PUBLIC_APP_URL}/trustora-logo2.svg`
+            }
+        }
+    };
+
+    const structuredData = generateStructuredData({
+        type: 'Organization',
+        name: 'Trustora',
+        url: process.env.NEXT_PUBLIC_SITE_URL || 'https://trustora.ro',
+        logo: `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`,
+        sameAs: [
+            "https://www.facebook.com/trustora",
+            "https://www.linkedin.com/company/trustora-platform"
+        ],
+        contactPoint: {
+            "@type": "ContactPoint",
+            "telephone": "+40700000000",
+            "contactType": "customer service",
+            "areaServed": "RO"
+        }
+    });
 
     return (
-        <html lang="ro" suppressHydrationWarning className={inter.variable}>
+        <html lang="ro" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
+        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID as string} />
         <head>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
             <link rel="preconnect" href="https://images.pexels.com" crossOrigin="" />
-            <link rel="dns-prefetch" href="//api.nexora.ro" />
+            <link rel="dns-prefetch" href="//api.Trustora.ro" />
             <link rel="dns-prefetch" href="//vercel.app" />
 
-            <link rel="icon" href="/logo.webp" sizes="32x32" type="image/webp" />
-            <link rel="apple-touch-icon" href="/logo.webp" sizes="180x180" />
-            <link rel="mask-icon" href="/logo.webp" color="#3b82f6" />
+            <link rel="icon" href="/trustora-logo2.webp" sizes="32x32" type="image/webp" />
+            <link rel="apple-touch-icon" href="/trustora-logo2.webp" sizes="180x180" />
+            <link rel="mask-icon" href="/trustora-logo2.webp" color="#3b82f6" />
 
             {/* PWA manifest */}
             <link rel="manifest" href="/manifest.json" />
@@ -180,8 +236,8 @@ export default function RootLayout({
 
             <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
 
-            <link rel="preload" href="/logo-60.webp" as="image" type="image/webp" fetchPriority="high" />
-            <link rel="preload" href="/logo-120.webp" as="image" type="image/webp" fetchPriority="high" />
+            {/*<link rel="preload" href="/logo-60.webp" as="image" type="image/webp" fetchPriority="high" />*/}
+            {/*<link rel="preload" href="/logo-120.webp" as="image" type="image/webp" fetchPriority="high" />*/}
 
             <meta httpEquiv="x-dns-prefetch-control" content="on" />
             <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -220,11 +276,12 @@ export default function RootLayout({
             type="application/ld+json"
             strategy="afterInteractive"
             dangerouslySetInnerHTML={{
-                __html: JSON.stringify([organizationStructuredData, websiteStructuredData]),
+                __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
-
+        <NextIntlClientProvider>
         <AuthProvider>
+            <OneSignalInit />
             <NotificationProvider>
                 <ChatProvider>
                     <ThemeProvider
@@ -232,7 +289,7 @@ export default function RootLayout({
                         defaultTheme="system"
                         enableSystem
                         disableTransitionOnChange
-                        storageKey="nexora-theme"
+                        storageKey="Trustora-theme"
                     >
                         <ActivityTracker />
 
@@ -244,6 +301,7 @@ export default function RootLayout({
                 </ChatProvider>
             </NotificationProvider>
         </AuthProvider>
+        </NextIntlClientProvider>
         </body>
         </html>
     )

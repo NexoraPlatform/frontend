@@ -83,6 +83,10 @@ export function useTestExamDetails() {
   return useApi(() => apiClient.getTestExamsDetails(), []);
 }
 
+export function useEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
+  return useApi(() => apiClient.getEarlyAccessGrouped(params), [JSON.stringify(params)]);
+}
+
 export function useAdminStats() {
   return useApi(() => apiClient.getAdminStats(), []);
 }
@@ -173,4 +177,3 @@ export function useProject(id: string) {
 export function useTechnologies() {
   return useApi(() => apiClient.getTechnologies(), []);
 }
-

@@ -1,37 +1,36 @@
 "use client";
 
-import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { apiClient } from '@/lib/api';
-import { AccessPermission } from "@/lib/access";
-import {usePathname} from "next/navigation";
-
-export type AccessRole = {
-  id?: number | string;
-  slug: string;
-  permissions?: AccessPermission[];
-};
+import { AccessRole } from "@/lib/access";
 
 interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  location: string;
-  language: string;
-  bio: string;
-  role: string;
+  location?: string;
+  language?: string;
+  bio?: string;
+  role?: string;
   avatar?: string;
-  testVerified: boolean;
-  callVerified: boolean;
+  testVerified?: boolean;
+  callVerified?: boolean;
   stripe_account_id?: string;
   roles?: AccessRole[];
   permissions?: string[];
   is_superuser?: boolean;
+  github_token?: string;
+  github_nickname?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  refreshUser: () => Promise<void>;
   loading: boolean;
+  userLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
@@ -40,102 +39,129 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
+  const { data: session, status, update } = useSession();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
-  const pathname = usePathname(); // adaugă
-
-  const fetchProfile = useCallback(async () => {
-    try {
-      const profile = await apiClient.getProfile();
-      setUser(profile);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loading = status === "loading";
+  const userLoading = loading || (status === "authenticated" && !user);
 
   useEffect(() => {
-    const cookieToken = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth_token='))
-        ?.split('=')[1];
-
-    const localToken = localStorage.getItem('auth_token');
-
-    const token = localToken || cookieToken;
-
-    // Sync from cookie to localStorage if missing
-    if (cookieToken && !localToken) {
-      localStorage.setItem('auth_token', cookieToken);
-    }
-
-    if (token) {
-      apiClient.setToken(token);
-
-      // Always refresh the cookie to ensure it's valid
-      document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-      fetchProfile();
+    if (session?.accessToken) {
+      apiClient.setToken(session.accessToken);
     } else {
-      setLoading(false);
+      apiClient.removeToken();
     }
-  }, [fetchProfile]);
+
+    if (session?.user) {
+      // @ts-ignore
+      setUser(session.user);
+    } else {
+      setUser(null);
+    }
+  }, [session]);
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await apiClient.login({ email, password });
-      setUser(response.user);
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
 
-      apiClient.setToken(response.access_token);
-      localStorage.setItem('auth_token', response.access_token);
-      document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
-    } catch (error: any) {
-      throw new Error(error.message || 'Login failed');
+    if (result?.error) {
+      throw new Error(result.error);
     }
   };
 
-  const register = async (userData: any) => {
-    try {
-      const response = await apiClient.register(userData);
-      setUser(response.user);
+  const refreshUser = useCallback(async () => {
+    const freshUser = await apiClient.me();
+    setUser(freshUser);
+  }, []);
 
-      apiClient.setToken(response.access_token);
-      localStorage.setItem('auth_token', response.access_token);
-      document.cookie = `auth_token=${response.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const sessionUserId = session?.user?.id;
+    if (!sessionUserId) return;
+    refreshUser().catch((error) => {
+      console.error("Failed to refresh user:", error);
+    });
+  }, [status, session?.user?.id, pathname, refreshUser]);
+
+  const register = async (userData: any) => {
+    // NextAuth doesn't natively handle registration, we usually call API then login
+    try {
+      await apiClient.register(userData);
+      // auto login after register
+      await login(userData.email, userData.password);
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed');
     }
   };
 
-  const logout = () => {
-    apiClient.removeToken();
-    localStorage.removeItem('auth_token');
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-    setUser(null);
+  const logout = async () => {
+    try {
+      // 1. Ștergem token-ul de autentificare pentru API (Laravel)
+      // Verifică în 'lib/api.ts' sau unde salvezi tokenul dacă cheia e 'auth_token' sau alta
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data'); // Dacă salvezi și userul aici
+
+        // 2. (Opțional) Ștergere cookie-uri custom
+        // Dacă ai setat manual cookie-uri folosind js-cookie sau document.cookie
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c
+              .replace(/^ +/, "")
+              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+      }
+
+      // 3. Resetăm starea React
+      setUser(null);
+
+      // 4. Deconectare NextAuth
+      // Aceasta șterge automat cookie-ul 'next-auth.session-token'
+      await signOut({ redirect: true, callbackUrl: '/auth/signin' });
+
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Fallback în caz de eroare
+      window.location.href = '/auth/signin';
+    }
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
+    // Optimistic update
     if (user) {
       setUser({ ...user, ...userData });
+      // In NextAuth we might need to trigger session update if important fields changed
+      await update(userData);
     }
   };
 
   const value: AuthContextType = {
     user,
     loading,
+    userLoading,
     login,
+    refreshUser,
     register,
     logout,
     updateUser,
   };
 
   return (
-      <AuthContext.Provider value={value}>
-        {children}
-      </AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </SessionProvider>
   );
 }
 
