@@ -61,13 +61,13 @@ type Technology = {
 const ITEMS_PER_PAGE = 12;
 
 function getLocalizedText(value: LocalizedText | null | undefined, locale: Locale) {
-    if (!value) {
-        return '';
-    }
-    if (typeof value === 'string') {
-        return value;
-    }
-    return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
+  if (!value) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
 }
 
 function extractTechnologiesFromServices(services: Service[], locale: Locale): Technology[] {
@@ -176,7 +176,7 @@ function getServicesFromResponse(
 }
 
 export default function ServicesPage() {
-    const locale = useLocale() as Locale;
+  const locale = useLocale() as Locale;
   const t = useTranslations();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -194,23 +194,6 @@ export default function ServicesPage() {
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
-  const mainAriaLabel = t('services.page.aria_label');
-  const pageTitle = t('services.page.title');
-  const pageSubtitle = t('services.page.subtitle');
-  const noServicesText = t('services.results.no_services');
-  const filterTitle = t('services.filters.title');
-  const serviceTypeLabel = t('services.filters.service_type');
-  const technologiesLabel = t('services.filters.technologies');
-  const allLabel = t('services.filters.all');
-  const showMoreLabel = t('services.filters.show_more');
-  const showLessLabel = t('services.filters.show_less');
-  const otherCategoryLabel = t('services.filters.other');
-  const recommendedLabel = t('services.results.recommended');
-  const standardLabel = t('services.results.standard');
-  const moreLabelTemplate = t('services.results.more_label');
-  const providersAvailableTemplate = t('services.results.providers_available');
-  const providersMoreLabelTemplate = t('services.results.providers_more_label');
-  const noProvidersLabel = t('services.results.no_providers');
   const wishlistedLabel = t('services.actions.wishlisted');
   const addLabel = t('services.actions.add');
   const shareLabel = t('services.actions.share');
@@ -353,8 +336,8 @@ export default function ServicesPage() {
       selectedServiceType === 'All'
         ? await fetchAllServices()
         : getServicesFromResponse(
-            await apiClient.getServicesByCategoryId(selectedServiceType)
-          );
+          await apiClient.getServicesByCategoryId(selectedServiceType)
+        );
 
     const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
     setTechnologies(extractedTechnologies);
@@ -376,8 +359,8 @@ export default function ServicesPage() {
   };
 
   const serviceTypeOptions = useMemo(
-    () => [{ id: 'All', name: allLabel }, ...categories],
-    [allLabel, categories]
+    () => [{ id: 'All', name: t('services.filters.all') }, ...categories],
+    [t, categories]
   );
 
   if (isInitializing) {
@@ -398,14 +381,14 @@ export default function ServicesPage() {
       <TrustoraThemeStyles />
       <Header />
 
-      <main className="pt-8 pb-16 px-6 bg-slate-50 dark:bg-[#070C14] min-h-screen" role="main" aria-label={mainAriaLabel}>
+      <main className="pt-8 pb-16 px-6 bg-slate-50 dark:bg-[#070C14] min-h-screen" role="main" aria-label={t('services.page.aria_label')}>
         <div className="max-w-7xl mx-auto mb-12">
           <div className="mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
-              {pageTitle}
+              {t('services.page.title')}
             </h1>
             <p className="text-lg text-slate-600 dark:text-[#A3ADC2]">
-              {pageSubtitle}
+              {t('services.page.subtitle')}
             </p>
           </div>
         </div>
@@ -421,13 +404,13 @@ export default function ServicesPage() {
               onTechnologiesChange={setSelectedTechnologies}
               onTechnologiesUpdate={handleTechnologiesUpdate}
               labels={{
-                filterTitle,
-                serviceTypeLabel,
-                technologiesLabel,
-                allLabel,
-                showMoreLabel,
-                showLessLabel,
-                otherCategoryLabel,
+                filterTitle: t('services.filters.title'),
+                serviceTypeLabel: t('services.filters.service_type'),
+                technologiesLabel: t('services.filters.technologies'),
+                allLabel: t('services.filters.all'),
+                showMoreLabel: t('services.filters.show_more'),
+                showLessLabel: t('services.filters.show_less'),
+                otherCategoryLabel: t('services.filters.other'),
               }}
               locale={locale}
             />
@@ -442,12 +425,6 @@ export default function ServicesPage() {
                     onWishlistToggle={handleWishlistToggle}
                     isWishlisted={wishlist.has(service.id)}
                     labels={{
-                      recommendedLabel,
-                      standardLabel,
-                      moreLabelTemplate,
-                      providersAvailableTemplate,
-                      providersMoreLabelTemplate,
-                      noProvidersLabel,
                       wishlistedLabel,
                       addLabel,
                       shareLabel,
@@ -465,7 +442,7 @@ export default function ServicesPage() {
               {!isLoading && services.length === 0 && (
                 <div className="text-center py-16">
                   <p className="text-lg text-slate-500 dark:text-[#A3ADC2]">
-                    {noServicesText}
+                    {t('services.results.no_services')}
                   </p>
                 </div>
               )}
@@ -660,18 +637,13 @@ function ServiceCard({
   onWishlistToggle: (serviceId: number) => void;
   isWishlisted: boolean;
   labels: {
-    recommendedLabel: string;
-    standardLabel: string;
-    moreLabelTemplate: string;
-    providersAvailableTemplate: string;
-    providersMoreLabelTemplate: string;
-    noProvidersLabel: string;
     wishlistedLabel: string;
     addLabel: string;
     shareLabel: string;
   };
 }) {
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const t = useTranslations('services.results');
   const providerCount = service.providers?.length || 0;
   const technologies = [
     ...(service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? []),
@@ -679,10 +651,17 @@ function ServiceCard({
   ].filter(Boolean);
   const uniqueTechnologies = Array.from(new Set(technologies));
   const remainingProviders = Math.max(0, providerCount - 3);
-  const serviceType = service.isFeatured ? labels.recommendedLabel : labels.standardLabel;
-  const moreLabel = labels.moreLabelTemplate.replace('{count}', String(uniqueTechnologies.length - 3));
-  const providersAvailableParts = labels.providersAvailableTemplate.split('{count}');
-  const providersMoreLabel = labels.providersMoreLabelTemplate.replace('{count}', String(remainingProviders));
+  const serviceType = service.isFeatured ? t('recommended') : t('standard');
+  const moreLabel = t('more_label', { count: uniqueTechnologies.length - 3 });
+
+  // For the bold count, we use the raw template and split as before to avoid Intl errors
+  // while maintaining the exact styling.
+  const providersAvailableTemplate = t.raw('providers_available');
+  const providersAvailableParts = typeof providersAvailableTemplate === 'string'
+    ? providersAvailableTemplate.split('{count}')
+    : ['', ''];
+
+  const providersMoreLabel = t('providers_more_label', { count: remainingProviders });
 
   const handleWishlist = async () => {
     setIsWishlistLoading(true);
@@ -760,7 +739,7 @@ function ServiceCard({
                 )}
               </>
             ) : (
-              <span className="text-sm text-slate-500 dark:text-[#A3ADC2]">{labels.noProvidersLabel}</span>
+              <span className="text-sm text-slate-500 dark:text-[#A3ADC2]">{t('no_providers')}</span>
             )}
           </div>
         </div>
@@ -770,11 +749,10 @@ function ServiceCard({
             type="button"
             onClick={handleWishlist}
             disabled={isWishlistLoading}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all duration-200 ${
-              isWishlisted
-                ? 'bg-red-50 text-error-red border border-error-red'
-                : 'bg-slate-50 dark:bg-[#111B2D] text-slate-600 dark:text-[#A3ADC2] border border-slate-200 dark:border-[#1E2A3D] hover:border-error-red hover:bg-red-50'
-            } ${isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all duration-200 ${isWishlisted
+              ? 'bg-red-50 text-error-red border border-error-red'
+              : 'bg-slate-50 dark:bg-[#111B2D] text-slate-600 dark:text-[#A3ADC2] border border-slate-200 dark:border-[#1E2A3D] hover:border-error-red hover:bg-red-50'
+              } ${isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
             <span className="text-sm font-medium">

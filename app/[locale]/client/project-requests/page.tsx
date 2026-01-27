@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
@@ -61,6 +61,17 @@ export default function ClientProjectRequestsPage() {
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
 
+    const loadProjects = useCallback(async () => {
+        try {
+            const response = await apiClient.getClientProjectRequests();
+            setProjects(response.projects || []);
+        } catch (error) {
+            console.error('Failed to load projects:', error);
+        } finally {
+            setLoadingProjects(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (!loading && !user) {
             // router.push('/auth/signin');
@@ -72,7 +83,7 @@ export default function ClientProjectRequestsPage() {
         if (user) {
             loadProjects();
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, loadProjects]);
 
     useEffect(() => {
         if (checkoutDialogOpen && selectedProject?.id) {
@@ -98,7 +109,7 @@ export default function ClientProjectRequestsPage() {
             cardElementRef.current?.unmount?.();
             cardElementRef.current = null;
         };
-    }, [checkoutDialogOpen, selectedProject?.id]);
+    }, [checkoutDialogOpen, selectedProject?.id, t]);
 
     const handlePayment = async (project_id: any) => {
         setErrorMessage('');
@@ -137,16 +148,6 @@ export default function ClientProjectRequestsPage() {
 
     };
 
-    const loadProjects = async () => {
-        try {
-            const response = await apiClient.getClientProjectRequests();
-            setProjects(response.projects || []);
-        } catch (error) {
-            console.error('Failed to load projects:', error);
-        } finally {
-            setLoadingProjects(false);
-        }
-    };
 
     const getClientSecret = async (project_id: string) => {
         // router.push(response.url);
@@ -172,7 +173,7 @@ export default function ClientProjectRequestsPage() {
         await getClientSecret(project.id);
     };
 
-    const handleBudgetResponse = async (
+    const handleBudgetResponse = useCallback(async (
         projectId: string,
         providerId: string,
         response: 'ACCEPTED' | 'REJECTED'
@@ -191,7 +192,7 @@ export default function ClientProjectRequestsPage() {
         } finally {
             setResponding(null);
         }
-    };
+    }, [loadProjects, t]);
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -365,130 +366,130 @@ export default function ClientProjectRequestsPage() {
                                                             ?.find((m: any) => m.providerId === provider.id)
                                                             ?.milestones || [];
                                                     return (
-                                                    <div
-                                                        key={provider.id}
-                                                        className="border border-slate-100 rounded-xl p-4 bg-white/70 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
-                                                    >
-                                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                                            <div className="flex items-start gap-3">
-                                                                <Avatar className="w-11 h-11">
-                                                                    <AvatarImage src={provider.avatar} />
-                                                                    <AvatarFallback>
-                                                                        {provider.firstName?.[0]}{provider.lastName?.[0]}
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                                <div>
-                                                                    <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                                        {provider.firstName} {provider.lastName}
-                                                                    </div>
-                                                                    <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
-                                                                        <div className="flex items-center gap-1">
-                                                                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                                                            <span>{provider.rating || 0}</span>
+                                                        <div
+                                                            key={provider.id}
+                                                            className="border border-slate-100 rounded-xl p-4 bg-white/70 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                                        >
+                                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                                <div className="flex items-start gap-3">
+                                                                    <Avatar className="w-11 h-11">
+                                                                        <AvatarImage src={provider.avatar} />
+                                                                        <AvatarFallback>
+                                                                            {provider.firstName?.[0]}{provider.lastName?.[0]}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div>
+                                                                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                            {provider.firstName} {provider.lastName}
                                                                         </div>
-                                                                        <div className="flex items-center gap-1">
-                                                                            <MapPin className="w-3 h-3 text-[#1BC47D]" />
-                                                                            <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
+                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                                                                <span>{provider.rating || 0}</span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1">
+                                                                                <MapPin className="w-3 h-3 text-[#1BC47D]" />
+                                                                                <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
+                                                                            {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
+                                                                                <Badge
+                                                                                    key={index}
+                                                                                    variant="outline"
+                                                                                    className="text-xs border-slate-200 dark:border-[#1E2A3D]"
+                                                                                >
+                                                                                    <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
+                                                                                    {service.name}
+                                                                                </Badge>
+                                                                            ))}
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
-                                                                        {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
-                                                                            <Badge
-                                                                                key={index}
-                                                                                variant="outline"
-                                                                                className="text-xs border-slate-200 dark:border-[#1E2A3D]"
-                                                                            >
-                                                                                <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
-                                                                                {service.name}
-                                                                            </Badge>
-                                                                        ))}
+                                                                </div>
+                                                                <div className="text-left lg:text-right">
+                                                                    {getStatusBadge(provider.status)}
+                                                                    <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
+                                                                        {t('client.project_requests.providers.allocated', { amount: provider.allocatedBudget?.toLocaleString() })}
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-left lg:text-right">
-                                                                {getStatusBadge(provider.status)}
-                                                                <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
-                                                                    {t('client.project_requests.providers.allocated', { amount: provider.allocatedBudget?.toLocaleString() })}
+
+                                                            {provider.status === 'NEW_PROPOSE' && (
+                                                                <Alert className="mt-4 border-emerald-200 bg-emerald-50 dark:border-[#1E2A3D] dark:bg-[rgba(27,196,125,0.1)]">
+                                                                    <DollarSign className="h-4 w-4 text-[#1BC47D]" />
+                                                                    <AlertDescription>
+                                                                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                                                            <div>
+                                                                                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                    {t('client.project_requests.budget.new_proposal')}
+                                                                                </div>
+                                                                                <div className="text-lg font-bold text-[#1BC47D]">
+                                                                                    {provider.proposedBudget?.toLocaleString()} RON
+                                                                                </div>
+                                                                                <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                                                    {t('client.project_requests.budget.original', { amount: provider.allocatedBudget?.toLocaleString() })}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
+                                                                                    disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
+                                                                                    className="btn-primary"
+                                                                                >
+                                                                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                                                                    {t('client.project_requests.budget.approve')}
+                                                                                </Button>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    onClick={() => handleBudgetResponse(project.id, provider.id, 'REJECTED')}
+                                                                                    disabled={responding === `${project.id}-${provider.id}`}
+                                                                                    className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                                                                                >
+                                                                                    <XCircle className="w-4 h-4 mr-1" />
+                                                                                    {t('client.project_requests.budget.reject')}
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </AlertDescription>
+                                                                </Alert>
+                                                            )}
+
+                                                            {provider.respondedAt && (
+                                                                <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
+                                                                    {t('client.project_requests.providers.response_received')} {formatDistanceToNow(new Date(provider.respondedAt), {
+                                                                        addSuffix: true,
+                                                                        locale: dateLocale
+                                                                    })}
                                                                 </div>
-                                                            </div>
-                                                        </div>
+                                                            )}
 
-                                                        {provider.status === 'NEW_PROPOSE' && (
-                                                            <Alert className="mt-4 border-emerald-200 bg-emerald-50 dark:border-[#1E2A3D] dark:bg-[rgba(27,196,125,0.1)]">
-                                                                <DollarSign className="h-4 w-4 text-[#1BC47D]" />
-                                                                <AlertDescription>
-                                                                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                                                        <div>
-                                                                            <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                                                {t('client.project_requests.budget.new_proposal')}
-                                                                            </div>
-                                                                            <div className="text-lg font-bold text-[#1BC47D]">
-                                                                                {provider.proposedBudget?.toLocaleString()} RON
-                                                                            </div>
-                                                                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
-                                                                                {t('client.project_requests.budget.original', { amount: provider.allocatedBudget?.toLocaleString() })}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex flex-wrap gap-2">
-                                                                            <Button
-                                                                                size="sm"
-                                                                                onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
-                                                                                disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
-                                                                                className="btn-primary"
-                                                                            >
-                                                                                <CheckCircle className="w-4 h-4 mr-1" />
-                                                                                {t('client.project_requests.budget.approve')}
-                                                                            </Button>
-                                                                            <Button
-                                                                                size="sm"
-                                                                                variant="outline"
-                                                                                onClick={() => handleBudgetResponse(project.id, provider.id, 'REJECTED')}
-                                                                                disabled={responding === `${project.id}-${provider.id}`}
-                                                                                className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                                            >
-                                                                                <XCircle className="w-4 h-4 mr-1" />
-                                                                                {t('client.project_requests.budget.reject')}
-                                                                            </Button>
-                                                                        </div>
-                                                                    </div>
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        )}
-
-                                                        {provider.respondedAt && (
-                                                            <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
-                                                                {t('client.project_requests.providers.response_received')} {formatDistanceToNow(new Date(provider.respondedAt), {
-                                                                    addSuffix: true,
-                                                                    locale: dateLocale
-                                                                })}
-                                                            </div>
-                                                        )}
-
-                                                        <div className="space-y-2 mt-2">
-                                                            {providerMilestones.map((milestone: any, index: number) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className={`flex items-center justify-between rounded-md border p-2 text-sm 
+                                                            <div className="space-y-2 mt-2">
+                                                                {providerMilestones.map((milestone: any, index: number) => (
+                                                                    <div
+                                                                        key={index}
+                                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm 
                                                                     ${milestone.status === 'PENDING' && "bg-yellow-300"}
                                                                     ${milestone.status === 'FINISHED' && "bg-green-300"}
                                                                     ${milestone.status === 'PAID' && "bg-green-500"}
                                                                     ${milestone.status === 'REJECTED' && "bg-red-700"}
                                                                      `}
-                                                                >
-                                                                    <div className="flex items-center justify-between gap-6">
-                                                                        <span>{milestone.title}</span>
-                                                                        <span>/</span>
-                                                                        <span className="font-medium">
-                                                        {t('client.project_requests.providers.milestone_budget', { amount: milestone.amount.toLocaleString() })}
-                                                    </span>
-                                                                    </div>
+                                                                    >
+                                                                        <div className="flex items-center justify-between gap-6">
+                                                                            <span>{milestone.title}</span>
+                                                                            <span>/</span>
+                                                                            <span className="font-medium">
+                                                                                {t('client.project_requests.providers.milestone_budget', { amount: milestone.amount.toLocaleString() })}
+                                                                            </span>
+                                                                        </div>
 
-                                                                    <span>{milestone.status}</span>
-                                                                </div>
-                                                            ))}
+                                                                        <span>{milestone.status}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                );
+                                                    );
                                                 })}
                                             </div>
                                         </div>

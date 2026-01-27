@@ -51,11 +51,11 @@ function extractRoles(data: any): { items: RoleRow[]; total: number | null } {
 }
 
 function SortableRow({
-                         role,
-                         onEdit,
-                         onDelete,
-                         locale,
-                     }: {
+    role,
+    onEdit,
+    onDelete,
+    locale,
+}: {
     role: RoleRow;
     onEdit: (id: number) => void;
     onDelete: (id: number) => void;
@@ -121,17 +121,7 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
     const [loading, setLoading] = useState(false);
     const [savingOrder, setSavingOrder] = useState(false);
 
-    const searchPlaceholder = t('admin.roles.search_placeholder');
-    const searchButton = t('admin.roles.search_button');
-    const savingOrderLabel = t('admin.roles.saving_order');
-    const loadingRoles = t('admin.roles.loading_roles');
-    const noRolesShort = t('admin.roles.no_roles_short');
-    const listTitle = t('admin.roles.list_title');
-    const listDescriptionOne = t('admin.roles.list_description_one');
-    const listDescriptionOther = t('admin.roles.list_description_other');
-    const pageLabel = t('admin.roles.pagination.page');
-    const ofLabel = t('admin.roles.pagination.of');
-    const totalLabelTemplate = t('admin.roles.pagination.total');
+    const totalLabel = 'admin.roles.pagination.total';
     const previousLabel = t('admin.roles.pagination.previous');
     const nextLabel = t('admin.roles.pagination.next');
     const perPageLabel = t('admin.roles.pagination.per_page');
@@ -225,8 +215,8 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
     const roleCount = total ?? roles.length;
     const listDescription =
         roleCount === 1
-            ? listDescriptionOne
-            : listDescriptionOther.replace('{count}', String(roleCount));
+            ? t('admin.roles.list_description_one')
+            : t('admin.roles.list_description_other', { count: roleCount });
 
     return (
         <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
@@ -234,15 +224,15 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <CardTitle className="flex items-center space-x-2">
-                            <span>{listTitle}</span>
+                            <span>{t('admin.roles.list_title')}</span>
                         </CardTitle>
                         <CardDescription>{listDescription}</CardDescription>
                     </div>
                     {savingOrder && (
                         <span className="flex items-center text-xs text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {savingOrderLabel}
-            </span>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t('admin.roles.saving_order')}
+                        </span>
                     )}
                 </div>
             </CardHeader>
@@ -253,7 +243,7 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
                         <Input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder={searchPlaceholder}
+                            placeholder={t('admin.roles.search_placeholder')}
                             className="pl-9"
                         />
                     </div>
@@ -263,7 +253,7 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
                             void load();
                         }}
                     >
-                        {searchButton}
+                        {t('admin.roles.search_button')}
                     </Button>
                 </div>
 
@@ -271,11 +261,11 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
                     {loading ? (
                         <div className="flex items-center justify-center py-16 text-muted-foreground">
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            {loadingRoles}
+                            {t('admin.roles.loading_roles')}
                         </div>
                     ) : roles.length === 0 ? (
                         <div className="py-10 text-center text-sm text-muted-foreground">
-                            {noRolesShort}
+                            {t('admin.roles.no_roles_short')}
                         </div>
                     ) : (
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -299,8 +289,8 @@ export default function RolesListClient({ locale }: { locale: Locale }) {
                 {/* Pagination */}
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                     <div className="text-sm text-muted-foreground">
-                        {pageLabel} {page} {total ? `${ofLabel} ${Math.ceil(total / pageSize)}` : ''}{' '}
-                        {total != null ? `(${totalLabelTemplate.replace('{count}', String(total))})` : ''}
+                        {t('admin.roles.pagination.page')} {page} {total ? `${t('admin.roles.pagination.of')} ${Math.ceil(total / pageSize)}` : ''}{' '}
+                        {total != null ? `(${t(totalLabel, { count: total })})` : ''}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">

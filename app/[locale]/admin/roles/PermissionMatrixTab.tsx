@@ -265,9 +265,6 @@ export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
     const loadingLabel = t('admin.roles.permission_matrix.loading');
     const noPermissions = t('admin.roles.permission_matrix.no_permissions');
     const savingShort = t('admin.roles.permission_matrix.saving_short');
-    const selectAllForTemplate = t('admin.roles.permission_matrix.select_all_for');
-    const permissionForRoleTemplate = t('admin.roles.permission_matrix.permission_for_role');
-    const selectGroupForRoleTemplate = t('admin.roles.permission_matrix.select_group_for_role');
 
     if (loading) {
         return <div className="p-6 text-sm text-muted-foreground">{loadingLabel}</div>;
@@ -295,144 +292,146 @@ export default function PermissionMatrixTab({ locale }: { locale: Locale }) {
                 <div className="h-[500px] overflow-auto rounded-2xl border border-border/60 bg-background/70 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/60">
                     <table className="min-w-[900px] w-full border-separate border-spacing-0 text-sm">
                         <thead className="bg-muted/70 text-foreground dark:bg-slate-900/60">
-                        <tr>
-                            <th className="text-left p-3 border-r border-border/60 min-w-[360px] bg-muted/70 sticky top-0 z-20 dark:border-slate-800/70 dark:bg-slate-900/60">
-                                {permissionsLabel}
-                            </th>
-                            {roles.map((role) => {
-                                const col = getColState(role.slug);
-                                const checkboxState = col.all ? true : col.none ? false : 'indeterminate';
-                                const saving = savingRoles.has(role.slug);
-                                return (
-                                    <th
-                                        key={role.slug}
-                                        className="text-center p-3 border-r border-border/60 min-w-[160px] sticky top-0 z-20 bg-muted/70 dark:border-slate-800/70 dark:bg-slate-900/60"
-                                    >
-                                        <div className="flex flex-col items-center gap-1">
-                                            <div className="font-medium">{role.name}</div>
-                                            <Checkbox
-                                                checked={checkboxState as any}
-                                                onCheckedChange={(v) => toggleRoleColumn(role.slug, Boolean(v))}
-                                                aria-label={selectAllForTemplate.replace('{role}', role.name)}
-                                            />
-                                            <span className="text-[10px] text-muted-foreground h-3">
-                        {saving ? savingShort : ''}
-                      </span>
-                                        </div>
-                                    </th>
-                                );
-                            })}
-                        </tr>
+                            <tr>
+                                <th className="text-left p-3 border-r border-border/60 min-w-[360px] bg-muted/70 sticky top-0 z-20 dark:border-slate-800/70 dark:bg-slate-900/60">
+                                    {permissionsLabel}
+                                </th>
+                                {roles.map((role) => {
+                                    const col = getColState(role.slug);
+                                    const checkboxState = col.all ? true : col.none ? false : 'indeterminate';
+                                    const saving = savingRoles.has(role.slug);
+                                    return (
+                                        <th
+                                            key={role.slug}
+                                            className="text-center p-3 border-r border-border/60 min-w-[160px] sticky top-0 z-20 bg-muted/70 dark:border-slate-800/70 dark:bg-slate-900/60"
+                                        >
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="font-medium">{role.name}</div>
+                                                <Checkbox
+                                                    checked={checkboxState as any}
+                                                    onCheckedChange={(v) => toggleRoleColumn(role.slug, Boolean(v))}
+                                                    aria-label={t('admin.roles.permission_matrix.select_all_for', { role: role.name })}
+                                                />
+                                                <span className="text-[10px] text-muted-foreground h-3">
+                                                    {saving ? savingShort : ''}
+                                                </span>
+                                            </div>
+                                        </th>
+                                    );
+                                })}
+                            </tr>
                         </thead>
 
                         <tbody>
-                        {filteredGroups.map((group) => {
-                            const open = isFiltering ? true : openGroups[group.id] ?? true;
+                            {filteredGroups.map((group) => {
+                                const open = isFiltering ? true : openGroups[group.id] ?? true;
 
-                            return (
-                                <React.Fragment key={group.id}>
-                                    {/* Group header row with accordion + group-level checkboxes per role */}
-                                    <tr className="bg-muted/40 dark:bg-slate-900/40">
-                                        {/* Group title cell (sticky left) */}
-                                        <td
-                                            className="sticky left-0 z-10 bg-muted/40 p-0 border-t border-b border-border/60 dark:border-slate-800/70 dark:bg-slate-900/40"
-                                            colSpan={1}
-                                        >
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenGroups((prev) => ({ ...prev, [group.id]: !open }))}
-                                                className="w-full flex items-center justify-between px-3 py-2"
+                                return (
+                                    <React.Fragment key={group.id}>
+                                        {/* Group header row with accordion + group-level checkboxes per role */}
+                                        <tr className="bg-muted/40 dark:bg-slate-900/40">
+                                            {/* Group title cell (sticky left) */}
+                                            <td
+                                                className="sticky left-0 z-10 bg-muted/40 p-0 border-t border-b border-border/60 dark:border-slate-800/70 dark:bg-slate-900/40"
+                                                colSpan={1}
                                             >
-                        <span className="flex items-center gap-2 font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                          {open ? (
-                              <ChevronDown className="h-4 w-4" />
-                          ) : (
-                              <ChevronRight className="h-4 w-4" />
-                          )}
-                            {group.name}
-                            <span className="text-xs text-muted-foreground normal-case">
-                            ({group.permissions.length})
-                          </span>
-                        </span>
-                                                <span className="text-xs text-muted-foreground">
-                          {open ? hideLabel : showLabel}
-                        </span>
-                                            </button>
-                                        </td>
-
-                                        {/* Group-level checkboxes per role column */}
-                                        {roles.map((role) => {
-                                            const state = getGroupRoleState(group, role.slug);
-                                            const boxState = state.all ? true : state.none ? false : 'indeterminate';
-                                            return (
-                                                <td
-                                                    key={`group-${group.id}-role-${role.slug}`}
-                                                    className="text-center border-t border-b border-border/60 dark:border-slate-800/70"
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOpenGroups((prev) => ({ ...prev, [group.id]: !open }))}
+                                                    className="w-full flex items-center justify-between px-3 py-2"
                                                 >
-                                                    <Checkbox
-                                                        checked={boxState as any}
-                                                        onCheckedChange={(v) =>
-                                                            toggleGroupForRole(group, role.slug, Boolean(v))
-                                                        }
-                                                        aria-label={selectGroupForRoleTemplate
-                                                            .replace('{group}', group.name)
-                                                            .replace('{role}', role.name)}
-                                                    />
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
+                                                    <span className="flex items-center gap-2 font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                                                        {open ? (
+                                                            <ChevronDown className="h-4 w-4" />
+                                                        ) : (
+                                                            <ChevronRight className="h-4 w-4" />
+                                                        )}
+                                                        {group.name}
+                                                        <span className="text-xs text-muted-foreground normal-case">
+                                                            ({group.permissions.length})
+                                                        </span>
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {open ? hideLabel : showLabel}
+                                                    </span>
+                                                </button>
+                                            </td>
 
-                                    {/* Children rows (permissions) */}
-                                    {open &&
-                                        group.permissions.map((perm) => {
-                                            // we can compute row state if you want row-level select-all across roles
-                                            return (
-                                                <tr key={perm.id} className="hover:bg-muted/30 dark:hover:bg-slate-900/30">
-                                                    <td className="p-3 border-r border-border/60 align-top sticky left-0 bg-background/80 z-10 dark:border-slate-800/70 dark:bg-slate-950/70">
-                                                        <div className="flex items-start gap-3">
-                                                            <div>
-                                                                <div className="font-medium text-sm">{perm.name}</div>
-                                                                <div className="text-xs text-muted-foreground">
-                                                                    {perm.description || perm.slug}
+                                            {/* Group-level checkboxes per role column */}
+                                            {roles.map((role) => {
+                                                const state = getGroupRoleState(group, role.slug);
+                                                const boxState = state.all ? true : state.none ? false : 'indeterminate';
+                                                return (
+                                                    <td
+                                                        key={`group-${group.id}-role-${role.slug}`}
+                                                        className="text-center border-t border-b border-border/60 dark:border-slate-800/70"
+                                                    >
+                                                        <Checkbox
+                                                            checked={boxState as any}
+                                                            onCheckedChange={(v) =>
+                                                                toggleGroupForRole(group, role.slug, Boolean(v))
+                                                            }
+                                                            aria-label={t('admin.roles.permission_matrix.select_group_for_role', {
+                                                                group: group.name,
+                                                                role: role.name
+                                                            })}
+                                                        />
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+
+                                        {/* Children rows (permissions) */}
+                                        {open &&
+                                            group.permissions.map((perm) => {
+                                                // we can compute row state if you want row-level select-all across roles
+                                                return (
+                                                    <tr key={perm.id} className="hover:bg-muted/30 dark:hover:bg-slate-900/30">
+                                                        <td className="p-3 border-r border-border/60 align-top sticky left-0 bg-background/80 z-10 dark:border-slate-800/70 dark:bg-slate-950/70">
+                                                            <div className="flex items-start gap-3">
+                                                                <div>
+                                                                    <div className="font-medium text-sm">{perm.name}</div>
+                                                                    <div className="text-xs text-muted-foreground">
+                                                                        {perm.description || perm.slug}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </td>
-
-                                                    {roles.map((role) => (
-                                                        <td
-                                                            key={`${perm.slug}-${role.slug}`}
-                                                            className="p-3 text-center border-r border-border/60 dark:border-slate-800/70"
-                                                        >
-                                                            <Checkbox
-                                                                checked={isChecked(role.slug, perm.slug)}
-                                                                onCheckedChange={(v) =>
-                                                                    toggleCell(role.slug, perm.slug, Boolean(v))
-                                                                }
-                                                                aria-label={permissionForRoleTemplate
-                                                                    .replace('{permission}', perm.name)
-                                                                    .replace('{role}', role.name)}
-                                                            />
                                                         </td>
-                                                    ))}
-                                                </tr>
-                                            );
-                                        })}
-                                </React.Fragment>
-                            );
-                        })}
 
-                        {filteredGroups.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={roles.length + 1}
-                                    className="p-6 text-center text-sm text-muted-foreground"
-                                >
-                                    {noPermissions}
-                                </td>
-                            </tr>
-                        )}
+                                                        {roles.map((role) => (
+                                                            <td
+                                                                key={`${perm.slug}-${role.slug}`}
+                                                                className="p-3 text-center border-r border-border/60 dark:border-slate-800/70"
+                                                            >
+                                                                <Checkbox
+                                                                    checked={isChecked(role.slug, perm.slug)}
+                                                                    onCheckedChange={(v) =>
+                                                                        toggleCell(role.slug, perm.slug, Boolean(v))
+                                                                    }
+                                                                    aria-label={t('admin.roles.permission_matrix.permission_for_role', {
+                                                                        permission: perm.name,
+                                                                        role: role.name
+                                                                    })}
+                                                                />
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                );
+                                            })}
+                                    </React.Fragment>
+                                );
+                            })}
+
+                            {filteredGroups.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan={roles.length + 1}
+                                        className="p-6 text-center text-sm text-muted-foreground"
+                                    >
+                                        {noPermissions}
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

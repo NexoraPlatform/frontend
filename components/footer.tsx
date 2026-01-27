@@ -75,8 +75,8 @@ export function Footer() {
                   <div className="space-y-3" aria-labelledby="contact-heading">
                     <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
                       <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                      <a href="mailto:contact@Trustora.ro" className="font-medium hover:text-primary transition-colors">
-                        contact@Trustora.ro
+                      <a href="mailto:contact@trustora.ro" className="font-medium hover:text-primary transition-colors">
+                        contact@trustora.ro
                       </a>
                     </div>
                     <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80">
@@ -252,8 +252,8 @@ export function Footer() {
                 <div className="space-y-2" aria-labelledby="contact-heading">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Mail className="h-4 w-4" />
-                    <a href="mailto:contact@Trustora.ro" className="hover:text-primary transition-colors">
-                      contact@Trustora.ro
+                    <a href="mailto:contact@trustora.ro" className="hover:text-primary transition-colors">
+                      contact@trustora.ro
                     </a>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">

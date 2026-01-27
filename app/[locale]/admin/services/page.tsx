@@ -32,7 +32,7 @@ export default function AdminServicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const { data: servicesData, loading: servicesLoading, refetch: refetchServices } = useAdminServices();
-    const locale = useLocale();
+  const locale = useLocale();
   const t = useTranslations();
   const manageTitle = t('admin.services.manage_title');
   const manageSubtitle = t('admin.services.manage_subtitle');
@@ -44,13 +44,9 @@ export default function AdminServicesPage() {
   const statusDraft = t('admin.services.statuses.DRAFT');
   const statusSuspended = t('admin.services.statuses.SUSPENDED');
   const listTitle = t('admin.services.list_title');
-  const listDescriptionTemplate = t('admin.services.list_description');
-  const recommendedLabel = t('admin.services.recommended');
-  const slugPrefix = t('admin.services.slug_prefix');
-  const categoryPrefix = t('admin.services.category_prefix');
-  const reviewsLabelTemplate = t('admin.services.reviews');
-  const ordersLabelTemplate = t('admin.services.orders');
-  const viewsLabelTemplate = t('admin.services.views');
+  const reviewsLabel = 'admin.services.reviews';
+  const ordersLabel = 'admin.services.orders';
+  const viewsLabel = 'admin.services.views';
   const viewDetails = t('admin.services.view_details');
   const editLabel = t('admin.services.edit');
   const approveLabel = t('admin.services.approve');
@@ -79,23 +75,23 @@ export default function AdminServicesPage() {
     }
   };
 
-    const filteredServices = useMemo(() => {
-        const services = servicesData?.services ?? [];
+  const filteredServices = useMemo(() => {
+    const services = servicesData?.services ?? [];
 
-        const q = (searchTerm ?? '').toString().trim().toLowerCase();
-        const statusFilterNorm = (serviceFilter ?? 'all').toString().toUpperCase();
+    const q = (searchTerm ?? '').toString().trim().toLowerCase();
+    const statusFilterNorm = (serviceFilter ?? 'all').toString().toUpperCase();
 
-        return services.filter((service: any) => {
-            const name = (service?.name[locale] ?? '').toString().toLowerCase();
-            const desc = (service?.description[locale] ?? '').toString().toLowerCase();
-            const status = (service?.status ?? '').toString().toUpperCase();
+    return services.filter((service: any) => {
+      const name = (service?.name[locale] ?? '').toString().toLowerCase();
+      const desc = (service?.description[locale] ?? '').toString().toLowerCase();
+      const status = (service?.status ?? '').toString().toUpperCase();
 
-            const matchesSearch = !q || name.includes(q) || desc.includes(q);
-            const matchesFilter = statusFilterNorm === 'ALL' || status === statusFilterNorm;
+      const matchesSearch = !q || name.includes(q) || desc.includes(q);
+      const matchesFilter = statusFilterNorm === 'ALL' || status === statusFilterNorm;
 
-            return matchesSearch && matchesFilter;
-        });
-    }, [servicesData?.services, searchTerm, serviceFilter, locale]);
+      return matchesSearch && matchesFilter;
+    });
+  }, [servicesData?.services, searchTerm, serviceFilter, locale]);
 
   const statusBadges = useMemo(
     () => ({
@@ -195,9 +191,7 @@ export default function AdminServicesPage() {
                 <span>{listTitle}</span>
               </CardTitle>
               <CardDescription>
-                {typeof listDescriptionTemplate === 'string'
-                  ? listDescriptionTemplate.replace('{count}', String(filteredServices.length))
-                  : ''}
+                {t('admin.services.list_description', { count: filteredServices.length })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -218,7 +212,7 @@ export default function AdminServicesPage() {
                             <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{service.name[locale]}</h3>
                             {service.isFeatured && (
                               <Badge className="border border-amber-200/60 bg-amber-100 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">
-                                {recommendedLabel}
+                                {t('admin.services.recommended')}
                               </Badge>
                             )}
                           </div>
@@ -229,10 +223,10 @@ export default function AdminServicesPage() {
 
                           <div className="flex flex-wrap items-center gap-3 text-sm mb-3">
                             <span className="text-muted-foreground">
-                              {slugPrefix}{service.slug}
+                              {t('admin.services.slug_prefix')}{service.slug}
                             </span>
                             <span className="text-muted-foreground">
-                              {categoryPrefix}{service.category?.name[locale]}
+                              {t('admin.services.category_prefix')}{service.category?.name[locale]}
                             </span>
                           </div>
 
@@ -242,14 +236,14 @@ export default function AdminServicesPage() {
                               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                               <span>{service.rating || 0}</span>
                               <span className="text-muted-foreground">
-                                ({reviewsLabelTemplate.replace('{count}', String(service.reviewCount || 0))})
+                                ({t(reviewsLabel, { count: service.reviewCount || 0 })})
                               </span>
                             </div>
                             <span className="text-muted-foreground">
-                              {ordersLabelTemplate.replace('{count}', String(service.orderCount || 0))}
+                              {t(ordersLabel, { count: service.orderCount || 0 })}
                             </span>
                             <span className="text-muted-foreground">
-                              {viewsLabelTemplate.replace('{count}', String(service.viewCount || 0))}
+                              {t(viewsLabel, { count: service.viewCount || 0 })}
                             </span>
                           </div>
                         </div>

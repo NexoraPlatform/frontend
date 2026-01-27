@@ -10,24 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
-    Users,
-    Search,
-    Plus,
-    MoreHorizontal,
-    UserCheck,
-    Ban,
-    Trash2,
-    Star,
-    CheckCircle,
-    Loader2,
-    ArrowLeft,
-    Filter, Pencil, UserRound, Eye
+  Users,
+  Search,
+  Plus,
+  MoreHorizontal,
+  UserCheck,
+  Ban,
+  Trash2,
+  Star,
+  CheckCircle,
+  Loader2,
+  ArrowLeft,
+  Filter, Pencil, UserRound, Eye
 } from 'lucide-react';
 import { useAdminUsers } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { useRouter } from '@/lib/navigation';
 import { useLocale, useTranslations } from "next-intl";
-import {Can} from "@/components/Can";
+import { Can } from "@/components/Can";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 
 export default function AdminUsersPage() {
@@ -35,7 +35,7 @@ export default function AdminUsersPage() {
   const [userFilter, setUserFilter] = useState('all');
   const { data: usersData, loading: usersLoading, refetch: refetchUsers } = useAdminUsers();
   const router = useRouter();
-    const locale = useLocale();
+  const locale = useLocale();
   const t = useTranslations();
   const manageTitle = t('admin.users.manage_title');
   const manageSubtitle = t('admin.users.manage_subtitle');
@@ -47,7 +47,6 @@ export default function AdminUsersPage() {
   const filterProviders = t('admin.users.filter_providers');
   const filterAdmins = t('admin.users.filter_admins');
   const listTitle = t('admin.users.list_title');
-  const listDescriptionTemplate = t('admin.users.list_description');
   const confirmDeleteText = t('admin.users.actions.confirm_delete');
   const errorPrefix = t('admin.users.actions.error_prefix');
   const modifyProfile = t('admin.users.actions.modify_profile');
@@ -60,8 +59,8 @@ export default function AdminUsersPage() {
   const removeSuperuser = t('admin.users.actions.remove_superuser');
   const noUsersTitle = t('admin.users.no_users_title');
   const noUsersDescription = t('admin.users.no_users_description');
-  const reviewsTemplate = t('admin.users.reviews_label');
-  const registeredTemplate = t('admin.users.registered_prefix');
+  const reviewsTemplate = 'admin.users.reviews_label';
+  const registeredPrefix = 'admin.users.registered_prefix';
   const superuserBadge = t('admin.users.roles.SUPERUSER');
 
   const statusLabels = {
@@ -83,7 +82,7 @@ export default function AdminUsersPage() {
           await apiClient.deleteUser(userId);
           refetchUsers();
         }
-      } else if(action === 'superuser') {
+      } else if (action === 'superuser') {
         if (isSuperuser === false) {
           await apiClient.setSuperadmin(userId);
         } else {
@@ -195,7 +194,7 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
 
-      {/* Users List */}
+          {/* Users List */}
           <Card className="glass-card shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
@@ -203,7 +202,7 @@ export default function AdminUsersPage() {
                 <span>{listTitle}</span>
               </CardTitle>
               <CardDescription>
-                {listDescriptionTemplate.replace('{count}', filteredUsers.length.toString())}
+                {t('admin.users.list_description', { count: filteredUsers.length })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -251,10 +250,10 @@ export default function AdminUsersPage() {
                               <span className="font-medium">{user.rating || 0}</span>
                             </div>
                             <p className="text-muted-foreground text-left">{
-                              reviewsTemplate.replace('{count}', (user.reviewCount || 0).toString())
+                              t(reviewsTemplate, { count: user.reviewCount || 0 })
                             }</p>
                             <p className="text-xs text-muted-foreground">
-                              {registeredTemplate.replace('{date}', new Date(user.created_at).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-US'))}
+                              {t(registeredPrefix, { date: new Date(user.created_at).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-US') })}
                             </p>
                           </div>
 

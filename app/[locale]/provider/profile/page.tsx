@@ -735,7 +735,7 @@ export default function ProviderProfileEditPage() {
                                             id="location"
                                             value={profileData.location}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                                            placeholder="București, România"
+                                            placeholder="Mamaia Sat, Navodari, România, 905700"
                                         />
                                     </div>
                                 </div>

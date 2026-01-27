@@ -1,7 +1,7 @@
 'use client';
 
 import { Link } from '@/lib/navigation';
-import {AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus, Verified} from 'lucide-react';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus, Verified } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import apiClient from '@/lib/api';
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslations } from 'next-intl';
 
 type PermissionState = {
@@ -22,13 +22,13 @@ type PermissionState = {
 };
 
 export default function AdminCard({
-                                      formData,
-                                      setFormDataAction,
-                                      permissions,
-                                      submitAction,      // <- submit comes from parent
-                                      loading = false,   // <- UI state from parent
-                                      error = '',
-                                  }: {
+    formData,
+    setFormDataAction,
+    permissions,
+    submitAction,      // <- submit comes from parent
+    loading = false,   // <- UI state from parent
+    error = '',
+}: {
     formData: any;
     setFormDataAction: React.Dispatch<React.SetStateAction<any>>;
     permissions: any[];
@@ -41,8 +41,7 @@ export default function AdminCard({
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
     const [selectedPermissions, setSelectedPermissions] = useState<PermissionState>({});
     const hasInitializedPermissions = useRef(false);
-  const t = useTranslations();
-    const editAdminTitleTemplate = t('admin.users.edit.admin.title');
+    const t = useTranslations();
     const editAdminSubtitle = t('admin.users.edit.admin.subtitle');
     const adminInfoTitle = t('admin.users.edit.admin.info_title');
     const adminInfoDescription = t('admin.users.edit.admin.info_description');
@@ -153,7 +152,7 @@ export default function AdminCard({
             setFormDataAction((prev: any) => ({ ...prev, user_permissions: prevSelected }));
         }
     };
-//user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'admin')
+    //user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'admin')
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -166,7 +165,7 @@ export default function AdminCard({
                 </Link>
                 <div>
                     <h1 className="text-3xl font-bold">
-                        {editAdminTitleTemplate.replace('{name}', `${formData.firstName} ${formData.lastName}`)}
+                        {t('admin.users.edit.admin.title', { name: `${formData.firstName} ${formData.lastName}` })}
                     </h1>
                     <p className="text-muted-foreground">{editAdminSubtitle}</p>
                 </div>
@@ -255,12 +254,12 @@ export default function AdminCard({
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                            <SelectItem value="CLIENT">{roleClient}</SelectItem>
-                                            <SelectItem value="PROVIDER">{roleProvider}</SelectItem>
-                                            <SelectItem value="ADMIN">{roleAdmin}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                                <SelectItem value="CLIENT">{roleClient}</SelectItem>
+                                                <SelectItem value="PROVIDER">{roleProvider}</SelectItem>
+                                                <SelectItem value="ADMIN">{roleAdmin}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                     <div>
                                         <Label htmlFor="phone">{phoneLabel}</Label>
                                         <Input
@@ -393,9 +392,9 @@ export default function AdminCard({
                                                                 </label>
                                                                 {selectedPermissions[perm.slug] && (
                                                                     <div className="flex items-center gap-2">
-                                    <span className="text-sm text-muted-foreground">
-                                      {selectedPermissions[perm.slug].allowed ? allowLabel : denyLabel}
-                                    </span>
+                                                                        <span className="text-sm text-muted-foreground">
+                                                                            {selectedPermissions[perm.slug].allowed ? allowLabel : denyLabel}
+                                                                        </span>
                                                                         <Switch
                                                                             checked={selectedPermissions[perm.slug].allowed}
                                                                             onCheckedChange={() => toggleAllowDeny(perm.slug)}
@@ -420,12 +419,11 @@ export default function AdminCard({
                                             <div key={slug} className="flex items-center justify-between border p-2 rounded-md bg-muted/50">
                                                 <span className="text-sm font-medium">{value.name}</span>
                                                 <span
-                                                    className={`text-xs px-2 py-0.5 rounded-full ${
-                                                        value.allowed ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-                                                    }`}
+                                                    className={`text-xs px-2 py-0.5 rounded-full ${value.allowed ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                                                        }`}
                                                 >
-                          {value.allowed ? allowLabel : denyLabel}
-                        </span>
+                                                    {value.allowed ? allowLabel : denyLabel}
+                                                </span>
                                             </div>
                                         ))
                                     )}

@@ -19,7 +19,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 
 import apiClient from '@/lib/api';
-import {useAuth} from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context";
 
 type Role = {
     name: string;
@@ -46,7 +46,7 @@ type GroupPermissions = {
 
 export default function EditRoleClient({ id }: { id: number }) {
     const locale = useLocale();
-  const t = useTranslations();
+    const t = useTranslations();
     const [roleData, setRoleData] = useState<Role>({
         name: '',
         description: '',
@@ -64,7 +64,6 @@ export default function EditRoleClient({ id }: { id: number }) {
     const debounceRef = useRef<number | null>(null);
 
     const title = t('admin.roles.edit_role.title');
-    const subtitleTemplate = t('admin.roles.edit_role.subtitle');
     const infoTitle = t('admin.roles.edit_role.info_title');
     const infoDescription = t('admin.roles.edit_role.info_description');
     const nameLabel = t('admin.roles.edit_role.name_label');
@@ -192,7 +191,7 @@ export default function EditRoleClient({ id }: { id: number }) {
                     <div>
                         <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{title}</h1>
                         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                            {subtitleTemplate.replace('{name}', roleData.name || '')}
+                            {t('admin.roles.edit_role.subtitle', { name: roleData.name || '' })}
                         </p>
                     </div>
                 </div>
@@ -279,9 +278,9 @@ export default function EditRoleClient({ id }: { id: number }) {
 
                                     {savingOrder ? (
                                         <span className="inline-flex items-center text-xs text-muted-foreground">
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      {savingLabel}
-                    </span>
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                            {savingLabel}
+                                        </span>
                                     ) : orderSavedAt ? (
                                         <span className="text-xs text-emerald-600 dark:text-emerald-400">{savedLabel}</span>
                                     ) : null}
