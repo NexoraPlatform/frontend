@@ -8,11 +8,21 @@ import Image from 'next/image';
 import { useAuth } from "@/contexts/auth-context";
 import dynamic from 'next/dynamic';
 import { useTranslations } from "next-intl";
+import useSWR from 'swr';
+import apiClient from "@/lib/api";
 
 const ChatLauncher = dynamic(() => import('@/components/chat/chat-launcher'), {
   ssr: false,
   loading: () => null
 });
+
+interface PopularService {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+const fetcher = () => apiClient.getPopularServices().then(res => res.data);
 
 export function Footer() {
   const { user } = useAuth();
@@ -53,6 +63,15 @@ export function Footer() {
   const privacyHref = '/privacy';
   const termsHref = '/terms';
   const cookiesHref = '/cookies';
+
+  const { data: popularServices, error } = useSWR('/api/popular-services', fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 3600000,
+  });
+
+  if (error) return <div>Failed to load</div>;
+  if (!popularServices) return <div>Loading...</div>;
 
   return (
       <footer
@@ -232,18 +251,11 @@ export function Footer() {
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold" id="popular-services-heading">{popularServicesText}</h2>
                 <nav className="space-y-2" aria-labelledby="popular-services-heading">
-                  <Link href="/services?category=web-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    {popularServiceWebText}
-                  </Link>
-                  <Link href="/services?category=mobile-development" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    {popularServiceMobileText}
-                  </Link>
-                  <Link href="/services?category=design" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    {popularServiceDesignText}
-                  </Link>
-                  <Link href="/services?category=marketing" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                    {popularServiceMarketingText}
-                  </Link>
+                  {popularServices.map((service: PopularService) => (
+                      <Link key={service.id} href={`/services/${service.slug}`} className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                        {service.name}
+                      </Link>
+                  ))}
                 </nav>
               </div>
 
