@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { apiClient } from '@/lib/api';
@@ -74,28 +74,51 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isRefreshing = useRef(false);
+  const updateRef = useRef(update);
+
+  // Keep update function ref fresh but stable for callbacks
+  useEffect(() => {
+    updateRef.current = update;
+  }, [update]);
+
   const refreshUser = useCallback(async () => {
+    if (isRefreshing.current) return;
+    isRefreshing.current = true;
+
     try {
       const freshUser = await apiClient.me();
       const normalizedUser = {
         ...freshUser,
         id: String(freshUser.id)
       };
+
       setUser(normalizedUser);
-      // Synchronize NextAuth session/JWT
-      await update(normalizedUser);
+
+      // Only update NextAuth if data actually changed to avoid infinite loops
+      // comparing some core fields
+      const hasChanged =
+        normalizedUser.firstName !== session?.user?.firstName ||
+        normalizedUser.lastName !== session?.user?.lastName ||
+        normalizedUser.role !== session?.user?.role ||
+        normalizedUser.avatar !== session?.user?.avatar ||
+        normalizedUser.email !== session?.user?.email;
+
+      if (hasChanged) {
+        await updateRef.current(normalizedUser);
+      }
     } catch (error) {
       console.error("Failed to refresh user:", error);
+    } finally {
+      isRefreshing.current = false;
     }
-  }, [update]);
+  }, [session?.user?.firstName, session?.user?.lastName, session?.user?.role, session?.user?.avatar, session?.user?.email]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
     const sessionUserId = session?.user?.id;
     if (!sessionUserId) return;
-    refreshUser().catch((error) => {
-      console.error("Failed to refresh user:", error);
-    });
+    refreshUser().catch(() => { });
   }, [status, session?.user?.id, pathname, refreshUser]);
 
   const register = async (userData: any) => {
