@@ -25,13 +25,12 @@ import { MuiIcon } from '@/components/MuiIcons';
 export default function AdminCategoriesPage() {
   const { data: categoriesData, loading: categoriesLoading, refetch: refetchCategories } = useAdminCategories();
   const router = useRouter();
-    const locale = useLocale();
+  const locale = useLocale();
   const t = useTranslations();
   const manageTitle = t('admin.categories.manage_title');
   const manageSubtitle = t('admin.categories.manage_subtitle');
   const addCategory = t('admin.categories.add_category');
   const listTitle = t('admin.categories.list_title');
-  const totalSummaryTemplate = t('admin.categories.total_summary');
   const inactiveLabel = t('admin.categories.inactive');
   const orderLabel = t('admin.categories.order_label');
   const subcategoriesLabel = t('admin.categories.subcategories_label');
@@ -189,10 +188,11 @@ export default function AdminCategoriesPage() {
             <span>{listTitle}</span>
           </CardTitle>
           <CardDescription>
-            {totalSummaryTemplate
-              .replace('{count}', String(categories.length))
-              .replace('{parents}', String(parentCategories.length))
-              .replace('{children}', String(childCategories.length))}
+            {t('admin.categories.total_summary', {
+              count: categories.length,
+              parents: parentCategories.length,
+              children: childCategories.length
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>

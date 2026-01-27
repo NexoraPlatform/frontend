@@ -283,10 +283,10 @@ export function Header() {
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
                           <Mail className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
                           <a
-                            href="mailto:contact@Trustora.ro"
+                            href="mailto:contact@trustora.ro"
                             className="font-medium underline decoration-emerald-400/60 underline-offset-4"
                           >
-                            contact@Trustora.ro
+                            contact@trustora.ro
                           </a>
                         </div>
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
@@ -300,7 +300,7 @@ export function Header() {
                         </div>
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-white/70 px-3 py-2 text-[11px] text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
                           <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
-                          <span className="font-medium">București, România</span>
+                          <span className="font-medium">Mamaia Sat, Navodari, România, 905700</span>
                         </div>
                       </div>
                     </div>

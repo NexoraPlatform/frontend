@@ -36,7 +36,7 @@ export default function AdminTestsPage() {
   const [levelFilter, setLevelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const { data: testsData, loading: testsLoading, refetch: refetchTests } = useAdminTests();
-    const locale = useLocale();
+  const locale = useLocale();
   const t = useTranslations();
   const manageTitle = t('admin.tests.manage_title');
   const manageSubtitle = t('admin.tests.manage_subtitle');
@@ -54,13 +54,9 @@ export default function AdminTestsPage() {
   const statusInactive = t('admin.tests.statuses.INACTIVE');
   const statusDraft = t('admin.tests.statuses.DRAFT');
   const listTitle = t('admin.tests.list_title');
-  const listDescriptionTemplate = t('admin.tests.list_description');
-  const questionCountTemplate = t('admin.tests.question_count');
-  const minuteSuffix = t('admin.tests.minute_suffix');
-  const passingScoreTemplate = t('admin.tests.passing_score');
-  const categoryPrefix = t('admin.tests.category_prefix');
-  const createdPrefix = t('admin.tests.created_prefix');
-  const resultsTemplate = t('admin.tests.results_count');
+  const questionCountLabel = 'admin.tests.question_count';
+  const passingScoreLabel = 'admin.tests.passing_score';
+  const resultsCountLabel = 'admin.tests.results_count';
   const viewDetails = t('admin.tests.view_details');
   const statisticsLabel = t('admin.tests.statistics.title_suffix');
   const deactivateLabel = t('admin.tests.deactivate');
@@ -190,7 +186,7 @@ export default function AdminTestsPage() {
             </Link>
           </div>
 
-      {/* Filters */}
+          {/* Filters */}
           <Card className="mb-6 glass-card shadow-sm">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4">
@@ -233,7 +229,7 @@ export default function AdminTestsPage() {
             </CardContent>
           </Card>
 
-      {/* Tests List */}
+          {/* Tests List */}
           <Card className="glass-card shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
@@ -241,7 +237,7 @@ export default function AdminTestsPage() {
                 <span>{listTitle}</span>
               </CardTitle>
               <CardDescription>
-                {listDescriptionTemplate.replace('{count}', String(filteredTests.length))}
+                {t('admin.tests.list_description', { count: filteredTests.length })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -275,26 +271,26 @@ export default function AdminTestsPage() {
                             </div>
                             <div className="flex items-center space-x-1">
                               <Target className="w-4 h-4 text-emerald-500" />
-                              <span>{questionCountTemplate.replace('{count}', String(test.totalQuestions))}</span>
+                              <span>{t(questionCountLabel, { count: test.totalQuestions })}</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <Clock className="w-4 h-4 text-orange-500" />
-                              <span>{`${test.timeLimit} ${minuteSuffix}`}</span>
+                              <span>{`${test.timeLimit} ${t('admin.tests.minute_suffix')}`}</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <BarChart3 className="w-4 h-4 text-purple-500" />
-                              <span>{passingScoreTemplate.replace('{score}', String(test.passingScore))}</span>
+                              <span>{t(passingScoreLabel, { score: test.passingScore })}</span>
                             </div>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                            <span>{categoryPrefix}{test.service?.category?.name?.[locale]}</span>
+                            <span>{t('admin.tests.category_prefix')}{test.service?.category?.name?.[locale]}</span>
                             <span>
-                              {createdPrefix}
+                              {t('admin.tests.created_prefix')}
                               {new Date(test.created_at).toLocaleDateString(locale)}
                             </span>
                             {test.results && (
-                              <span>{resultsTemplate.replace('{count}', String(test.results.length))}</span>
+                              <span>{t(resultsCountLabel, { count: test.results.length })}</span>
                             )}
                           </div>
                         </div>

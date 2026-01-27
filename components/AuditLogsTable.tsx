@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment } from 'react';
+import React, { useEffect, useState, useCallback, Fragment } from 'react';
 import {
     Table,
     TableBody,
@@ -37,7 +37,7 @@ export default function AuditLogsTable() {
         to: new Date(),
     });
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
             const apiFilters: AuditLogFilters = {
@@ -56,11 +56,11 @@ export default function AuditLogsTable() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters, dateRange]);
 
     useEffect(() => {
         fetchLogs();
-    }, [filters.page, filters.event, dateRange]); // Refetch when page/filters change
+    }, [fetchLogs]); // Refetch when fetchLogs (dependencies) change
 
     const handleSearch = () => {
         // Simple logic to try parsing search as user_id or subject_id if needed,

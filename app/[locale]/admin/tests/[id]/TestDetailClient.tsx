@@ -58,7 +58,7 @@ interface Question {
 export default function TestDetailsClient({ id }: { id: string; }) {
     const router = useRouter();
     const locale = useLocale();
-  const t = useTranslations();
+    const t = useTranslations();
     const { data: test, loading, error, refetch } = useTest(id);
     const [actionLoading, setActionLoading] = useState(false);
     const [actionError, setActionError] = useState('');
@@ -78,8 +78,6 @@ export default function TestDetailsClient({ id }: { id: string; }) {
     const questionsLabel = t('admin.tests.detail.questions_label');
     const totalPointsLabel = t('admin.tests.detail.total_points_label');
     const descriptionLabel = t('admin.tests.detail.description');
-    const questionsSectionTemplate = t('admin.tests.detail.questions_section');
-    const questionLabelTemplate = t('admin.tests.detail.question_label');
     const codeTemplateLabel = t('admin.tests.detail.code_template');
     const expectedOutputLabel = t('admin.tests.detail.expected_output');
     const testCasesLabel = t('admin.tests.detail.test_cases');
@@ -96,7 +94,6 @@ export default function TestDetailsClient({ id }: { id: string; }) {
     const questionTypeMultiple = t('admin.tests.question_types.MULTIPLE_CHOICE');
     const questionTypeCode = t('admin.tests.question_types.CODE_WRITING');
     const questionTypeText = t('admin.tests.question_types.TEXT_INPUT');
-    const pointsTemplate = t('admin.tests.points_template');
     const minuteSuffix = t('admin.tests.minute_suffix');
     const correctAnswerLabel = t('admin.tests.statistics.correct_answer');
     const statusActive = t('admin.tests.statuses.ACTIVE');
@@ -267,278 +264,278 @@ export default function TestDetailsClient({ id }: { id: string; }) {
                         </div>
                     </div>
 
-            {actionError && (
-                <Alert variant="destructive" className="mb-6">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{actionError}</AlertDescription>
-                </Alert>
-            )}
+                    {actionError && (
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{actionError}</AlertDescription>
+                        </Alert>
+                    )}
 
-            {/* Test Overview */}
-            <Card className="mb-8 glass-card shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                        <BookOpen className="w-5 h-5" />
-                        <span>{detailTitle}</span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="font-semibold text-lg mb-4">{generalInfo}</h3>
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">{serviceLabel}</div>
-                                    <div className="font-medium">{test.service?.title}</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">{categoryLabel}</div>
-                                    <div className="font-medium">{test.service?.category?.name?.[locale]}</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">{levelLabel}</div>
-                                    <div>{getLevelBadge(test.level)}</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">{statusLabel}</div>
-                                    <div>{getStatusBadge(test.status)}</div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-muted-foreground">{createdLabel}</div>
-                                    <div>{new Date(test.created_at).toLocaleDateString(locale)}</div>
-                                </div>
-                            </div>
-                        </div>
-
-        <div>
-            <h3 className="font-semibold text-lg mb-4">{testConfig}</h3>
-            <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">{timeLimitLabel}</div>
-                    <div className="font-medium">{test.timeLimit} {minuteSuffix}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">{passingScoreLabel}</div>
-                    <div className="font-medium">{test.passingScore}%</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">{questionsLabel}</div>
-                    <div className="font-medium">{test.totalQuestions}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="text-muted-foreground">{totalPointsLabel}</div>
-                    <div className="font-medium">{pointsTemplate.replace('{count}', String(test.questions.reduce((sum: number, q: { points: number }) => sum + q.points, 0)))} </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div className="mt-6 pt-6 border-t border-slate-200/70 dark:border-slate-700/60">
-        <h3 className="font-semibold text-lg mb-2">{descriptionLabel}</h3>
-        <p className="text-muted-foreground">{test.description}</p>
-    </div>
-                </CardContent>
-            </Card>
-
-            {/* Questions */}
-            <Card className="mb-8 glass-card shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
-                        <Target className="w-5 h-5" />
-                        <span>{questionsSectionTemplate.replace('{count}', String(test.questions.length))}</span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                        {test.questions.map((question: Question, index: number) => {
-                            const IconComponent = getQuestionTypeIcon(question.type);
-
-                            return (
-                                <div key={question.id} className="border rounded-lg p-4 bg-white/70 dark:bg-slate-900/40">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center space-x-2">
-                                            <IconComponent className="w-5 h-5 text-primary" />
-                                            <Badge variant="outline">
-                                                {getQuestionTypeLabel(question.type)}
-                                            </Badge>
-                                            <Badge variant="secondary">
-                                                {pointsTemplate.replace('{count}', String(question.points))}
-                                            </Badge>
+                    {/* Test Overview */}
+                    <Card className="mb-8 glass-card shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                                <BookOpen className="w-5 h-5" />
+                                <span>{detailTitle}</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 className="font-semibold text-lg mb-4">{generalInfo}</h3>
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{serviceLabel}</div>
+                                            <div className="font-medium">{test.service?.title}</div>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {questionLabelTemplate.replace('{number}', String(index + 1))}
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{categoryLabel}</div>
+                                            <div className="font-medium">{test.service?.category?.name?.[locale]}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{levelLabel}</div>
+                                            <div>{getLevelBadge(test.level)}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{statusLabel}</div>
+                                            <div>{getStatusBadge(test.status)}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{createdLabel}</div>
+                                            <div>{new Date(test.created_at).toLocaleDateString(locale)}</div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <h4 className="font-medium mb-4">{question.question}</h4>
+                                <div>
+                                    <h3 className="font-semibold text-lg mb-4">{testConfig}</h3>
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{timeLimitLabel}</div>
+                                            <div className="font-medium">{test.timeLimit} {minuteSuffix}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{passingScoreLabel}</div>
+                                            <div className="font-medium">{test.passingScore}%</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{questionsLabel}</div>
+                                            <div className="font-medium">{test.totalQuestions}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-muted-foreground">{totalPointsLabel}</div>
+                                            <div className="font-medium">{t('admin.tests.points_template', { count: test.questions.reduce((sum: number, q: { points: number }) => sum + q.points, 0) })} </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                                    {/* Single/Multiple Choice Options */}
-                                    {(question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options && (() => {
-                                        // Normalizează întotdeauna la array
-                                        let opts: string[] = [];
-                                        if (typeof question.options === 'string') {
-                                            try {
-                                                opts = JSON.parse(question.options);
-                                            } catch {
-                                                opts = [];
-                                            }
-                                        } else {
-                                            opts = question.options;
-                                        }
+                            <div className="mt-6 pt-6 border-t border-slate-200/70 dark:border-slate-700/60">
+                                <h3 className="font-semibold text-lg mb-2">{descriptionLabel}</h3>
+                                <p className="text-muted-foreground">{test.description}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                                        return (
-                                            <div className="space-y-1 mb-4">
-                                                {opts.map((option, optIndex) => (
-                                                    <div key={optIndex} className="flex items-center space-x-2 text-sm">
-                    <span
-                        className={
-                            question?.correct_answers?.includes(option)
-                                ? 'text-green-600 font-medium'
-                                : 'text-muted-foreground'
-                        }
-                    >
-                        {String.fromCharCode(65 + optIndex)}. {option}
-                    </span>
-                                                        {question?.correct_answers?.includes(option) && (
-                                                            <Badge className="border border-emerald-200/60 bg-emerald-100 text-emerald-800 text-xs dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200">
-                                                                Corect
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                ))}
+                    {/* Questions */}
+                    <Card className="mb-8 glass-card shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
+                                <Target className="w-5 h-5" />
+                                <span>{t('admin.tests.detail.questions_section', { count: test.questions.length })}</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                {test.questions.map((question: Question, index: number) => {
+                                    const IconComponent = getQuestionTypeIcon(question.type);
+
+                                    return (
+                                        <div key={question.id} className="border rounded-lg p-4 bg-white/70 dark:bg-slate-900/40">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <IconComponent className="w-5 h-5 text-primary" />
+                                                    <Badge variant="outline">
+                                                        {getQuestionTypeLabel(question.type)}
+                                                    </Badge>
+                                                    <Badge variant="secondary">
+                                                        {t('admin.tests.points_template', { count: question.points })}
+                                                    </Badge>
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {t('admin.tests.detail.question_label', { number: (index + 1) })}
+                                                </div>
                                             </div>
-                                        );
-                                    })()}
 
-                                    {/* Code Writing */}
-                                    {question.type === 'CODE_WRITING' && (
-                                        <div className="space-y-3 mb-4">
-                                            {question.codeTemplate && (
-                                                <div>
-                                                    <div className="text-sm font-medium mb-1">{codeTemplateLabel}</div>
-                                                    <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto">
-                            {question.codeTemplate}
-                          </pre>
-                                                </div>
-                                            )}
+                                            <h4 className="font-medium mb-4">{question.question}</h4>
 
-                                            {question.expectedOutput && (
-                                                <div>
-                                                    <div className="text-sm font-medium mb-1">{expectedOutputLabel}</div>
-                                                    <div className="bg-muted p-3 rounded-lg text-sm">
-                                                        {question.expectedOutput}
-                                                    </div>
-                                                </div>
-                                            )}
+                                            {/* Single/Multiple Choice Options */}
+                                            {(question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options && (() => {
+                                                // Normalizează întotdeauna la array
+                                                let opts: string[] = [];
+                                                if (typeof question.options === 'string') {
+                                                    try {
+                                                        opts = JSON.parse(question.options);
+                                                    } catch {
+                                                        opts = [];
+                                                    }
+                                                } else {
+                                                    opts = question.options;
+                                                }
 
-                                            {question.testCases && question.testCases.length > 0 && (
-                                                <div>
-                                                    <div className="text-sm font-medium mb-1">{testCasesLabel}</div>
-                                                    <div className="space-y-2">
-                                                        {question.testCases.map((testCase, tcIndex) => (
-                                                            <div key={tcIndex} className="bg-muted p-3 rounded-lg text-sm">
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <strong>{inputLabel}</strong> {testCase.input}
-                                                                    </div>
-                                                                    <div>
-                                                                        <strong>{expectedOutputCaseLabel}</strong> {testCase.expectedOutput}
-                                                                    </div>
-                                                                </div>
-                                                                {testCase.description && (
-                                                                    <div className="mt-2 text-muted-foreground">
-                                                                        {testCase.description}
-                                                                    </div>
+                                                return (
+                                                    <div className="space-y-1 mb-4">
+                                                        {opts.map((option, optIndex) => (
+                                                            <div key={optIndex} className="flex items-center space-x-2 text-sm">
+                                                                <span
+                                                                    className={
+                                                                        question?.correct_answers?.includes(option)
+                                                                            ? 'text-green-600 font-medium'
+                                                                            : 'text-muted-foreground'
+                                                                    }
+                                                                >
+                                                                    {String.fromCharCode(65 + optIndex)}. {option}
+                                                                </span>
+                                                                {question?.correct_answers?.includes(option) && (
+                                                                    <Badge className="border border-emerald-200/60 bg-emerald-100 text-emerald-800 text-xs dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200">
+                                                                        Corect
+                                                                    </Badge>
                                                                 )}
                                                             </div>
                                                         ))}
                                                     </div>
+                                                );
+                                            })()}
+
+                                            {/* Code Writing */}
+                                            {question.type === 'CODE_WRITING' && (
+                                                <div className="space-y-3 mb-4">
+                                                    {question.codeTemplate && (
+                                                        <div>
+                                                            <div className="text-sm font-medium mb-1">{codeTemplateLabel}</div>
+                                                            <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto">
+                                                                {question.codeTemplate}
+                                                            </pre>
+                                                        </div>
+                                                    )}
+
+                                                    {question.expectedOutput && (
+                                                        <div>
+                                                            <div className="text-sm font-medium mb-1">{expectedOutputLabel}</div>
+                                                            <div className="bg-muted p-3 rounded-lg text-sm">
+                                                                {question.expectedOutput}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {question.testCases && question.testCases.length > 0 && (
+                                                        <div>
+                                                            <div className="text-sm font-medium mb-1">{testCasesLabel}</div>
+                                                            <div className="space-y-2">
+                                                                {question.testCases.map((testCase, tcIndex) => (
+                                                                    <div key={tcIndex} className="bg-muted p-3 rounded-lg text-sm">
+                                                                        <div className="grid grid-cols-2 gap-4">
+                                                                            <div>
+                                                                                <strong>{inputLabel}</strong> {testCase.input}
+                                                                            </div>
+                                                                            <div>
+                                                                                <strong>{expectedOutputCaseLabel}</strong> {testCase.expectedOutput}
+                                                                            </div>
+                                                                        </div>
+                                                                        {testCase.description && (
+                                                                            <div className="mt-2 text-muted-foreground">
+                                                                                {testCase.description}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Text Input */}
+                                            {question.type === 'TEXT_INPUT' && (
+                                                <div className="mb-4">
+                                                    <div className="text-sm font-medium mb-1">{correctAnswerLabel}</div>
+                                                    <div className="bg-muted p-3 rounded-lg text-sm">
+                                                        {JSON.parse(question.correct_answers as string)}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Explanation */}
+                                            {question.explanation && (
+                                                <div>
+                                                    <div className="text-sm font-medium mb-1">{explanationLabel}</div>
+                                                    <div className="bg-muted p-3 rounded-lg text-sm">
+                                                        {question.explanation}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                                    {/* Text Input */}
-                                    {question.type === 'TEXT_INPUT' && (
-                                        <div className="mb-4">
-                                            <div className="text-sm font-medium mb-1">{correctAnswerLabel}</div>
-                                            <div className="bg-muted p-3 rounded-lg text-sm">
-                                                {JSON.parse(question.correct_answers as string)}
-                                            </div>
-                                        </div>
-                                    )}
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-4">
+                        <Link href={`/admin/tests/${id}/edit`}>
+                            <Button className="btn-primary">
+                                <Edit className="w-4 h-4 mr-2" />
+                                {editTestLabel}
+                            </Button>
+                        </Link>
 
-                                    {/* Explanation */}
-                                    {question.explanation && (
-                                        <div>
-                                            <div className="text-sm font-medium mb-1">{explanationLabel}</div>
-                                            <div className="bg-muted p-3 rounded-lg text-sm">
-                                                {question.explanation}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
+                        <Link href={`/admin/tests/${id}/statistics`}>
+                            <Button variant="outline" className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60">
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                {viewStatisticsLabel}
+                            </Button>
+                        </Link>
 
-            {/* Actions */}
-            <div className="flex flex-wrap gap-4">
-                <Link href={`/admin/tests/${id}/edit`}>
-                    <Button className="btn-primary">
-                        <Edit className="w-4 h-4 mr-2" />
-                        {editTestLabel}
-                    </Button>
-                </Link>
+                        {test.status === 'ACTIVE' ? (
+                            <Button
+                                variant="outline"
+                                className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
+                                onClick={() => handleAction('deactivate')}
+                                disabled={actionLoading}
+                            >
+                                <XCircle className="w-4 h-4 mr-2" />
+                                {deactivateLabel}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
+                                onClick={() => handleAction('activate')}
+                                disabled={actionLoading}
+                            >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                {activateLabel}
+                            </Button>
+                        )}
 
-                <Link href={`/admin/tests/${id}/statistics`}>
-                    <Button variant="outline" className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        {viewStatisticsLabel}
-                    </Button>
-                </Link>
+                        <Button
+                            variant="outline"
+                            className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
+                            onClick={() => window.open(`/tests/preview/${id}`, '_blank')}
+                        >
+                            <PlayCircle className="w-4 h-4 mr-2" />
+                            {previewLabel}
+                        </Button>
 
-                {test.status === 'ACTIVE' ? (
-                    <Button
-                        variant="outline"
-                        className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
-                        onClick={() => handleAction('deactivate')}
-                        disabled={actionLoading}
-                    >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        {deactivateLabel}
-                    </Button>
-                ) : (
-                    <Button
-                        variant="outline"
-                        className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
-                        onClick={() => handleAction('activate')}
-                        disabled={actionLoading}
-                    >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        {activateLabel}
-                    </Button>
-                )}
-
-                <Button
-                    variant="outline"
-                    className="border-slate-200/70 bg-white/70 dark:border-slate-700/60 dark:bg-slate-900/60"
-                    onClick={() => window.open(`/tests/preview/${id}`, '_blank')}
-                >
-                    <PlayCircle className="w-4 h-4 mr-2" />
-                    {previewLabel}
-                </Button>
-
-                <Button
-                    variant="destructive"
-                    onClick={() => handleAction('delete')}
-                    disabled={actionLoading}
-                >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {deleteTestLabel}
-                </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => handleAction('delete')}
+                            disabled={actionLoading}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {deleteTestLabel}
+                        </Button>
                     </div>
                 </div>
             </div>

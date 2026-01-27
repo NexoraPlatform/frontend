@@ -39,7 +39,7 @@ const PAYMENT_STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminOrdersPage() {
-    const locale = useLocale();
+  const locale = useLocale();
   const t = useTranslations();
   const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
@@ -54,9 +54,6 @@ export default function AdminOrdersPage() {
   const statusCancelled = t('admin.orders.statuses.cancelled');
   const statusDisputed = t('admin.orders.statuses.disputed');
   const listTitle = t('admin.orders.list_title');
-  const listDescriptionTemplate = t('admin.orders.list_description');
-  const clientLabel = t('admin.orders.client_label');
-  const providerLabel = t('admin.orders.provider_label');
   const duePrefix = t('admin.orders.due_prefix');
   const noOrdersTitle = t('admin.orders.no_orders_title');
   const noOrdersDescription = t('admin.orders.no_orders_description');
@@ -177,7 +174,7 @@ export default function AdminOrdersPage() {
             <span>{listTitle}</span>
           </CardTitle>
           <CardDescription>
-            {listDescriptionTemplate.replace('{count}', String(filteredOrders.length))}
+            {t('admin.orders.list_description', { count: filteredOrders.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -212,7 +209,7 @@ export default function AdminOrdersPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-sm font-medium">{clientLabel}</p>
+                          <p className="text-sm font-medium">{t('admin.orders.client_label')}</p>
                           <p className="text-sm text-muted-foreground">
                             {order.client?.firstName} {order.client?.lastName}
                           </p>
@@ -227,7 +224,7 @@ export default function AdminOrdersPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-sm font-medium">{providerLabel}</p>
+                          <p className="text-sm font-medium">{t('admin.orders.provider_label')}</p>
                           <p className="text-sm text-muted-foreground">
                             {order.provider?.firstName} {order.provider?.lastName}
                           </p>
@@ -264,7 +261,7 @@ export default function AdminOrdersPage() {
                         size="icon"
                         className="rounded-full border border-transparent hover:border-sky-500/30 hover:bg-sky-500/10 hover:text-sky-600 dark:hover:border-sky-500/40 dark:hover:text-sky-300"
                       >
-                      <Eye className="w-4 h-4" />
+                        <Eye className="w-4 h-4" />
                       </Button>
                     </Link>
                   </div>
