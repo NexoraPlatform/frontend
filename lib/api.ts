@@ -558,6 +558,10 @@ export class ApiClient {
     return this.request<any>(endpoint);
   }
 
+  async getPopularServices() {
+    return this.request<any>(`/services/popular`);
+  }
+
   // Servicii disponibile pentru prestatori să se înscrie
   async getAvailableServicesForProvider(categoryId?: string) {
     const params = categoryId ? `?categoryId=${categoryId}` : '';
