@@ -75,9 +75,19 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = useCallback(async () => {
-    const freshUser = await apiClient.me();
-    setUser(freshUser);
-  }, []);
+    try {
+      const freshUser = await apiClient.me();
+      const normalizedUser = {
+        ...freshUser,
+        id: String(freshUser.id)
+      };
+      setUser(normalizedUser);
+      // Synchronize NextAuth session/JWT
+      await update(normalizedUser);
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    }
+  }, [update]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -111,8 +121,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         // Dacă ai setat manual cookie-uri folosind js-cookie sau document.cookie
         document.cookie.split(";").forEach((c) => {
           document.cookie = c
-              .replace(/^ +/, "")
-              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            .replace(/^ +/, "")
+            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
       }
 
