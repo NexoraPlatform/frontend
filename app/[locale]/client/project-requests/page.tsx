@@ -36,6 +36,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
 import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -302,7 +303,14 @@ export default function ClientProjectRequestsPage() {
                                                 <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-slate-500 dark:text-[#A3ADC2]">
                                                     <div className="flex items-center gap-1">
                                                         <DollarSign className="w-4 h-4 text-[#1BC47D]" />
-                                                        <span>{t('client.project_requests.project.total_budget', { amount: project.budget?.toLocaleString() })}</span>
+                                                        <span>
+                                                            {t('client.project_requests.project.total_budget')}{' '}
+                                                            {project.budget != null ? (
+                                                                <PriceDisplay value={project.budget} />
+                                                            ) : (
+                                                                '-'
+                                                            )}
+                                                        </span>
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="w-4 h-4 text-[#1BC47D]" />
@@ -412,7 +420,12 @@ export default function ClientProjectRequestsPage() {
                                                                 <div className="text-left lg:text-right">
                                                                     {getStatusBadge(provider.status)}
                                                                     <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
-                                                                        {t('client.project_requests.providers.allocated', { amount: provider.allocatedBudget?.toLocaleString() })}
+                                                                        {t('client.project_requests.providers.allocated')}{' '}
+                                                                        {provider.allocatedBudget != null ? (
+                                                                            <PriceDisplay value={provider.allocatedBudget} />
+                                                                        ) : (
+                                                                            '-'
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -427,10 +440,19 @@ export default function ClientProjectRequestsPage() {
                                                                                     {t('client.project_requests.budget.new_proposal')}
                                                                                 </div>
                                                                                 <div className="text-lg font-bold text-[#1BC47D]">
-                                                                                    {provider.proposedBudget?.toLocaleString()} RON
+                                                                                    {provider.proposedBudget != null ? (
+                                                                                        <PriceDisplay value={provider.proposedBudget} />
+                                                                                    ) : (
+                                                                                        '-'
+                                                                                    )}
                                                                                 </div>
                                                                                 <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
-                                                                                    {t('client.project_requests.budget.original', { amount: provider.allocatedBudget?.toLocaleString() })}
+                                                                                    {t('client.project_requests.budget.original')}{' '}
+                                                                                    {provider.allocatedBudget != null ? (
+                                                                                        <PriceDisplay value={provider.allocatedBudget} />
+                                                                                    ) : (
+                                                                                        '-'
+                                                                                    )}
                                                                                 </div>
                                                                             </div>
                                                                             <div className="flex flex-wrap gap-2">
@@ -483,7 +505,8 @@ export default function ClientProjectRequestsPage() {
                                                                             <span>{milestone.title}</span>
                                                                             <span>/</span>
                                                                             <span className="font-medium">
-                                                                                {t('client.project_requests.providers.milestone_budget', { amount: milestone.amount.toLocaleString() })}
+                                                                                {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                                                <PriceDisplay value={milestone.amount} />
                                                                             </span>
                                                                         </div>
 
@@ -557,15 +580,33 @@ export default function ClientProjectRequestsPage() {
                             </div>
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
-                                <span className="font-bold text-lg">{Number(selectedProject?.budget)?.toLocaleString()} RON</span>
+                                <span className="font-bold text-lg">
+                                    {selectedProject?.budget != null ? (
+                                        <PriceDisplay value={Number(selectedProject?.budget)} />
+                                    ) : (
+                                        '-'
+                                    )}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
-                                <span className="font-bold text-lg">{Number(selectedProject?.budget * 12 / 100)?.toLocaleString()} RON</span>
+                                <span className="font-bold text-lg">
+                                    {selectedProject?.budget != null ? (
+                                        <PriceDisplay value={Number(selectedProject?.budget) * 0.12} />
+                                    ) : (
+                                        '-'
+                                    )}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
-                                <span className="font-bold text-lg">{(Number(selectedProject?.budget) + (Number(selectedProject?.budget) * (12 / 100)))?.toLocaleString()} RON</span>
+                                <span className="font-bold text-lg">
+                                    {selectedProject?.budget != null ? (
+                                        <PriceDisplay value={Number(selectedProject?.budget) * 1.12} />
+                                    ) : (
+                                        '-'
+                                    )}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -652,9 +693,12 @@ export default function ClientProjectRequestsPage() {
                                 ) : (
                                     <>
                                         <Shield className="w-4 h-4 mr-2" />
-                                        {t('client.project_requests.checkout.secure_amount', {
-                                            amount: (Number(selectedProject?.budget) + (Number(selectedProject?.budget) * 12 / 100))?.toLocaleString(),
-                                        })}
+                                        {t('client.project_requests.checkout.secure_amount')}{' '}
+                                        {selectedProject?.budget != null ? (
+                                            <PriceDisplay value={Number(selectedProject?.budget) * 1.12} />
+                                        ) : (
+                                            '-'
+                                        )}
                                     </>
                                 )}
                             </Button>

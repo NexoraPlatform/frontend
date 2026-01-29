@@ -28,8 +28,8 @@
       "financial_title": "Financial Settings",
       "financial_desc": "Configure commissions and price limits",
       "commission_label": "Platform Commission (%)",
-      "min_price_label": "Minimum Service Price (RON)",
-      "max_price_label": "Maximum Service Price (RON)",
+      "min_price_label": "Minimum Service Price",
+      "max_price_label": "Maximum Service Price",
       "currency_label": "Default Currency",
       "currency_options": {
         "RON": "RON - Romanian Leu",

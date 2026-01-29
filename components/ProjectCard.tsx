@@ -2,9 +2,10 @@
 
 import { Star, MapPin, Zap } from 'lucide-react';
 import Image from 'next/image';
-import { ProjectWithClient, formatBudgetRange, formatDeadline, formatDate } from '@/lib/projects';
+import { ProjectWithClient, formatDeadline, formatDate } from '@/lib/projects';
 import { useLocale, useTranslations } from 'next-intl';
 import { Locale } from '@/types/locale';
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 interface ProjectCardProps {
   project: ProjectWithClient;
@@ -13,6 +14,8 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   const locale = useLocale() as Locale;
   const t = useTranslations();
+  const minBudget = project.budget_min ?? project.budget;
+  const maxBudget = project.budget_max ?? project.budget;
 
   return (
     <div
@@ -92,7 +95,21 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div>
             <p className="text-xs text-slate-500 mb-1 dark:text-[#7C8799]">{t('projects.list.card.budget')}</p>
             <p className="text-sm font-bold text-midnight-blue dark:text-[#E6EDF3]">
-              {formatBudgetRange({ ...project, locale })}
+              {minBudget != null && maxBudget != null ? (
+                minBudget === maxBudget ? (
+                  <PriceDisplay value={minBudget} />
+                ) : (
+                  <>
+                    <PriceDisplay value={minBudget} /> - <PriceDisplay value={maxBudget} />
+                  </>
+                )
+              ) : minBudget != null ? (
+                <PriceDisplay value={minBudget} />
+              ) : maxBudget != null ? (
+                <PriceDisplay value={maxBudget} />
+              ) : (
+                '—'
+              )}
             </p>
             <p className="text-xs text-slate-500 dark:text-[#7C8799]">
               {project.budget_type === 'fixed' ? t('projects.list.card.fixed') : t('projects.list.card.hourly')}

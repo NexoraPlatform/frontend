@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import Image from "next/image";
 import { useTranslations } from 'next-intl';
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 export function TestimonialsSection() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -25,7 +26,7 @@ export function TestimonialsSection() {
       avatar:
         'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150',
       project: 'Aplicație FinTech',
-      value: '45,000 RON',
+      value: 45000,
       company: 'TechStart Romania',
     },
     {
@@ -37,7 +38,7 @@ export function TestimonialsSection() {
       avatar:
         'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
       project: 'Campanie Marketing',
-      value: '12,000 RON',
+      value: 12000,
       company: 'E-Commerce Plus',
     },
     {
@@ -49,7 +50,7 @@ export function TestimonialsSection() {
       avatar:
         'https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=150',
       project: 'Website Design',
-      value: '8,500 RON',
+      value: 8500,
       company: 'Creative Studio',
     },
   ];
@@ -106,7 +107,9 @@ export function TestimonialsSection() {
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground mb-1">Proiect</div>
                   <div className="font-bold text-xl">{testimonials[currentTestimonial].project}</div>
-                  <div className="text-lg text-emerald-600 font-bold">{testimonials[currentTestimonial].value}</div>
+                  <div className="text-lg text-emerald-600 font-bold">
+                    <PriceDisplay value={testimonials[currentTestimonial].value} />
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -1,5 +1,6 @@
 import { apiClient } from './api';
 import { Locale } from '@/types/locale';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 
 export type ProjectClient = {
   name: string;
@@ -333,10 +334,10 @@ export async function getProjectTechnologies(): Promise<string[]> {
   return Array.from(uniqueTechs.values());
 }
 
-export function formatCurrency(value: number) {
-  return new Intl.NumberFormat('ro-RO', {
+export function formatCurrency(value: number, currency: string = DEFAULT_CURRENCY, locale = 'ro-RO') {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'RON',
+    currency,
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -364,17 +365,17 @@ export function formatBudgetRange({
 
   if (minValue !== undefined && maxValue !== undefined) {
     if (minValue === maxValue) {
-      return formatCurrency(minValue);
+      return formatCurrency(minValue, DEFAULT_CURRENCY, locale === 'en' ? 'en-US' : 'ro-RO');
     }
-    return `${formatCurrency(minValue)} - ${formatCurrency(maxValue)}`;
+    return `${formatCurrency(minValue, DEFAULT_CURRENCY, locale === 'en' ? 'en-US' : 'ro-RO')} - ${formatCurrency(maxValue, DEFAULT_CURRENCY, locale === 'en' ? 'en-US' : 'ro-RO')}`;
   }
 
   if (minValue !== undefined) {
-    return `${t.from} ${formatCurrency(minValue)}`;
+    return `${t.from} ${formatCurrency(minValue, DEFAULT_CURRENCY, locale === 'en' ? 'en-US' : 'ro-RO')}`;
   }
 
   if (maxValue !== undefined) {
-    return `${t.to} ${formatCurrency(maxValue)}`;
+    return `${t.to} ${formatCurrency(maxValue, DEFAULT_CURRENCY, locale === 'en' ? 'en-US' : 'ro-RO')}`;
   }
 
   return t.unspecified;

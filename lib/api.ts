@@ -1,4 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
+const DEFAULT_CURRENCY = 'USD';
+const CURRENCY_STORAGE_KEY = 'preferred_currency';
 
 export type RoleLite = {
   id: number;
@@ -209,15 +211,33 @@ export class ApiClient {
     return cookieLocale ?? null;
   }
 
+  private getSelectedCurrencyFromStorage(): string {
+    if (typeof window === 'undefined') {
+      return DEFAULT_CURRENCY;
+    }
+
+    const storedCurrency = localStorage.getItem(CURRENCY_STORAGE_KEY);
+    if (storedCurrency) {
+      return storedCurrency;
+    }
+
+    return DEFAULT_CURRENCY;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = new URL(`${this.baseURL}${endpoint}`);
     const selectedLanguage = this.getSelectedLanguageFromPathname();
+    const selectedCurrency = this.getSelectedCurrencyFromStorage();
 
     if (selectedLanguage && !url.searchParams.has('language')) {
       url.searchParams.set('language', selectedLanguage);
+    }
+
+    if (selectedCurrency && !url.searchParams.has('currency')) {
+      url.searchParams.set('currency', selectedCurrency);
     }
 
     const config: RequestInit = {

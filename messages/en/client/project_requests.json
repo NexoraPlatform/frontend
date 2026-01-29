@@ -11,7 +11,7 @@
       "cta": "Create project"
     },
     "project": {
-      "total_budget": "Total budget: {amount} RON",
+      "total_budget": "Total budget:",
       "created": "Created",
       "selected_providers": "{count} selected providers",
       "technologies": "Project technologies"
@@ -19,15 +19,15 @@
     "providers": {
       "title": "Provider responses",
       "location_fallback": "Romania",
-      "allocated": "Allocated: {amount} RON",
+      "allocated": "Allocated:",
       "response_received": "Response received",
-      "milestone_budget": "Allocated budget: {amount} RON"
+      "milestone_budget": "Allocated budget:"
     },
     "budget": {
       "approved": "Budget approved!",
       "rejected": "Budget rejected",
       "new_proposal": "New budget proposal",
-      "original": "Original budget: {amount} RON",
+      "original": "Original budget:",
       "approve": "Approve",
       "reject": "Reject"
     },
@@ -71,7 +71,7 @@
       "card_details": "Payment card details",
       "success": "Payment authorized successfully! Providers can start working.",
       "processing": "Processing...",
-      "secure_amount": "Secure {amount} RON",
+      "secure_amount": "Secure",
       "cancel": "Cancel",
       "footer": {
         "ssl": "SSL secured",

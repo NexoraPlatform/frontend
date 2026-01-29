@@ -88,8 +88,8 @@ export default function AboutPage() {
     },
     {
       year: '2021',
-      title: 'Primul Milion de RON',
-      description: 'Am atins primul milion de RON în tranzacții procesate, confirmând nevoia pieței pentru serviciile noastre.'
+      title: 'Primul Milion în tranzacții',
+      description: 'Am atins primul milion în tranzacții procesate, confirmând nevoia pieței pentru serviciile noastre.'
     },
     {
       year: '2022',
