@@ -85,7 +85,7 @@ type ExplanationQuestion = {
 };
 
 export default function SelectTestsPageClient() {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [testData, setTestData] = useState<TestData[]>([]);
     const [availableTests, setAvailableTests] = useState<any[]>([]);
     const [currentTest, setCurrentTest] = useState<any>(null);
@@ -121,11 +121,15 @@ export default function SelectTestsPageClient() {
     }, []);
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (userLoading) return;
+
+        if (!user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
             router.push('/dashboard');
+            return;
         }
 
         const dataParam = searchParams.get('data');
@@ -142,7 +146,7 @@ export default function SelectTestsPageClient() {
         } else {
             router.push('/provider/services/select');
         }
-    }, [user, loading, router, searchParams]);
+    }, [user, userLoading, router, searchParams]);
 
     const handleSubmitTest = useCallback(async () => {
         setLoadingResults(true);
@@ -472,7 +476,7 @@ export default function SelectTestsPageClient() {
         );
     }
 
-    if (loading || loadingTests) {
+    if (loading || userLoading || loadingTests) {
 
         return (
             <div className="flex items-center justify-center min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">

@@ -33,7 +33,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 
 export default function SelectLevelsPageClient() {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [services, setServices] = useState<any[]>([]);
     const [serviceLevels, setServiceLevels] = useState<{[key: string]: string}>({});
     const [error, setError] = useState('');
@@ -42,11 +42,15 @@ export default function SelectLevelsPageClient() {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (userLoading) return;
+
+        if (!user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
             router.push('/dashboard');
+            return;
         }
 
         const servicesParam = searchParams.get('services');
@@ -55,7 +59,7 @@ export default function SelectLevelsPageClient() {
         } else {
             router.push('/provider/services/select');
         }
-    }, [user, loading, router, searchParams]);
+    }, [user, userLoading, router, searchParams]);
 
     const loadServices = async (serviceIds: string[]) => {
         try {
@@ -170,7 +174,7 @@ export default function SelectLevelsPageClient() {
         return levels.find(l => l.value === levelValue) || levels[0];
     };
 
-    if (loading || loadingServices) {
+    if (loading || userLoading || loadingServices) {
         return (
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />

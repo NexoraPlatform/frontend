@@ -15,14 +15,16 @@ export default function ScheduleCallClient({ id }: { id: string; }) {
     const t = useTranslations('tests.schedule');
     const router = useRouter();
     const [service, setService] = useState<any>(null);
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider');
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (userLoading) return;
+
+        if (!user) {
             router.push('/auth/signin');
         }
-    }, [user, loading, router]);
+    }, [user, userLoading, router]);
 
     useEffect(() => {
         (async function () {
@@ -44,7 +46,7 @@ export default function ScheduleCallClient({ id }: { id: string; }) {
         }
     };
 
-    if (loading) {
+    if (loading || userLoading) {
         return (
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <TrustoraThemeStyles />

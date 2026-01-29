@@ -25,7 +25,7 @@ const LANGUAGES = [
 ];
 
 export default function NewLegalClausePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, userLoading } = useAuth();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [category, setCategory] = useState('');
@@ -39,10 +39,12 @@ export default function NewLegalClausePage() {
   );
 
   useEffect(() => {
-    if (!loading && !canCreate) {
+    if (userLoading) return;
+
+    if (!canCreate) {
       router.replace(`/access-denied?from=${encodeURIComponent('/admin/legal/clauses/new')}`);
     }
-  }, [loading, canCreate, router]);
+  }, [userLoading, canCreate, router]);
 
   const handleContentChange = (language: string, value: string) => {
     setContent((prev) => ({ ...prev, [language]: value }));
@@ -82,7 +84,7 @@ export default function NewLegalClausePage() {
     }
   };
 
-  if (loading || !canCreate) {
+  if (loading || userLoading || !canCreate) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
