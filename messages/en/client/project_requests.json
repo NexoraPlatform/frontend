@@ -56,7 +56,7 @@
       "description": "Protect your investment with escrow",
       "project_label": "Project:",
       "project_value": "Project value:",
-      "platform_fee": "Platform fee (12%):",
+      "platform_fee": "Platform fee (10%):",
       "total_value": "Total value:",
       "how_it_works": {
         "title": "How escrow works",

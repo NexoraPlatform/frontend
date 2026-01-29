@@ -1332,6 +1332,10 @@ export class ApiClient {
     return this.request<any>('/projects', {
       method: 'POST',
       body: JSON.stringify(projectData),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
     });
   }
 

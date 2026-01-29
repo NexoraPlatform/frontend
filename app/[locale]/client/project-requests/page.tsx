@@ -65,6 +65,7 @@ export default function ClientProjectRequestsPage() {
     const loadProjects = useCallback(async () => {
         try {
             const response = await apiClient.getClientProjectRequests();
+
             setProjects(response.projects || []);
         } catch (error) {
             console.error('Failed to load projects:', error);
@@ -527,8 +528,9 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
                                 <span className="font-bold text-lg">
+
                                     {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount) * 0.12} />
+                                        <PriceDisplay value={Number(selectedProject?.budget?.amount ?? 0) * 0.10 >= 150 ? 150 : Number(selectedProject.budget?.amount ?? 0) * 0.10} />
                                     ) : (
                                         '-'
                                     )}
@@ -538,7 +540,7 @@ export default function ClientProjectRequestsPage() {
                                 <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
                                 <span className="font-bold text-lg">
                                     {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount) * 1.12} />
+                                        <PriceDisplay value={Number(selectedProject.budget?.amount ?? 0) * 0.10 >= 150 ? Number(selectedProject.budget?.amount ?? 0) + 150 : Number(selectedProject.budget?.amount ?? 0) * 1.10} />
                                     ) : (
                                         '-'
                                     )}
