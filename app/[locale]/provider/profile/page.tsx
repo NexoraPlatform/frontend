@@ -61,7 +61,7 @@ export default function ProviderProfileEditPage() {
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
     const router = useRouter();
-    const { data: providerProfile, loading: profileLoading } = useProviderProfile();
+    const { data: providerProfile, loading: profileLoading } = useProviderProfile(!userLoading && Boolean(user));
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
