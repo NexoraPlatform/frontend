@@ -118,6 +118,14 @@ export default function AdminSettingsPage() {
     const platform_currency_opt_RON = t('admin.settings.platform.currency_options.RON');
     const platform_currency_opt_EUR = t('admin.settings.platform.currency_options.EUR');
     const platform_currency_opt_USD = t('admin.settings.platform.currency_options.USD');
+    const currencyOptions = [
+        { value: 'RON', label: platform_currency_opt_RON, icon: '🇷🇴' },
+        { value: 'EUR', label: platform_currency_opt_EUR, icon: '🇪🇺' },
+        { value: 'USD', label: platform_currency_opt_USD, icon: '🇺🇸' },
+    ];
+    const selectedCurrency = currencyOptions.find(
+        (option) => option.value === settings.defaultCurrency
+    );
 
     const platform_user_title     = t('admin.settings.platform.user_title');
     const platform_user_desc      = t('admin.settings.platform.user_desc');
@@ -431,12 +439,28 @@ export default function AdminSettingsPage() {
                                         onValueChange={(value) => updateSetting('defaultCurrency', value)}
                                     >
                                         <SelectTrigger className="bg-white/80 dark:bg-slate-900/60">
-                                            <SelectValue />
+                                            {selectedCurrency ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg leading-none" aria-hidden="true">
+                                                        {selectedCurrency.icon}
+                                                    </span>
+                                                    <span>{selectedCurrency.label}</span>
+                                                </div>
+                                            ) : (
+                                                <SelectValue />
+                                            )}
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="RON">{platform_currency_opt_RON}</SelectItem>
-                                            <SelectItem value="EUR">{platform_currency_opt_EUR}</SelectItem>
-                                            <SelectItem value="USD">{platform_currency_opt_USD}</SelectItem>
+                                            {currencyOptions.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="text-base leading-none" aria-hidden="true">
+                                                            {option.icon}
+                                                        </span>
+                                                        <span>{option.label}</span>
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
