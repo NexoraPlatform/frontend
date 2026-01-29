@@ -3,11 +3,12 @@
 import { useMemo } from 'react';
 import { useLocale } from 'next-intl';
 import { useCurrency } from '@/hooks/useCurrency';
+import { supportedCurrencies } from '@/lib/currency';
 import type { Currency } from '@/lib/currency';
 
 interface PriceDisplayProps {
   value: number;
-  currency?: Currency;
+  currency?: Currency | string;
 }
 
 const localeByCurrency: Record<Currency, string> = {
@@ -19,15 +20,18 @@ const localeByCurrency: Record<Currency, string> = {
 export function PriceDisplay({ value, currency }: PriceDisplayProps) {
   const locale = useLocale();
   const { currency: contextCurrency } = useCurrency();
-  const activeCurrency = currency ?? contextCurrency;
+  const resolvedCurrency =
+    currency && supportedCurrencies.includes(currency as Currency)
+      ? (currency as Currency)
+      : contextCurrency;
 
   const formattedValue = useMemo(() => {
-    const resolvedLocale = locale === 'ro' ? 'ro-RO' : localeByCurrency[activeCurrency];
+    const resolvedLocale = locale === 'ro' ? 'ro-RO' : localeByCurrency[resolvedCurrency];
     return new Intl.NumberFormat(resolvedLocale, {
       style: 'currency',
-      currency: activeCurrency,
+      currency: resolvedCurrency,
     }).format(value);
-  }, [activeCurrency, locale, value]);
+  }, [resolvedCurrency, locale, value]);
 
   return <span>{formattedValue}</span>;
 }
