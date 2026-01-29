@@ -166,7 +166,7 @@
     },
     "notifications": {
       "new_project_title": "🚀 New project available!",
-      "new_project_message": "A client is looking for services for: {title}. Budget: {budget} RON"
+      "new_project_message": "A client is looking for services for: {title}. Budget: {budget}"
     },
     "budget_types": {
       "fixed": "Fixed project price",
@@ -251,7 +251,7 @@
       },
       "additional_services_label": "Suggested additional services:",
       "milestone_count": " • {count} milestones",
-      "milestone_item": "{title} - {amount} {currency}"
+      "milestone_item": "{title} -"
     },
     "actions": {
       "continue_to_providers": "Continue to providers",
@@ -285,8 +285,8 @@
         "allocated": "Allocated",
         "remaining": "Remaining"
       },
-      "budget_remaining_positive": "You still have {amount} {currency} to allocate",
-      "budget_remaining_negative": "You have exceeded the budget by {amount} {currency}",
+      "budget_remaining_positive": "You still have",
+      "budget_remaining_negative": "You have exceeded the budget by",
       "milestones": {
         "title": "Milestones per provider",
         "description": "Add milestones after selecting providers for projects longer than a month.",
@@ -295,13 +295,13 @@
         "add": "Add milestone",
         "empty": "There are no milestones yet for this provider.",
         "name_label": "Milestone name",
-        "budget_label": "Milestone budget ({currency})",
+        "budget_label": "Milestone budget",
         "name_placeholder": "e.g. Discovery",
         "budget_placeholder": "e.g. 1500",
         "delete_aria": "Delete milestone",
-        "total_provider": "Total milestones: {amount} {currency}",
-        "summary_total": "Total milestones: {amount} {currency}",
-        "summary_difference": "Difference: {amount} {currency}"
+        "total_provider": "Total milestones:",
+        "summary_total": "Total milestones:",
+        "summary_difference": "Difference:"
       },
       "match_score": "• {score}% match",
       "allocated_budget_label": "Allocated budget:",
@@ -313,9 +313,6 @@
       "medium": "Intermediate",
       "senior": "Senior",
       "expert": "Expert"
-    },
-    "currency": {
-      "ron": "RON"
     }
   }
 }

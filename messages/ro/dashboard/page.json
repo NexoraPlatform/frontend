@@ -45,7 +45,7 @@
       },
       "monthly_revenue": {
         "title": "Venituri lunare",
-        "value": "4,500 RON",
+        "value": "4,500",
         "change": "+15% față de luna trecută"
       },
       "average_rating": {
@@ -67,7 +67,7 @@
       },
       "budget_spent": {
         "title": "Buget cheltuit",
-        "value": "12,000 RON",
+        "value": "12,000",
         "change": "+25% această lună"
       },
       "projects_completed": {
@@ -122,7 +122,7 @@
       },
       "budget_proposal": {
         "title": "Propunere de buget primită",
-        "meta": "3,200 RON pentru Logo Design • Acum 3 ore"
+        "meta": "3,200 pentru Logo Design • Acum 3 ore"
       },
       "new_project": {
         "title": "Proiect nou postat",

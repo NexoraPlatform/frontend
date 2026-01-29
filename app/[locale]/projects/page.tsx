@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
-import { getProjectCategories, getProjectTechnologies, ProjectWithClient } from '@/lib/projects';
+import { ProjectWithClient } from '@/lib/projects';
 import { apiClient } from '@/lib/api';
 import { ProjectFilters } from '@/components/ProjectFilters';
 import { ProjectCard } from '@/components/ProjectCard';
@@ -11,6 +11,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Badge } from '@/components/ui/badge';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -25,33 +26,15 @@ export default function ProjectsPage() {
   const [selectedBudgetMin, setSelectedBudgetMin] = useState(0);
   const [selectedBudgetMax, setSelectedBudgetMax] = useState(999999);
   const [searchQuery, setSearchQuery] = useState('');
+  const { currency } = useCurrency();
 
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
-
-  useEffect(() => {
-    const initializeFilters = async () => {
-      try {
-        const [cats, techs] = await Promise.all([
-          getProjectCategories(),
-          getProjectTechnologies(),
-        ]);
-        setCategories(cats);
-        setTechnologies(techs);
-      } catch (error) {
-        console.error('Failed to load filters:', error);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-
-    initializeFilters();
-  }, []);
 
   const loadProjects = useCallback(
     async (pageNum: number, isReset: boolean = false) => {
@@ -87,7 +70,14 @@ export default function ProjectsPage() {
         isLoadingRef.current = false;
       }
     },
-    [searchQuery, selectedCategory, selectedTechnologies, selectedBudgetMin, selectedBudgetMax]
+    [
+      searchQuery,
+      selectedCategory,
+      selectedTechnologies,
+      selectedBudgetMin,
+      selectedBudgetMax,
+      currency,
+    ]
   );
 
   useEffect(() => {
@@ -117,6 +107,7 @@ export default function ProjectsPage() {
     selectedBudgetMin,
     selectedBudgetMax,
     searchQuery,
+    currency,
     loadProjects,
   ]);
 
