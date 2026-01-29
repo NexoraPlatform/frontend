@@ -9,7 +9,6 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -47,7 +46,6 @@ if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 export default function ClientProjectRequestsPage() {
-    const params = useSearchParams();
     const { user, loading, userLoading } = useAuth();
     const locale = useLocale();
     const t = useTranslations();
@@ -65,6 +63,12 @@ export default function ClientProjectRequestsPage() {
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
     const [stripeProject, setStripeProject] = useState<any | null>(null);
+
+    const handleCheckoutComplete = useCallback(async () => {
+        setSuccess(true);
+        setCheckoutDialogOpen(false);
+        await loadProjects();
+    }, [loadProjects]);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -627,7 +631,10 @@ export default function ClientProjectRequestsPage() {
 
                         {clientSecret && (
                             <div className="min-h-[400px]"> {/* Oferim o înălțime minimă pentru a evita layout shift */}
-                                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                                <EmbeddedCheckoutProvider
+                                    stripe={stripePromise}
+                                    options={{ clientSecret, onComplete: handleCheckoutComplete }}
+                                >
                                     <EmbeddedCheckout className="w-full" />
                                 </EmbeddedCheckoutProvider>
                             </div>
