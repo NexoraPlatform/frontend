@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
 import { apiClient, DashboardStatsResponse } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
 import { SiStripe } from "react-icons/si";
@@ -73,6 +75,9 @@ export default function DashboardClient() {
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const availableTabs = ['overview', 'projects', 'services', 'messages', 'settings'];
   useEffect(() => {
     if (userLoading) return;
 
@@ -80,6 +85,25 @@ export default function DashboardClient() {
       router.push('/auth/signin');
     }
   }, [user, userLoading, router]);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && availableTabs.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, activeTab, availableTabs]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', value);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
 
   const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
@@ -168,6 +192,23 @@ export default function DashboardClient() {
       setLoadingStats(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!user?.id || !isProvider || activeTab !== 'projects') return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    const echo = getEcho(token);
+    if (!echo) return;
+    const channel = echo.private(`App.Models.User.${user.id}`);
+    const handler = (notification: { type?: string }) => {
+      if (notification?.type !== 'project.status.updated') return;
+      loadProjects();
+    };
+    channel.notification(handler);
+
+    return () => {
+      channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+    };
+  }, [user?.id, isProvider, activeTab, loadProjects]);
 
   useEffect(() => {
     if (user && activeTab === 'overview') {
@@ -486,7 +527,7 @@ export default function DashboardClient() {
       <section className="px-6 pb-20">
         <div className="max-w-6xl mx-auto">
           {/* Dashboard Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
               <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
@@ -874,6 +915,7 @@ export default function DashboardClient() {
                       key={project.id}
                       project={project}
                       onResponse={handleProjectResponse}
+                      onRefresh={loadProjects}
                     />
                   ))}
 

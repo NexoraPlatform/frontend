@@ -31,6 +31,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
@@ -72,6 +73,23 @@ export default function ClientProjectRequestsPage() {
             setLoadingProjects(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const echo = getEcho(token);
+        if (!echo) return;
+        const channel = echo.private(`App.Models.User.${user.id}`);
+        const handler = (notification: { type?: string }) => {
+            if (notification?.type !== 'project.status.updated') return;
+            loadProjects();
+        };
+        channel.notification(handler);
+
+        return () => {
+            channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+        };
+    }, [user?.id, loadProjects]);
 
     const handleCheckoutComplete = useCallback(async () => {
         setSuccess(true);

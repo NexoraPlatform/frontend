@@ -45,6 +45,7 @@ import { PriceDisplay } from '@/components/PriceDisplay';
 interface ProjectRequestCardProps {
     project: any;
     onResponse: (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => void;
+    onRefresh?: () => void;
 }
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
@@ -53,7 +54,7 @@ if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
-export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardProps) {
+export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRequestCardProps) {
     const { user, loading } = useAuth();
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
@@ -172,6 +173,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
         try {
             await apiClient.respondToBudgetProposal(projectId, providerId, { response });
             toast.success(response === 'ACCEPTED' ? 'Buget aprobat!' : 'Buget respins');
+            onRefresh?.();
         } catch (error: any) {
             toast.error('Eroare: ' + error.message);
         } finally {
