@@ -12,6 +12,12 @@ interface CurrencySwitcherProps {
   className?: string;
 }
 
+const currencyIcons: Record<Currency, string> = {
+  USD: '🇺🇸',
+  EUR: '🇪🇺',
+  RON: '🇷🇴',
+};
+
 export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
   const { currency, setCurrency } = useCurrency();
   const [mounted, setMounted] = useState(false);
@@ -30,6 +36,9 @@ export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
           className={cn('h-11 w-auto px-3 flex items-center gap-2 rounded-xl text-sm font-semibold', className)}
           aria-label="Schimbă valuta"
         >
+          <span aria-hidden="true" className="text-base">
+            {currencyIcons[currency]}
+          </span>
           {currency}
         </Button>
       </DropdownMenuTrigger>
@@ -50,6 +59,9 @@ export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
                 isCurrent && 'font-semibold text-primary'
               )}
             >
+              <span aria-hidden="true" className="text-base">
+                {currencyIcons[nextCurrency]}
+              </span>
               {nextCurrency}
             </DropdownMenuItem>
           );
