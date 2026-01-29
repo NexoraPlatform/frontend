@@ -22,7 +22,7 @@
     "role_label": "Tip cont",
     "role_client": "Client - Caut servicii IT",
     "role_provider": "Prestator - Ofer servicii IT",
-    "company_label": "Companie (opțional)",
+    "company_label": "Companie",
     "company_placeholder": "Numele companiei",
     "password_label": "Parola",
     "password_placeholder": "Minim 8 caractere",
