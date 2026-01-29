@@ -36,7 +36,7 @@ export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
           className={cn('h-11 w-auto px-3 flex items-center gap-2 rounded-xl text-sm font-semibold', className)}
           aria-label="Schimbă valuta"
         >
-          <span aria-hidden="true" className="text-base">
+          <span aria-hidden="true" className="text-base pr-1">
             {currencyIcons[currency]}
           </span>
           {currency}
@@ -59,7 +59,7 @@ export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
                 isCurrent && 'font-semibold text-primary'
               )}
             >
-              <span aria-hidden="true" className="text-base">
+              <span aria-hidden="true" className="text-base pr-1">
                 {currencyIcons[nextCurrency]}
               </span>
               {nextCurrency}
