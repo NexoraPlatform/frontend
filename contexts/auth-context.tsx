@@ -50,17 +50,23 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (session?.accessToken) {
       apiClient.setToken(session.accessToken);
-    } else {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', session.accessToken);
+      }
+    } else if (status === 'unauthenticated') {
       apiClient.removeToken();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+      }
     }
 
     if (session?.user) {
       // @ts-ignore
       setUser(session.user);
-    } else {
+    } else if (status === 'unauthenticated') {
       setUser(null);
     }
-  }, [session]);
+  }, [session, status]);
 
   const login = async (email: string, password: string) => {
     const result = await signIn("credentials", {

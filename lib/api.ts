@@ -213,6 +213,13 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    if (!this.token && typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken) {
+        this.token = storedToken;
+      }
+    }
+
     const url = new URL(`${this.baseURL}${endpoint}`);
     const selectedLanguage = this.getSelectedLanguageFromPathname();
 
