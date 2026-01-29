@@ -103,6 +103,7 @@ export default function SignUpPage() {
         phone: formData.phone,
         password: formData.password,
         role: formData.role,
+        company: formData.company,
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -116,7 +117,7 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
       <TrustoraThemeStyles />
       <Header />
-      
+
       <div className="relative mt-8 overflow-hidden">
         <div className="absolute inset-0 hero-gradient" />
         <div className="relative container mx-auto px-4 py-20">
@@ -240,7 +241,6 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
-                  {formData.role === 'PROVIDER' && (
                     <div className="space-y-2">
                       <Label htmlFor="company">{companyLabel}</Label>
                       <div className="relative">
@@ -254,7 +254,6 @@ export default function SignUpPage() {
                         />
                       </div>
                     </div>
-                  )}
 
                   <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">

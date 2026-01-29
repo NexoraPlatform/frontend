@@ -22,7 +22,7 @@
     "role_label": "Account type",
     "role_client": "Client - I need IT services",
     "role_provider": "Provider - I offer IT services",
-    "company_label": "Company (optional)",
+    "company_label": "Company",
     "company_placeholder": "Company name",
     "password_label": "Password",
     "password_placeholder": "Minimum 8 characters",
