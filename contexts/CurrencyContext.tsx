@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { CURRENCY_STORAGE_KEY, DEFAULT_CURRENCY, supportedCurrencies } from '@/lib/currency';
 import type { Currency } from '@/lib/currency';
 
@@ -26,6 +26,12 @@ const getInitialCurrency = (): Currency => {
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>(getInitialCurrency);
+  const setCurrency = useCallback((nextCurrency: Currency) => {
+    setCurrencyState(nextCurrency);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CURRENCY_STORAGE_KEY, nextCurrency);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -49,9 +55,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       currency,
-      setCurrency: setCurrencyState,
+      setCurrency,
     }),
-    [currency]
+    [currency, setCurrency]
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
