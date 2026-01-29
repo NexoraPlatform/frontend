@@ -1501,6 +1501,10 @@ export class ApiClient {
     return this.request<any>(`/stripe/session/payment/${project_id}`);
   }
 
+  async getPayment(project_id: string, session_id: string) {
+    return this.request<any>(`/stripe/payment/${project_id}/${session_id}`);
+  }
+
   async setPaymentIntent(project_id: string, pi: string) {
     return this.request<any>(`/stripe/payment-intent/${project_id}`, {
       method: 'POST',
