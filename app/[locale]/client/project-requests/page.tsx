@@ -59,16 +59,8 @@ export default function ClientProjectRequestsPage() {
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const cardElementRef = useRef<any>(null);
     const stripeRef = useRef<any>(null);
-    const elementsRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
-    const [stripeProject, setStripeProject] = useState<any | null>(null);
-
-    const handleCheckoutComplete = useCallback(async () => {
-        setSuccess(true);
-        setCheckoutDialogOpen(false);
-        await loadProjects();
-    }, [loadProjects]);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -80,6 +72,11 @@ export default function ClientProjectRequestsPage() {
             setLoadingProjects(false);
         }
     }, []);
+
+    const handleCheckoutComplete = useCallback(async () => {
+        setSuccess(true);
+        await loadProjects();
+    }, [loadProjects]);
 
     useEffect(() => {
         if (userLoading) return;
@@ -97,48 +94,10 @@ export default function ClientProjectRequestsPage() {
         loadProjects();
     }, [user, userLoading, router, loadProjects]);
 
-    const handlePayment = async (project_id: any) => {
-        setErrorMessage('');
-
-        const stripe = stripeRef.current;
-        const cardElement = cardElementRef.current;
-
-        if (!stripe || !cardElement) {
-            setErrorMessage(t('client.project_requests.stripe.not_ready'));
-            return;
-        }
-
-        if (!clientSecret) {
-            setErrorMessage(t('client.project_requests.stripe.session_not_ready'));
-            return;
-        }
-
-        const result = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: {
-                card: cardElement,
-                billing_details: {
-                    name: `${user?.firstName} ${user?.lastName}`,
-                    email: user?.email,
-                },
-            },
-        });
-
-        await apiClient.setPaymentIntent(project_id, result.paymentIntent.id);
-
-        if (result.error) {
-            setErrorMessage(result.error.message || t('client.project_requests.stripe.payment_error'));
-        } else if (result.paymentIntent.status === 'requires_capture' || result.paymentIntent.status === 'succeeded') {
-            setSuccess(true);
-            // Poți închide dialogul, face redirect, etc.
-        }
-
-    };
-
     const getClientSecret = async (project_id: string) => {
         // router.push(response.url);
         try {
             const response = await apiClient.getPaymentSession(project_id);
-            setStripeProject(project_id);
             setClientSecret(response.clientSecret);
             setCheckoutDialogOpen(true);
         } catch (err) {
