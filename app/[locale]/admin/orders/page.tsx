@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAdminOrders } from '@/hooks/use-api';
 import { useLocale, useTranslations } from 'next-intl';
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 const STATUS_STYLES: Record<string, string> = {
   COMPLETED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
@@ -236,7 +237,7 @@ export default function AdminOrdersPage() {
                       <div className="flex items-center space-x-1">
                         <DollarSign className="w-4 h-4" />
                         <span className="font-semibold text-emerald-600 text-base dark:text-emerald-400">
-                          {order.amount} RON
+                          <PriceDisplay value={order.amount} currency={order.currency} />
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">

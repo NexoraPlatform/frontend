@@ -29,6 +29,7 @@ import CallIcon from '@mui/icons-material/Call';
 import apiClient from '@/lib/api';
 import { Can } from '@/components/Can';
 import ActivityFeed from '@/components/ActivityFeed';
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 interface AdminStats {
   totalUsers: number;
@@ -151,7 +152,7 @@ export default function AdminDashboard() {
     },
     {
       title: statsServicesTitle,
-      value: statsData?.activeServices || '0',
+      value: statsData?.activeServices || 0,
       change: Math.round(statsData?.currentMonthVsLastMonthServices || 0),
       current: statsData?.currentMonthServices || 0,
       icon: FileText,
@@ -160,7 +161,8 @@ export default function AdminDashboard() {
     },
     {
       title: statsRevenueTitle,
-      value: `${statsData?.totalRevenue || '0'} RON`,
+      value: statsData?.totalRevenue || 0,
+      isCurrency: true,
       change: Math.round(statsData?.currentMonthVsLastMonthRevenue || 0),
       current: statsData?.currentMonthRevenue || 0,
       icon: DollarSign,
@@ -432,10 +434,18 @@ export default function AdminDashboard() {
                       {stat.title}
                     </p>
                     <p className="text-2xl font-semibold text-foreground flex flex-wrap items-center gap-2">
-                      {stat.value}
+                      {stat.isCurrency ? (
+                        <PriceDisplay value={Number(stat.value)} />
+                      ) : (
+                        stat.value
+                      )}
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold ${stat?.current <= 0 ? 'text-rose-500 dark:text-rose-300' : 'text-emerald-600 dark:text-emerald-300'}`}>
                         <span className="text-muted-foreground">(</span>
-                        {stat?.current} &nbsp;{stat?.current <= 0
+                        {stat.isCurrency ? (
+                          <PriceDisplay value={Number(stat.current)} />
+                        ) : (
+                          stat?.current
+                        )} &nbsp;{stat?.current <= 0
                           ? <TrendingDown className="text-red-500 w-5 h-5" />
                           : <TrendingUp className="text-green-500 w-5 h-5" />}
                         <span className="text-muted-foreground">)</span>

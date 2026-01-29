@@ -29,6 +29,7 @@ import {
 import { apiClient } from '@/lib/api';
 import { useLocale, useTranslations } from 'next-intl';
 import { Locale } from '@/types/locale';
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 const STATUS_STYLE_MAP: Record<OrderStatus, { color: string; icon: LucideIcon }> = {
     PENDING: { color: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200', icon: Clock },
@@ -51,6 +52,7 @@ export type OrderType = {
     id: string;
     orderNumber: string;
     amount: number;
+    currency?: string;
     status: 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED';
     paymentStatus: 'PENDING' | 'FAILED' | 'REFUNDED' | 'PAID';
     createdAt: string;
@@ -459,19 +461,19 @@ export default function OrderDetailsPage({ id }: { id: string }) {
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{orderValueLabel}</span>
                                 <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
-                                  {order.amount.toLocaleString()} RON
+                                  <PriceDisplay value={order.amount} currency={order.currency} />
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{platformFeeLabel}</span>
                                 <span className="font-medium">
-                                  {(order.amount * 0.05).toLocaleString()} RON
+                                  <PriceDisplay value={order.amount * 0.05} currency={order.currency} />
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">{providerReceivesLabel}</span>
                                 <span className="font-medium">
-                                  {(order.amount * 0.95).toLocaleString()} RON
+                                  <PriceDisplay value={order.amount * 0.95} currency={order.currency} />
                                 </span>
                             </div>
                             <div className="pt-2 border-t">

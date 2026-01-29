@@ -28,8 +28,8 @@
       "financial_title": "Setări Financiare",
       "financial_desc": "Configurează comisioanele și limitele de preț",
       "commission_label": "Comision Platformă (%)",
-      "min_price_label": "Preț Minim Serviciu (RON)",
-      "max_price_label": "Preț Maxim Serviciu (RON)",
+      "min_price_label": "Preț Minim Serviciu",
+      "max_price_label": "Preț Maxim Serviciu",
       "currency_label": "Moneda Implicită",
       "currency_options": {
         "RON": "RON - Leu Românesc",

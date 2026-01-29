@@ -45,7 +45,7 @@
       },
       "monthly_revenue": {
         "title": "Monthly revenue",
-        "value": "4,500 RON",
+        "value": "4,500",
         "change": "+15% vs last month"
       },
       "average_rating": {
@@ -67,7 +67,7 @@
       },
       "budget_spent": {
         "title": "Budget spent",
-        "value": "12,000 RON",
+        "value": "12,000",
         "change": "+25% this month"
       },
       "projects_completed": {
@@ -122,7 +122,7 @@
       },
       "budget_proposal": {
         "title": "Budget proposal received",
-        "meta": "3,200 RON for Logo Design • 3 hours ago"
+        "meta": "3,200 for Logo Design • 3 hours ago"
       },
       "new_project": {
         "title": "New project posted",

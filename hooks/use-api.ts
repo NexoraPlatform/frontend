@@ -1,5 +1,8 @@
+'use client';
+
 import {useState, useEffect, useCallback, useRef} from 'react';
 import { apiClient } from '../lib/api';
+import { useCurrency } from '@/hooks/useCurrency';
 
 function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
@@ -13,6 +16,7 @@ export function useApi<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currency } = useCurrency();
 
   const fetchData = useCallback(async () => {
     try {
@@ -29,7 +33,7 @@ export function useApi<T>(
 
   // eliminăm deps duplicate cu stable stringify
   const lastDeps = useRef<string>("");
-  const depsString = stableStringify(dependencies);
+  const depsString = stableStringify([...dependencies, currency]);
 
   useEffect(() => {
     if (!enabled) {

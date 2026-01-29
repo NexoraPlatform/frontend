@@ -11,7 +11,7 @@
       "cta": "Creează proiect"
     },
     "project": {
-      "total_budget": "Buget total: {amount} RON",
+      "total_budget": "Buget total:",
       "created": "Creat",
       "selected_providers": "{count} prestatori selectați",
       "technologies": "Tehnologii proiect"
@@ -19,15 +19,15 @@
     "providers": {
       "title": "Răspunsuri prestatori",
       "location_fallback": "România",
-      "allocated": "Alocat: {amount} RON",
+      "allocated": "Alocat:",
       "response_received": "Răspuns primit",
-      "milestone_budget": "Buget alocat: {amount} RON"
+      "milestone_budget": "Buget alocat:"
     },
     "budget": {
       "approved": "Buget aprobat!",
       "rejected": "Buget respins",
       "new_proposal": "Propunere de buget nou",
-      "original": "Buget original: {amount} RON",
+      "original": "Buget original:",
       "approve": "Aprobă",
       "reject": "Respinge"
     },
@@ -71,7 +71,7 @@
       "card_details": "Detalii card de plată",
       "success": "Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.",
       "processing": "Se procesează...",
-      "secure_amount": "Securizează {amount} RON",
+      "secure_amount": "Securizează",
       "cancel": "Anulează",
       "footer": {
         "ssl": "SSL securizat",

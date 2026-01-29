@@ -166,7 +166,7 @@
     },
     "notifications": {
       "new_project_title": "🚀 Proiect nou disponibil!",
-      "new_project_message": "Un client caută servicii pentru: {title}. Buget: {budget} RON"
+      "new_project_message": "Un client caută servicii pentru: {title}. Buget: {budget}"
     },
     "budget_types": {
       "fixed": "Preț fix per proiect",
@@ -251,7 +251,7 @@
       },
       "additional_services_label": "Servicii adiționale sugerate:",
       "milestone_count": " • {count} milestones",
-      "milestone_item": "{title} - {amount} {currency}"
+      "milestone_item": "{title} -"
     },
     "actions": {
       "continue_to_providers": "Continuă către prestatori",
@@ -285,8 +285,8 @@
         "allocated": "Alocat",
         "remaining": "Rămas"
       },
-      "budget_remaining_positive": "Mai ai {amount} {currency} de alocat",
-      "budget_remaining_negative": "Ai depășit bugetul cu {amount} {currency}",
+      "budget_remaining_positive": "Mai ai",
+      "budget_remaining_negative": "Ai depășit bugetul cu",
       "milestones": {
         "title": "Milestones per prestator",
         "description": "Adaugă milestones după selectarea prestatorilor pentru proiecte mai lungi de o lună.",
@@ -295,13 +295,13 @@
         "add": "Adaugă milestone",
         "empty": "Nu există milestones încă pentru acest prestator.",
         "name_label": "Nume milestone",
-        "budget_label": "Buget milestone ({currency})",
+        "budget_label": "Buget milestone",
         "name_placeholder": "ex: Discovery",
         "budget_placeholder": "ex: 1500",
         "delete_aria": "Șterge milestone",
-        "total_provider": "Total milestones: {amount} {currency}",
-        "summary_total": "Total milestones: {amount} {currency}",
-        "summary_difference": "Diferență: {amount} {currency}"
+        "total_provider": "Total milestones:",
+        "summary_total": "Total milestones:",
+        "summary_difference": "Diferență:"
       },
       "match_score": "• {score}% potrivire",
       "allocated_budget_label": "Buget alocat:",
@@ -313,9 +313,6 @@
       "medium": "Mediu",
       "senior": "Senior",
       "expert": "Expert"
-    },
-    "currency": {
-      "ron": "RON"
     }
   }
 }

@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { Can } from "@/components/Can";
 
 const NotificationBell = dynamic(
@@ -215,6 +216,7 @@ export function Header() {
 
             <div className="flex items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <LocaleSwitcher className="w-fit" />
+              <CurrencySwitcher className="w-fit" />
               <Button
                 variant="ghost"
                 size="icon"
@@ -411,6 +413,7 @@ export function Header() {
             )}
 
             <LocaleSwitcher className="hidden lg:block" />
+            <CurrencySwitcher className="hidden lg:block" />
 
             {/* Theme Toggle */}
             <Button
@@ -505,6 +508,7 @@ export function Header() {
                     </div>
                   )}
                   <LocaleSwitcher />
+                  <CurrencySwitcher />
                 </div>
               </SheetContent>
             </Sheet>

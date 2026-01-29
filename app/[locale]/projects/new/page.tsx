@@ -56,6 +56,7 @@ import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
 import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
+import { PriceDisplay } from '@/components/PriceDisplay';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
@@ -170,7 +171,6 @@ type SelectedProvider = {
 export default function NewProjectPage() {
     const locale = useLocale() as Locale;
     const t = useTranslations();
-    const currencyLabel = t('projects.new.currency.ron');
     useEffect(() => {
         setDayjsLocale(locale);
     }, [locale]);
@@ -1523,7 +1523,7 @@ export default function NewProjectPage() {
                                                         return (
                                                             <div key={index}>
                                                                 <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
-                                                                {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - {typedTeam.estimated_cost} {currencyLabel} {t('projects.new.ai.fields.estimated')}
+                                                                {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - <PriceDisplay value={typedTeam.estimated_cost} /> {t('projects.new.ai.fields.estimated')}
                                                             </div>
                                                         );
                                                     })}
@@ -1546,7 +1546,8 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.estimated_budget !== 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.estimated_budget')}</span> {generatedAiOutput?.estimated_budget} {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
+                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
+                                                        <PriceDisplay value={generatedAiOutput?.estimated_budget ?? 0} /> {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => {
@@ -1581,9 +1582,8 @@ export default function NewProjectPage() {
                                                                         <span key={milestoneIndex}>
                                                                             {t('projects.new.ai.milestone_item', {
                                                                                 title: milestone.title,
-                                                                                amount: milestone.amount,
-                                                                                currency: currencyLabel,
-                                                                            })}
+                                                                            })}{' '}
+                                                                            <PriceDisplay value={milestone.amount} />
                                                                             {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
                                                                         </span>
                                                                     ))}
@@ -2203,9 +2203,18 @@ export default function NewProjectPage() {
                                                 <div className="space-y-2 text-sm">
                                                     <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
                                                     <div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
-                                                    <div><strong>{t('projects.new.review.labels.budget')}</strong> {formData.budget.toLocaleString()} {currencyLabel} ({getBudgetTypeLabel(formData.budgetType)})</div>
-                                                    <div><strong>{t('projects.new.review.labels.platform_fee')}</strong> {(Number(formData.budget ?? 0) * 12/100).toLocaleString()} {currencyLabel}</div>
-                                                    <div><strong>{t('projects.new.review.labels.total')}</strong> {(Number(formData.budget ?? 0) + (Number(formData.budget ?? 0) * 12/100)).toLocaleString()} {currencyLabel}</div>
+                                                    <div>
+                                                        <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
+                                                        <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
+                                                    </div>
+                                                    <div>
+                                                        <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
+                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.12} />
+                                                    </div>
+                                                    <div>
+                                                        <strong>{t('projects.new.review.labels.total')}</strong>{' '}
+                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 1.12} />
+                                                    </div>
                                                     {formData.deadline && (
                                                         <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
                                                     )}
@@ -2254,16 +2263,20 @@ export default function NewProjectPage() {
                                                         <div className="grid grid-cols-3 gap-4 text-sm">
                                                             <div>
                                                                 <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
-                                                                <div className="text-lg font-bold text-blue-600">{Number(formData.budget).toLocaleString()} {currencyLabel}</div>
+                                                                <div className="text-lg font-bold text-blue-600">
+                                                                    <PriceDisplay value={Number(formData.budget)} />
+                                                                </div>
                                                             </div>
                                                             <div>
                                                                 <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
-                                                                <div className="text-lg font-bold text-green-600">{getTotalAllocatedBudget().toLocaleString()} {currencyLabel}</div>
+                                                                <div className="text-lg font-bold text-green-600">
+                                                                    <PriceDisplay value={getTotalAllocatedBudget()} />
+                                                                </div>
                                                             </div>
                                                             <div>
                                                                 <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
                                                                 <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                                                    {getRemainingBudget().toLocaleString()} {currencyLabel}
+                                                                    <PriceDisplay value={getRemainingBudget()} />
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2272,14 +2285,18 @@ export default function NewProjectPage() {
                                                                 <AlertCircle className="h-4 w-4" />
                                                                 <AlertDescription className="text-orange-800">
                                                                     {getRemainingBudget() > 0
-                                                                        ? t('projects.new.review.budget_remaining_positive', {
-                                                                            amount: getRemainingBudget().toLocaleString(),
-                                                                            currency: currencyLabel,
-                                                                        })
-                                                                        : t('projects.new.review.budget_remaining_negative', {
-                                                                            amount: Math.abs(getRemainingBudget()).toLocaleString(),
-                                                                            currency: currencyLabel,
-                                                                        })
+                                                                        ? (
+                                                                            <>
+                                                                                {t('projects.new.review.budget_remaining_positive')}{' '}
+                                                                                <PriceDisplay value={getRemainingBudget()} />
+                                                                            </>
+                                                                        )
+                                                                        : (
+                                                                            <>
+                                                                                {t('projects.new.review.budget_remaining_negative')}{' '}
+                                                                                <PriceDisplay value={Math.abs(getRemainingBudget())} />
+                                                                            </>
+                                                                        )
                                                                     }
                                                                 </AlertDescription>
                                                             </Alert>
@@ -2348,7 +2365,7 @@ export default function NewProjectPage() {
                                                                                             />
                                                                                         </div>
                                                                                         <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label', { currency: currencyLabel })}</Label>
+                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label')}</Label>
                                                                                             <Input
                                                                                                 id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
                                                                                                 type="number"
@@ -2372,10 +2389,8 @@ export default function NewProjectPage() {
                                                                             </div>
                                                                         )}
                                                                         <div className="text-sm text-muted-foreground">
-                                                                            {t('projects.new.review.milestones.total_provider', {
-                                                                                amount: milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0).toLocaleString(),
-                                                                                currency: currencyLabel,
-                                                                            })}
+                                                                            {t('projects.new.review.milestones.total_provider')}{' '}
+                                                                            <PriceDisplay value={milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0)} />
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -2388,15 +2403,11 @@ export default function NewProjectPage() {
                                                             )}
 
                                                             <div className="text-sm text-muted-foreground">
-                                                                {t('projects.new.review.milestones.summary_total', {
-                                                                    amount: getMilestoneTotal().toLocaleString(),
-                                                                    currency: currencyLabel,
-                                                                })}{' '}
+                                                                {t('projects.new.review.milestones.summary_total')}{' '}
+                                                                <PriceDisplay value={getMilestoneTotal()} />{' '}
                                                                 •{' '}
-                                                                {t('projects.new.review.milestones.summary_difference', {
-                                                                    amount: (Number(formData.budget || 0) - getMilestoneTotal()).toLocaleString(),
-                                                                    currency: currencyLabel,
-                                                                })}
+                                                                {t('projects.new.review.milestones.summary_difference')}{' '}
+                                                                <PriceDisplay value={Number(formData.budget || 0) - getMilestoneTotal()} />
                                                             </div>
                                                         </CardContent>
                                                     </Card>
@@ -2462,7 +2473,6 @@ export default function NewProjectPage() {
                                                                                 min="0"
                                                                                 max={Number(formData.budget)}
                                                                             />
-                                                                            <span className="text-sm text-muted-foreground">{currencyLabel}</span>
                                                                         </div>
                                                                     </div>
                                                                     <Button

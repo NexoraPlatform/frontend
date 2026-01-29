@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/contexts/auth-context"
+import { CurrencyProvider } from "@/contexts/CurrencyContext"
 import ActivityTracker from "@/components/ActivityTracker"
 import { NotificationProvider } from "@/contexts/notification-context"
 import { ChatProvider } from "@/contexts/chat-context"
@@ -281,25 +282,27 @@ export default function RootLayout({
         />
         <NextIntlClientProvider>
         <AuthProvider>
-            <OneSignalInit />
-            <NotificationProvider>
-                <ChatProvider>
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
-                        storageKey="Trustora-theme"
-                    >
-                        <ActivityTracker />
+            <CurrencyProvider>
+                <OneSignalInit />
+                <NotificationProvider>
+                    <ChatProvider>
+                        <ThemeProvider
+                            attribute="class"
+                            defaultTheme="system"
+                            enableSystem
+                            disableTransitionOnChange
+                            storageKey="Trustora-theme"
+                        >
+                            <ActivityTracker />
 
-                        {/* Main content */}
-                        <main id="main-content">{children}</main>
+                            {/* Main content */}
+                            <main id="main-content">{children}</main>
 
-                        <Toaster position="top-right" expand={false} richColors closeButton />
-                    </ThemeProvider>
-                </ChatProvider>
-            </NotificationProvider>
+                            <Toaster position="top-right" expand={false} richColors closeButton />
+                        </ThemeProvider>
+                    </ChatProvider>
+                </NotificationProvider>
+            </CurrencyProvider>
         </AuthProvider>
         </NextIntlClientProvider>
         </body>

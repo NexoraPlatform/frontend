@@ -40,6 +40,7 @@ import { useLocale } from "next-intl";
 import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
 import { Locale } from '@/types/locale';
+import { PriceDisplay } from '@/components/PriceDisplay';
 
 interface ProjectRequestCardProps {
     project: any;
@@ -230,7 +231,10 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                         <div className="flex items-center space-x-4 mt-3 text-sm text-muted-foreground">
                             <div className="flex items-center space-x-1">
                                 <DollarSign className="w-4 h-4" />
-                                <span>Buget total: {project.budget?.toLocaleString()} RON</span>
+                                <span>
+                                    Buget total:{' '}
+                                    {project.budget != null ? <PriceDisplay value={project.budget} /> : '-'}
+                                </span>
                             </div>
                             <div className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
@@ -319,12 +323,17 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        {getStatusBadge(provider.status)}
-                                        <div className="text-sm text-muted-foreground mt-1">
-                                            Alocat: {provider.allocatedBudget?.toLocaleString()} RON
+                                        <div className="text-right">
+                                            {getStatusBadge(provider.status)}
+                                            <div className="text-sm text-muted-foreground mt-1">
+                                                Alocat:{' '}
+                                                {provider.allocatedBudget != null ? (
+                                                    <PriceDisplay value={provider.allocatedBudget} />
+                                                ) : (
+                                                    '-'
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
                                 </div>
                                 {(provider.provider_response === 'PENDING') && (
                                     <Dialog
@@ -342,7 +351,14 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex flex-col flex-wrap gap-1">
-                                                <div>Buget original: {provider.allocatedBudget?.toLocaleString()} RON</div>
+                                                <div>
+                                                    Buget original:{' '}
+                                                    {provider.allocatedBudget != null ? (
+                                                        <PriceDisplay value={provider.allocatedBudget} />
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </div>
                                                 <div>Introdu propunerea de buget:</div>
                                                 <div>
                                                     <Input
@@ -377,13 +393,22 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                         <DollarSign className="h-4 w-4" />
                                         <AlertDescription>
                                             <div className="flex items-center justify-between">
-                                                <div>
+                                                    <div>
                                                     <div className="font-medium">Propunere de buget nou:</div>
                                                     <div className="text-lg font-bold text-emerald-600">
-                                                        {provider.proposedBudget?.toLocaleString()} RON
+                                                        {provider.proposedBudget != null ? (
+                                                            <PriceDisplay value={provider.proposedBudget} />
+                                                        ) : (
+                                                            '-'
+                                                        )}
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">
-                                                        Buget original: {provider.allocatedBudget?.toLocaleString()} RON
+                                                        Buget original:{' '}
+                                                        {provider.allocatedBudget != null ? (
+                                                            <PriceDisplay value={provider.allocatedBudget} />
+                                                        ) : (
+                                                            '-'
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="flex space-x-2">
@@ -444,7 +469,7 @@ export function ProjectRequestCard({ project, onResponse }: ProjectRequestCardPr
                                                         <span>{milestone.title}</span>
                                                         <span>/</span>
                                                         <span className="font-medium">
-                                                        Buget alocat: {milestone.amount.toLocaleString()} RON
+                                                            Buget alocat: <PriceDisplay value={milestone.amount} />
                                                     </span>
                                                     </div>
 

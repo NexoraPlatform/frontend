@@ -197,7 +197,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                         <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="basePrice">Preț de Bază (RON) *</Label>
+                                <Label htmlFor="basePrice">Preț de Bază *</Label>
                                 <Input
                                     id="basePrice"
                                     type="number"
@@ -210,7 +210,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                             {formData.pricingType === 'HOURLY' && (
                                 <div>
-                                    <Label htmlFor="hourlyRate">Tarif pe Oră (RON)</Label>
+                                    <Label htmlFor="hourlyRate">Tarif pe Oră</Label>
                                     <Input
                                         id="hourlyRate"
                                         type="number"
@@ -223,7 +223,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                             {formData.pricingType === 'DAILY' && (
                                 <div>
-                                    <Label htmlFor="dailyRate">Tarif pe Zi (RON)</Label>
+                                    <Label htmlFor="dailyRate">Tarif pe Zi</Label>
                                     <Input
                                         id="dailyRate"
                                         type="number"
@@ -237,7 +237,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                             {formData.pricingType === 'CUSTOM' && (
                                 <>
                                     <div>
-                                        <Label htmlFor="minBudget">Buget Minim (RON)</Label>
+                                        <Label htmlFor="minBudget">Buget Minim</Label>
                                         <Input
                                             id="minBudget"
                                             type="number"
@@ -247,7 +247,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="maxBudget">Buget Maxim (RON)</Label>
+                                        <Label htmlFor="maxBudget">Buget Maxim</Label>
                                         <Input
                                             id="maxBudget"
                                             type="number"
