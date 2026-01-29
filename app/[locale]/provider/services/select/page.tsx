@@ -36,7 +36,7 @@ import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 
 export default function SelectServicesPage() {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
 
     // State for Category Navigation
     const [parentCategory, setParentCategory] = useState<any | null>(null);
@@ -51,13 +51,16 @@ export default function SelectServicesPage() {
     const { data: categoriesData, loading: categoriesLoading } = useCategories();
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (userLoading) return;
+
+        if (!user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
             router.push('/dashboard');
         }
-    }, [user, loading, router]);
+    }, [user, userLoading, router]);
 
     useEffect(() => {
         if (selectedCategory) {
@@ -150,7 +153,7 @@ export default function SelectServicesPage() {
         router.push(`/provider/services/levels?services=${selectedService}`);
     };
 
-    if (loading || categoriesLoading) {
+    if (loading || userLoading || categoriesLoading) {
         return (
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />

@@ -7,7 +7,8 @@ function stableStringify(obj: any) {
 
 export function useApi<T>(
     apiCall: () => Promise<T>,
-    dependencies: any[] = []
+    dependencies: any[] = [],
+    enabled: boolean = true
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,10 +32,14 @@ export function useApi<T>(
   const depsString = stableStringify(dependencies);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     if (depsString === lastDeps.current) return; // nu a schimbat efectiv deps
     lastDeps.current = depsString;
     fetchData();
-  }, [depsString, fetchData]);
+  }, [depsString, fetchData, enabled]);
 
   return { data, loading, error, refetch: fetchData };
 }
@@ -141,8 +146,8 @@ export function useProviderProfileById(providerId: string) {
   return useApi(() => apiClient.getProviderProfileById(providerId), [providerId]);
 }
 
-export function useProviderProfile() {
-  return useApi(() => apiClient.getProviderProfile(), []);
+export function useProviderProfile(enabled: boolean = true) {
+  return useApi(() => apiClient.getProviderProfile(), [], enabled);
 }
 
 export function useGetProviderProfileByUrl(url: string) {
