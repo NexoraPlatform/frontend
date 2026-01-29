@@ -42,6 +42,12 @@
       "view_details": "Vezi detalii",
       "messages": "Mesaje"
     },
+    "release": {
+      "button": "Eliberează fondurile",
+      "processing": "Se eliberează...",
+      "success": "Fondurile au fost eliberate cu succes.",
+      "error": "Eroare: {message}"
+    },
     "stripe": {
       "load_error": "Stripe nu s-a încărcat.",
       "not_ready": "Stripe nu e gata.",

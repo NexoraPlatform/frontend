@@ -42,6 +42,12 @@
       "view_details": "View details",
       "messages": "Messages"
     },
+    "release": {
+      "button": "Release funds",
+      "processing": "Releasing...",
+      "success": "Funds released successfully.",
+      "error": "Error: {message}"
+    },
     "stripe": {
       "load_error": "Stripe failed to load.",
       "not_ready": "Stripe is not ready.",

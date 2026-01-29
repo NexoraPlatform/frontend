@@ -62,6 +62,7 @@ export default function ClientProjectRequestsPage() {
     const stripeRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const [releasingId, setReleasingId] = useState<string | null>(null);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -149,6 +150,20 @@ export default function ClientProjectRequestsPage() {
             toast.error(t('client.project_requests.errors.generic', { message: error.message }));
         } finally {
             setResponding(null);
+        }
+    }, [loadProjects, t]);
+
+    const handleReleaseFunds = useCallback(async (projectId: string, milestoneId?: string) => {
+        const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
+        setReleasingId(releaseKey);
+        try {
+            const response = await apiClient.releaseProjectFunds(projectId, milestoneId);
+            toast.success(response?.message ?? t('client.project_requests.release.success'));
+            await loadProjects();
+        } catch (error: any) {
+            toast.error(t('client.project_requests.release.error', { message: error.message }));
+        } finally {
+            setReleasingId(null);
         }
     }, [loadProjects, t]);
 
@@ -242,8 +257,13 @@ export default function ClientProjectRequestsPage() {
                         </Card>
                     ) : (
                         <div className="space-y-6">
-                            {projects.map((project) => (
+                            {projects.map((project) => {
+                                const hasAnyMilestones = (project.milestones ?? []).some(
+                                    (milestoneGroup: any) => (milestoneGroup.milestones ?? []).length > 0
+                                );
+                                const canReleaseFull = !hasAnyMilestones && project.status === 'FINISHED';
 
+                                return (
                                 <Card key={project.id} className="glass-card border-transparent shadow-sm">
                                     <CardHeader className="space-y-4">
                                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -445,9 +465,13 @@ export default function ClientProjectRequestsPage() {
                                                             )}
 
                                                             <div className="space-y-2 mt-2">
-                                                                {providerMilestones.map((milestone: any, index: number) => (
+                                                                {providerMilestones.map((milestone: any, index: number) => {
+                                                                    const milestoneId = milestone.id ?? milestone.milestone_id ?? milestone.milestoneId;
+                                                                    const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
+
+                                                                    return (
                                                                     <div
-                                                                        key={index}
+                                                                        key={milestoneId ?? index}
                                                                         className={`flex items-center justify-between rounded-md border p-2 text-sm 
                                                                     ${milestone.status === 'PENDING' && "bg-yellow-300"}
                                                                     ${milestone.status === 'FINISHED' && "bg-green-300"}
@@ -463,10 +487,29 @@ export default function ClientProjectRequestsPage() {
                                                                                 <PriceDisplay value={milestone.amount} />
                                                                             </span>
                                                                         </div>
-
-                                                                        <span>{milestone.status}</span>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span>{milestone.status}</span>
+                                                                            {canReleaseMilestone && (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
+                                                                                    disabled={releasingId === `milestone-${milestoneId}`}
+                                                                                    className="btn-primary"
+                                                                                >
+                                                                                    {releasingId === `milestone-${milestoneId}` ? (
+                                                                                        <>
+                                                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                                            {t('client.project_requests.release.processing')}
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        t('client.project_requests.release.button')
+                                                                                    )}
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                ))}
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     );
@@ -483,6 +526,23 @@ export default function ClientProjectRequestsPage() {
                                                 <Shield className="w-5 h-5 mr-2" />
                                                 {t('client.project_requests.actions.secure_payment')}
                                             </Button>)}
+                                            {project.paymentStatus === 'ESCROW' && canReleaseFull && (
+                                                <Button
+                                                    onClick={() => handleReleaseFunds(project.id)}
+                                                    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
+                                                    size="lg"
+                                                    disabled={releasingId === `project-${project.id}`}
+                                                >
+                                                    {releasingId === `project-${project.id}` ? (
+                                                        <>
+                                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                            {t('client.project_requests.release.processing')}
+                                                        </>
+                                                    ) : (
+                                                        t('client.project_requests.release.button')
+                                                    )}
+                                                </Button>
+                                            )}
                                             <div className="flex flex-col gap-2 sm:flex-row">
                                                 <Button
                                                     variant="outline"
@@ -504,7 +564,8 @@ export default function ClientProjectRequestsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
