@@ -55,13 +55,13 @@ type Languages = {
 }
 
 export default function ProviderProfileEditPage() {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
     const router = useRouter();
-    const { data: providerProfile, loading: profileLoading } = useProviderProfile();
+    const { data: providerProfile, loading: profileLoading } = useProviderProfile(!userLoading && Boolean(user));
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -330,13 +330,19 @@ export default function ProviderProfileEditPage() {
     }, [providerProfile]);
 
     useEffect(() => {
-        if (!loading && !user && !profileLoading) {
-            router.push('/auth/signin');
+        if (userLoading || profileLoading) {
+            return;
         }
-        if (user && providerProfile) {
+
+        if (!user) {
+            router.push('/auth/signin');
+            return;
+        }
+
+        if (providerProfile) {
             loadProfileData();
         }
-    }, [user, loading, router, profileLoading, providerProfile, loadProfileData]);
+    }, [user, userLoading, router, profileLoading, providerProfile, loadProfileData]);
 
     function readFile(file: File): Promise<string | ArrayBuffer | null> {
         return new Promise((resolve) => {
@@ -510,7 +516,7 @@ export default function ProviderProfileEditPage() {
         }));
     };
 
-    if (loading) {
+    if (loading || userLoading) {
         return (
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />

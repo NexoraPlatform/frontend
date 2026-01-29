@@ -33,7 +33,7 @@ type Props = {
 };
 
 export default function LegalClauseDetailClient({ id }: Props) {
-  const { user, loading } = useAuth();
+  const { user, loading, userLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
@@ -64,10 +64,12 @@ export default function LegalClauseDetailClient({ id }: Props) {
   );
 
   useEffect(() => {
-    if (!loading && !canEdit) {
+    if (userLoading) return;
+
+    if (!canEdit) {
       router.replace(`/access-denied?from=${encodeURIComponent(`/admin/legal/clauses/${id}`)}`);
     }
-  }, [loading, canEdit, router, id]);
+  }, [userLoading, canEdit, router, id]);
 
   useEffect(() => {
     const fetchClause = async () => {
@@ -120,7 +122,7 @@ export default function LegalClauseDetailClient({ id }: Props) {
     }
   };
 
-  if (loading || !canEdit) {
+  if (loading || userLoading || !canEdit) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />

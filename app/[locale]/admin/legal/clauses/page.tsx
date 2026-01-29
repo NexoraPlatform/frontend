@@ -58,7 +58,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 function AdminLegalClausesContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, userLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const didInitFromQuery = useRef(false);
@@ -89,10 +89,12 @@ function AdminLegalClausesContent() {
   );
 
   useEffect(() => {
-    if (!loading && !canView) {
+    if (userLoading) return;
+
+    if (!canView) {
       router.replace(`/access-denied?from=${encodeURIComponent('/admin/legal/clauses')}`);
     }
-  }, [loading, canView, router]);
+  }, [userLoading, canView, router]);
 
   useEffect(() => {
     if (didInitFromQuery.current) return;
@@ -213,7 +215,7 @@ function AdminLegalClausesContent() {
     setPage(1);
   };
 
-  if (loading || (!canView && !fetching)) {
+  if (loading || userLoading || (!canView && !fetching)) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />

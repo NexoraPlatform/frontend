@@ -27,7 +27,7 @@ type ClientProps = {
 };
 
 export default function NewProviderServiceClient({ serviceId }: ClientProps) {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [service, setService] = useState<any>(null);
     const [formData, setFormData] = useState({
         pricingType: 'FIXED',
@@ -55,7 +55,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
     // Guard de autentificare/rol + încărcare serviciu
     useEffect(() => {
-        if (loading) return;
+        if (userLoading) return;
 
         if (!user) {
             router.push('/auth/signin');
@@ -77,7 +77,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                 }
             })();
         }
-    }, [loading, user, router, serviceId]);
+    }, [userLoading, user, router, serviceId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -117,7 +117,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         }
     };
 
-    if (loading) {
+    if (loading || userLoading) {
         return (
             <div className="min-h-[40vh] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />

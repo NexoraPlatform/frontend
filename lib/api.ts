@@ -1099,6 +1099,7 @@ export class ApiClient {
   }
 
   async getProviderProfile() {
+    console.log(this.token);
     return this.request<any>(`/users/providers/profile`, {
       method: 'GET',
       credentials: 'include',

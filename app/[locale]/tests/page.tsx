@@ -32,7 +32,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTranslations } from 'next-intl';
 
 export default function TestsPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, userLoading } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [testInProgress, setTestInProgress] = useState(false);
   const router = useRouter();
@@ -40,12 +40,14 @@ export default function TestsPage() {
   const tMeta = useTranslations('tests.metadata');
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (userLoading) return;
+
+    if (!user) {
       router.push('/auth/signin');
     }
-  }, [user, loading, router]);
+  }, [user, userLoading, router]);
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
         <TrustoraThemeStyles />

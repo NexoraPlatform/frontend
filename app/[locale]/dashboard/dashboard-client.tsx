@@ -53,7 +53,7 @@ import { SiStripe } from "react-icons/si";
 import { Can } from "@/components/Can";
 
 export default function DashboardClient() {
-  const { user, loading } = useAuth();
+  const { user, loading, userLoading } = useAuth();
   const t = useTranslations();
   const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<any[]>([]);
@@ -74,10 +74,12 @@ export default function DashboardClient() {
   const projectsPerPage = 6;
   const router = useRouter();
   useEffect(() => {
-    if (!loading && !user) {
+    if (userLoading) return;
+
+    if (!user) {
       router.push('/auth/signin');
     }
-  }, [user, loading, router]);
+  }, [user, userLoading, router]);
 
   const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
@@ -326,7 +328,7 @@ export default function DashboardClient() {
     { value: 'title', label: t('dashboard.filters.sort.title') }
   ];
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

@@ -44,7 +44,7 @@ if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 export default function ClientProjectRequestsPage() {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const locale = useLocale();
     const t = useTranslations();
     const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
@@ -73,17 +73,20 @@ export default function ClientProjectRequestsPage() {
     }, []);
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (userLoading) return;
+
+        if (!user) {
             // router.push('/auth/signin');
+            return;
         }
 
-        if (user && !user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')) {
+        if (!user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')) {
             router.push('/dashboard');
+            return;
         }
-        if (user) {
-            loadProjects();
-        }
-    }, [user, loading, router, loadProjects]);
+
+        loadProjects();
+    }, [user, userLoading, router, loadProjects]);
 
     useEffect(() => {
         if (checkoutDialogOpen && selectedProject?.id) {
@@ -229,7 +232,7 @@ export default function ClientProjectRequestsPage() {
         }
     };
 
-    if (loading || loadingProjects) {
+    if (loading || userLoading || loadingProjects) {
         return (
             <div className="min-h-screen bg-white dark:bg-[#070C14] flex flex-col items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-[#1BC47D]" />
