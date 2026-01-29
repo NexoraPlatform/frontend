@@ -9,6 +9,7 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -37,6 +38,7 @@ import { enUS, ro } from 'date-fns/locale';
 import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
+import {EmbeddedCheckout, EmbeddedCheckoutProvider} from "@stripe/react-stripe-js";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -45,6 +47,7 @@ if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 export default function ClientProjectRequestsPage() {
+    const params = useSearchParams();
     const { user, loading, userLoading } = useAuth();
     const locale = useLocale();
     const t = useTranslations();
@@ -61,6 +64,7 @@ export default function ClientProjectRequestsPage() {
     const elementsRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const [stripeProject, setStripeProject] = useState<any | null>(null);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -88,32 +92,6 @@ export default function ClientProjectRequestsPage() {
 
         loadProjects();
     }, [user, userLoading, router, loadProjects]);
-
-    useEffect(() => {
-        if (checkoutDialogOpen && selectedProject?.id) {
-            async function initStripe() {
-                const stripe = await stripePromise;
-                if (!stripe) return console.error(t('client.project_requests.stripe.load_error'));
-
-                const elements = stripe.elements();
-                const cardElement = elements.create('card');
-                cardElement.mount(`#card-element-${selectedProject.id}`);
-
-                // Salvezi pentru confirmare ulterioară
-                stripeRef.current = stripe;
-                elementsRef.current = elements;
-                cardElementRef.current = cardElement;
-            }
-
-            initStripe();
-        }
-
-        return () => {
-            // Demontezi elementul când se închide
-            cardElementRef.current?.unmount?.();
-            cardElementRef.current = null;
-        };
-    }, [checkoutDialogOpen, selectedProject?.id, t]);
 
     const handlePayment = async (project_id: any) => {
         setErrorMessage('');
@@ -152,18 +130,13 @@ export default function ClientProjectRequestsPage() {
 
     };
 
-
     const getClientSecret = async (project_id: string) => {
         // router.push(response.url);
         try {
             const response = await apiClient.getPaymentSession(project_id);
-            if (response.clientSecret) {
-                setClientSecret(response.clientSecret);
-                setCheckoutDialogOpen(true);
-            } else {
-                throw new Error('Client secret not found in response');
-            }
-
+            setStripeProject(project_id);
+            setClientSecret(response.clientSecret);
+            setCheckoutDialogOpen(true);
         } catch (err) {
             console.error('Checkout error:', err);
         }
@@ -305,8 +278,8 @@ export default function ClientProjectRequestsPage() {
                                                         <DollarSign className="w-4 h-4 text-[#1BC47D]" />
                                                         <span>
                                                             {t('client.project_requests.project.total_budget')}{' '}
-                                                            {project.budget != null ? (
-                                                                <PriceDisplay value={project.budget} />
+                                                            {project.budget.amount != null ? (
+                                                                <PriceDisplay value={project.budget.amount} />
                                                             ) : (
                                                                 '-'
                                                             )}
@@ -557,7 +530,7 @@ export default function ClientProjectRequestsPage() {
             </section>
 
             <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-                <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden">
+                <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">
                     <div className="bg-[#0B1C2D] p-6 text-white">
                         <div className="flex items-center space-x-3 mb-4">
                             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
@@ -581,8 +554,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget)} />
+                                    {selectedProject?.budget.amount != null ? (
+                                        <PriceDisplay value={Number(selectedProject?.budget.amount)} />
                                     ) : (
                                         '-'
                                     )}
@@ -591,8 +564,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget) * 0.12} />
+                                    {selectedProject?.budget.amount != null ? (
+                                        <PriceDisplay value={Number(selectedProject?.budget.amount) * 0.12} />
                                     ) : (
                                         '-'
                                     )}
@@ -602,7 +575,7 @@ export default function ClientProjectRequestsPage() {
                                 <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
                                 <span className="font-bold text-lg">
                                     {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget) * 1.12} />
+                                        <PriceDisplay value={Number(selectedProject?.budget.amount) * 1.12} />
                                     ) : (
                                         '-'
                                     )}
@@ -611,7 +584,7 @@ export default function ClientProjectRequestsPage() {
                         </div>
                     </div>
 
-                    <div className="p-6 space-y-6">
+                    <div className="p-6 space-y-6 overflow-y-auto flex-1">
                         <div className="text-center">
                             <h3 className="font-semibold text-lg mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
                                 {t('client.project_requests.checkout.how_it_works.title')}
@@ -652,15 +625,13 @@ export default function ClientProjectRequestsPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <label className="block text-sm font-medium text-slate-600 dark:text-[#A3ADC2]">
-                                {t('client.project_requests.checkout.card_details')}
-                            </label>
-                            <div
-                                id={selectedProject?.id ? `card-element-${selectedProject.id}` : 'card-element'}
-                                className="border-2 border-slate-200 dark:border-[#1E2A3D] dark:!text-white rounded-lg p-4 bg-white dark:bg-[#0B1220] focus-within:border-[#1BC47D] focus-within:ring-2 focus-within:ring-emerald-200 transition-all"
-                            />
-                        </div>
+                        {clientSecret && (
+                            <div className="min-h-[400px]"> {/* Oferim o înălțime minimă pentru a evita layout shift */}
+                                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                                    <EmbeddedCheckout className="w-full" />
+                                </EmbeddedCheckoutProvider>
+                            </div>
+                        )}
 
                         {errorMessage && (
                             <Alert variant="destructive">
@@ -679,29 +650,6 @@ export default function ClientProjectRequestsPage() {
                         )}
 
                         <div className="flex flex-col gap-3 sm:flex-row">
-                            <Button
-                                type="button"
-                                onClick={() => handlePayment(selectedProject?.id)}
-                                disabled={loading || !clientSecret || !selectedProject}
-                                className="flex-1 btn-primary py-3"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        {t('client.project_requests.checkout.processing')}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Shield className="w-4 h-4 mr-2" />
-                                        {t('client.project_requests.checkout.secure_amount')}{' '}
-                                        {selectedProject?.budget != null ? (
-                                            <PriceDisplay value={Number(selectedProject?.budget) * 1.12} />
-                                        ) : (
-                                            '-'
-                                        )}
-                                    </>
-                                )}
-                            </Button>
                             <Button
                                 type="button"
                                 variant="outline"
