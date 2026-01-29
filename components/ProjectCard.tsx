@@ -14,8 +14,8 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   const locale = useLocale() as Locale;
   const t = useTranslations();
-  const minBudget = project.budget_min ?? project.budget;
-  const maxBudget = project.budget_max ?? project.budget;
+  const minBudget = project.budget_min ?? project.budget?.amount;
+  const maxBudget = project.budget_max ?? project.budget?.amount;
 
   return (
     <div

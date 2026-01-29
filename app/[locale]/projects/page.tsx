@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
-import { getProjectCategories, getProjectTechnologies, ProjectWithClient } from '@/lib/projects';
+import { ProjectWithClient } from '@/lib/projects';
 import { apiClient } from '@/lib/api';
 import { ProjectFilters } from '@/components/ProjectFilters';
 import { ProjectCard } from '@/components/ProjectCard';
@@ -31,29 +31,10 @@ export default function ProjectsPage() {
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
-
-  useEffect(() => {
-    const initializeFilters = async () => {
-      try {
-        const [cats, techs] = await Promise.all([
-          getProjectCategories(),
-          getProjectTechnologies(),
-        ]);
-        setCategories(cats);
-        setTechnologies(techs);
-      } catch (error) {
-        console.error('Failed to load filters:', error);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-
-    initializeFilters();
-  }, []);
 
   const loadProjects = useCallback(
     async (pageNum: number, isReset: boolean = false) => {
