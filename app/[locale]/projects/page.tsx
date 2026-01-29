@@ -11,6 +11,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Badge } from '@/components/ui/badge';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -25,6 +26,7 @@ export default function ProjectsPage() {
   const [selectedBudgetMin, setSelectedBudgetMin] = useState(0);
   const [selectedBudgetMax, setSelectedBudgetMax] = useState(999999);
   const [searchQuery, setSearchQuery] = useState('');
+  const { currency } = useCurrency();
 
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,7 +89,14 @@ export default function ProjectsPage() {
         isLoadingRef.current = false;
       }
     },
-    [searchQuery, selectedCategory, selectedTechnologies, selectedBudgetMin, selectedBudgetMax]
+    [
+      searchQuery,
+      selectedCategory,
+      selectedTechnologies,
+      selectedBudgetMin,
+      selectedBudgetMax,
+      currency,
+    ]
   );
 
   useEffect(() => {
@@ -117,6 +126,7 @@ export default function ProjectsPage() {
     selectedBudgetMin,
     selectedBudgetMax,
     searchQuery,
+    currency,
     loadProjects,
   ]);
 

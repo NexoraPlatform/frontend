@@ -9,6 +9,7 @@ import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import apiClient from '@/lib/api';
 import { Locale } from '@/types/locale';
+import { useCurrency } from '@/hooks/useCurrency';
 
 type LocalizedText = string | Record<string, string>;
 
@@ -178,6 +179,7 @@ function getServicesFromResponse(
 export default function ServicesPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations();
+  const { currency } = useCurrency();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [technologies, setTechnologies] = useState<Technology[]>([]);
@@ -221,7 +223,7 @@ export default function ServicesPage() {
     );
 
     return [...firstPageServices, ...remainingServices];
-  }, []);
+  }, [currency]);
 
   useEffect(() => {
     const initializeFilters = async () => {
@@ -281,7 +283,7 @@ export default function ServicesPage() {
         isLoadingRef.current = false;
       }
     },
-    [selectedServiceType, selectedTechnologies]
+    [selectedServiceType, selectedTechnologies, currency]
   );
 
   useEffect(() => {
@@ -305,7 +307,7 @@ export default function ServicesPage() {
     setPage(0);
     setHasMore(true);
     loadServices(0, true);
-  }, [selectedServiceType, selectedTechnologies, loadServices]);
+  }, [selectedServiceType, selectedTechnologies, currency, loadServices]);
 
   useEffect(() => {
     if (page > 0) {
