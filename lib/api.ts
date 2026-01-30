@@ -1333,7 +1333,7 @@ export class ApiClient {
     if (milestoneId) {
       payload.milestone_id = milestoneId;
     }
-    return this.request<any>('/projects/project/release-funds', {
+    return this.request<any>('/stripe/project/release-funds', {
       method: 'POST',
       body: JSON.stringify(payload),
       headers: {
