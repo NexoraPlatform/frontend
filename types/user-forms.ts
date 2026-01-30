@@ -53,34 +53,42 @@ export type ClientFormData = BaseUser & {
 
 export type AnyFormData = AdminFormData | ProviderFormData | ClientFormData;
 
-export const billingDetailsSchema = z
-    .object({
-        company_name: z.preprocess(emptyToUndefined, z.string().optional()),
-        tax_id: z.preprocess(emptyToUndefined, z.string().optional()),
-        trade_registry_number: z.preprocess(emptyToUndefined, z.string().optional()),
-        billing_address: z.preprocess(emptyToUndefined, z.string().optional()),
-        billing_city: z.preprocess(emptyToUndefined, z.string().optional()),
-        billing_state: z.preprocess(emptyToUndefined, z.string().optional()),
-        billing_postal_code: z.preprocess(emptyToUndefined, z.string().optional()),
-    })
-    .superRefine((data, ctx) => {
-        if (data.company_name) {
-            if (!data.tax_id) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['tax_id'],
-                    message: 'Tax ID is required when company name is provided',
-                });
-            }
-            if (!data.billing_address) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['billing_address'],
-                    message: 'Billing address is required when company name is provided',
-                });
-            }
+const billingDetailsBaseSchema = z.object({
+    company_name: z.preprocess(emptyToUndefined, z.string().optional()),
+    tax_id: z.preprocess(emptyToUndefined, z.string().optional()),
+    trade_registry_number: z.preprocess(emptyToUndefined, z.string().optional()),
+    billing_address: z.preprocess(emptyToUndefined, z.string().optional()),
+    billing_city: z.preprocess(emptyToUndefined, z.string().optional()),
+    billing_state: z.preprocess(emptyToUndefined, z.string().optional()),
+    billing_postal_code: z.preprocess(emptyToUndefined, z.string().optional()),
+});
+
+const billingDetailsRefinement = (data: {
+    company_name?: string;
+    tax_id?: string;
+    billing_address?: string;
+}, ctx: z.RefinementCtx) => {
+    if (data.company_name) {
+        if (!data.tax_id) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['tax_id'],
+                message: 'Tax ID is required when company name is provided',
+            });
         }
-    });
+        if (!data.billing_address) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['billing_address'],
+                message: 'Billing address is required when company name is provided',
+            });
+        }
+    }
+};
+
+export const billingDetailsSchema = billingDetailsBaseSchema.superRefine(
+    billingDetailsRefinement,
+);
 
 export const userSchema = z
     .object({
@@ -92,7 +100,8 @@ export const userSchema = z
         password: z.string().optional(),
         confirm_password: z.string().optional(),
     })
-    .merge(billingDetailsSchema);
+    .merge(billingDetailsBaseSchema)
+    .superRefine(billingDetailsRefinement);
 
 export type UserFormValues = z.infer<typeof userSchema>;
 
