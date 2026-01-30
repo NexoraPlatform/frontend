@@ -65,6 +65,36 @@ export default function ClientProjectRequestsPage() {
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
     const [releasingId, setReleasingId] = useState<string | null>(null);
+    const getMilestoneId = useCallback((milestone: any) => {
+        return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
+    }, []);
+
+    const projectBudgetAmount = selectedProject?.budget?.amount != null
+        ? Number(selectedProject.budget.amount)
+        : null;
+    const selectedMilestoneAmount = selectedMilestone?.amount != null
+        ? Number(selectedMilestone.amount)
+        : null;
+    const isMilestonePayment = selectedMilestone != null;
+    const platformFeeBase = projectBudgetAmount != null
+        ? Math.min(projectBudgetAmount * 0.10, 150)
+        : null;
+    const isFirstMilestone = (() => {
+        if (!isMilestonePayment || !selectedProject || !selectedMilestone) return false;
+        const providerMilestones = selectedProject.milestones
+            ?.find((milestoneGroup: any) => milestoneGroup.providerId === selectedMilestone.providerId)
+            ?.milestones ?? [];
+        const selectedId = getMilestoneId(selectedMilestone);
+        const index = providerMilestones.findIndex((milestone: any) => getMilestoneId(milestone) === selectedId);
+        return index === 0;
+    })();
+    const displayedValueAmount = isMilestonePayment ? selectedMilestoneAmount : projectBudgetAmount;
+    const displayedFeeAmount = isMilestonePayment
+        ? (isFirstMilestone ? platformFeeBase : 0)
+        : platformFeeBase;
+    const displayedTotalAmount = displayedValueAmount != null && displayedFeeAmount != null
+        ? displayedValueAmount + displayedFeeAmount
+        : null;
 
     const loadProjects = useCallback(async () => {
         try {
@@ -470,7 +500,7 @@ export default function ClientProjectRequestsPage() {
 
                                                             <div className="space-y-2 mt-2">
                                                                 {providerMilestones.map((milestone: any, index: number) => {
-                                                                    const milestoneId = milestone.id ?? milestone.milestone_id ?? milestone.milestoneId;
+                                                                    const milestoneId = getMilestoneId(milestone);
 
                                                                     // 1. Logica pentru Release (existentă)
                                                                     const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
@@ -636,8 +666,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount)} />
+                                    {displayedValueAmount != null ? (
+                                        <PriceDisplay value={displayedValueAmount} />
                                     ) : (
                                         '-'
                                     )}
@@ -646,9 +676,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
                                 <span className="font-bold text-lg">
-
-                                    {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget?.amount ?? 0) * 0.10 >= 150 ? 150 : Number(selectedProject.budget?.amount ?? 0) * 0.10} />
+                                    {displayedFeeAmount != null ? (
+                                        <PriceDisplay value={displayedFeeAmount} />
                                     ) : (
                                         '-'
                                     )}
@@ -657,8 +686,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject.budget?.amount ?? 0) * 0.10 >= 150 ? Number(selectedProject.budget?.amount ?? 0) + 150 : Number(selectedProject.budget?.amount ?? 0) * 1.10} />
+                                    {displayedTotalAmount != null ? (
+                                        <PriceDisplay value={displayedTotalAmount} />
                                     ) : (
                                         '-'
                                     )}
