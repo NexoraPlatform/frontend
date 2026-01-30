@@ -1,0 +1,124 @@
+{
+  "hero": {
+    "badge": "🚀 Despre Trustora",
+    "title": "Construim viitorul digital al",
+    "highlight": "României",
+    "description": "Trustora este platforma românească ce conectează antreprenorii cu cei mai buni experți IT. Misiunea noastră este să democratizăm accesul la servicii IT de calitate și să susținem creșterea ecosistemului tehnologic local.",
+    "primary_cta": "Explorează serviciile",
+    "secondary_cta": "Alătură-te echipei"
+  },
+  "stats": {
+    "items": [
+      { "label": "Experți verificați" },
+      { "label": "Proiecte finalizate" },
+      { "label": "Rata de satisfacție" },
+      { "label": "Orașe acoperite" }
+    ]
+  },
+  "mission": {
+    "kicker": "Misiunea noastră",
+    "title": "Eliminăm barierele dintre viziune și execuție",
+    "description": "Credem că fiecare idee merită să devină realitate. De aceea am construit Trustora — o platformă care elimină barierele dintre viziune și execuție, conectând antreprenorii cu experții IT potriviți.",
+    "points": [
+      {
+        "title": "Accesibilitate",
+        "description": "Servicii IT de calitate la prețuri corecte pentru businessuri de orice dimensiune."
+      },
+      {
+        "title": "Transparență",
+        "description": "Proces clar, prețuri transparente și comunicare deschisă."
+      },
+      {
+        "title": "Excelență",
+        "description": "Standarde înalte de calitate și satisfacție garantată."
+      }
+    ]
+  },
+  "vision": {
+    "kicker": "Viziunea 2030",
+    "title": "Să devenim platforma de referință",
+    "description": "pentru servicii IT în Europa de Est, cu focus pe încredere, transparență și colaborare sustenabilă."
+  },
+  "values": {
+    "kicker": "Valorile noastre",
+    "title": "Principii care construiesc încredere",
+    "description": "Principiile care ne ghidează în tot ceea ce facem și ne ajută să construim relații de încredere cu clienții și partenerii noștri.",
+    "items": [
+      {
+        "title": "Încredere și siguranță",
+        "description": "Toate tranzacțiile sunt securizate, iar furnizorii sunt verificați pentru a-ți oferi liniște deplină."
+      },
+      {
+        "title": "Calitate excepțională",
+        "description": "Colaborăm doar cu experți cu experiență dovedită și evaluări excelente din partea clienților."
+      },
+      {
+        "title": "Eficiență și rapiditate",
+        "description": "Platforma noastră este optimizată pentru a-ți găsi rapid experții potriviți pentru proiectul tău."
+      },
+      {
+        "title": "Suport dedicat",
+        "description": "Echipa noastră este disponibilă 24/7 pentru a te ajuta în orice moment al colaborării."
+      }
+    ]
+  },
+  "timeline": {
+    "title": "Povestea noastră",
+    "description": "De la o idee simplă la platforma de încredere pentru mii de antreprenori români.",
+    "items": [
+      {
+        "title": "Înființarea Trustora",
+        "description": "Am lansat platforma cu viziunea de a conecta talentele IT românești cu oportunitățile globale."
+      },
+      {
+        "title": "Primul milion în tranzacții",
+        "description": "Am atins primul milion în tranzacții procesate, confirmând nevoia pieței pentru serviciile noastre."
+      },
+      {
+        "title": "Expansiunea națională",
+        "description": "Am extins serviciile în toate orașele mari din România, ajungând la peste 500 de experți verificați."
+      },
+      {
+        "title": "Recunoaștere internațională",
+        "description": "Am fost recunoscuți ca cea mai inovatoare platformă de servicii IT din Europa de Est."
+      },
+      {
+        "title": "Viitorul digital",
+        "description": "Continuăm să inovăm cu AI și automatizare pentru a îmbunătăți experiența utilizatorilor."
+      }
+    ]
+  },
+  "team": {
+    "kicker": "Echipa Trustora",
+    "title": "Oameni care susțin transformarea digitală",
+    "description": "Oamenii pasionați care fac posibilă transformarea digitală a României.",
+    "items": [
+      {
+        "name": "Alexandru Popescu",
+        "role": "CEO & Co-Fondator",
+        "description": "Antreprenor cu peste 10 ani de experiență în tech, pasionat de inovație și dezvoltarea ecosistemului IT românesc."
+      },
+      {
+        "name": "Maria Ionescu",
+        "role": "CTO & Co-Fondator",
+        "description": "Expert în dezvoltare software cu background în arhitectura sistemelor scalabile și experiența utilizatorului."
+      },
+      {
+        "name": "Andrei Radu",
+        "role": "Head of Operations",
+        "description": "Specialist în operațiuni și management, cu focus pe optimizarea proceselor și satisfacția clienților."
+      },
+      {
+        "name": "Diana Stoica",
+        "role": "Head of Marketing",
+        "description": "Expert în marketing digital și growth, cu experiență în construirea brandurilor tech de succes."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Alătură-te comunității Trustora",
+    "description": "Fie că ești antreprenor în căutarea expertului potrivit sau specialist IT care vrea să își dezvolte cariera, Trustora este locul unde visurile devin realitate.",
+    "primary_cta": "Găsește experți",
+    "secondary_cta": "Devino furnizor"
+  }
+}

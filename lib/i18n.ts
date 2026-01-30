@@ -85,6 +85,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/auth/signin.json"),
             () => import("@/locales/ro/auth/signup.json"),
         ],
+        about: [() => import("@/locales/ro/about/page.json")],
     },
     en: {
         navigation: [
@@ -153,6 +154,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/auth/signin.json"),
             () => import("@/locales/en/auth/signup.json"),
         ],
+        about: [() => import("@/locales/en/about/page.json")],
     },
 };
 
