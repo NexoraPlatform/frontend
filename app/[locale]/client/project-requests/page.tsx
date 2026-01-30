@@ -364,10 +364,10 @@ export default function ClientProjectRequestsPage() {
                                                                         </AvatarFallback>
                                                                     </Avatar>
                                                                     <div>
-                                                                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                        <div className="font-semibold text-[#0B1C2D]">
                                                                             {provider.firstName} {provider.lastName}
                                                                         </div>
-                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
                                                                             <div className="flex items-center gap-1">
                                                                                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                                                                                 <span>{provider.rating || 0}</span>
@@ -377,12 +377,12 @@ export default function ClientProjectRequestsPage() {
                                                                                 <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
+                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 mt-2">
                                                                             {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
                                                                                 <Badge
                                                                                     key={index}
                                                                                     variant="outline"
-                                                                                    className="text-xs border-slate-200 dark:border-[#1E2A3D]"
+                                                                                    className="text-xs border-slate-200 "
                                                                                 >
                                                                                     <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
                                                                                     {service.name}
@@ -479,7 +479,7 @@ export default function ClientProjectRequestsPage() {
                                                                     ${milestone.status === 'REJECTED' && "bg-red-700"}
                                                                      `}
                                                                     >
-                                                                        <div className="flex items-center justify-between gap-6">
+                                                                        <div className="flex items-center justify-between gap-6 dark:text-[#1E2A3D]">
                                                                             <span>{milestone.title}</span>
                                                                             <span>/</span>
                                                                             <span className="font-medium">
@@ -488,7 +488,7 @@ export default function ClientProjectRequestsPage() {
                                                                             </span>
                                                                         </div>
                                                                         <div className="flex items-center gap-3">
-                                                                            <span>{milestone.status}</span>
+                                                                            <span className="dark:text-[#1E2A3D]">{milestone.status}</span>
                                                                             {canReleaseMilestone && (
                                                                                 <Button
                                                                                     size="sm"
