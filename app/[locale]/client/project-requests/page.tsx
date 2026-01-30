@@ -39,6 +39,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
 import {EmbeddedCheckout, EmbeddedCheckoutProvider} from "@stripe/react-stripe-js";
+import {provider} from "std-env";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -58,6 +59,7 @@ export default function ClientProjectRequestsPage() {
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
+    const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
     const cardElementRef = useRef<any>(null);
     const stripeRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
@@ -114,10 +116,10 @@ export default function ClientProjectRequestsPage() {
         loadProjects();
     }, [user, userLoading, router, loadProjects]);
 
-    const getClientSecret = async (project_id: string) => {
+    const getClientSecret = async (project_id: string, providerId: number|string|null, milestoneId: number|string|null) => {
         // router.push(response.url);
         try {
-            const response = await apiClient.getPaymentSession(project_id);
+            const response = await apiClient.getPaymentSession(project_id, milestoneId, providerId);
             setClientSecret(response.clientSecret);
             setCheckoutDialogOpen(true);
         } catch (err) {
@@ -125,12 +127,13 @@ export default function ClientProjectRequestsPage() {
         }
     }
 
-    const openCheckout = async (project: any) => {
+    const openCheckout = async (project: any, providerId: number|string|null, milestone: any|null) => {
         setSelectedProject(project);
+        setSelectedMilestone(milestone);
         setSuccess(false);
         setErrorMessage('');
         setClientSecret(null);
-        await getClientSecret(project.id);
+        await getClientSecret(project.id, providerId, milestone.id);
     };
 
     const handleBudgetResponse = useCallback(async (
@@ -365,7 +368,7 @@ export default function ClientProjectRequestsPage() {
                                                                         </AvatarFallback>
                                                                     </Avatar>
                                                                     <div>
-                                                                        <div className="font-semibold text-[#0B1C2D]">
+                                                                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
                                                                             {provider.firstName} {provider.lastName}
                                                                         </div>
                                                                         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
@@ -468,47 +471,83 @@ export default function ClientProjectRequestsPage() {
                                                             <div className="space-y-2 mt-2">
                                                                 {providerMilestones.map((milestone: any, index: number) => {
                                                                     const milestoneId = milestone.id ?? milestone.milestone_id ?? milestone.milestoneId;
+
+                                                                    // 1. Logica pentru Release (existentă)
                                                                     const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
 
+                                                                    // 2. Logica pentru Secure Payment (NOUĂ)
+                                                                    // Verificăm dacă milestone-ul anterior este plătit (sau dacă e primul din listă)
+                                                                    const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+
+                                                                    // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
+                                                                    const showSecurePaymentBtn = milestone.status === 'PENDING' && isPreviousPaid;
+
                                                                     return (
-                                                                    <div
-                                                                        key={milestoneId ?? index}
-                                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm 
-                                                                    ${milestone.status === 'PENDING' && "bg-yellow-300"}
-                                                                    ${milestone.status === 'FINISHED' && "bg-green-300"}
-                                                                    ${milestone.status === 'PAID' && "bg-green-500"}
-                                                                    ${milestone.status === 'REJECTED' && "bg-red-700"}
-                                                                     `}
-                                                                    >
-                                                                        <div className="flex items-center justify-between gap-6 dark:text-[#1E2A3D]">
-                                                                            <span>{milestone.title}</span>
-                                                                            <span>/</span>
-                                                                            <span className="font-medium">
-                                                                                {t('client.project_requests.providers.milestone_budget')}{' '}
-                                                                                <PriceDisplay value={milestone.amount} />
-                                                                            </span>
+                                                                        <div
+                                                                            key={milestoneId ?? index}
+                                                                            className={`flex items-center justify-between rounded-md border p-3 text-sm transition-colors
+                    ${milestone.status === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
+                    ${milestone.status === 'FINISHED' ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
+                    ${milestone.status === 'PAID' ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
+                    ${milestone.status === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
+                `}
+                                                                        >
+                                                                            <div className="flex items-center gap-4 dark:text-slate-200">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        {index + 1}. {milestone.title}
+                    </span>
+                                                                                <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                                                <span className="font-medium text-slate-600 dark:text-slate-400">
+                        {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                                                    <PriceDisplay value={milestone.amount} />
+                    </span>
+                                                                            </div>
+
+                                                                            <div className="flex items-center gap-3 bg-gree">
+                                                                                <Badge variant={
+                                                                                    milestone.status === 'PAID' ? 'default' :
+                                                                                        milestone.status === 'FINISHED' ? 'success' :
+                                                                                            milestone.status === 'REJECTED' ? 'destructive' : 'secondary'
+                                                                                }>
+                                                                                    {milestone.status}
+                                                                                </Badge>
+
+                                                                                {/* BUTON RELEASE FUNDS */}
+                                                                                {canReleaseMilestone && (
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
+                                                                                        disabled={releasingId === `milestone-${milestoneId}`}
+                                                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                                                    >
+                                                                                        {releasingId === `milestone-${milestoneId}` ? (
+                                                                                            <>
+                                                                                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                                                                                                Processing...
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                                                                                                {t('client.project_requests.release.button')}
+                                                                                            </>
+                                                                                        )}
+                                                                                    </Button>
+                                                                                )}
+
+                                                                                {showSecurePaymentBtn && (
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        className=" text-white shadow-sm"
+                                                                                        onClick={() => {
+                                                                                            openCheckout(project, milestone.providerId, milestone);
+                                                                                        }}
+                                                                                    >
+                                                                                        <Shield className="w-3.5 h-3.5 mr-2" />
+                                                                                        {t('client.project_requests.actions.secure_payment') || "Secure Payment"}
+                                                                                    </Button>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="flex items-center gap-3">
-                                                                            <span className="dark:text-[#1E2A3D]">{milestone.status}</span>
-                                                                            {canReleaseMilestone && (
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
-                                                                                    disabled={releasingId === `milestone-${milestoneId}`}
-                                                                                    className="btn-primary"
-                                                                                >
-                                                                                    {releasingId === `milestone-${milestoneId}` ? (
-                                                                                        <>
-                                                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                                                            {t('client.project_requests.release.processing')}
-                                                                                        </>
-                                                                                    ) : (
-                                                                                        t('client.project_requests.release.button')
-                                                                                    )}
-                                                                                </Button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
                                                                     );
                                                                 })}
                                                             </div>
@@ -519,8 +558,8 @@ export default function ClientProjectRequestsPage() {
                                         </div>
 
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                                            {project.paymentStatus !== 'ESCROW' && (<Button
-                                                onClick={() => openCheckout(project)}
+                                            {!project?.milestones && project.paymentStatus !== 'ESCROW' && (<Button
+                                                onClick={() => openCheckout(project, null, null)}
                                                 className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
                                                 size="lg"
                                             >

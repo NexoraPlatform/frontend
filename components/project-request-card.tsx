@@ -222,6 +222,41 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         }
     };
 
+    const getMilestonePaymentStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.pending')}
+                    </Badge>
+                );
+            case 'ESCROW':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.escrow')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.rejected')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -490,39 +525,46 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         </div>
 
                                         <div className="space-y-2">
-                                            {providerMilestones.map((milestone: any, index: number) => (
-                                                <div
-                                                    key={index}
-                                                    className="flex items-center justify-between rounded-md border p-2 text-sm"
-                                                >
-                                                    <div className="flex items-center justify-between gap-6">
-                                                        <span>{milestone.title}</span>
-                                                        <span>/</span>
-                                                        <span className="font-medium">
-                                                            {t('client.project_requests.providers.milestone_budget')}{' '}
-                                                            <PriceDisplay value={milestone.amount} />
-                                                    </span>
+                                            {providerMilestones.map((milestone: any, index: number) => {
+                                                const isPreviousMilestonePaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+
+                                                return (
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-center justify-between rounded-md border p-2 text-sm"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-6">
+                                                            <span>{milestone.title}</span>
+                                                            <span>/</span>
+                                                            <span className="font-medium">
+                        {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                                <PriceDisplay value={milestone.amount} />
+                    </span>
+                                                        </div>
+                                                        {milestone.payment_status === 'PENDING' && (
+                                                            <span className="ms-2">{getMilestonePaymentStatusBadge(milestone.payment_status)}</span>
+                                                        )}
+                                                        {project.status === 'ACCEPTED' && milestone.payment_status === 'ESCROW' && isPreviousMilestonePaid && (
+                                                            <span>
+                        <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
+                            disabled={milestone.status !== 'PENDING'}
+                        >
+                            {milestone.status === 'PENDING'
+                                ? t('client.project_requests.milestones.mark_complete')
+                                : milestone.status === 'PAID'
+                                    ? t('client.project_requests.milestones.paid')
+                                    : milestone.status === 'REJECTED'
+                                        ? t('client.project_requests.milestones.rejected')
+                                        : t('client.project_requests.milestones.pending')}
+                        </Button>
+                    </span>
+                                                        )}
                                                     </div>
-
-                                                    <span>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="default"
-                                                            onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
-                                                            disabled={milestone.status !== 'PENDING'}
-                                                            >
-
-                                                            {milestone.status === 'PENDING'
-                                                                ? t('client.project_requests.milestones.mark_complete')
-                                                                : milestone.status === 'PAID'
-                                                                    ? t('client.project_requests.milestones.paid')
-                                                                    : milestone.status === 'REJECTED'
-                                                                        ? t('client.project_requests.milestones.rejected')
-                                                                        : t('client.project_requests.milestones.pending')}
-                                                        </Button>
-                                                    </span>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}

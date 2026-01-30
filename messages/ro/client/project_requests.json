@@ -43,7 +43,13 @@
       "mark_complete": "Marchează milestone ca finalizat",
       "paid": "Plătit",
       "rejected": "Refuzat",
-      "pending": "În așteptare"
+      "pending": "În așteptare",
+      "payment_status": {
+        "pending": "Plată în așteptare",
+        "escrow": "Securizat",
+        "paid": "Plătit",
+        "rejected": "Refuzat"
+      }
     },
     "status": {
       "pending": "În așteptare",

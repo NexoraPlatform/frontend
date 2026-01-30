@@ -1516,8 +1516,8 @@ export class ApiClient {
     return this.request<any>(`/stripe/payment/${project_id}`);
   }
 
-  async getPaymentSession(project_id: string) {
-    return this.request<any>(`/stripe/session/payment/${project_id}`);
+  async getPaymentSession(project_id: string, milestone_id: number|string|null, provider_id: number|string|null) {
+    return this.request<any>(`/stripe/session/payment/${project_id}/${provider_id ? provider_id + `${milestone_id ? `/` + milestone_id : ''}` : ''}`);
   }
 
   async getPayment(project_id: string, session_id: string) {

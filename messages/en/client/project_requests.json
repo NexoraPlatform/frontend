@@ -43,7 +43,13 @@
       "mark_complete": "Mark milestone as completed",
       "paid": "Paid",
       "rejected": "Rejected",
-      "pending": "Pending"
+      "pending": "Pending",
+      "payment_status": {
+        "pending": "Pending Payment",
+        "escrow": "Secured",
+        "paid": "Paid",
+        "rejected": "Rejected"
+      }
     },
     "status": {
       "pending": "Pending",
