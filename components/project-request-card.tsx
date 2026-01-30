@@ -21,7 +21,7 @@ import {
     Banknote
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ro } from 'date-fns/locale';
+import { enUS, ro } from 'date-fns/locale';
 import { useAuth } from "@/contexts/auth-context";
 import apiClient from "@/lib/api";
 import { MuiIcon } from "@/components/MuiIcons";
@@ -36,7 +36,7 @@ import {
 import { useRouter } from '@/lib/navigation';
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
 import { Locale } from '@/types/locale';
@@ -66,6 +66,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
     const locale = useLocale() as Locale;
+    const t = useTranslations();
+    const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
     const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
     const [newBudget, setNewBudget] = useState<number>(0);
 
@@ -84,7 +86,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         if (checkoutDialogOpen) {
             async function initStripe() {
                 const stripe = await stripePromise;
-                if (!stripe) return console.error('Stripe nu s-a încărcat.');
+                if (!stripe) return console.error(t('client.project_requests.stripe.load_error'));
 
                 const elements = stripe.elements();
                 const cardElement = elements.create('card');
@@ -113,7 +115,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         const cardElement = cardElementRef.current;
 
         if (!stripe || !cardElement) {
-            setErrorMessage('Stripe nu e gata.');
+            setErrorMessage(t('client.project_requests.stripe.not_ready'));
             return;
         }
 
@@ -130,7 +132,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         await apiClient.setPaymentIntent(project_id, result.paymentIntent.id);
 
         if (result.error) {
-            setErrorMessage(result.error.message || 'Eroare la plată');
+            setErrorMessage(result.error.message || t('client.project_requests.stripe.payment_error'));
         } else if (result.paymentIntent.status === 'requires_capture' || result.paymentIntent.status === 'succeeded') {
             setSuccess(true);
             // Poți închide dialogul, face redirect, etc.
@@ -172,10 +174,14 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         setResponding(`${projectId}-${providerId}`);
         try {
             await apiClient.respondToBudgetProposal(projectId, providerId, { response });
-            toast.success(response === 'ACCEPTED' ? 'Buget aprobat!' : 'Buget respins');
+            toast.success(
+                response === 'ACCEPTED'
+                    ? t('client.project_requests.budget.approved')
+                    : t('client.project_requests.budget.rejected')
+            );
             onRefresh?.();
         } catch (error: any) {
-            toast.error('Eroare: ' + error.message);
+            toast.error(t('client.project_requests.errors.generic', { message: error.message }));
         } finally {
             setResponding(null);
         }
@@ -184,13 +190,33 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'PENDING':
-                return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />În așteptare</Badge>;
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.status.pending')}
+                    </Badge>
+                );
             case 'ACCEPTED':
-                return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Acceptat</Badge>;
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.status.accepted')}
+                    </Badge>
+                );
             case 'REJECTED':
-                return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Respins</Badge>;
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.status.rejected')}
+                    </Badge>
+                );
             case 'NEW_PROPOSE':
-                return <Badge className="bg-emerald-100 text-emerald-800"><DollarSign className="w-3 h-3 mr-1" />Buget propus</Badge>;
+                return (
+                    <Badge className="bg-emerald-100 text-emerald-800">
+                        <DollarSign className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.status.budget_proposed')}
+                    </Badge>
+                );
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
@@ -234,7 +260,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                             <div className="flex items-center space-x-1">
                                 <DollarSign className="w-4 h-4" />
                                 <span>
-                                    Buget total:{' '}
+                                    {t('client.project_requests.project.total_budget')}{' '}
                                     {project.budget != null ? <PriceDisplay value={project.budget} /> : '-'}
                                 </span>
                             </div>
@@ -242,23 +268,24 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 <Calendar className="w-4 h-4" />
                                 <span>
                                     {project.project_duration
-                                        ? `Deadline: ${formatDeadline(project.project_duration, locale)}`
-                                        : 'Fără deadline fix'
+                                        ? `${t('client.project_requests.project.deadline')} ${formatDeadline(project.project_duration, locale)}`
+                                        : t('client.project_requests.project.no_deadline')
                                     }
                                 </span>
                             </div>
                             <div className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
                                 <span>
-                                    Creat {formatDistanceToNow(new Date(project.created_at), {
+                                    {t('client.project_requests.project.created')}{' '}
+                                    {formatDistanceToNow(new Date(project.created_at), {
                                         addSuffix: true,
-                                        locale: ro
+                                        locale: dateLocale
                                     })}
                                 </span>
                             </div>
                             <div className="flex items-center space-x-1">
                                 <User className="w-4 h-4" />
-                                <span>{project.providers?.length || 0} prestatori selectați</span>
+                                <span>{t('client.project_requests.project.selected_providers', { count: project.providers?.length || 0 })}</span>
                             </div>
                         </div>
                     </div>
@@ -276,7 +303,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                 {(project?.existing_services?.length > 0
                     || project?.custom_services?.length > 0) && (
                         <div className="mb-4">
-                            <div className="text-sm font-medium mb-2">Tehnologii Proiect:</div>
+                            <div className="text-sm font-medium mb-2">{t('client.project_requests.project.technologies')}:</div>
                             <div className="flex flex-wrap gap-1">
                                 {project.existing_services.map((tech: any, index: number) => (
                                     <Badge key={index} variant="outline" className="text-xs">
@@ -289,7 +316,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
 
                 {/* Providers List */}
                 <div>
-                    <div className="text-sm font-medium mb-3">Răspunsuri Prestatori:</div>
+                    <div className="text-sm font-medium mb-3">{t('client.project_requests.providers.title')}:</div>
                     <div className="space-y-3">
                         {project.providers?.map((provider: any) => (
                             <div key={provider.id} className="border rounded-lg p-4">
@@ -312,7 +339,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 </div>
                                                 <div className="flex items-center space-x-1">
                                                     <MapPin className="w-3 h-3" />
-                                                    <span>{provider.location || 'România'}</span>
+                                                    <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center space-x-3 text-sm text-muted-foreground">
@@ -328,7 +355,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         <div className="text-right">
                                             {getStatusBadge(provider.status)}
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                Alocat:{' '}
+                                                {t('client.project_requests.providers.allocated')}{' '}
                                                 {provider.allocatedBudget != null ? (
                                                     <PriceDisplay value={provider.allocatedBudget} />
                                                 ) : (
@@ -343,25 +370,25 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         onOpenChange={(isOpen) => setProposeNewBudgetProviderId(isOpen ? provider.id : null)}
                                     >
                                         <DialogTrigger asChild>
-                                            <Button variant="outline">Propunere buget nou</Button>
+                                            <Button variant="outline">{t('client.project_requests.budget.new_proposal')}</Button>
                                         </DialogTrigger>
                                         <DialogContent className="max-w-2xl">
                                             <DialogHeader>
-                                                <DialogTitle>Propunere buget nou</DialogTitle>
+                                                <DialogTitle>{t('client.project_requests.budget.new_proposal')}</DialogTitle>
                                                 <DialogDescription>
-                                                    Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.
+                                                    {t('client.project_requests.budget.new_proposal_description')}
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex flex-col flex-wrap gap-1">
                                                 <div>
-                                                    Buget original:{' '}
+                                                    {t('client.project_requests.budget.original')}{' '}
                                                     {provider.allocatedBudget != null ? (
                                                         <PriceDisplay value={provider.allocatedBudget} />
                                                     ) : (
                                                         '-'
                                                     )}
                                                 </div>
-                                                <div>Introdu propunerea de buget:</div>
+                                                <div>{t('client.project_requests.budget.enter_proposal')}</div>
                                                 <div>
                                                     <Input
                                                         type="number"
@@ -373,7 +400,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
 
                                             <DialogFooter>
                                                 <DialogClose asChild>
-                                                    <Button variant="outline">Anulează</Button>
+                                                    <Button variant="outline">{t('client.project_requests.budget.cancel')}</Button>
                                                 </DialogClose>
                                                 <Button
                                                     variant="default"
@@ -382,7 +409,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         setProposeNewBudgetProviderId(null);
                                                     }}
                                                 >
-                                                    Salvează modificările
+                                                    {t('client.project_requests.budget.save_changes')}
                                                 </Button>
                                             </DialogFooter>
                                         </DialogContent>
@@ -396,7 +423,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         <AlertDescription>
                                             <div className="flex items-center justify-between">
                                                     <div>
-                                                    <div className="font-medium">Propunere de buget nou:</div>
+                                                    <div className="font-medium">{t('client.project_requests.budget.new_proposal')}:</div>
                                                     <div className="text-lg font-bold text-emerald-600">
                                                         {provider.proposedBudget != null ? (
                                                             <PriceDisplay value={provider.proposedBudget} />
@@ -405,7 +432,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         )}
                                                     </div>
                                                     <div className="text-sm text-muted-foreground">
-                                                        Buget original:{' '}
+                                                        {t('client.project_requests.budget.original')}{' '}
                                                         {provider.allocatedBudget != null ? (
                                                             <PriceDisplay value={provider.allocatedBudget} />
                                                         ) : (
@@ -420,7 +447,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         disabled={responding === `${project.id}-${provider.id}` || provider.provider_response !== 'PENDING'}
                                                     >
                                                         <CheckCircle className="w-4 h-4 mr-1" />
-                                                        Aprobă
+                                                        {t('client.project_requests.budget.approve')}
                                                     </Button>
                                                     <Button
                                                         size="sm"
@@ -429,7 +456,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         disabled={responding === `${project.id}-${provider.id}` || provider.provider_response !== 'PENDING'}
                                                     >
                                                         <Banknote className="w-4 h-4 mr-1" />
-                                                        Propune buget nou
+                                                        {t('client.project_requests.budget.propose_new')}
                                                     </Button>
                                                     <Button
                                                         size="sm"
@@ -438,7 +465,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         disabled={responding === `${project.id}-${provider.id}`}
                                                     >
                                                         <XCircle className="w-4 h-4 mr-1" />
-                                                        Respinge
+                                                        {t('client.project_requests.budget.reject')}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -449,16 +476,17 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 {/* Response Time */}
                                 {provider.respondedAt && (
                                     <div className="mt-2 text-xs text-muted-foreground">
-                                        Răspuns primit cu {formatDistanceToNow(new Date(provider.respondedAt), {
+                                        {t('client.project_requests.providers.response_received')}{' '}
+                                        {formatDistanceToNow(new Date(provider.respondedAt), {
                                             addSuffix: true,
-                                            locale: ro
+                                            locale: dateLocale
                                         })}
                                     </div>
                                 )}
                                 {providerMilestones.length > 0 && (
                                     <div className="mt-4 border-t pt-3">
                                         <div className="text-sm font-medium mb-2">
-                                            Milestone-uri proiect
+                                            {t('client.project_requests.milestones.title')}
                                         </div>
 
                                         <div className="space-y-2">
@@ -471,7 +499,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         <span>{milestone.title}</span>
                                                         <span>/</span>
                                                         <span className="font-medium">
-                                                            Buget alocat: <PriceDisplay value={milestone.amount} />
+                                                            {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                            <PriceDisplay value={milestone.amount} />
                                                     </span>
                                                     </div>
 
@@ -483,7 +512,13 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                             disabled={milestone.status !== 'PENDING'}
                                                             >
 
-                                                            {milestone.status === 'PENDING' ? 'Marcheaza milestone ca finalizat' : milestone.status === 'PAID' ? 'Platit' : milestone.status === 'REJECTED' ? 'Refuzat' : 'In asteptare'}
+                                                            {milestone.status === 'PENDING'
+                                                                ? t('client.project_requests.milestones.mark_complete')
+                                                                : milestone.status === 'PAID'
+                                                                    ? t('client.project_requests.milestones.paid')
+                                                                    : milestone.status === 'REJECTED'
+                                                                        ? t('client.project_requests.milestones.rejected')
+                                                                        : t('client.project_requests.milestones.pending')}
                                                         </Button>
                                                     </span>
                                                 </div>
@@ -501,11 +536,11 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
 
                     <Button variant="outline" size="sm" onClick={() => router.push(`/projects/${project.slug}`)}>
                         <Eye className="w-4 h-4 mr-2" />
-                        Vezi Detalii
+                        {t('client.project_requests.actions.view_details')}
                     </Button>
                     <Button variant="outline" size="sm">
                         <MessageSquare className="w-4 h-4 mr-2" />
-                        Mesaje
+                        {t('client.project_requests.actions.messages')}
                     </Button>
                 </div>
             </CardContent>

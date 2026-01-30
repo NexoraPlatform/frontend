@@ -12,6 +12,8 @@
     },
     "project": {
       "total_budget": "Total budget:",
+      "deadline": "Deadline:",
+      "no_deadline": "No fixed deadline",
       "created": "Created",
       "selected_providers": "{count} selected providers",
       "technologies": "Project technologies"
@@ -27,9 +29,21 @@
       "approved": "Budget approved!",
       "rejected": "Budget rejected",
       "new_proposal": "New budget proposal",
+      "new_proposal_description": "Propose a new amount for this project. The client will have to approve the new proposal.",
       "original": "Original budget:",
+      "enter_proposal": "Enter the budget proposal:",
       "approve": "Approve",
+      "propose_new": "Propose new budget",
+      "cancel": "Cancel",
+      "save_changes": "Save changes",
       "reject": "Reject"
+    },
+    "milestones": {
+      "title": "Project milestones",
+      "mark_complete": "Mark milestone as completed",
+      "paid": "Paid",
+      "rejected": "Rejected",
+      "pending": "Pending"
     },
     "status": {
       "pending": "Pending",
