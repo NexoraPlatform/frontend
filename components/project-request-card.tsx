@@ -106,7 +106,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             cardElementRef.current?.unmount?.();
             cardElementRef.current = null;
         };
-    }, [checkoutDialogOpen]);
+    }, [checkoutDialogOpen, t]);
 
     const handlePayment = async (project_id: any) => {
         setErrorMessage('');
@@ -139,22 +139,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         }
 
     };
-
-    const getClientSecret = async (project_id: string) => {
-        // router.push(response.url);
-        try {
-            const response = await apiClient.getPaymentSession(project_id);
-            if (response.clientSecret) {
-                setClientSecret(response.clientSecret);
-                setCheckoutDialogOpen(true);
-            } else {
-                throw new Error('Client secret not found in response');
-            }
-
-        } catch (err) {
-            console.error('Checkout error:', err);
-        }
-    }
 
     const handleProjectFinish = async (projectId: string) => {
         const response = await apiClient.finishProject(projectId);
@@ -531,7 +515,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 return (
                                                     <div
                                                         key={index}
-                                                        className="flex items-center justify-between rounded-md border p-2 text-sm"
+                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm ${milestone.payment_status === 'PAID' ? 'bg-green-300' : ''}`}
                                                     >
                                                         <div className="flex items-center justify-between gap-6">
                                                             <span>{milestone.title}</span>
@@ -541,9 +525,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                                 <PriceDisplay value={milestone.amount} />
                     </span>
                                                         </div>
-                                                        {milestone.payment_status === 'PENDING' && (
                                                             <span className="ms-2">{getMilestonePaymentStatusBadge(milestone.payment_status)}</span>
-                                                        )}
                                                         {project.status === 'ACCEPTED' && milestone.payment_status === 'ESCROW' && isPreviousMilestonePaid && (
                                                             <span>
                         <Button

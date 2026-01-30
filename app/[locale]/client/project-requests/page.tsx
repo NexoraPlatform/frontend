@@ -60,11 +60,44 @@ export default function ClientProjectRequestsPage() {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
+    const [selectedProviderId, setSelectedProviderId] = useState<number | string | null>(null);
     const cardElementRef = useRef<any>(null);
     const stripeRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
     const [releasingId, setReleasingId] = useState<string | null>(null);
+    const getMilestoneId = useCallback((milestone: any) => {
+        return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
+    }, []);
+
+    const projectBudgetAmount = selectedProject?.budget?.amount != null
+        ? Number(selectedProject.budget.amount)
+        : null;
+    const selectedMilestoneAmount = selectedMilestone?.amount != null
+        ? Number(selectedMilestone.amount)
+        : null;
+    const selectedMilestoneId = getMilestoneId(selectedMilestone);
+    const isMilestonePayment = selectedMilestone != null;
+    const platformFeeBase = projectBudgetAmount != null
+        ? Math.min(projectBudgetAmount * 0.10, 150)
+        : null;
+    const isFirstMilestone = (() => {
+        if (!isMilestonePayment || !selectedProject || !selectedMilestoneId || !selectedProviderId) return false;
+        const providerMilestones = selectedProject.milestones
+            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(selectedProviderId))
+            ?.milestones ?? [];
+        const index = providerMilestones.findIndex(
+            (milestone: any) => String(getMilestoneId(milestone)) === String(selectedMilestoneId)
+        );
+        return index === 0;
+    })();
+    const displayedValueAmount = isMilestonePayment ? selectedMilestoneAmount : projectBudgetAmount;
+    const displayedFeeAmount = isMilestonePayment
+        ? (isFirstMilestone ? platformFeeBase : 0)
+        : platformFeeBase;
+    const displayedTotalAmount = displayedValueAmount != null && displayedFeeAmount != null
+        ? displayedValueAmount + displayedFeeAmount
+        : null;
 
     const loadProjects = useCallback(async () => {
         try {
@@ -130,10 +163,11 @@ export default function ClientProjectRequestsPage() {
     const openCheckout = async (project: any, providerId: number|string|null, milestone: any|null) => {
         setSelectedProject(project);
         setSelectedMilestone(milestone);
+        setSelectedProviderId(providerId);
         setSuccess(false);
         setErrorMessage('');
         setClientSecret(null);
-        await getClientSecret(project.id, providerId, milestone.id);
+        await getClientSecret(project.id, providerId, getMilestoneId(milestone));
     };
 
     const handleBudgetResponse = useCallback(async (
@@ -165,7 +199,9 @@ export default function ClientProjectRequestsPage() {
             toast.success(response?.message ?? t('client.project_requests.release.success'));
             await loadProjects();
         } catch (error: any) {
-            toast.error(t('client.project_requests.release.error', { message: error.message }));
+            const serverMessage = error.response?.data?.error || error.message || "A apărut o eroare necunoscută.";
+
+            toast.error(t('client.project_requests.release.error', { message: serverMessage }));
         } finally {
             setReleasingId(null);
         }
@@ -199,6 +235,76 @@ export default function ClientProjectRequestsPage() {
                     <Badge className="bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30">
                         <DollarSign className="w-3 h-3 mr-1" />
                         {t('client.project_requests.status.budget_proposed')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMilestoneStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.pending')}
+                    </Badge>
+                );
+            case 'FINISHED':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.finished')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.rejected')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMilestonePaymentStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.pending')}
+                    </Badge>
+                );
+            case 'ESCROW':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.escrow')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.rejected')}
                     </Badge>
                 );
             default:
@@ -470,7 +576,7 @@ export default function ClientProjectRequestsPage() {
 
                                                             <div className="space-y-2 mt-2">
                                                                 {providerMilestones.map((milestone: any, index: number) => {
-                                                                    const milestoneId = milestone.id ?? milestone.milestone_id ?? milestone.milestoneId;
+                                                                    const milestoneId = getMilestoneId(milestone);
 
                                                                     // 1. Logica pentru Release (existentă)
                                                                     const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
@@ -480,7 +586,7 @@ export default function ClientProjectRequestsPage() {
                                                                     const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
 
                                                                     // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
-                                                                    const showSecurePaymentBtn = milestone.status === 'PENDING' && isPreviousPaid;
+                                                                    const showSecurePaymentBtn = milestone.payment_status === 'PENDING' && isPreviousPaid;
 
                                                                     return (
                                                                         <div
@@ -504,13 +610,13 @@ export default function ClientProjectRequestsPage() {
                                                                             </div>
 
                                                                             <div className="flex items-center gap-3 bg-gree">
-                                                                                <Badge variant={
-                                                                                    milestone.status === 'PAID' ? 'default' :
-                                                                                        milestone.status === 'FINISHED' ? 'success' :
-                                                                                            milestone.status === 'REJECTED' ? 'destructive' : 'secondary'
-                                                                                }>
-                                                                                    {milestone.status}
-                                                                                </Badge>
+                                                                                <span className="ms-2">
+                                                                                    {getMilestoneStatusBadge(milestone.status)}
+                                                                                </span>
+
+                                                                                <span className="ms-2">
+                                                                                    {getMilestonePaymentStatusBadge(milestone.payment_status)}
+                                                                                </span>
 
                                                                                 {/* BUTON RELEASE FUNDS */}
                                                                                 {canReleaseMilestone && (
@@ -539,7 +645,7 @@ export default function ClientProjectRequestsPage() {
                                                                                         size="sm"
                                                                                         className=" text-white shadow-sm"
                                                                                         onClick={() => {
-                                                                                            openCheckout(project, milestone.providerId, milestone);
+                                                                                            openCheckout(project, provider.id, milestone);
                                                                                         }}
                                                                                     >
                                                                                         <Shield className="w-3.5 h-3.5 mr-2" />
@@ -636,8 +742,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount)} />
+                                    {displayedValueAmount != null ? (
+                                        <PriceDisplay value={displayedValueAmount} />
                                     ) : (
                                         '-'
                                     )}
@@ -646,9 +752,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
                                 <span className="font-bold text-lg">
-
-                                    {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget?.amount ?? 0) * 0.10 >= 150 ? 150 : Number(selectedProject.budget?.amount ?? 0) * 0.10} />
+                                    {displayedFeeAmount != null ? (
+                                        <PriceDisplay value={displayedFeeAmount} />
                                     ) : (
                                         '-'
                                     )}
@@ -657,8 +762,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject.budget?.amount ?? 0) * 0.10 >= 150 ? Number(selectedProject.budget?.amount ?? 0) + 150 : Number(selectedProject.budget?.amount ?? 0) * 1.10} />
+                                    {displayedTotalAmount != null ? (
+                                        <PriceDisplay value={displayedTotalAmount} />
                                     ) : (
                                         '-'
                                     )}

@@ -257,7 +257,7 @@ export class ApiClient {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
+          errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (e) {
           errorMessage = response.statusText || errorMessage;
         }

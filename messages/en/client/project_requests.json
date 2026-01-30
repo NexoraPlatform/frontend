@@ -42,11 +42,12 @@
       "title": "Project milestones",
       "mark_complete": "Mark milestone as completed",
       "paid": "Paid",
+      "finished": "Finished",
       "rejected": "Rejected",
-      "pending": "Pending",
+      "pending": "Work in progress",
       "payment_status": {
         "pending": "Pending Payment",
-        "escrow": "Secured",
+        "escrow": "Payment Secured",
         "paid": "Paid",
         "rejected": "Rejected"
       }
