@@ -537,7 +537,6 @@ export default function NewProjectPage() {
     }, [user, loading, router, userLoading]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
-        console.log(formData);
         if (formData.technologies.length > 0) {
             return formData.technologies.map(p => ({
                 service: p.name,
@@ -2210,7 +2209,11 @@ export default function NewProjectPage() {
                                                 <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
                                                 <div className="space-y-2 text-sm">
                                                     <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
-                                                    <div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
+
+                                                    {/*<div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData*/}
+                                                    {/*    ?.flatMap((c: any) => [c, ...(c.children || [])]) */}
+                                                    {/*    .find((c: any) => String(c.id) === String(formData.serviceId)) // Căutăm ID-ul (convertit la string)*/}
+                                                    {/*    ?.name}</div>*/}
                                                     <div>
                                                         <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
                                                         <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
