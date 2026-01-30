@@ -340,6 +340,8 @@ export default function NewProjectPage() {
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
 
+    const normalizeTechnologyName = useCallback((name: string) => name.trim().toLowerCase(), []);
+
     useEffect(() => {
         if (githubRefreshHandled.current || loading || userLoading || !user) {
             return;
@@ -383,12 +385,12 @@ export default function NewProjectPage() {
 
     const markedNamesSet = useMemo(() => {
         const names = [
-            ...formData.technologies.map(t => t.name),
-            ...generatedAiOutput.technologies.map((t: any) => t.name),
-        ].filter(Boolean);
+            ...formData.technologies.map(t => normalizeTechnologyName(t.name)),
+            ...generatedAiOutput.technologies.map((tech) => normalizeTechnologyName(tech)),
+        ].filter(name => name.length > 0);
 
         return new Set(names);
-    }, [formData.technologies, generatedAiOutput.technologies]);
+    }, [formData.technologies, generatedAiOutput.technologies, normalizeTechnologyName]);
 
     const filteredProviders = suggestedProviders.filter(provider => {
         const searchMatch = !providerSearchTerm ||
@@ -620,24 +622,26 @@ export default function NewProjectPage() {
 
     const handleTechnologyToggle = (techName: string, techId: string, requireRepo: boolean) => {
         setFormData(prev => {
-            const exists = prev.technologies.some(t => t.name === techName && t.id === techId);
+            const normalizedTech = normalizeTechnologyName(techName);
+            const exists = prev.technologies.some(t => normalizeTechnologyName(t.name) === normalizedTech);
 
             return {
                 ...prev,
                 technologies: exists
-                    ? prev.technologies.filter(t => !(t.name === techName && t.id === techId))
+                    ? prev.technologies.filter(t => normalizeTechnologyName(t.name) !== normalizedTech)
                     : [...prev.technologies, { id: techId, name: techName, require_repo: requireRepo }]
             };
         });
     };
 
     const addCustomTechnology = () => {
-        if (newTechnology.trim() && !formData.technologies.some(t => t.name === newTechnology.trim())) {
+        const trimmed = newTechnology.trim();
+        if (trimmed && !formData.technologies.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(trimmed))) {
             setFormData(prev => ({
                 ...prev,
                 technologies: [
                     ...prev.technologies,
-                    { id: newTechnology.trim(), name: newTechnology.trim() }
+                    resolveTechnology(trimmed)
                 ]
             }));
             setNewTechnology('');
@@ -888,6 +892,35 @@ export default function NewProjectPage() {
 
     const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
 
+    const serviceNameLookup = useMemo(() => {
+        const lookup = new Map<string, ServiceItem>();
+
+        Object.values(groupedServices).forEach((childCategories) => {
+            Object.values(childCategories).forEach((services) => {
+                services.forEach((service) => {
+                    lookup.set(normalizeTechnologyName(service.name), service);
+                });
+            });
+        });
+
+        return lookup;
+    }, [groupedServices, normalizeTechnologyName]);
+
+    const resolveTechnology = useCallback((techName: string): TechnologySelected => {
+        const normalizedName = normalizeTechnologyName(techName);
+        const matchedService = serviceNameLookup.get(normalizedName);
+
+        if (matchedService) {
+            return {
+                id: matchedService.id,
+                name: matchedService.name,
+                require_repo: matchedService.require_repo,
+            };
+        }
+
+        return { id: techName, name: techName };
+    }, [normalizeTechnologyName, serviceNameLookup]);
+
     const hasRequireRepo = (data: any): boolean => {
         if (Array.isArray(data)) {
             return data.some(item => hasRequireRepo(item));
@@ -936,6 +969,15 @@ export default function NewProjectPage() {
                     count: member.count ?? 0,
                     estimated_cost: member.estimated_cost
                 })),
+                technologies: (() => {
+                    const existing = prev.technologies;
+                    const existingNames = new Set(existing.map((tech) => normalizeTechnologyName(tech.name)));
+                    const newTechs = generatedOutput.technologies
+                        .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
+                        .map((techName) => resolveTechnology(techName));
+
+                    return [...existing, ...newTechs];
+                })(),
             }));
         } catch (e: any) {
             console.error ('Error generating AI output:', e);
@@ -967,8 +1009,8 @@ export default function NewProjectPage() {
             const existing = prev.technologies;
 
             const newTechs = technologies
-                .filter((techName) => !existing.some(t => t.name.toLowerCase() === techName.toLowerCase()))
-                .map((techName) => ({ id: techName, name: techName }));
+                .filter((techName) => !existing.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(techName)))
+                .map((techName) => resolveTechnology(techName));
 
             return {
                 ...prev,
@@ -982,8 +1024,8 @@ export default function NewProjectPage() {
             const existing = prev.technologies;
 
             const newTechs = technologies
-                .filter((techName) => !existing.some(t => t.name.toLowerCase() === techName.toLowerCase()))
-                .map((techName) => ({ id: techName, name: techName }));
+                .filter((techName) => !existing.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(techName)))
+                .map((techName) => resolveTechnology(techName));
 
             return {
                 ...prev,
@@ -1272,7 +1314,7 @@ export default function NewProjectPage() {
                                                                             <Checkbox
                                                                                 id={service.id}
                                                                                 // checked={formData.technologies.some(t => t.id === service.id)}
-                                                                                checked={markedNamesSet.has(service.name)}
+                                                                                checked={markedNamesSet.has(normalizeTechnologyName(service.name))}
                                                                                 onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
                                                                             />
                                                                             <Label htmlFor={service.id} className="text-sm cursor-pointer">

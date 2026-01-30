@@ -1328,6 +1328,17 @@ export class ApiClient {
     });
   }
 
+  async generateProjectContract(projectId: string, clientId: string, providerId: string) {
+    return this.request<any>(`/contract/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify({ project_id: projectId, client_id: clientId, provider_id: providerId }),
+    });
+  }
+
   async releaseProjectFunds(projectId: string | number, milestoneId?: string) {
     const payload: Record<string, unknown> = { project_id: projectId };
     if (milestoneId) {
