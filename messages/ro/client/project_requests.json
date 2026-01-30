@@ -12,6 +12,8 @@
     },
     "project": {
       "total_budget": "Buget total:",
+      "deadline": "Deadline:",
+      "no_deadline": "Fără deadline fix",
       "created": "Creat",
       "selected_providers": "{count} prestatori selectați",
       "technologies": "Tehnologii proiect"
@@ -27,9 +29,21 @@
       "approved": "Buget aprobat!",
       "rejected": "Buget respins",
       "new_proposal": "Propunere de buget nou",
+      "new_proposal_description": "Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.",
       "original": "Buget original:",
+      "enter_proposal": "Introdu propunerea de buget:",
       "approve": "Aprobă",
+      "propose_new": "Propune buget nou",
+      "cancel": "Anulează",
+      "save_changes": "Salvează modificările",
       "reject": "Respinge"
+    },
+    "milestones": {
+      "title": "Milestone-uri proiect",
+      "mark_complete": "Marchează milestone ca finalizat",
+      "paid": "Plătit",
+      "rejected": "Refuzat",
+      "pending": "În așteptare"
     },
     "status": {
       "pending": "În așteptare",
@@ -41,6 +55,12 @@
       "secure_payment": "Securizează plata",
       "view_details": "Vezi detalii",
       "messages": "Mesaje"
+    },
+    "release": {
+      "button": "Eliberează fondurile",
+      "processing": "Se eliberează...",
+      "success": "Fondurile au fost eliberate cu succes.",
+      "error": "Eroare: {message}"
     },
     "stripe": {
       "load_error": "Stripe nu s-a încărcat.",

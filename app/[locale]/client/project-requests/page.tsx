@@ -31,6 +31,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
@@ -61,6 +62,7 @@ export default function ClientProjectRequestsPage() {
     const stripeRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const [releasingId, setReleasingId] = useState<string | null>(null);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -73,6 +75,23 @@ export default function ClientProjectRequestsPage() {
             setLoadingProjects(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const echo = getEcho(token);
+        if (!echo) return;
+        const channel = echo.private(`App.Models.User.${user.id}`);
+        const handler = (notification: { type?: string }) => {
+            if (notification?.type !== 'project.status.updated') return;
+            loadProjects();
+        };
+        channel.notification(handler);
+
+        return () => {
+            channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+        };
+    }, [user?.id, loadProjects]);
 
     const handleCheckoutComplete = useCallback(async () => {
         setSuccess(true);
@@ -132,6 +151,20 @@ export default function ClientProjectRequestsPage() {
             toast.error(t('client.project_requests.errors.generic', { message: error.message }));
         } finally {
             setResponding(null);
+        }
+    }, [loadProjects, t]);
+
+    const handleReleaseFunds = useCallback(async (projectId: string, milestoneId?: string) => {
+        const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
+        setReleasingId(releaseKey);
+        try {
+            const response = await apiClient.releaseProjectFunds(projectId, milestoneId);
+            toast.success(response?.message ?? t('client.project_requests.release.success'));
+            await loadProjects();
+        } catch (error: any) {
+            toast.error(t('client.project_requests.release.error', { message: error.message }));
+        } finally {
+            setReleasingId(null);
         }
     }, [loadProjects, t]);
 
@@ -225,8 +258,13 @@ export default function ClientProjectRequestsPage() {
                         </Card>
                     ) : (
                         <div className="space-y-6">
-                            {projects.map((project) => (
+                            {projects.map((project) => {
+                                const hasAnyMilestones = (project.milestones ?? []).some(
+                                    (milestoneGroup: any) => (milestoneGroup.milestones ?? []).length > 0
+                                );
+                                const canReleaseFull = !hasAnyMilestones && project.status === 'FINISHED';
 
+                                return (
                                 <Card key={project.id} className="glass-card border-transparent shadow-sm">
                                     <CardHeader className="space-y-4">
                                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -327,10 +365,10 @@ export default function ClientProjectRequestsPage() {
                                                                         </AvatarFallback>
                                                                     </Avatar>
                                                                     <div>
-                                                                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                        <div className="font-semibold text-[#0B1C2D]">
                                                                             {provider.firstName} {provider.lastName}
                                                                         </div>
-                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
                                                                             <div className="flex items-center gap-1">
                                                                                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                                                                                 <span>{provider.rating || 0}</span>
@@ -340,12 +378,12 @@ export default function ClientProjectRequestsPage() {
                                                                                 <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
+                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 mt-2">
                                                                             {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
                                                                                 <Badge
                                                                                     key={index}
                                                                                     variant="outline"
-                                                                                    className="text-xs border-slate-200 dark:border-[#1E2A3D]"
+                                                                                    className="text-xs border-slate-200 "
                                                                                 >
                                                                                     <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
                                                                                     {service.name}
@@ -428,9 +466,13 @@ export default function ClientProjectRequestsPage() {
                                                             )}
 
                                                             <div className="space-y-2 mt-2">
-                                                                {providerMilestones.map((milestone: any, index: number) => (
+                                                                {providerMilestones.map((milestone: any, index: number) => {
+                                                                    const milestoneId = milestone.id ?? milestone.milestone_id ?? milestone.milestoneId;
+                                                                    const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
+
+                                                                    return (
                                                                     <div
-                                                                        key={index}
+                                                                        key={milestoneId ?? index}
                                                                         className={`flex items-center justify-between rounded-md border p-2 text-sm 
                                                                     ${milestone.status === 'PENDING' && "bg-yellow-300"}
                                                                     ${milestone.status === 'FINISHED' && "bg-green-300"}
@@ -438,7 +480,7 @@ export default function ClientProjectRequestsPage() {
                                                                     ${milestone.status === 'REJECTED' && "bg-red-700"}
                                                                      `}
                                                                     >
-                                                                        <div className="flex items-center justify-between gap-6">
+                                                                        <div className="flex items-center justify-between gap-6 dark:text-[#1E2A3D]">
                                                                             <span>{milestone.title}</span>
                                                                             <span>/</span>
                                                                             <span className="font-medium">
@@ -446,10 +488,29 @@ export default function ClientProjectRequestsPage() {
                                                                                 <PriceDisplay value={milestone.amount} />
                                                                             </span>
                                                                         </div>
-
-                                                                        <span>{milestone.status}</span>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className="dark:text-[#1E2A3D]">{milestone.status}</span>
+                                                                            {canReleaseMilestone && (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
+                                                                                    disabled={releasingId === `milestone-${milestoneId}`}
+                                                                                    className="btn-primary"
+                                                                                >
+                                                                                    {releasingId === `milestone-${milestoneId}` ? (
+                                                                                        <>
+                                                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                                            {t('client.project_requests.release.processing')}
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        t('client.project_requests.release.button')
+                                                                                    )}
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                ))}
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     );
@@ -466,6 +527,23 @@ export default function ClientProjectRequestsPage() {
                                                 <Shield className="w-5 h-5 mr-2" />
                                                 {t('client.project_requests.actions.secure_payment')}
                                             </Button>)}
+                                            {project.paymentStatus === 'ESCROW' && canReleaseFull && (
+                                                <Button
+                                                    onClick={() => handleReleaseFunds(project.id)}
+                                                    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
+                                                    size="lg"
+                                                    disabled={releasingId === `project-${project.id}`}
+                                                >
+                                                    {releasingId === `project-${project.id}` ? (
+                                                        <>
+                                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                            {t('client.project_requests.release.processing')}
+                                                        </>
+                                                    ) : (
+                                                        t('client.project_requests.release.button')
+                                                    )}
+                                                </Button>
+                                            )}
                                             <div className="flex flex-col gap-2 sm:flex-row">
                                                 <Button
                                                     variant="outline"
@@ -487,7 +565,8 @@ export default function ClientProjectRequestsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

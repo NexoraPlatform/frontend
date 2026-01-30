@@ -1328,6 +1328,21 @@ export class ApiClient {
     });
   }
 
+  async releaseProjectFunds(projectId: string | number, milestoneId?: string) {
+    const payload: Record<string, unknown> = { project_id: projectId };
+    if (milestoneId) {
+      payload.milestone_id = milestoneId;
+    }
+    return this.request<any>('/stripe/project/release-funds', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
   async createProject(projectData: CreateProjectPayload) {
     return this.request<any>('/projects', {
       method: 'POST',
