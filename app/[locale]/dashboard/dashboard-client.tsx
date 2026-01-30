@@ -57,7 +57,6 @@ import { Can } from "@/components/Can";
 export default function DashboardClient() {
   const { user, loading, userLoading } = useAuth();
   const t = useTranslations();
-  const [activeTab, setActiveTab] = useState('overview');
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
@@ -78,6 +77,8 @@ export default function DashboardClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const availableTabs = ['overview', 'projects', 'services', 'messages', 'settings'];
+  const tabParam = searchParams.get('tab');
+  const activeTab = tabParam && availableTabs.includes(tabParam) ? tabParam : 'overview';
   useEffect(() => {
     if (userLoading) return;
 
@@ -86,15 +87,7 @@ export default function DashboardClient() {
     }
   }, [user, userLoading, router]);
 
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && availableTabs.includes(tabParam) && tabParam !== activeTab) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams, activeTab, availableTabs]);
-
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
     const params = new URLSearchParams(searchParams.toString());
     if (value === 'overview') {
       params.delete('tab');
