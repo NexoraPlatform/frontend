@@ -199,7 +199,9 @@ export default function ClientProjectRequestsPage() {
             toast.success(response?.message ?? t('client.project_requests.release.success'));
             await loadProjects();
         } catch (error: any) {
-            toast.error(t('client.project_requests.release.error', { message: error.message }));
+            const serverMessage = error.response?.data?.error || error.message || "A apărut o eroare necunoscută.";
+
+            toast.error(t('client.project_requests.release.error', { message: serverMessage }));
         } finally {
             setReleasingId(null);
         }
@@ -233,6 +235,76 @@ export default function ClientProjectRequestsPage() {
                     <Badge className="bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30">
                         <DollarSign className="w-3 h-3 mr-1" />
                         {t('client.project_requests.status.budget_proposed')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMilestoneStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.pending')}
+                    </Badge>
+                );
+            case 'FINISHED':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.finished')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.rejected')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMilestonePaymentStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.pending')}
+                    </Badge>
+                );
+            case 'ESCROW':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.escrow')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.rejected')}
                     </Badge>
                 );
             default:
@@ -514,7 +586,7 @@ export default function ClientProjectRequestsPage() {
                                                                     const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
 
                                                                     // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
-                                                                    const showSecurePaymentBtn = milestone.status === 'PENDING' && isPreviousPaid;
+                                                                    const showSecurePaymentBtn = milestone.payment_status === 'PENDING' && isPreviousPaid;
 
                                                                     return (
                                                                         <div
@@ -538,13 +610,13 @@ export default function ClientProjectRequestsPage() {
                                                                             </div>
 
                                                                             <div className="flex items-center gap-3 bg-gree">
-                                                                                <Badge variant={
-                                                                                    milestone.status === 'PAID' ? 'default' :
-                                                                                        milestone.status === 'FINISHED' ? 'success' :
-                                                                                            milestone.status === 'REJECTED' ? 'destructive' : 'secondary'
-                                                                                }>
-                                                                                    {milestone.status}
-                                                                                </Badge>
+                                                                                <span className="ms-2">
+                                                                                    {getMilestoneStatusBadge(milestone.status)}
+                                                                                </span>
+
+                                                                                <span className="ms-2">
+                                                                                    {getMilestonePaymentStatusBadge(milestone.payment_status)}
+                                                                                </span>
 
                                                                                 {/* BUTON RELEASE FUNDS */}
                                                                                 {canReleaseMilestone && (

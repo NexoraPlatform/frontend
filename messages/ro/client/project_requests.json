@@ -42,11 +42,12 @@
       "title": "Milestone-uri proiect",
       "mark_complete": "Marchează milestone ca finalizat",
       "paid": "Plătit",
+      "finished": "Finalizat",
       "rejected": "Refuzat",
-      "pending": "În așteptare",
+      "pending": "În lucru",
       "payment_status": {
         "pending": "Plată în așteptare",
-        "escrow": "Securizat",
+        "escrow": "Plată securizată",
         "paid": "Plătit",
         "rejected": "Refuzat"
       }
