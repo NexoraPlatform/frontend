@@ -159,7 +159,7 @@ type FormData = {
     recommendedProviders: RecommendedProvider[];
     notes: string;
     paymentPlan: string;
-    githubRepoTarget: 'platform' | 'provider' | 'client';
+    githubRepoTarget: 'platform' | 'provider' | 'client' | 'without';
 };
 
 
@@ -192,7 +192,7 @@ export default function NewProjectPage() {
         recommendedProviders: [],
         notes: '',
         paymentPlan: '',
-        githubRepoTarget: 'platform',
+        githubRepoTarget: 'without',
     });
     const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
         title: "",
@@ -537,7 +537,16 @@ export default function NewProjectPage() {
     }, [user, loading, router, userLoading]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
-        if (formData.recommendedProviders.length > 0) {
+        console.log(formData);
+        if (formData.technologies.length > 0) {
+            return formData.technologies.map(p => ({
+                service: p.name,
+                level: '',
+                role: '',
+                count: 1,
+                estimated_cost: 0,
+            }));
+        } else {
             return formData.recommendedProviders.map(p => ({
                 service: p.service,
                 level: p.level || '',
@@ -551,7 +560,7 @@ export default function NewProjectPage() {
             service: t.name,
             level: '',
         }));
-    }, [formData.recommendedProviders, formData.technologies]);
+    }, [formData]);
 
     const loadSuggestedProviders = useCallback(async () => {
         setLoadingProviders(true);
@@ -1457,7 +1466,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.title.trim() && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
                                                         <TitleIcon />
@@ -1468,8 +1477,8 @@ export default function NewProjectPage() {
 
                                             {generatedAiOutput?.description.trim() && (
                                                 <>
-                                                    <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
+                                                    <div className="whitespace-pre-wrap">
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
                                                        onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
@@ -1482,7 +1491,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.technologies.length > 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.technologies')}</span>
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.technologies')}</span>
                                                         <ul className="ml-6 list-disc">
                                                             {generatedAiOutput?.technologies.map((tech, index) => (
                                                                 <li key={index}>{tech}</li>
@@ -1497,10 +1506,10 @@ export default function NewProjectPage() {
                                                 </>
                                             )}
 
-                                            {generatedAiOutput?.additional_services.length > 0 && (
+                                            {generatedAiOutput?.additional_services?.length > 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.additional_services_label')}</span>
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.additional_services_label')}</span>
                                                         <ul className="ml-6 list-disc">
                                                             {generatedAiOutput?.additional_services.map((tech, index) => (
                                                                 <li key={index}>{tech}</li>
@@ -1517,12 +1526,12 @@ export default function NewProjectPage() {
 
                                             {generatedAiOutput?.team_structure.length > 0 && (
                                                 <div>
-                                                    <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.team_structure')}</span>
+                                                    <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.team_structure')}</span>
                                                     {generatedAiOutput?.team_structure.map((team, index) => {
                                                         const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
                                                         return (
                                                             <div key={index}>
-                                                                <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
                                                                 {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - <PriceDisplay value={typedTeam.estimated_cost} /> {t('projects.new.ai.fields.estimated')}
                                                             </div>
                                                         );
@@ -1534,7 +1543,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput.deadline.trim() && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
                                                         <AccessTimeFilledIcon />
@@ -1546,7 +1555,7 @@ export default function NewProjectPage() {
                                             {generatedAiOutput?.estimated_budget !== 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
                                                         <PriceDisplay value={generatedAiOutput?.estimated_budget ?? 0} /> {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
                                                     </div>
                                                     <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
@@ -1562,7 +1571,7 @@ export default function NewProjectPage() {
 
                                             {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
                                                         {generatedAiOutput?.payment_plan || t('projects.new.ai.fields.unspecified')}
                                                     {generatedAiOutput?.milestone_count
                                                         ? t('projects.new.ai.milestone_count', { count: generatedAiOutput.milestone_count })
@@ -1573,7 +1582,7 @@ export default function NewProjectPage() {
                                             {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
                                                 <>
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.milestones')}</span>
+                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.milestones')}</span>
                                                         <ul className="ml-6 list-disc">
                                                             {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
                                                                 <li key={index}>
@@ -1601,7 +1610,7 @@ export default function NewProjectPage() {
 
                                             {(generatedAiOutput?.notes ?? '').trim() && (
                                                 <div>
-                                                    <span className="text-sm text-black font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
+                                                    <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
                                                 </div>
                                             )}
 
@@ -1907,8 +1916,8 @@ export default function NewProjectPage() {
                                                                     onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
                                                                 >
                                                                     <CardContent className="p-6">
-                                                                        <div className="flex items-start justify-between">
-                                                                            <div className="flex items-start space-x-4 flex-1">
+                                                                        <div className="flex flex-col items-start justify-between">
+                                                                            <div className="flex flex-row items-start space-x-4 flex-1">
                                                                                 <div className="relative">
                                                                                     <Avatar className="w-16 h-16">
                                                                                         <AvatarImage src={provider.avatar} />
@@ -1938,6 +1947,17 @@ export default function NewProjectPage() {
                                                                                             {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
                                                                                             {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
                                                                                         </Badge>
+
+                                                                                        <Badge className={`${availabilityStatus.color}`}>
+                                                                                            {
+                                                                                                (() => {
+                                                                                                    const Icon = availabilityStatus.icon;
+                                                                                                    return <Icon className="mr-1 w-4 h-4" />;
+                                                                                                })()
+                                                                                            }
+                                                                                            {availabilityStatus.label}
+                                                                                        </Badge>
+
                                                                                     </div>
                                                                                     <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
                                                                                         <Badge className="bg-green-100 text-green-800">
@@ -2033,18 +2053,6 @@ export default function NewProjectPage() {
                                                                                 {/*    </div>*/}
                                                                                 {/*</div>*/}
 
-                                                                                <div className={`flex items-center justify-end space-x-2 mb-3`}>
-                                                                                    <Badge className={`${availabilityStatus.color}`}>
-                                                                                        {
-                                                                                            (() => {
-                                                                                                const Icon = availabilityStatus.icon;
-                                                                                                return <Icon className="mr-1 w-4 h-4" />;
-                                                                                            })()
-                                                                                        }
-                                                                                        {availabilityStatus.label}
-                                                                                    </Badge>
-
-                                                                                </div>
                                                                                 <div className="text-xs text-muted-foreground">
                                                                                     {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
                                                                                 </div>
@@ -2056,12 +2064,12 @@ export default function NewProjectPage() {
                                                                                         <Eye className="w-3 h-3 mr-1" />
                                                                                         {t('projects.new.providers.profile')}
                                                                                     </a>
-                                                                                    <a
-                                                                                        className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                    >
-                                                                                        <MessageSquare className="w-3 h-3 mr-1" />
-                                                                                        {t('projects.new.providers.message')}
-                                                                                    </a>
+                                                                                    {/*<a*/}
+                                                                                    {/*    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"*/}
+                                                                                    {/*>*/}
+                                                                                    {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
+                                                                                    {/*    {t('projects.new.providers.message')}*/}
+                                                                                    {/*</a>*/}
                                                                                 </div>
 
                                                                             </div>
@@ -2209,11 +2217,11 @@ export default function NewProjectPage() {
                                                     </div>
                                                     <div>
                                                         <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.12} />
+                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? 150 : Number(formData.budget ?? 0) * 0.10} />
                                                     </div>
                                                     <div>
                                                         <strong>{t('projects.new.review.labels.total')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 1.12} />
+                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? Number(formData.budget ?? 0) + 150 : Number(formData.budget ?? 0) * 1.10} />
                                                     </div>
                                                     {formData.deadline && (
                                                         <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>

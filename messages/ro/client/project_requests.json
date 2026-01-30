@@ -12,6 +12,8 @@
     },
     "project": {
       "total_budget": "Buget total:",
+      "deadline": "Deadline:",
+      "no_deadline": "Fără deadline fix",
       "created": "Creat",
       "selected_providers": "{count} prestatori selectați",
       "technologies": "Tehnologii proiect"
@@ -27,9 +29,28 @@
       "approved": "Buget aprobat!",
       "rejected": "Buget respins",
       "new_proposal": "Propunere de buget nou",
+      "new_proposal_description": "Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.",
       "original": "Buget original:",
+      "enter_proposal": "Introdu propunerea de buget:",
       "approve": "Aprobă",
+      "propose_new": "Propune buget nou",
+      "cancel": "Anulează",
+      "save_changes": "Salvează modificările",
       "reject": "Respinge"
+    },
+    "milestones": {
+      "title": "Milestone-uri proiect",
+      "mark_complete": "Marchează milestone ca finalizat",
+      "paid": "Plătit",
+      "finished": "Finalizat",
+      "rejected": "Refuzat",
+      "pending": "În lucru",
+      "payment_status": {
+        "pending": "Plată în așteptare",
+        "escrow": "Plată securizată",
+        "paid": "Plătit",
+        "rejected": "Refuzat"
+      }
     },
     "status": {
       "pending": "În așteptare",
@@ -41,6 +62,12 @@
       "secure_payment": "Securizează plata",
       "view_details": "Vezi detalii",
       "messages": "Mesaje"
+    },
+    "release": {
+      "button": "Eliberează fondurile",
+      "processing": "Se eliberează...",
+      "success": "Fondurile au fost eliberate cu succes.",
+      "error": "Eroare: {message}"
     },
     "stripe": {
       "load_error": "Stripe nu s-a încărcat.",
@@ -56,7 +83,7 @@
       "description": "Protejează-ți investiția cu escrow",
       "project_label": "Proiect:",
       "project_value": "Valoare proiect:",
-      "platform_fee": "Comision platformă (12%):",
+      "platform_fee": "Comision platformă (10%):",
       "total_value": "Valoare totală:",
       "how_it_works": {
         "title": "Cum funcționează escrow",

@@ -48,7 +48,7 @@ export async function HeroSectionStatic({ locale }: { locale: string }) {
     const change = t("common.change");
 
     const STATS = [
-        { number: "500+", label: verifiedExperts, icon: Users, change: "+12%" },
+        { number: "500+", label: verifiedExperts, icon: Users, change: "+10%" },
         { number: "2,847", label: completedProjects, icon: CheckCircle, change: "+23%" },
         { number: "98.5%", label: satisfactionRate, icon: Star, change: "+2.1%" },
         { number: "24/7", label: tehnicalSupport, icon: Clock, change: "Non-stop" },

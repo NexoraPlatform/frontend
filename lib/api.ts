@@ -257,7 +257,7 @@ export class ApiClient {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
+          errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (e) {
           errorMessage = response.statusText || errorMessage;
         }
@@ -1328,10 +1328,29 @@ export class ApiClient {
     });
   }
 
+  async releaseProjectFunds(projectId: string | number, milestoneId?: string) {
+    const payload: Record<string, unknown> = { project_id: projectId };
+    if (milestoneId) {
+      payload.milestone_id = milestoneId;
+    }
+    return this.request<any>('/stripe/project/release-funds', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    });
+  }
+
   async createProject(projectData: CreateProjectPayload) {
     return this.request<any>('/projects', {
       method: 'POST',
       body: JSON.stringify(projectData),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      }
     });
   }
 
@@ -1497,8 +1516,8 @@ export class ApiClient {
     return this.request<any>(`/stripe/payment/${project_id}`);
   }
 
-  async getPaymentSession(project_id: string) {
-    return this.request<any>(`/stripe/session/payment/${project_id}`);
+  async getPaymentSession(project_id: string, milestone_id: number|string|null, provider_id: number|string|null) {
+    return this.request<any>(`/stripe/session/payment/${project_id}/${provider_id ? provider_id + `${milestone_id ? `/` + milestone_id : ''}` : ''}`);
   }
 
   async getPayment(project_id: string, session_id: string) {

@@ -31,6 +31,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
@@ -38,6 +39,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
 import {EmbeddedCheckout, EmbeddedCheckoutProvider} from "@stripe/react-stripe-js";
+import {provider} from "std-env";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -57,14 +59,50 @@ export default function ClientProjectRequestsPage() {
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
+    const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
+    const [selectedProviderId, setSelectedProviderId] = useState<number | string | null>(null);
     const cardElementRef = useRef<any>(null);
     const stripeRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const [releasingId, setReleasingId] = useState<string | null>(null);
+    const getMilestoneId = useCallback((milestone: any) => {
+        return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
+    }, []);
+
+    const projectBudgetAmount = selectedProject?.budget?.amount != null
+        ? Number(selectedProject.budget.amount)
+        : null;
+    const selectedMilestoneAmount = selectedMilestone?.amount != null
+        ? Number(selectedMilestone.amount)
+        : null;
+    const selectedMilestoneId = getMilestoneId(selectedMilestone);
+    const isMilestonePayment = selectedMilestone != null;
+    const platformFeeBase = projectBudgetAmount != null
+        ? Math.min(projectBudgetAmount * 0.10, 150)
+        : null;
+    const isFirstMilestone = (() => {
+        if (!isMilestonePayment || !selectedProject || !selectedMilestoneId || !selectedProviderId) return false;
+        const providerMilestones = selectedProject.milestones
+            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(selectedProviderId))
+            ?.milestones ?? [];
+        const index = providerMilestones.findIndex(
+            (milestone: any) => String(getMilestoneId(milestone)) === String(selectedMilestoneId)
+        );
+        return index === 0;
+    })();
+    const displayedValueAmount = isMilestonePayment ? selectedMilestoneAmount : projectBudgetAmount;
+    const displayedFeeAmount = isMilestonePayment
+        ? (isFirstMilestone ? platformFeeBase : 0)
+        : platformFeeBase;
+    const displayedTotalAmount = displayedValueAmount != null && displayedFeeAmount != null
+        ? displayedValueAmount + displayedFeeAmount
+        : null;
 
     const loadProjects = useCallback(async () => {
         try {
             const response = await apiClient.getClientProjectRequests();
+
             setProjects(response.projects || []);
         } catch (error) {
             console.error('Failed to load projects:', error);
@@ -72,6 +110,23 @@ export default function ClientProjectRequestsPage() {
             setLoadingProjects(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const echo = getEcho(token);
+        if (!echo) return;
+        const channel = echo.private(`App.Models.User.${user.id}`);
+        const handler = (notification: { type?: string }) => {
+            if (notification?.type !== 'project.status.updated') return;
+            loadProjects();
+        };
+        channel.notification(handler);
+
+        return () => {
+            channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+        };
+    }, [user?.id, loadProjects]);
 
     const handleCheckoutComplete = useCallback(async () => {
         setSuccess(true);
@@ -94,10 +149,10 @@ export default function ClientProjectRequestsPage() {
         loadProjects();
     }, [user, userLoading, router, loadProjects]);
 
-    const getClientSecret = async (project_id: string) => {
+    const getClientSecret = async (project_id: string, providerId: number|string|null, milestoneId: number|string|null) => {
         // router.push(response.url);
         try {
-            const response = await apiClient.getPaymentSession(project_id);
+            const response = await apiClient.getPaymentSession(project_id, milestoneId, providerId);
             setClientSecret(response.clientSecret);
             setCheckoutDialogOpen(true);
         } catch (err) {
@@ -105,12 +160,14 @@ export default function ClientProjectRequestsPage() {
         }
     }
 
-    const openCheckout = async (project: any) => {
+    const openCheckout = async (project: any, providerId: number|string|null, milestone: any|null) => {
         setSelectedProject(project);
+        setSelectedMilestone(milestone);
+        setSelectedProviderId(providerId);
         setSuccess(false);
         setErrorMessage('');
         setClientSecret(null);
-        await getClientSecret(project.id);
+        await getClientSecret(project.id, providerId, getMilestoneId(milestone));
     };
 
     const handleBudgetResponse = useCallback(async (
@@ -131,6 +188,22 @@ export default function ClientProjectRequestsPage() {
             toast.error(t('client.project_requests.errors.generic', { message: error.message }));
         } finally {
             setResponding(null);
+        }
+    }, [loadProjects, t]);
+
+    const handleReleaseFunds = useCallback(async (projectId: string, milestoneId?: string) => {
+        const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
+        setReleasingId(releaseKey);
+        try {
+            const response = await apiClient.releaseProjectFunds(projectId, milestoneId);
+            toast.success(response?.message ?? t('client.project_requests.release.success'));
+            await loadProjects();
+        } catch (error: any) {
+            const serverMessage = error.response?.data?.error || error.message || "A apărut o eroare necunoscută.";
+
+            toast.error(t('client.project_requests.release.error', { message: serverMessage }));
+        } finally {
+            setReleasingId(null);
         }
     }, [loadProjects, t]);
 
@@ -162,6 +235,76 @@ export default function ClientProjectRequestsPage() {
                     <Badge className="bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30">
                         <DollarSign className="w-3 h-3 mr-1" />
                         {t('client.project_requests.status.budget_proposed')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMilestoneStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.pending')}
+                    </Badge>
+                );
+            case 'FINISHED':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.finished')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.rejected')}
+                    </Badge>
+                );
+            default:
+                return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMilestonePaymentStatusBadge = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.pending')}
+                    </Badge>
+                );
+            case 'ESCROW':
+                return (
+                    <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.escrow')}
+                    </Badge>
+                );
+            case 'PAID':
+                return (
+                    <Badge className="bg-green-400 text-green-900">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.paid')}
+                    </Badge>
+                );
+            case 'REJECTED':
+                return (
+                    <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.payment_status.rejected')}
                     </Badge>
                 );
             default:
@@ -224,8 +367,13 @@ export default function ClientProjectRequestsPage() {
                         </Card>
                     ) : (
                         <div className="space-y-6">
-                            {projects.map((project) => (
+                            {projects.map((project) => {
+                                const hasAnyMilestones = (project.milestones ?? []).some(
+                                    (milestoneGroup: any) => (milestoneGroup.milestones ?? []).length > 0
+                                );
+                                const canReleaseFull = !hasAnyMilestones && project.status === 'FINISHED';
 
+                                return (
                                 <Card key={project.id} className="glass-card border-transparent shadow-sm">
                                     <CardHeader className="space-y-4">
                                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -329,7 +477,7 @@ export default function ClientProjectRequestsPage() {
                                                                         <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
                                                                             {provider.firstName} {provider.lastName}
                                                                         </div>
-                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
                                                                             <div className="flex items-center gap-1">
                                                                                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                                                                                 <span>{provider.rating || 0}</span>
@@ -339,12 +487,12 @@ export default function ClientProjectRequestsPage() {
                                                                                 <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
+                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 mt-2">
                                                                             {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
                                                                                 <Badge
                                                                                     key={index}
                                                                                     variant="outline"
-                                                                                    className="text-xs border-slate-200 dark:border-[#1E2A3D]"
+                                                                                    className="text-xs border-slate-200 "
                                                                                 >
                                                                                     <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
                                                                                     {service.name}
@@ -427,28 +575,87 @@ export default function ClientProjectRequestsPage() {
                                                             )}
 
                                                             <div className="space-y-2 mt-2">
-                                                                {providerMilestones.map((milestone: any, index: number) => (
-                                                                    <div
-                                                                        key={index}
-                                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm 
-                                                                    ${milestone.status === 'PENDING' && "bg-yellow-300"}
-                                                                    ${milestone.status === 'FINISHED' && "bg-green-300"}
-                                                                    ${milestone.status === 'PAID' && "bg-green-500"}
-                                                                    ${milestone.status === 'REJECTED' && "bg-red-700"}
-                                                                     `}
-                                                                    >
-                                                                        <div className="flex items-center justify-between gap-6">
-                                                                            <span>{milestone.title}</span>
-                                                                            <span>/</span>
-                                                                            <span className="font-medium">
-                                                                                {t('client.project_requests.providers.milestone_budget')}{' '}
-                                                                                <PriceDisplay value={milestone.amount} />
-                                                                            </span>
-                                                                        </div>
+                                                                {providerMilestones.map((milestone: any, index: number) => {
+                                                                    const milestoneId = getMilestoneId(milestone);
 
-                                                                        <span>{milestone.status}</span>
-                                                                    </div>
-                                                                ))}
+                                                                    // 1. Logica pentru Release (existentă)
+                                                                    const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
+
+                                                                    // 2. Logica pentru Secure Payment (NOUĂ)
+                                                                    // Verificăm dacă milestone-ul anterior este plătit (sau dacă e primul din listă)
+                                                                    const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+
+                                                                    // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
+                                                                    const showSecurePaymentBtn = milestone.payment_status === 'PENDING' && isPreviousPaid;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={milestoneId ?? index}
+                                                                            className={`flex items-center justify-between rounded-md border p-3 text-sm transition-colors
+                    ${milestone.status === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
+                    ${milestone.status === 'FINISHED' ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
+                    ${milestone.status === 'PAID' ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
+                    ${milestone.status === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
+                `}
+                                                                        >
+                                                                            <div className="flex items-center gap-4 dark:text-slate-200">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        {index + 1}. {milestone.title}
+                    </span>
+                                                                                <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                                                <span className="font-medium text-slate-600 dark:text-slate-400">
+                        {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                                                    <PriceDisplay value={milestone.amount} />
+                    </span>
+                                                                            </div>
+
+                                                                            <div className="flex items-center gap-3 bg-gree">
+                                                                                <span className="ms-2">
+                                                                                    {getMilestoneStatusBadge(milestone.status)}
+                                                                                </span>
+
+                                                                                <span className="ms-2">
+                                                                                    {getMilestonePaymentStatusBadge(milestone.payment_status)}
+                                                                                </span>
+
+                                                                                {/* BUTON RELEASE FUNDS */}
+                                                                                {canReleaseMilestone && (
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
+                                                                                        disabled={releasingId === `milestone-${milestoneId}`}
+                                                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                                                    >
+                                                                                        {releasingId === `milestone-${milestoneId}` ? (
+                                                                                            <>
+                                                                                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                                                                                                Processing...
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                                                                                                {t('client.project_requests.release.button')}
+                                                                                            </>
+                                                                                        )}
+                                                                                    </Button>
+                                                                                )}
+
+                                                                                {showSecurePaymentBtn && (
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        className=" text-white shadow-sm"
+                                                                                        onClick={() => {
+                                                                                            openCheckout(project, provider.id, milestone);
+                                                                                        }}
+                                                                                    >
+                                                                                        <Shield className="w-3.5 h-3.5 mr-2" />
+                                                                                        {t('client.project_requests.actions.secure_payment') || "Secure Payment"}
+                                                                                    </Button>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     );
@@ -457,14 +664,31 @@ export default function ClientProjectRequestsPage() {
                                         </div>
 
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                                            {project.paymentStatus !== 'ESCROW' && (<Button
-                                                onClick={() => openCheckout(project)}
+                                            {!project?.milestones && project.paymentStatus !== 'ESCROW' && (<Button
+                                                onClick={() => openCheckout(project, null, null)}
                                                 className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
                                                 size="lg"
                                             >
                                                 <Shield className="w-5 h-5 mr-2" />
                                                 {t('client.project_requests.actions.secure_payment')}
                                             </Button>)}
+                                            {project.paymentStatus === 'ESCROW' && canReleaseFull && (
+                                                <Button
+                                                    onClick={() => handleReleaseFunds(project.id)}
+                                                    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
+                                                    size="lg"
+                                                    disabled={releasingId === `project-${project.id}`}
+                                                >
+                                                    {releasingId === `project-${project.id}` ? (
+                                                        <>
+                                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                            {t('client.project_requests.release.processing')}
+                                                        </>
+                                                    ) : (
+                                                        t('client.project_requests.release.button')
+                                                    )}
+                                                </Button>
+                                            )}
                                             <div className="flex flex-col gap-2 sm:flex-row">
                                                 <Button
                                                     variant="outline"
@@ -486,7 +710,8 @@ export default function ClientProjectRequestsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -517,8 +742,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount)} />
+                                    {displayedValueAmount != null ? (
+                                        <PriceDisplay value={displayedValueAmount} />
                                     ) : (
                                         '-'
                                     )}
@@ -527,8 +752,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget.amount != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount) * 0.12} />
+                                    {displayedFeeAmount != null ? (
+                                        <PriceDisplay value={displayedFeeAmount} />
                                     ) : (
                                         '-'
                                     )}
@@ -537,8 +762,8 @@ export default function ClientProjectRequestsPage() {
                             <div className="flex items-center justify-between text-sm mt-2">
                                 <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
                                 <span className="font-bold text-lg">
-                                    {selectedProject?.budget != null ? (
-                                        <PriceDisplay value={Number(selectedProject?.budget.amount) * 1.12} />
+                                    {displayedTotalAmount != null ? (
+                                        <PriceDisplay value={displayedTotalAmount} />
                                     ) : (
                                         '-'
                                     )}
