@@ -75,17 +75,19 @@ export default function ClientProjectRequestsPage() {
     const selectedMilestoneAmount = selectedMilestone?.amount != null
         ? Number(selectedMilestone.amount)
         : null;
+    const selectedMilestoneId = getMilestoneId(selectedMilestone);
     const isMilestonePayment = selectedMilestone != null;
     const platformFeeBase = projectBudgetAmount != null
         ? Math.min(projectBudgetAmount * 0.10, 150)
         : null;
     const isFirstMilestone = (() => {
-        if (!isMilestonePayment || !selectedProject || !selectedMilestone) return false;
+        if (!isMilestonePayment || !selectedProject || !selectedMilestone || !selectedMilestoneId) return false;
         const providerMilestones = selectedProject.milestones
-            ?.find((milestoneGroup: any) => milestoneGroup.providerId === selectedMilestone.providerId)
+            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(selectedMilestone.providerId))
             ?.milestones ?? [];
-        const selectedId = getMilestoneId(selectedMilestone);
-        const index = providerMilestones.findIndex((milestone: any) => getMilestoneId(milestone) === selectedId);
+        const index = providerMilestones.findIndex(
+            (milestone: any) => String(getMilestoneId(milestone)) === String(selectedMilestoneId)
+        );
         return index === 0;
     })();
     const displayedValueAmount = isMilestonePayment ? selectedMilestoneAmount : projectBudgetAmount;
@@ -163,7 +165,7 @@ export default function ClientProjectRequestsPage() {
         setSuccess(false);
         setErrorMessage('');
         setClientSecret(null);
-        await getClientSecret(project.id, providerId, milestone.id);
+        await getClientSecret(project.id, providerId, getMilestoneId(milestone));
     };
 
     const handleBudgetResponse = useCallback(async (
