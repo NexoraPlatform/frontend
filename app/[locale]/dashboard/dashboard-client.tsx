@@ -82,8 +82,10 @@ export default function DashboardClient() {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    const nextTab = tabParam && AVAILABLE_TABS.includes(tabParam) ? tabParam : 'overview';
-    setActiveTab(nextTab);
+    if (!tabParam) return;
+    if (AVAILABLE_TABS.includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
   }, [tabParam]);
   useEffect(() => {
     if (userLoading) return;
