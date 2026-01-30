@@ -51,6 +51,29 @@ type ClientProjectRequestsProps = {
     withLayout?: boolean;
 };
 
+interface ContractClauses {
+    category: string;
+    identifier: string;
+    priority: number;
+    selection: string;
+    text: string;
+    title: string;
+}
+
+interface ContractMeta {
+    client_country: string;
+    client_country_code: string;
+    client_legal_system: string;
+    freelancer_country: string;
+    freelancer_country_code: string;
+    freelancer_legal_system: string;
+}
+
+interface ContractResponse {
+    clauses: ContractClauses[];
+    meta: ContractMeta[];
+}
+
 export default function ClientProjectRequests({ withLayout = true }: ClientProjectRequestsProps) {
     const { user, loading, userLoading } = useAuth();
     const locale = useLocale();
@@ -70,6 +93,8 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [errorMessage, setErrorMessage] = useState('');
     const [success, setSuccess] = useState(false);
     const [releasingId, setReleasingId] = useState<string | null>(null);
+    const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
+    const [openContractDialog, setOpenContractDialog] = useState(false);
     const getMilestoneId = useCallback((milestone: any) => {
         return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
     }, []);
@@ -194,6 +219,13 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             setResponding(null);
         }
     }, [loadProjects, t]);
+
+    const generateContract = async (projectId: string, clientId: string, providerId: string) => {
+        const response = await apiClient.generateProjectContract(projectId, clientId, providerId);
+        setContractResponse(response);
+        setOpenContractDialog(true);
+        console.log(response);
+    };
 
     const handleReleaseFunds = useCallback(async (projectId: string, milestoneId?: string) => {
         const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
@@ -522,6 +554,18 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         ) : (
                                                                             '-'
                                                                         )}
+                                                                    </div>
+                                                                    {project.status === 'ACCEPTED' && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onClick={() => generateContract(project.id, project.client_id, provider.id)}
+                                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                                        >
+                                                                            Genereaza contract
+                                                                        </Button>
+                                                                    )}
+                                                                    <div>
+
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -877,6 +921,42 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                     <Globe className="w-3 h-3" />
                                     <span>{t('client.project_requests.checkout.footer.stripe')}</span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={openContractDialog} onOpenChange={setOpenContractDialog}>
+                <DialogContent className="max-w-3xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-[#0B1C2D] p-6 text-white">
+                        <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                                <Shield className="w-6 h-6 text-[#1BC47D]" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-xl font-bold text-white">
+                                    Contract
+                                </DialogTitle>
+                                <DialogDescription className="text-sm text-blue-100">
+                                    Contractul pentru proiect x
+                                </DialogDescription>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">
+                            <div className="flex items-center flex-col justify-between text-sm mt-2 max-h-[70vh] overflow-y-auto">
+                                {contractResponse?.clauses?.map((clause: any, idx: any) => (
+                                    <div key={idx} className="mb-6">
+                                        <h3 className="font-bold text-gray-700 text-sm mb-1">{clause.title}</h3>
+                                        <p className="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded border-l-4 border-blue-400">
+                                            {clause.text}
+                                        </p>
+              {/*                          <span className="text-xs text-green-600 font-mono">*/}
+              {/*  [Engine Logic: {clause.logic_source}]*/}
+              {/*</span>*/}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
