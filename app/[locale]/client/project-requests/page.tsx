@@ -60,6 +60,7 @@ export default function ClientProjectRequestsPage() {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
+    const [selectedProviderId, setSelectedProviderId] = useState<number | string | null>(null);
     const cardElementRef = useRef<any>(null);
     const stripeRef = useRef<any>(null);
     const [errorMessage, setErrorMessage] = useState('');
@@ -81,9 +82,9 @@ export default function ClientProjectRequestsPage() {
         ? Math.min(projectBudgetAmount * 0.10, 150)
         : null;
     const isFirstMilestone = (() => {
-        if (!isMilestonePayment || !selectedProject || !selectedMilestone || !selectedMilestoneId) return false;
+        if (!isMilestonePayment || !selectedProject || !selectedMilestoneId || !selectedProviderId) return false;
         const providerMilestones = selectedProject.milestones
-            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(selectedMilestone.providerId))
+            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(selectedProviderId))
             ?.milestones ?? [];
         const index = providerMilestones.findIndex(
             (milestone: any) => String(getMilestoneId(milestone)) === String(selectedMilestoneId)
@@ -162,6 +163,7 @@ export default function ClientProjectRequestsPage() {
     const openCheckout = async (project: any, providerId: number|string|null, milestone: any|null) => {
         setSelectedProject(project);
         setSelectedMilestone(milestone);
+        setSelectedProviderId(providerId);
         setSuccess(false);
         setErrorMessage('');
         setClientSecret(null);
