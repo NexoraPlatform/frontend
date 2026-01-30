@@ -53,6 +53,7 @@ import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
 import { SiStripe } from "react-icons/si";
 import { Can } from "@/components/Can";
+import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 
 const AVAILABLE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 
@@ -229,10 +230,10 @@ export default function DashboardClient() {
 
 
   useEffect(() => {
-    if (user && activeTab === 'projects') {
-      loadProjects();
-    }
-  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage, loadProjects]);
+    if (!user || activeTab !== 'projects') return;
+    if (isClient && !isProvider) return;
+    loadProjects();
+  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage, loadProjects, isClient, isProvider]);
 
   const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
     try {
@@ -544,31 +545,13 @@ export default function DashboardClient() {
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.overview')}</span>
               </TabsTrigger>
-              {isClient && !isProvider ? (
-                <div
-                  className=" rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
-                >
-                  <Link
-                    className="flex items-center justify-center"
-                    href="/client/project-requests">
-                    <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                    <span>{t('dashboard.tabs.projects')}</span>
-                  </Link>
-                </div>
-              ) : (
-                <TabsTrigger
-                  value="projects"
-                  className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
-                >
-
-
-                  <>
-                    <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                    <span>{t('dashboard.tabs.projects')}</span>
-                  </>
-
-                </TabsTrigger>
-              )}
+              <TabsTrigger
+                value="projects"
+                className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+              >
+                <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
+                <span>{t('dashboard.tabs.projects')}</span>
+              </TabsTrigger>
 
               <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Target className="hidden sm:block w-4 h-4 pe-1" />
@@ -751,187 +734,193 @@ export default function DashboardClient() {
 
             {/* Projects Tab */}
             <TabsContent value="projects" className="space-y-6">
-              {/* Filters and Search */}
-              <Card className="glass-card">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    {/* Search Bar */}
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                        <Input
-                          placeholder={t('dashboard.filters.search_placeholder')}
-                          value={searchTerm}
-                          onChange={(e) => {
-                            setSearchTerm(e.target.value);
+              {isClient && !isProvider ? (
+                <ClientProjectRequests withLayout={false} />
+              ) : (
+                <>
+                  {/* Filters and Search */}
+                  <Card className="glass-card">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row gap-4">
+                        {/* Search Bar */}
+                        <div className="flex-1">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <Input
+                              placeholder={t('dashboard.filters.search_placeholder')}
+                              value={searchTerm}
+                              onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Status Filter */}
+                        <Select value={statusFilter} onValueChange={(value) => {
+                          setStatusFilter(value);
+                          setCurrentPage(1);
+                        }}>
+                          <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                            <Filter className="w-4 h-4 mr-2" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Sort Options */}
+                        <div className="flex space-x-2">
+                          <Select value={sortBy} onValueChange={(value) => {
+                            setSortBy(value);
                             setCurrentPage(1);
-                          }}
-                          className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
-                        />
+                          }}>
+                            <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getSortOptions().map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={toggleSortOrder}
+                            className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
+                          >
+                            {sortOrder === 'asc' ? (
+                              <ArrowUp className="w-4 h-4" />
+                            ) : (
+                              <ArrowDown className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Active Filters */}
+                      {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
+                        <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                          <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
+
+                          {searchTerm && (
+                            <Badge variant="secondary" className="flex items-center space-x-1">
+                              <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
+                              <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                          )}
+
+                          {statusFilter !== 'all' && (
+                            <Badge variant="secondary" className="flex items-center space-x-1">
+                              <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
+                              <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                          )}
+
+                          {(sortBy !== 'newest' || sortOrder !== 'desc') && (
+                            <Badge variant="secondary" className="flex items-center space-x-1">
+                              <span>{t('dashboard.filters.sort_label', {
+                                label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
+                                order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
+                              })}</span>
+                              <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                          )}
+
+                          <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
+                            {t('dashboard.filters.reset_all')}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Projects Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client')}
+                      </h2>
+                      <p className="text-slate-500 dark:text-[#A3ADC2]">
+                        {loadingProjects ? t('dashboard.loading.projects') : t('dashboard.projects.found', { count: projects.length })}
+                      </p>
                     </div>
 
-                    {/* Status Filter */}
-                    <Select value={statusFilter} onValueChange={(value) => {
-                      setStatusFilter(value);
-                      setCurrentPage(1);
-                    }}>
-                      <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
-                        <Filter className="w-4 h-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Sort Options */}
-                    <div className="flex space-x-2">
-                      <Select value={sortBy} onValueChange={(value) => {
-                        setSortBy(value);
-                        setCurrentPage(1);
-                      }}>
-                        <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getSortOptions().map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={toggleSortOrder}
-                        className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
-                      >
-                        {sortOrder === 'asc' ? (
-                          <ArrowUp className="w-4 h-4" />
-                        ) : (
-                          <ArrowDown className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Active Filters */}
-                  {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
-                    <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                      <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
-
-                      {searchTerm && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
-                          <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      )}
-
-                      {statusFilter !== 'all' && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
-                          <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      )}
-
-                      {(sortBy !== 'newest' || sortOrder !== 'desc') && (
-                        <Badge variant="secondary" className="flex items-center space-x-1">
-                          <span>{t('dashboard.filters.sort_label', {
-                            label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
-                            order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
-                          })}</span>
-                          <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      )}
-
-                      <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
-                        {t('dashboard.filters.reset_all')}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Projects Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                    {isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client')}
-                  </h2>
-                  <p className="text-slate-500 dark:text-[#A3ADC2]">
-                    {loadingProjects ? t('dashboard.loading.projects') : t('dashboard.projects.found', { count: projects.length })}
-                  </p>
-                </div>
-
-                {isClient && (
-                  <Button asChild className="btn-primary">
-                    <Link href="/projects/new">
-                      <Plus className="w-4 h-4 mr-2" />
-                      {t('dashboard.projects.new_project')}
-                    </Link>
-                  </Button>
-                )}
-              </div>
-
-              {/* Projects List */}
-              {loadingProjects ? (
-                <div className="flex justify-center items-center py-20">
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                </div>
-              ) : projectsError ? (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{projectsError}</AlertDescription>
-                </Alert>
-              ) : projects.length === 0 ? (
-                <Card className="glass-card">
-                  <CardContent className="text-center py-20">
-                    <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">
-                      {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
-                    </h3>
-                    <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
-                      {isProvider
-                        ? t('dashboard.projects.empty.description.provider')
-                        : t('dashboard.projects.empty.description.client')
-                      }
-                    </p>
-                    <Can roles={['client']}>
+                    {isClient && (
                       <Button asChild className="btn-primary">
                         <Link href="/projects/new">
                           <Plus className="w-4 h-4 mr-2" />
-                          {t('dashboard.projects.empty.cta')}
+                          {t('dashboard.projects.new_project')}
                         </Link>
                       </Button>
-                    </Can>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {projects.map((project) => (
-                    <ProjectRequestCard
-                      key={project.id}
-                      project={project}
-                      onResponse={handleProjectResponse}
-                      onRefresh={loadProjects}
-                    />
-                  ))}
+                    )}
+                  </div>
 
-                  {renderPagination()}
-                </div>
+                  {/* Projects List */}
+                  {loadingProjects ? (
+                    <div className="flex justify-center items-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                    </div>
+                  ) : projectsError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{projectsError}</AlertDescription>
+                    </Alert>
+                  ) : projects.length === 0 ? (
+                    <Card className="glass-card">
+                      <CardContent className="text-center py-20">
+                        <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold mb-2">
+                          {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
+                        </h3>
+                        <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
+                          {isProvider
+                            ? t('dashboard.projects.empty.description.provider')
+                            : t('dashboard.projects.empty.description.client')
+                          }
+                        </p>
+                        <Can roles={['client']}>
+                          <Button asChild className="btn-primary">
+                            <Link href="/projects/new">
+                              <Plus className="w-4 h-4 mr-2" />
+                              {t('dashboard.projects.empty.cta')}
+                            </Link>
+                          </Button>
+                        </Can>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-6">
+                      {projects.map((project) => (
+                        <ProjectRequestCard
+                          key={project.id}
+                          project={project}
+                          onResponse={handleProjectResponse}
+                          onRefresh={loadProjects}
+                        />
+                      ))}
+
+                      {renderPagination()}
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
 
