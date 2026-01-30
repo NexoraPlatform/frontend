@@ -571,7 +571,7 @@ export default function ClientProjectRequestsPage() {
                                                                                         size="sm"
                                                                                         className=" text-white shadow-sm"
                                                                                         onClick={() => {
-                                                                                            openCheckout(project, milestone.providerId, milestone);
+                                                                                            openCheckout(project, provider.id, milestone);
                                                                                         }}
                                                                                     >
                                                                                         <Shield className="w-3.5 h-3.5 mr-2" />
