@@ -70,14 +70,7 @@ export default function ProjectsPage() {
         isLoadingRef.current = false;
       }
     },
-    [
-      searchQuery,
-      selectedCategory,
-      selectedTechnologies,
-      selectedBudgetMin,
-      selectedBudgetMax,
-      currency,
-    ]
+    [searchQuery, selectedCategory, selectedTechnologies, selectedBudgetMin, selectedBudgetMax]
   );
 
   useEffect(() => {

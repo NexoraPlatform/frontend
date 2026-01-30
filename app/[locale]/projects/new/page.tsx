@@ -560,7 +560,7 @@ export default function NewProjectPage() {
             service: t.name,
             level: '',
         }));
-    }, [formData.recommendedProviders, formData.technologies]);
+    }, [formData]);
 
     const loadSuggestedProviders = useCallback(async () => {
         setLoadingProviders(true);
