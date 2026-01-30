@@ -54,6 +54,8 @@ import { Link } from '@/lib/navigation';
 import { SiStripe } from "react-icons/si";
 import { Can } from "@/components/Can";
 
+const AVAILABLE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
+
 export default function DashboardClient() {
   const { user, loading, userLoading } = useAuth();
   const t = useTranslations();
@@ -76,9 +78,13 @@ export default function DashboardClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const availableTabs = ['overview', 'projects', 'services', 'messages', 'settings'];
   const tabParam = searchParams.get('tab');
-  const activeTab = tabParam && availableTabs.includes(tabParam) ? tabParam : 'overview';
+  const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    const nextTab = tabParam && AVAILABLE_TABS.includes(tabParam) ? tabParam : 'overview';
+    setActiveTab(nextTab);
+  }, [tabParam]);
   useEffect(() => {
     if (userLoading) return;
 
@@ -88,6 +94,7 @@ export default function DashboardClient() {
   }, [user, userLoading, router]);
 
   const handleTabChange = (value: string) => {
+    setActiveTab(value);
     const params = new URLSearchParams(searchParams.toString());
     if (value === 'overview') {
       params.delete('tab');
