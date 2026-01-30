@@ -1,6 +1,7 @@
 "use client";
 
 import {useState, useEffect, useRef, useCallback} from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -60,6 +61,7 @@ type Languages = {
 }
 
 export default function ProviderProfileEditPage() {
+    const t = useTranslations();
     const { user, loading, userLoading } = useAuth();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -788,10 +790,10 @@ export default function ProviderProfileEditPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Briefcase className="w-5 h-5" />
-                                    <span>Detalii de facturare</span>
+                                    <span>{t('common.billing.section_title')}</span>
                                 </CardTitle>
                                 <CardDescription>
-                                    Completează informațiile legale pentru facturare și taxe.
+                                    {t('common.billing.section_description')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
