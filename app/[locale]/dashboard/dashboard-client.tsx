@@ -533,7 +533,7 @@ export default function DashboardClient() {
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.overview')}</span>
               </TabsTrigger>
-              {isClient ? (
+              {isClient && !isProvider ? (
                 <div
                   className=" rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
                 >
