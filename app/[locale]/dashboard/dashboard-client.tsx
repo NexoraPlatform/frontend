@@ -87,6 +87,15 @@ export default function DashboardClient() {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
+
+  useEffect(() => {
+    if (activeTab === 'overview') return;
+    if (tabParam === activeTab) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', activeTab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [activeTab, pathname, router, searchParams, tabParam]);
   useEffect(() => {
     if (userLoading) return;
 
