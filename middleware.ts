@@ -166,6 +166,19 @@ export default auth(async (req) => {
     });
   }
 
+  const country = req.headers.get('x-vercel-ip-country') || 'XX';
+
+  // 2. Extrage IP-ul (poate fi în x-forwarded-for sau x-real-ip)
+  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+
+  // Exemplu de logică: Blocare acces pentru o anumită țară
+  if (country === 'RU') {
+    return new NextResponse('Access Denied', { status: 403 });
+  }
+
+  NextResponse.next().headers.set('X-Client-Geo-Country', country);
+  NextResponse.next().headers.set('X-Client-Geo-IP', ip as string);
+
   const segments = pathname.split('/');
   const locale = segments[1] || defaultLocale;
   const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/';
