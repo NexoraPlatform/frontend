@@ -17,6 +17,11 @@ import { Footer } from '@/components/footer';
 import { useAuth } from '@/contexts/auth-context';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { TermsContent } from '@/components/terms-content';
+import { Form } from '@/components/ui/form';
+import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
+import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -29,6 +34,18 @@ export default function SignUpPage() {
     role: 'CLIENT',
     company: '',
     agreeToTerms: false
+  });
+  const billingForm = useForm<BillingDetailsFormValues>({
+    resolver: zodResolver(billingDetailsSchema),
+    defaultValues: {
+      company_name: '',
+      tax_id: '',
+      trade_registry_number: '',
+      billing_address: '',
+      billing_city: '',
+      billing_state: '',
+      billing_postal_code: '',
+    },
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -95,7 +112,14 @@ export default function SignUpPage() {
       return;
     }
 
+    const billingValid = await billingForm.trigger();
+    if (!billingValid) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      const billingValues = billingForm.getValues();
       await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -104,6 +128,7 @@ export default function SignUpPage() {
         password: formData.password,
         role: formData.role,
         company: formData.company,
+        ...billingValues,
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -241,19 +266,23 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="company">{companyLabel}</Label>
-                      <div className="relative">
-                        <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                        <Input
-                          id="company"
-                          placeholder={companyPlaceholder}
-                          value={formData.company}
-                          onChange={(e) => setFormData({...formData, company: e.target.value})}
-                          className="pl-10"
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">{companyLabel}</Label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input
+                        id="company"
+                        placeholder={companyPlaceholder}
+                        value={formData.company}
+                        onChange={(e) => setFormData({...formData, company: e.target.value})}
+                        className="pl-10"
+                      />
                     </div>
+                  </div>
+
+                  <Form {...billingForm}>
+                    <BillingDetailsForm className="rounded-2xl border border-slate-200/60 bg-white/80 p-4 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]/80" />
+                  </Form>
 
                   <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
