@@ -306,6 +306,13 @@ export class ApiClient {
     lastName: string;
     phone?: string;
     role?: string;
+    company_name?: string;
+    tax_id?: string;
+    trade_registry_number?: string;
+    billing_address?: string;
+    billing_city?: string;
+    billing_state?: string;
+    billing_postal_code?: string;
   }) {
     const response = await this.request<{
       access_token: string;

@@ -1,0 +1,22 @@
+{
+  "hero": {
+    "badge": "Trustora Secure Area",
+    "title": "Access denied for your secure area.",
+    "description": "You don’t have the required permissions to view this page. Return to the dashboard or contact the Trustora team for support.",
+    "attempted": "You tried to access: {path}",
+    "primary_cta": "Back to dashboard",
+    "secondary_cta": "Homepage"
+  },
+  "card": {
+    "title": "Restricted access",
+    "description": "Your account doesn’t have the permissions required for this resource. If needed, request access from an administrator.",
+    "actions": {
+      "title": "What you can do now",
+      "items": [
+        "Return to the dashboard and review active projects.",
+        "Confirm you are signed in with the correct role.",
+        "Contact Trustora support for quick access."
+      ]
+    }
+  }
+}

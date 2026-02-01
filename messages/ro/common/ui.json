@@ -7,5 +7,25 @@
   "main_content": "Conținut principal",
   "category_label": "Categorie",
   "benefit_label": "Beneficiu",
-  "statistic_label": "Statistică"
+  "statistic_label": "Statistică",
+  "billing": {
+    "section_title": "Detalii de facturare",
+    "section_description": "Adaugă informațiile legale și de facturare pentru taxe și facturi.",
+    "company_toggle_label": "Reprezint o companie / entitate de facturare",
+    "company_name_label": "Nume companie",
+    "company_name_placeholder": "Numele companiei",
+    "tax_id_label": "CUI / Cod fiscal",
+    "tax_id_placeholder": "CUI / Cod TVA",
+    "trade_registry_number_label": "Nr. registrul comerțului",
+    "trade_registry_number_placeholder": "Număr registrul comerțului",
+    "billing_address_label": "Adresă de facturare",
+    "billing_address_placeholder": "Stradă, număr",
+    "billing_city_label": "Oraș",
+    "billing_city_placeholder": "Oraș",
+    "billing_state_label": "Județ / Regiune",
+    "billing_state_placeholder": "Județ sau regiune",
+    "billing_postal_code_label": "Cod poștal",
+    "billing_postal_code_placeholder": "Cod poștal",
+    "tax_id_required_hint": "CUI/Codul fiscal și adresa de facturare sunt obligatorii când este completat numele companiei."
+  }
 }
