@@ -13,6 +13,10 @@
     "stripe": {
       "manage": "Edit Stripe Account Details",
       "connect": "Connect Stripe Account"
+    },
+    "rapyd": {
+      "manage": "Edit Rapyd Account Detailsd",
+      "connect": "Connect Rapyd Account"
     }
   },
   "tabs": {

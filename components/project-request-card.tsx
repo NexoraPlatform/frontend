@@ -41,6 +41,7 @@ import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
 import { Locale } from '@/types/locale';
 import { PriceDisplay } from '@/components/PriceDisplay';
+import RapydCheckoutButton from "@/components/RapydCheckoutButton";
 
 interface ProjectRequestCardProps {
     project: any;
@@ -552,6 +553,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 )}
                             </div>
                         ))}
+
+
                     </div>
                 </div>
 

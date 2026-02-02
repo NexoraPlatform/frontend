@@ -24,6 +24,8 @@ export type AccessUser = {
     testVerified?: boolean;
     callVerified?: boolean;
     stripe_account_id?: string;
+    rapyd_wallet_id?: string;
+    rapyd_contact_id?: string;
 
     // RBAC fields
     role?: string;             // optional single role slug

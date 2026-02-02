@@ -588,7 +588,7 @@ export default function ProviderProfileEditPage() {
                         </p>
                     </div>
                     <div className="flex space-x-3">
-                        <Button variant="outline" onClick={() => router.push(`/provider/${user.id}`)}>
+                        <Button variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>
                             <Eye className="w-4 h-4 mr-2" />
                             Previzualizare
                         </Button>

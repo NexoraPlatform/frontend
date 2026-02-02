@@ -19,8 +19,11 @@ interface User {
   testVerified?: boolean;
   callVerified?: boolean;
   stripe_account_id?: string;
+  rapyd_wallet_id?: string;
+  rapyd_contact_id?: string;
   roles?: AccessRole[];
   permissions?: string[];
+  profile_url?: string;
   is_superuser?: boolean;
   github_token?: string;
   github_nickname?: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/lib/navigation';
@@ -57,6 +57,14 @@ import ClientProjectRequests from '../client/project-requests/ClientProjectReque
 
 const AVAILABLE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 
+interface WalletData {
+  id: string;
+  currency: string;
+  balance: number;
+  received_balance: number;
+  on_hold_balance: number;
+}
+
 export default function DashboardClient() {
   const { user, loading, userLoading } = useAuth();
   const t = useTranslations();
@@ -82,6 +90,7 @@ export default function DashboardClient() {
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState('overview');
 
+
   useEffect(() => {
     if (!tabParam) return;
     if (AVAILABLE_TABS.includes(tabParam)) {
@@ -104,6 +113,8 @@ export default function DashboardClient() {
       router.push('/auth/signin');
     }
   }, [user, userLoading, router]);
+
+
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -260,6 +271,23 @@ export default function DashboardClient() {
       }
 
       window.location.href = response.url;
+
+    } catch (error) {
+      console.error('Error fetching Stripe onboarding URL:', error);
+      return null;
+    }
+  }
+
+  const getRapydOnboardingUrl = async () => {
+    try {
+      if (!user) return;
+      const response = await apiClient.rapydOnboarding();
+
+      if (!response || !response.url) {
+        console.error('No URL returned from Stripe onboarding');
+        return null;
+      }
+
 
     } catch (error) {
       console.error('Error fetching Stripe onboarding URL:', error);
@@ -518,18 +546,24 @@ export default function DashboardClient() {
               </Avatar>
               <div>
                 <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
-                <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
-                  {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                  onClick={getStripeOnboardingUrl}
-                >
-                  <SiStripe className="w-4 h-4 mr-2 text-current" />
-                  {user.stripe_account_id ? t('dashboard.hero.stripe.manage') : t('dashboard.hero.stripe.connect')}
-                </Button>
+                <div className="flex items-center flex-row space-x-2">
+                  <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
+                    {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
+                  </Badge>
+                  {user.rapyd_wallet_id ? (
+                      ''
+                  ) : (
+                      <Button
+                          variant="outline"
+                          size="sm"
+                          className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
+                          onClick={getRapydOnboardingUrl}
+                      >
+
+                        {t('dashboard.hero.rapyd.connect')}
+                      </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

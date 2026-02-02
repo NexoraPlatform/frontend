@@ -15,6 +15,8 @@ export type BaseUser = {
     testVerified?: boolean;
     callVerified?: boolean;
     stripe_account_id?: string;
+    rapyd_wallet_id?: string;
+    rapyd_contact_id?: string;
     location?: string;
     avatar?: string;
     confirm_password?: string;

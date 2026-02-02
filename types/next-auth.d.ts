@@ -22,6 +22,8 @@ declare module "next-auth" {
       testVerified?: boolean;
       callVerified?: boolean;
       stripe_account_id?: string;
+      rapyd_wallet_id?: string;
+      rapyd_contact_id?: string;
       roles?: AccessRole[];
       permissions?: string[];
       is_superuser?: boolean;
@@ -43,8 +45,11 @@ declare module "next-auth" {
     testVerified?: boolean;
     callVerified?: boolean;
     stripe_account_id?: string;
+    rapyd_wallet_id?: string;
+    rapyd_contact_id?: string;
     roles?: AccessRole[];
     permissions?: string[];
+    profile_url?: string;
     is_superuser?: boolean;
     access_token?: string; // Sometimes returned from backend login
     github_token?: string;
@@ -65,6 +70,9 @@ declare module "next-auth/jwt" {
     testVerified?: boolean;
     callVerified?: boolean;
     stripe_account_id?: string;
+    rapyd_wallet_id?: string;
+    rapyd_contact_id?: string;
+    profile_url?: string;
     language?: string;
     location?: string;
     avatar?: string;

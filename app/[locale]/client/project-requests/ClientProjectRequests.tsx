@@ -40,6 +40,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+import RapydCheckoutButton from "@/components/RapydCheckoutButton";
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
     throw new Error('Stripe public key is not defined in environment variables');
@@ -231,7 +232,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
         setReleasingId(releaseKey);
         try {
-            const response = await apiClient.releaseProjectFunds(projectId, milestoneId);
+            const response = await apiClient.rapydReleasePayment(projectId, milestoneId);
             toast.success(response?.message ?? t('client.project_requests.release.success'));
             await loadProjects();
         } catch (error: any) {
@@ -561,7 +562,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                             onClick={() => generateContract(project.id, project.client_id, provider.id)}
                                                                             className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                                                         >
-                                                                            Genereaza contract
+                                                                            Contract
                                                                         </Button>
                                                                     )}
                                                                     <div>
@@ -647,67 +648,61 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                     return (
                                                                         <div
                                                                             key={milestoneId ?? index}
-                                                                            className={`flex items-center justify-between rounded-md border p-3 text-sm transition-colors
-                    ${milestone.status === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
-                    ${milestone.status === 'FINISHED' ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
-                    ${milestone.status === 'PAID' ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
-                    ${milestone.status === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
-                `}
+                                                                            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
+    ${milestone.status === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
+    ${milestone.status === 'FINISHED' ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
+    ${milestone.status === 'PAID' ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
+    ${milestone.status === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
+`}
                                                                         >
-                                                                            <div className="flex items-center gap-4 dark:text-slate-200">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                        {index + 1}. {milestone.title}
-                    </span>
-                                                                                <span className="text-slate-300 dark:text-slate-600">|</span>
+                                                                            {/* Partea Stângă: Detalii Milestone */}
+                                                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4 dark:text-slate-200">
+        <span className="font-semibold text-slate-700 dark:text-slate-300">
+            {index + 1}. {milestone.title}
+        </span>
+                                                                                <span className="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
                                                                                 <span className="font-medium text-slate-600 dark:text-slate-400">
-                        {t('client.project_requests.providers.milestone_budget')}{' '}
+            {t('client.project_requests.providers.milestone_budget')}{' '}
                                                                                     <PriceDisplay value={milestone.amount} />
-                    </span>
+        </span>
                                                                             </div>
 
-                                                                            <div className="flex items-center gap-3 bg-gree">
-                                                                                <span className="ms-2">
+                                                                            {/* Partea Dreaptă: Status + Butoane */}
+                                                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                                                                <div className="flex gap-2">
                                                                                     {getMilestoneStatusBadge(milestone.status)}
-                                                                                </span>
-
-                                                                                <span className="ms-2">
                                                                                     {getMilestonePaymentStatusBadge(milestone.payment_status)}
-                                                                                </span>
+                                                                                </div>
 
-                                                                                {/* BUTON RELEASE FUNDS */}
-                                                                                {canReleaseMilestone && (
-                                                                                    <Button
-                                                                                        size="sm"
-                                                                                        onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
-                                                                                        disabled={releasingId === `milestone-${milestoneId}`}
-                                                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                                                                                    >
-                                                                                        {releasingId === `milestone-${milestoneId}` ? (
-                                                                                            <>
-                                                                                                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                                                                                                Processing...
-                                                                                            </>
-                                                                                        ) : (
-                                                                                            <>
-                                                                                                <CheckCircle className="w-3.5 h-3.5 mr-2" />
-                                                                                                {t('client.project_requests.release.button')}
-                                                                                            </>
-                                                                                        )}
-                                                                                    </Button>
-                                                                                )}
+                                                                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                                                                    {/* BUTON RELEASE FUNDS */}
+                                                                                    {canReleaseMilestone && (
+                                                                                        <Button
+                                                                                            size="sm"
+                                                                                            onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
+                                                                                            disabled={releasingId === `milestone-${milestoneId}`}
+                                                                                            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                                                        >
+                                                                                            {releasingId === `milestone-${milestoneId}` ? (
+                                                                                                <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> ...</>
+                                                                                            ) : (
+                                                                                                <><CheckCircle className="w-3.5 h-3.5 mr-2" /> {t('client.project_requests.release.button')}</>
+                                                                                            )}
+                                                                                        </Button>
+                                                                                    )}
 
-                                                                                {showSecurePaymentBtn && (
-                                                                                    <Button
-                                                                                        size="sm"
-                                                                                        className=" text-white shadow-sm"
-                                                                                        onClick={() => {
-                                                                                            openCheckout(project, provider.id, milestone);
-                                                                                        }}
-                                                                                    >
-                                                                                        <Shield className="w-3.5 h-3.5 mr-2" />
-                                                                                        {t('client.project_requests.actions.secure_payment') || "Secure Payment"}
-                                                                                    </Button>
-                                                                                )}
+                                                                                    {/* BUTON SECURE FUNDS (Rapyd) */}
+                                                                                    {showSecurePaymentBtn && (
+                                                                                        <div className="flex-1 sm:flex-none">
+                                                                                            <RapydCheckoutButton
+                                                                                                project={project}
+                                                                                                milestone={milestone}
+                                                                                                countryCode="RO"
+                                                                                                onSuccess={() => window.location.reload()}
+                                                                                            />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     );
@@ -720,14 +715,14 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                         </div>
 
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                                            {!project?.milestones && project.paymentStatus !== 'ESCROW' && (<Button
-                                                onClick={() => openCheckout(project, null, null)}
-                                                className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
-                                                size="lg"
-                                            >
-                                                <Shield className="w-5 h-5 mr-2" />
-                                                {t('client.project_requests.actions.secure_payment')}
-                                            </Button>)}
+                                            {/*{!project?.milestones && project.paymentStatus !== 'ESCROW' && (<Button*/}
+                                            {/*    onClick={() => openCheckout(project, null, null)}*/}
+                                            {/*    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"*/}
+                                            {/*    size="lg"*/}
+                                            {/*>*/}
+                                            {/*    <Shield className="w-5 h-5 mr-2" />*/}
+                                            {/*    {t('client.project_requests.actions.secure_payment')}*/}
+                                            {/*</Button>)}*/}
                                             {project.paymentStatus === 'ESCROW' && canReleaseFull && (
                                                 <Button
                                                     onClick={() => handleReleaseFunds(project.id)}
@@ -773,159 +768,159 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                 </div>
             </section>
 
-            <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-                <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">
-                    <div className="bg-[#0B1C2D] p-6 text-white">
-                        <div className="flex items-center space-x-3 mb-4">
-                            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                                <Shield className="w-6 h-6 text-[#1BC47D]" />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-xl font-bold text-white">
-                                    {t('client.project_requests.checkout.title')}
-                                </DialogTitle>
-                                <DialogDescription className="text-sm text-blue-100">
-                                    {t('client.project_requests.checkout.description')}
-                                </DialogDescription>
-                            </div>
-                        </div>
+            {/*<Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>*/}
+            {/*    <DialogContent className="max-w-md mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">*/}
+            {/*        <div className="bg-[#0B1C2D] p-6 text-white">*/}
+            {/*            <div className="flex items-center space-x-3 mb-4">*/}
+            {/*                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">*/}
+            {/*                    <Shield className="w-6 h-6 text-[#1BC47D]" />*/}
+            {/*                </div>*/}
+            {/*                <div>*/}
+            {/*                    <DialogTitle className="text-xl font-bold text-white">*/}
+            {/*                        {t('client.project_requests.checkout.title')}*/}
+            {/*                    </DialogTitle>*/}
+            {/*                    <DialogDescription className="text-sm text-blue-100">*/}
+            {/*                        {t('client.project_requests.checkout.description')}*/}
+            {/*                    </DialogDescription>*/}
+            {/*                </div>*/}
+            {/*            </div>*/}
 
-                        <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-blue-100">{t('client.project_requests.checkout.project_label')}</span>
-                                <span className="font-semibold">{selectedProject?.title}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>
-                                <span className="font-bold text-lg">
-                                    {displayedValueAmount != null ? (
-                                        <PriceDisplay value={displayedValueAmount} />
-                                    ) : (
-                                        '-'
-                                    )}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>
-                                <span className="font-bold text-lg">
-                                    {displayedFeeAmount != null ? (
-                                        <PriceDisplay value={displayedFeeAmount} />
-                                    ) : (
-                                        '-'
-                                    )}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm mt-2">
-                                <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>
-                                <span className="font-bold text-lg">
-                                    {displayedTotalAmount != null ? (
-                                        <PriceDisplay value={displayedTotalAmount} />
-                                    ) : (
-                                        '-'
-                                    )}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+            {/*            <div className="bg-white/5 rounded-lg p-4 backdrop-blur-sm">*/}
+            {/*                <div className="flex items-center justify-between text-sm">*/}
+            {/*                    <span className="text-blue-100">{t('client.project_requests.checkout.project_label')}</span>*/}
+            {/*                    <span className="font-semibold">{selectedProject?.title}</span>*/}
+            {/*                </div>*/}
+            {/*                <div className="flex items-center justify-between text-sm mt-2">*/}
+            {/*                    <span className="text-blue-100">{t('client.project_requests.checkout.project_value')}</span>*/}
+            {/*                    <span className="font-bold text-lg">*/}
+            {/*                        {displayedValueAmount != null ? (*/}
+            {/*                            <PriceDisplay value={displayedValueAmount} />*/}
+            {/*                        ) : (*/}
+            {/*                            '-'*/}
+            {/*                        )}*/}
+            {/*                    </span>*/}
+            {/*                </div>*/}
+            {/*                <div className="flex items-center justify-between text-sm mt-2">*/}
+            {/*                    <span className="text-blue-100">{t('client.project_requests.checkout.platform_fee')}</span>*/}
+            {/*                    <span className="font-bold text-lg">*/}
+            {/*                        {displayedFeeAmount != null ? (*/}
+            {/*                            <PriceDisplay value={displayedFeeAmount} />*/}
+            {/*                        ) : (*/}
+            {/*                            '-'*/}
+            {/*                        )}*/}
+            {/*                    </span>*/}
+            {/*                </div>*/}
+            {/*                <div className="flex items-center justify-between text-sm mt-2">*/}
+            {/*                    <span className="text-blue-100">{t('client.project_requests.checkout.total_value')}</span>*/}
+            {/*                    <span className="font-bold text-lg">*/}
+            {/*                        {displayedTotalAmount != null ? (*/}
+            {/*                            <PriceDisplay value={displayedTotalAmount} />*/}
+            {/*                        ) : (*/}
+            {/*                            '-'*/}
+            {/*                        )}*/}
+            {/*                    </span>*/}
+            {/*                </div>*/}
+            {/*            </div>*/}
+            {/*        </div>*/}
 
-                    <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                        <div className="text-center">
-                            <h3 className="font-semibold text-lg mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                {t('client.project_requests.checkout.how_it_works.title')}
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                <div className="text-center">
-                                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
-                                        <span className="font-bold text-[#1BC47D]">1</span>
-                                    </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_1')}</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
-                                        <span className="font-bold text-[#1BC47D]">2</span>
-                                    </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_2')}</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">
-                                        <span className="font-bold text-[#1BC47D]">3</span>
-                                    </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_3')}</p>
-                                </div>
-                            </div>
-                        </div>
+            {/*        <div className="p-6 space-y-6 overflow-y-auto flex-1">*/}
+            {/*            <div className="text-center">*/}
+            {/*                <h3 className="font-semibold text-lg mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">*/}
+            {/*                    {t('client.project_requests.checkout.how_it_works.title')}*/}
+            {/*                </h3>*/}
+            {/*                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">*/}
+            {/*                    <div className="text-center">*/}
+            {/*                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">*/}
+            {/*                            <span className="font-bold text-[#1BC47D]">1</span>*/}
+            {/*                        </div>*/}
+            {/*                        <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_1')}</p>*/}
+            {/*                    </div>*/}
+            {/*                    <div className="text-center">*/}
+            {/*                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">*/}
+            {/*                            <span className="font-bold text-[#1BC47D]">2</span>*/}
+            {/*                        </div>*/}
+            {/*                        <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_2')}</p>*/}
+            {/*                    </div>*/}
+            {/*                    <div className="text-center">*/}
+            {/*                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2 dark:bg-[rgba(27,196,125,0.12)]">*/}
+            {/*                            <span className="font-bold text-[#1BC47D]">3</span>*/}
+            {/*                        </div>*/}
+            {/*                        <p className="text-slate-500 dark:text-[#A3ADC2]">{t('client.project_requests.checkout.how_it_works.step_3')}</p>*/}
+            {/*                    </div>*/}
+            {/*                </div>*/}
+            {/*            </div>*/}
 
-                        <div className="bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] border border-emerald-100 dark:border-[#1E2A3D] rounded-lg p-4">
-                            <div className="flex items-start space-x-3">
-                                <CheckCircle className="w-5 h-5 text-[#1BC47D] mt-0.5" />
-                                <div className="text-sm">
-                                    <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-1">
-                                        {t('client.project_requests.checkout.guarantee.title')}
-                                    </div>
-                                    <p className="text-slate-500 dark:text-[#A3ADC2]">
-                                        {t('client.project_requests.checkout.guarantee.description')}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            {/*            <div className="bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] border border-emerald-100 dark:border-[#1E2A3D] rounded-lg p-4">*/}
+            {/*                <div className="flex items-start space-x-3">*/}
+            {/*                    <CheckCircle className="w-5 h-5 text-[#1BC47D] mt-0.5" />*/}
+            {/*                    <div className="text-sm">*/}
+            {/*                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-1">*/}
+            {/*                            {t('client.project_requests.checkout.guarantee.title')}*/}
+            {/*                        </div>*/}
+            {/*                        <p className="text-slate-500 dark:text-[#A3ADC2]">*/}
+            {/*                            {t('client.project_requests.checkout.guarantee.description')}*/}
+            {/*                        </p>*/}
+            {/*                    </div>*/}
+            {/*                </div>*/}
+            {/*            </div>*/}
 
-                        {clientSecret && (
-                            <div className="min-h-[400px]"> {/* Oferim o înălțime minimă pentru a evita layout shift */}
-                                <EmbeddedCheckoutProvider
-                                    stripe={stripePromise}
-                                    options={{ clientSecret, onComplete: handleCheckoutComplete }}
-                                >
-                                    <EmbeddedCheckout className="w-full" />
-                                </EmbeddedCheckoutProvider>
-                            </div>
-                        )}
+            {/*            {clientSecret && (*/}
+            {/*                <div className="min-h-[400px]"> /!* Oferim o înălțime minimă pentru a evita layout shift *!/*/}
+            {/*                    <EmbeddedCheckoutProvider*/}
+            {/*                        stripe={stripePromise}*/}
+            {/*                        options={{ clientSecret, onComplete: handleCheckoutComplete }}*/}
+            {/*                    >*/}
+            {/*                        <EmbeddedCheckout className="w-full" />*/}
+            {/*                    </EmbeddedCheckoutProvider>*/}
+            {/*                </div>*/}
+            {/*            )}*/}
 
-                        {errorMessage && (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{errorMessage}</AlertDescription>
-                            </Alert>
-                        )}
+            {/*             {errorMessage && (*/}
+            {/*                <Alert variant="destructive">*/}
+            {/*                    <AlertCircle className="h-4 w-4" />*/}
+            {/*                    <AlertDescription>{errorMessage}</AlertDescription>*/}
+            {/*                </Alert>*/}
+            {/*            )}*/}
 
-                        {success && (
-                            <Alert className="border-emerald-200 bg-emerald-50">
-                                <CheckCircle className="h-4 w-4 text-[#1BC47D]" />
-                                <AlertDescription className="text-emerald-800">
-                                    {t('client.project_requests.checkout.success')}
-                                </AlertDescription>
-                            </Alert>
-                        )}
+            {/*            {success && (*/}
+            {/*                <Alert className="border-emerald-200 bg-emerald-50">*/}
+            {/*                    <CheckCircle className="h-4 w-4 text-[#1BC47D]" />*/}
+            {/*                    <AlertDescription className="text-emerald-800">*/}
+            {/*                        {t('client.project_requests.checkout.success')}*/}
+            {/*                    </AlertDescription>*/}
+            {/*                </Alert>*/}
+            {/*            )}*/}
 
-                        <div className="flex flex-col gap-3 sm:flex-row">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setCheckoutDialogOpen(false)}
-                                className="px-6 border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                            >
-                                {t('client.project_requests.checkout.cancel')}
-                            </Button>
-                        </div>
+            {/*            <div className="flex flex-col gap-3 sm:flex-row">*/}
+            {/*                <Button*/}
+            {/*                    type="button"*/}
+            {/*                    variant="outline"*/}
+            {/*                    onClick={() => setCheckoutDialogOpen(false)}*/}
+            {/*                    className="px-6 border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"*/}
+            {/*                >*/}
+            {/*                    {t('client.project_requests.checkout.cancel')}*/}
+            {/*                </Button>*/}
+            {/*            </div>*/}
 
-                        <div className="text-xs text-center text-slate-500 dark:text-[#A3ADC2] pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                            <div className="flex items-center justify-center space-x-4">
-                                <div className="flex items-center space-x-1">
-                                    <Shield className="w-3 h-3" />
-                                    <span>{t('client.project_requests.checkout.footer.ssl')}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    <span>{t('client.project_requests.checkout.footer.pci')}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                    <Globe className="w-3 h-3" />
-                                    <span>{t('client.project_requests.checkout.footer.stripe')}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/*            <div className="text-xs text-center text-slate-500 dark:text-[#A3ADC2] pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">*/}
+            {/*                <div className="flex items-center justify-center space-x-4">*/}
+            {/*                    <div className="flex items-center space-x-1">*/}
+            {/*                        <Shield className="w-3 h-3" />*/}
+            {/*                        <span>{t('client.project_requests.checkout.footer.ssl')}</span>*/}
+            {/*                    </div>*/}
+            {/*                    <div className="flex items-center space-x-1">*/}
+            {/*                        <CheckCircle className="w-3 h-3" />*/}
+            {/*                        <span>{t('client.project_requests.checkout.footer.pci')}</span>*/}
+            {/*                    </div>*/}
+            {/*                    <div className="flex items-center space-x-1">*/}
+            {/*                        <Globe className="w-3 h-3" />*/}
+            {/*                        <span>{t('client.project_requests.checkout.footer.stripe')}</span>*/}
+            {/*                    </div>*/}
+            {/*                </div>*/}
+            {/*            </div>*/}
+            {/*        </div>*/}
+            {/*    </DialogContent>*/}
+            {/*</Dialog>*/}
 
             <Dialog open={openContractDialog} onOpenChange={setOpenContractDialog}>
                 <DialogContent className="max-w-3xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">

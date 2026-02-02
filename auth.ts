@@ -40,7 +40,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     const data = await res.json();
                     // Expecting data in format: { access_token: string, user: UserData }
-                    console.log(data)
                     if (data?.access_token && data?.user) {
                         // Return object that matches User interface
                         return {
@@ -72,9 +71,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.testVerified = user.testVerified;
                 token.callVerified = user.callVerified;
                 token.stripe_account_id = user.stripe_account_id;
+                token.rapyd_wallet_id = user.rapyd_wallet_id;
+                token.rapyd_contact_id = user.rapyd_contact_id;
                 token.language = user.language;
                 token.location = user.location;
                 token.avatar = user.avatar;
+                token.profile_url = user.profile_url;
                 token.bio = user.bio;
                 token.github_token = user.github_token;
                 token.github_nickname = user.github_nickname;
@@ -92,9 +94,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     token.testVerified = updatedUser.testVerified ?? token.testVerified;
                     token.callVerified = updatedUser.callVerified ?? token.callVerified;
                     token.stripe_account_id = updatedUser.stripe_account_id ?? token.stripe_account_id;
+                    token.rapyd_wallet_id = updatedUser.rapyd_wallet_id ?? token.rapyd_wallet_id;
+                    token.rapyd_contact_id = updatedUser.rapyd_contact_id ?? token.rapyd_contact_id;
                     token.language = updatedUser.language ?? token.language;
                     token.location = updatedUser.location ?? token.location;
                     token.avatar = updatedUser.avatar ?? token.avatar;
+                    token.profile_url = updatedUser.profile_url;
                     token.bio = updatedUser.bio ?? token.bio;
                     token.github_token = updatedUser.github_token ?? token.github_token;
                     token.github_nickname = updatedUser.github_nickname ?? token.github_nickname;
@@ -115,10 +120,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 session.user.testVerified = token.testVerified;
                 session.user.callVerified = token.callVerified;
                 session.user.stripe_account_id = token.stripe_account_id;
+                session.user.rapyd_wallet_id = token.rapyd_wallet_id;
+                session.user.rapyd_contact_id = token.rapyd_contact_id;
                 session.user.language = token.language;
                 session.user.location = token.location;
                 session.user.avatar = token.avatar;
                 session.user.bio = token.bio;
+                session.user.profile_url = token.profile_url;
                 session.user.github_token = token.github_token;
                 session.user.github_nickname = token.github_nickname;
             }

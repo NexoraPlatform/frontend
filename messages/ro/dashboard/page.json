@@ -13,6 +13,10 @@
     "stripe": {
       "manage": "Modifică detalii cont Stripe",
       "connect": "Conectează cont Stripe"
+    },
+    "rapyd": {
+      "manage": "Modifică detalii cont Rapyd",
+      "connect": "Conectează cont Rapyd"
     }
   },
   "tabs": {

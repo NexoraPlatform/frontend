@@ -1505,9 +1505,7 @@ export class ApiClient {
   }
 
   async markAllNotificationsAsRead() {
-    return this.request<any>('/notifications/read-all', {
-      method: 'PATCH'
-    });
+    return this.request<any>('/notifications/read-all');
   }
 
   async deleteNotification(notificationId: string) {
@@ -1527,6 +1525,38 @@ export class ApiClient {
     return this.request<any>('/notifications/send', {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  }
+
+  async rapydOnboarding() {
+    return this.request<any>('/rapyd/onboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+    })
+  }
+
+  async rapydCheckoutSession(projectId: string | number, currency: string, countryCode: string, milestoneId?: string) {
+    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId? `/${milestoneId}` : ''}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify({ currency: currency, country: countryCode })
+    })
+  }
+
+  async rapydReleasePayment(projectId: string | number, milestoneId?: string) {
+    return this.request<any>(`/rapyd/escrow/release`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify({ project_id: projectId, milestone_id: milestoneId }),
     });
   }
 
