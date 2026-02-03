@@ -251,6 +251,9 @@
         "country": "US",
         "bank_name": "CHASE BANK",
         "bic": "CHASUS33"
+      },
+      "errors": {
+        "invalid_zip": "The postal code format is not valid for the selected country."
       }
     },
     "notifications": {

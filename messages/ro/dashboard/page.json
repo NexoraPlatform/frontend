@@ -251,6 +251,9 @@
         "country": "RO",
         "bank_name": "ING BANK",
         "bic": "INGBROBU"
+      },
+      "errors": {
+        "invalid_zip": "Formatul codului poștal nu este valid pentru țara selectată."
       }
     },
     "notifications": {
