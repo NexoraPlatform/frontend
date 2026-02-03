@@ -240,7 +240,10 @@
     "billing": {
       "title": "Billing",
       "payment_methods": "Payment methods",
-      "invoices": "Invoice history"
+      "invoices": "Invoice history",
+      "bank_details": "Bank details",
+      "bank_details_subtitle": "Set bank details",
+      "bank_account": "Bank account"
     }
   },
   "actions": {

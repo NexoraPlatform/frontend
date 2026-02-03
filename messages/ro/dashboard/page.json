@@ -240,7 +240,10 @@
     "billing": {
       "title": "Facturare",
       "payment_methods": "Metode de plată",
-      "invoices": "Istoric facturi"
+      "invoices": "Istoric facturi",
+      "bank_details": "Detalii bancare",
+      "bank_details_subtitle": "Setează detaliile bancare",
+      "bank_account": "Cont bancar"
     }
   },
   "actions": {

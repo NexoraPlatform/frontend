@@ -1560,6 +1560,10 @@ export class ApiClient {
     });
   }
 
+  async rapydGetWalletBalance() {
+    return this.request<any>(`/rapyd/balance`);
+  }
+
   async getPaymentLink(project_id: string) {
     return this.request<any>(`/stripe/payment/${project_id}`);
   }

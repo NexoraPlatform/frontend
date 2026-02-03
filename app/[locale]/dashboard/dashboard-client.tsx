@@ -54,6 +54,8 @@ import { Link } from '@/lib/navigation';
 import { SiStripe } from "react-icons/si";
 import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
+import {AiFillBank} from "react-icons/ai";
+import SettingsComponent from "@/components/dashboard/SettingsComponent";
 
 const AVAILABLE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 
@@ -89,23 +91,46 @@ export default function DashboardClient() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState('overview');
-
+  // const [balance, setBalance] = useState<WalletData | null>(null);
+  //
+  // const fetchBalance = useCallback(async () => {
+  //   try {
+  //     // Apelăm metoda ta din apiClient
+  //     const response = await apiClient.rapydGetWalletBalance();
+  //
+  //     // Verificăm dacă răspunsul este valid
+  //     // Rapyd returnează de obicei un array în `data`
+  //     if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+  //       setBalance(response.data[0]); // Luăm primul portofel găsit
+  //     } else {
+  //       // Dacă nu există date sau array-ul e gol
+  //       setBalance(null);
+  //     }
+  //   } catch (err) {
+  //     console.error("Eroare la preluarea balanței:", err);
+  //   }
+  // }, []);
+  //
+  // useEffect(() => {
+  //   fetchBalance();
+  // }, [fetchBalance]);
 
   useEffect(() => {
-    if (!tabParam) return;
-    if (AVAILABLE_TABS.includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
+    const nextTab = tabParam && AVAILABLE_TABS.includes(tabParam) ? tabParam : 'overview';
+    setActiveTab(nextTab);
   }, [tabParam]);
 
-  useEffect(() => {
-    if (activeTab === 'overview') return;
-    if (tabParam === activeTab) return;
+  const updateTabQuery = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', activeTab);
+    if (value === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', value);
+    }
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [activeTab, pathname, router, searchParams, tabParam]);
+    router.replace(query ? `?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   useEffect(() => {
     if (userLoading) return;
 
@@ -114,18 +139,9 @@ export default function DashboardClient() {
     }
   }, [user, userLoading, router]);
 
-
-
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === 'overview') {
-      params.delete('tab');
-    } else {
-      params.set('tab', value);
-    }
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
+    updateTabQuery(value);
   };
 
   const loadProjects = useCallback(async () => {
@@ -552,6 +568,25 @@ export default function DashboardClient() {
                   </Badge>
                   {user.rapyd_wallet_id ? (
                       ''
+                      // <>
+                      //   <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
+                      //     <CheckCircle className="w-3 h-3 mr-1" />
+                      //     Balance: {balance?.balance} {balance?.currency}
+                      //   </Badge>
+                      //
+                      //   {balance?.on_hold_balance && (
+                      //       <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>
+                      //         <CheckCircle className="w-3 h-3 mr-1" />
+                      //         Balance: {balance?.on_hold_balance} {balance?.currency}
+                      //       </Badge>
+                      //   )}
+                      //   {balance?.received_balance && (
+                      //       <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>
+                      //         <CheckCircle className="w-3 h-3 mr-1" />
+                      //         Balance: {balance?.received_balance} {balance?.currency}
+                      //       </Badge>
+                      //   )}
+                      // </>
                   ) : (
                       <Button
                           variant="outline"
@@ -1021,117 +1056,7 @@ export default function DashboardClient() {
             </TabsContent>
 
             {/* Settings Tab */}
-            <TabsContent value="settings" className="space-y-6">
-              <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Profile Settings */}
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <User className="w-5 h-5" />
-                      <span>{t('dashboard.settings.profile.title')}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>
-                          {user.firstName[0]}{user.lastName[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="font-medium">{user.firstName} {user.lastName}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={isProvider ? '/provider/profile' : '/settings/profile'}>
-                          <Edit className="w-4 h-4 mr-1" />
-                          {t('dashboard.actions.edit')}
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Notification Settings */}
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Bell className="w-5 h-5" />
-                      <span>{t('dashboard.settings.notifications.title')}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{t('dashboard.settings.notifications.email.title')}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {t('dashboard.settings.notifications.email.description')}
-                          </div>
-                        </div>
-                        <input type="checkbox" defaultChecked className="rounded" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{t('dashboard.settings.notifications.push.title')}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {t('dashboard.settings.notifications.push.description')}
-                          </div>
-                        </div>
-                        <input type="checkbox" defaultChecked className="rounded" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Account Settings */}
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Shield className="w-5 h-5" />
-                      <span>{t('dashboard.settings.security.title')}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Settings className="w-4 h-4 mr-2" />
-                      {t('dashboard.settings.security.change_password')}
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Shield className="w-4 h-4 mr-2" />
-                      {t('dashboard.settings.security.two_factor')}
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Globe className="w-4 h-4 mr-2" />
-                      {t('dashboard.settings.security.language_preferences')}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Billing (for clients) */}
-                {isClient && (
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <DollarSign className="w-5 h-5" />
-                        <span>{t('dashboard.settings.billing.title')}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Button variant="outline" className="w-full justify-start">
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        {t('dashboard.settings.billing.payment_methods')}
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <FileText className="w-4 h-4 mr-2" />
-                        {t('dashboard.settings.billing.invoices')}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </TabsContent>
+            <SettingsComponent />
           </Tabs>
         </div>
       </section>
