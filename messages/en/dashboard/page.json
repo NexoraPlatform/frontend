@@ -218,7 +218,40 @@
   },
   "settings": {
     "profile": {
-      "title": "Profile settings"
+      "title": "Profile Settings",
+      "company_informations": "Company Information",
+      "company_informations_subtitle": "Set the company's legal and banking information",
+      "legal_name": "Legal Company Name",
+      "represented_by": "Legally Represented By",
+      "contact_email": "Contact Email",
+      "id_type": "ID Type",
+      "id_code": "Identification Code",
+      "hq_address": "Headquarters Address",
+      "street": "Street and Number",
+      "city": "City / Sector",
+      "state": "County / State",
+      "zip": "Postal Code",
+      "country": "Country",
+      "bank_info": "Banking Information",
+      "iban": "Account IBAN",
+      "bank_name": "Bank Name",
+      "bic_swift": "BIC / SWIFT Code",
+      "save": "Save",
+      "close": "Close",
+      "placeholders": {
+        "company": "ex: ACME Corp LLC",
+        "represented_by": "ex: John Doe",
+        "email": "contact@company.com",
+        "id_type": "EIN",
+        "id_code": "12-3456789",
+        "address": "123 Business Rd, Suite 1",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10001",
+        "country": "US",
+        "bank_name": "CHASE BANK",
+        "bic": "CHASUS33"
+      }
     },
     "notifications": {
       "title": "Notification settings",
@@ -243,7 +276,10 @@
       "invoices": "Invoice history",
       "bank_details": "Bank details",
       "bank_details_subtitle": "Set bank details",
-      "bank_account": "Bank account"
+      "bank_account": "Bank account",
+      "iban": "IBAN",
+      "company_address": "Company address",
+      "save": "Save Bank Details"
     }
   },
   "actions": {

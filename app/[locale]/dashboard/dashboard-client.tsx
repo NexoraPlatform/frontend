@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  User,
   Briefcase,
   DollarSign,
   Star,
@@ -37,8 +36,6 @@ import {
   BarChart3,
   Zap,
   Award,
-  Shield,
-  Globe,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -51,21 +48,11 @@ import { apiClient, DashboardStatsResponse } from '@/lib/api';
 import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
-import { SiStripe } from "react-icons/si";
 import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
-import {AiFillBank} from "react-icons/ai";
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
 
 const AVAILABLE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
-
-interface WalletData {
-  id: string;
-  currency: string;
-  balance: number;
-  received_balance: number;
-  on_hold_balance: number;
-}
 
 export default function DashboardClient() {
   const { user, loading, userLoading } = useAuth();

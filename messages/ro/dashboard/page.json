@@ -218,7 +218,40 @@
   },
   "settings": {
     "profile": {
-      "title": "Setări profil"
+      "title": "Setări profil",
+      "company_informations": "Informații Companie",
+      "company_informations_subtitle": "Setează informațiile juridice și bancare ale companiei",
+      "legal_name": "Nume Legal Companie",
+      "represented_by": "Reprezentat Legal De",
+      "contact_email": "Email Contact",
+      "id_type": "Tip Act",
+      "id_code": "Cod Identificare",
+      "hq_address": "Adresa Sediu Social",
+      "street": "Strada și Număr",
+      "city": "Oraș / Sector",
+      "state": "Județ / Stat",
+      "zip": "Cod Poștal",
+      "country": "Țara",
+      "bank_info": "Informații Bancare",
+      "iban": "IBAN Cont",
+      "bank_name": "Nume Bancă",
+      "bic_swift": "Cod BIC / SWIFT",
+      "save": "Salvează",
+      "close": "Închide",
+      "placeholders": {
+        "company": "ex: SC EXEMPLU SRL",
+        "represented_by": "ex: Ion Popescu",
+        "email": "contact@firma.ro",
+        "id_type": "CUI",
+        "id_code": "RO123456",
+        "address": "Str. Exemplului Nr. 1, Bl. A",
+        "city": "București",
+        "state": "București",
+        "zip": "010000",
+        "country": "RO",
+        "bank_name": "ING BANK",
+        "bic": "INGBROBU"
+      }
     },
     "notifications": {
       "title": "Setări notificări",
@@ -243,7 +276,10 @@
       "invoices": "Istoric facturi",
       "bank_details": "Detalii bancare",
       "bank_details_subtitle": "Setează detaliile bancare",
-      "bank_account": "Cont bancar"
+      "bank_account": "Cont bancar",
+      "iban": "IBAN",
+      "company_address": "Adresă companie",
+      "save": "Salvează datele bancare"
     }
   },
   "actions": {
