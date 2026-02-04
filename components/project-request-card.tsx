@@ -73,17 +73,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const [newBudget, setNewBudget] = useState<number>(0);
 
     useEffect(() => {
-        if (!loading && !user) {
-            // router.push('/auth/signin');
-        }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
-            router.push('/dashboard');
-        }
-        if (user) {
-        }
-    }, [user, loading, router]);
-
-    useEffect(() => {
         if (checkoutDialogOpen) {
             async function initStripe() {
                 const stripe = await stripePromise;

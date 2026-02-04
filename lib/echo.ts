@@ -1,5 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 
 let echoInstance: Echo<any> | null = null;
 
@@ -8,6 +9,7 @@ export function getEcho(token?: string | null): Echo<any> | null {
   if (!token) return null;
   if (echoInstance) return echoInstance;
 
+  disablePusherUnloadListener(Pusher);
   (window as any).Pusher = Pusher;
 
   echoInstance = new Echo({

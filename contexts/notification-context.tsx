@@ -8,6 +8,7 @@ import Echo from 'laravel-echo';
 import type { Channel } from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { apiClient } from '@/lib/api';
+import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 
 type RawLaravelNotification = {
     id: string;
@@ -106,6 +107,7 @@ function getNotificationPermission(): NotificationPermission {
 let echoSingleton: Echo<any> | null = null;
 function getOrCreateEcho(token: string): Echo<any> {
     if (echoSingleton) return echoSingleton;
+    disablePusherUnloadListener(Pusher);
     (window as any).Pusher = Pusher;
     echoSingleton = new Echo({
         broadcaster: 'pusher',

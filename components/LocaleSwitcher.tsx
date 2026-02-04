@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { locales } from '@/lib/navigation';
 import { localeConfig } from '@/lib/i18n';
 import { usePathname, useRouter } from '@/lib/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -22,6 +23,7 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
     const pathname = usePathname();
     const router = useRouter();
     const locale = useLocale();
+    const { user, setUserLanguage } = useAuth();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -54,8 +56,13 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
                     return (
                         <DropdownMenuItem
                             key={nextLocale}
-                            onSelect={(event) => {
+                            onSelect={async (event) => {
                                 event.preventDefault();
+                                if (isCurrent) return;
+                                if (user) {
+                                    const updatedUser = await setUserLanguage(nextLocale);
+                                    if (!updatedUser) return;
+                                }
                                 router.replace(normalizedPathname, { locale: nextLocale });
                             }}
                             aria-current={isCurrent ? 'true' : undefined}

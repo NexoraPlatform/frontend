@@ -220,7 +220,7 @@ export default function AdminUsersPage() {
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center space-x-4">
                           <Avatar className="w-12 h-12">
-                            <AvatarImage src={user.avatar} />
+                            <AvatarImage src={user.avatar ?? undefined} />
                             <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
                           </Avatar>
                           <div>

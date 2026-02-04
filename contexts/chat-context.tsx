@@ -228,9 +228,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') return;
-        const onUnload = () => chatService.disconnect();
-        window.addEventListener('beforeunload', onUnload);
-        return () => window.removeEventListener('beforeunload', onUnload);
+
+        const disconnect = () => {
+            chatService.disconnect();
+        };
+
+        window.addEventListener('pagehide', disconnect);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                disconnect();
+            }
+        });
+
+        return () => {
+            window.removeEventListener('pagehide', disconnect);
+            document.removeEventListener('visibilitychange', disconnect);
+        };
     }, []);
 
     useEffect(() => {

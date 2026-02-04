@@ -96,6 +96,14 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [releasingId, setReleasingId] = useState<string | null>(null);
     const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
     const [openContractDialog, setOpenContractDialog] = useState(false);
+    const roleSlugs = [
+        ...(user?.role_slugs ?? []),
+        ...((user?.roles ?? []).map((role: any) => role?.slug).filter(Boolean)),
+    ]
+        .map((slug) => String(slug).toLowerCase())
+        .filter(Boolean);
+    const isClientRole = roleSlugs.includes('client') || user?.role?.toLowerCase() === 'client';
+    const hasRoleInfo = roleSlugs.length > 0 || Boolean(user?.role);
     const getMilestoneId = useCallback((milestone: any) => {
         return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
     }, []);
@@ -171,13 +179,15 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             return;
         }
 
-        if (!user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client')) {
-            router.push('/dashboard');
+        if (hasRoleInfo && !isClientRole) {
+            if (withLayout) {
+                router.push('/dashboard');
+            }
             return;
         }
 
         loadProjects();
-    }, [user, userLoading, router, loadProjects]);
+    }, [user, userLoading, router, loadProjects, hasRoleInfo, isClientRole, withLayout]);
 
     const getClientSecret = async (project_id: string, providerId: number | string | null, milestoneId: number | string | null) => {
         // router.push(response.url);
@@ -361,7 +371,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+    if (!user || (hasRoleInfo && !isClientRole)) {
         return null;
     }
 

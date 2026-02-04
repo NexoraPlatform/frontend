@@ -437,7 +437,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label={openMainUserMenuText}>
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatar} alt={user.firstName} />
+                      <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
                       <AvatarFallback>
                         {user.firstName[0]}{user.lastName[0]}
                       </AvatarFallback>

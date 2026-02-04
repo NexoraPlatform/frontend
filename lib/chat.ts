@@ -1,6 +1,7 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { apiClient } from '@/lib/api';
+import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -84,6 +85,7 @@ export class ChatService {
             }
         }
 
+        disablePusherUnloadListener(Pusher);
         (window as any).Pusher = Pusher;
 
         this.echo = new Echo({

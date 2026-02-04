@@ -228,6 +228,12 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    if (!this.token && typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken) {
+        this.token = storedToken;
+      }
+    }
     const url = new URL(`${this.baseURL}${endpoint}`);
     const selectedLanguage = this.getSelectedLanguageFromPathname();
     const selectedCurrency = this.getSelectedCurrencyFromStorage();
@@ -1149,6 +1155,70 @@ export class ApiClient {
     });
   }
 
+  async updateUserCompanyDetails(userCompanyDetails: any) {
+    return this.request<any>(`/users/update/company`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify(userCompanyDetails),
+    })
+  }
+
+  async getCompanyManagers(companyId: string | number | undefined) {
+    const searchParams = new URLSearchParams();
+    if (companyId) {
+      searchParams.append('company_id', companyId.toString());
+    }
+    return this.request<any>(`/users/company/editors?${searchParams.toString()}`);
+  }
+
+  async searchUserForCompany(search: string) {
+    const searchParams = new URLSearchParams();
+    if (search) {
+      searchParams.append('search', search);
+    }
+
+    return this.request<any>(`/users/company/search/users?${searchParams.toString()}`);
+  }
+
+  async getCompanyMembers(companyId: string | number | undefined) {
+    const searchParams = new URLSearchParams();
+    if (companyId) {
+      searchParams.append('company_id', companyId.toString());
+    }
+
+    return this.request<any>(`/users/company/members?${searchParams.toString()}`);
+  }
+
+  async updateCompanyEditorsOrOwnership(
+      companyId: string | number | undefined,
+      members: string[] | null | undefined,
+      owner: string | null | undefined,
+  ) {
+    const payload: Record<string, unknown> = {
+      company_id: companyId,
+    };
+
+    if (members !== null && members !== undefined) {
+      payload.editor_emails = members;
+    }
+
+    if (owner) {
+      payload.transfer_owner_email = owner;
+    }
+
+    return this.request<any>(`/users/company/access`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    })
+  }
+
   async uploadAvatar(file: File) {
     const formData = new FormData();
     formData.append('avatar', file);
@@ -1562,6 +1632,40 @@ export class ApiClient {
 
   async rapydGetWalletBalance() {
     return this.request<any>(`/rapyd/balance`);
+  }
+
+  async rapydCreatePayoutBank(amount: number | string, currency?: string | null) {
+    return this.request<any>(`/rapyd/payout/bank`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify({
+        amount,
+        ...(currency ? { currency } : {}),
+      })
+    });
+  }
+
+  async getCurrencies(search: string | null) {
+    const searchParams = new URLSearchParams();
+
+    if (search) {
+      searchParams.set('search', search);
+    }
+    return this.request<any>(`/users/currencies?${searchParams.toString()}`);
+  }
+
+  async updateUserLanguage(language: string) {
+    return this.request<any>(`/users/language`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      },
+      body: JSON.stringify({ lang: language }),
+    });
   }
 
   async getPaymentLink(project_id: string) {

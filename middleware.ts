@@ -39,6 +39,20 @@ const intlMiddleware = createMiddleware({
   localePrefix,
 });
 
+const supportedLocales = new Set(locales);
+
+function normalizeLocale(value?: string | null) {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  return supportedLocales.has(normalized as (typeof locales)[number]) ? normalized : null;
+}
+
+function resolvePreferredLocale(userLanguage: string | null | undefined, country: string) {
+  const normalizedUserLanguage = normalizeLocale(userLanguage);
+  if (normalizedUserLanguage) return normalizedUserLanguage;
+  return country.toUpperCase() === 'RO' ? 'ro' : 'en';
+}
+
 function findRequirement(pathname: string): Requirement | 'auth-only' | null {
   for (const r of ROUTE_RULES) {
     if (r.pattern.test(pathname)) return r.require;
@@ -137,14 +151,6 @@ export default auth(async (req) => {
   if (isServiceWorkerScript) {
     return NextResponse.next();
   }
-  const intlResponse = intlMiddleware(req);
-
-  if (
-    intlResponse?.headers.get('location') ||
-    intlResponse?.headers.get('x-middleware-rewrite')
-  ) {
-    return intlResponse;
-  }
 
   // Ignore static files and API
   if (
@@ -157,9 +163,9 @@ export default auth(async (req) => {
     return NextResponse.next();
   }
 
-    if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
-      return new NextResponse('Authentication required.', {
-        status: 401,
+  if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
+    return new NextResponse('Authentication required.', {
+      status: 401,
       headers: {
         'WWW-Authenticate': 'Basic realm="Trustora"',
       },
@@ -176,12 +182,9 @@ export default auth(async (req) => {
     return new NextResponse('Access Denied', { status: 403 });
   }
 
-  NextResponse.next().headers.set('X-Client-Geo-Country', country);
-  NextResponse.next().headers.set('X-Client-Geo-IP', ip as string);
-
   const segments = pathname.split('/');
-  const locale = segments[1] || defaultLocale;
-  const pathWithoutLocale = '/' + segments.slice(2).join('/') || '/';
+  const pathLocale = normalizeLocale(segments[1]);
+  const pathWithoutLocale = pathLocale ? '/' + segments.slice(2).join('/') : pathname;
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
@@ -189,6 +192,29 @@ export default auth(async (req) => {
   const session = req.auth;
   const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
   const isAuthenticated = !!user;
+  const preferredLocale = resolvePreferredLocale(user?.language, country);
+  const locale = pathLocale ?? preferredLocale ?? defaultLocale;
+
+  if (!pathLocale || pathLocale !== preferredLocale) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/${preferredLocale}${normalizedPath === '/' ? '' : normalizedPath}`;
+    return NextResponse.redirect(url);
+  }
+
+  const intlResponse = intlMiddleware(req);
+
+  if (
+    intlResponse?.headers.get('location') ||
+    intlResponse?.headers.get('x-middleware-rewrite')
+  ) {
+    return intlResponse;
+  }
+
+  const baseResponse = intlResponse ?? NextResponse.next();
+  baseResponse.headers.set('X-Client-Geo-Country', country);
+  if (ip) {
+    baseResponse.headers.set('X-Client-Geo-IP', ip as string);
+  }
 
   if (isOpenSoonEnabled()) {
     const openSoonRoutes = new Set([
@@ -204,7 +230,7 @@ export default auth(async (req) => {
       normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
 
     if (isOpenSoonRoute) {
-      return intlResponse ?? NextResponse.next();
+      return baseResponse;
     }
 
     let adminBypass = false;
@@ -235,7 +261,7 @@ export default auth(async (req) => {
       normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
     if (isEarlyAccessRoute) {
-      return intlResponse ?? NextResponse.next();
+      return baseResponse;
     }
 
     let adminBypass = false;
@@ -264,13 +290,13 @@ export default auth(async (req) => {
   const requirement = findRequirement(normalizedPath);
 
   if (!requirement) {
-    return intlResponse ?? NextResponse.next();
+    return baseResponse;
   }
 
   // 4. Token & Permission Checks
   if (!isAuthenticated) return redirectToSignin(req, locale);
 
-  if (requirement === 'auth-only') return intlResponse ?? NextResponse.next();
+  if (requirement === 'auth-only') return baseResponse;
 
   const allowed = checkRequirement(user || null, requirement);
 
@@ -281,7 +307,7 @@ export default auth(async (req) => {
     return NextResponse.redirect(url);
   }
 
-  return intlResponse ?? NextResponse.next();
+  return baseResponse;
 });
 
 export const config = {

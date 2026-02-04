@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
@@ -52,7 +52,15 @@ import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
 
-const AVAILABLE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
+const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
+
+interface WalletData {
+  id: string;
+  currency: string;
+  balance: number | null;
+  received_balance: number | null;
+  on_hold_balance: number | null;
+}
 
 export default function DashboardClient() {
   const { user, loading, userLoading } = useAuth();
@@ -62,8 +70,30 @@ export default function DashboardClient() {
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [projectsError, setProjectsError] = useState('');
-  const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider');
-  const isClient = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client');
+  const roleSlugs = useMemo(() => {
+    const fromRoles = Array.isArray(user?.roles)
+      ? user.roles.map((role: any) => role?.slug).filter(Boolean)
+      : [];
+    const fromRoleSlugs = Array.isArray(user?.role_slugs) ? user.role_slugs : [];
+    const fromSingleRole = user?.role ? [user.role] : [];
+    return Array.from(
+      new Set(
+        [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
+          .filter(Boolean)
+          .map((slug) => String(slug).toLowerCase())
+      )
+    );
+  }, [user?.roles, user?.role_slugs, user?.role]);
+
+  const isProvider = roleSlugs.includes('provider');
+  const isClient = roleSlugs.includes('client');
+  const hasRoleInfo = roleSlugs.length > 0;
+  const availableTabs = useMemo(() => {
+    if (hasRoleInfo && !isProvider) {
+      return BASE_TABS;
+    }
+    return [...BASE_TABS, 'finance'];
+  }, [hasRoleInfo, isProvider]);
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,38 +104,108 @@ export default function DashboardClient() {
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
   const router = useRouter();
+  const locale = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState('overview');
-  // const [balance, setBalance] = useState<WalletData | null>(null);
-  //
-  // const fetchBalance = useCallback(async () => {
-  //   try {
-  //     // Apelăm metoda ta din apiClient
-  //     const response = await apiClient.rapydGetWalletBalance();
-  //
-  //     // Verificăm dacă răspunsul este valid
-  //     // Rapyd returnează de obicei un array în `data`
-  //     if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
-  //       setBalance(response.data[0]); // Luăm primul portofel găsit
-  //     } else {
-  //       // Dacă nu există date sau array-ul e gol
-  //       setBalance(null);
-  //     }
-  //   } catch (err) {
-  //     console.error("Eroare la preluarea balanței:", err);
-  //   }
-  // }, []);
-  //
-  // useEffect(() => {
-  //   fetchBalance();
-  // }, [fetchBalance]);
+  const [wallets, setWallets] = useState<WalletData[]>([]);
+  const [balance, setBalance] = useState<WalletData | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const balanceRequestId = useRef(0);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const selectedWalletIdRef = useRef<string | null>(null);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferLoading, setTransferLoading] = useState(false);
+
+  const parseBalanceAmount = useCallback((value: unknown) => {
+    if (value === null || value === undefined) return null;
+    const parsed = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, []);
+
+  const formatBalanceAmount = useCallback((value: number | null | undefined, currency?: string) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return '--';
+    if (!currency) {
+      return new Intl.NumberFormat(locale).format(value);
+    }
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
+    } catch (error) {
+      return `${new Intl.NumberFormat(locale).format(value)} ${currency}`;
+    }
+  }, [locale]);
 
   useEffect(() => {
-    const nextTab = tabParam && AVAILABLE_TABS.includes(tabParam) ? tabParam : 'overview';
-    setActiveTab(nextTab);
-  }, [tabParam]);
+    selectedWalletIdRef.current = selectedWalletId;
+  }, [selectedWalletId]);
+
+  const fetchBalance = useCallback(async () => {
+    if (!user?.rapyd_wallet_id) {
+      setWallets([]);
+      setBalance(null);
+      setSelectedWalletId(null);
+      setBalanceError(null);
+      setBalanceLoading(false);
+      return;
+    }
+
+    const requestId = ++balanceRequestId.current;
+    setBalanceLoading(true);
+    setBalanceError(null);
+    try {
+      const response = await apiClient.rapydGetWalletBalance();
+
+      if (balanceRequestId.current !== requestId) return;
+
+      const rawData = response?.data ?? response;
+      const rawWallets = Array.isArray(rawData) ? rawData : rawData ? [rawData] : [];
+      const normalizedWallets = rawWallets
+        .map((wallet: any) => ({
+          id: String(wallet.id ?? ''),
+          currency: String(wallet.currency ?? wallet.alias ?? ''),
+          balance: parseBalanceAmount(wallet.balance),
+          received_balance: parseBalanceAmount(wallet.received_balance),
+          on_hold_balance: parseBalanceAmount(wallet.on_hold_balance),
+        }))
+        .filter((wallet: WalletData) => wallet.id && wallet.currency);
+
+      if (normalizedWallets.length === 0) {
+        setWallets([]);
+        setBalance(null);
+        setSelectedWalletId(null);
+        setBalanceError(t('dashboard.hero.balance.error'));
+        return;
+      }
+
+      setWallets(normalizedWallets);
+
+      const preferredId = selectedWalletIdRef.current;
+      const nextWallet =
+        (preferredId && normalizedWallets.find((wallet) => wallet.id === preferredId)) ||
+        normalizedWallets[0] ||
+        null;
+
+      setSelectedWalletId(nextWallet?.id ?? null);
+      setBalance(nextWallet);
+    } catch (err: any) {
+      if (balanceRequestId.current !== requestId) return;
+      const message = err?.message ?? t('dashboard.hero.balance.error');
+      setBalance(null);
+      setBalanceError(message);
+      toast.error(t('dashboard.errors.generic', { message }));
+    } finally {
+      if (balanceRequestId.current === requestId) {
+        setBalanceLoading(false);
+      }
+    }
+  }, [parseBalanceAmount, t, user?.rapyd_wallet_id]);
+
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
 
   const updateTabQuery = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -115,8 +215,25 @@ export default function DashboardClient() {
       params.set('tab', value);
     }
     const query = params.toString();
-    router.replace(query ? `?${query}` : pathname, { scroll: false });
+    const basePath = pathname || '/dashboard';
+    router.replace(query ? `${basePath}?${query}` : basePath, { scroll: false });
   }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (activeTab !== 'finance') return;
+    fetchBalance();
+  }, [activeTab, fetchBalance]);
+
+  useEffect(() => {
+    if (userLoading || !user) return;
+    const nextTab = tabParam && availableTabs.includes(tabParam)
+      ? tabParam
+      : availableTabs[0] ?? 'overview';
+    setActiveTab(nextTab);
+    if (tabParam && !availableTabs.includes(tabParam)) {
+      updateTabQuery(nextTab);
+    }
+  }, [tabParam, availableTabs, updateTabQuery, userLoading, user]);
 
   useEffect(() => {
     if (userLoading) return;
@@ -129,6 +246,85 @@ export default function DashboardClient() {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     updateTabQuery(value);
+  };
+
+  const handleWalletChange = (walletId: string) => {
+    setSelectedWalletId(walletId);
+    const wallet = wallets.find((item) => item.id === walletId) ?? null;
+    setBalance(wallet);
+    setTransferAmount('');
+    setTransferError(null);
+  };
+
+  const normalizeAmountInput = (value: string) => value.replace(',', '.');
+
+  const handleTransferAmountChange = (value: string) => {
+    if (value === '') {
+      setTransferAmount('');
+      setTransferError(null);
+      return;
+    }
+
+    const normalized = normalizeAmountInput(value);
+    const parsed = Number(normalized);
+    const availableBalance = balance?.balance ?? 0;
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setTransferAmount(value);
+      setTransferError(t('dashboard.finance.invalid_amount'));
+      return;
+    }
+
+    if (parsed > availableBalance) {
+      setTransferAmount(availableBalance.toString());
+      setTransferError(t('dashboard.finance.insufficient_balance'));
+      return;
+    }
+
+    setTransferAmount(value);
+    setTransferError(null);
+  };
+
+  const handleTransfer = async () => {
+    const availableBalance = balance?.balance ?? 0;
+    const normalized = normalizeAmountInput(transferAmount);
+    const amount = Number(normalized);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTransferError(t('dashboard.finance.invalid_amount'));
+      return;
+    }
+
+    if (amount > availableBalance) {
+      setTransferError(t('dashboard.finance.insufficient_balance'));
+      return;
+    }
+
+    const formattedAmount = balance?.currency
+      ? formatBalanceAmount(amount, balance.currency)
+      : amount.toString();
+
+    const confirmed = window.confirm(
+      t('dashboard.finance.confirm_transfer', { amount: formattedAmount })
+    );
+    if (!confirmed) return;
+
+    setTransferLoading(true);
+    try {
+      await apiClient.rapydCreatePayoutBank(amount, balance?.currency);
+      toast.success(t('dashboard.finance.transfer_success'));
+      setTransferAmount('');
+      setTransferError(null);
+      fetchBalance();
+    } catch (error: any) {
+      toast.error(
+        t('dashboard.finance.transfer_error', {
+          message: error?.message ?? 'Unknown error',
+        })
+      );
+    } finally {
+      setTransferLoading(false);
+    }
   };
 
   const loadProjects = useCallback(async () => {
@@ -287,13 +483,13 @@ export default function DashboardClient() {
       const response = await apiClient.rapydOnboarding();
 
       if (!response || !response.url) {
-        console.error('No URL returned from Stripe onboarding');
+        console.error('No URL returned from Rapyd onboarding');
         return null;
       }
 
-
+      window.location.href = response.url;
     } catch (error) {
-      console.error('Error fetching Stripe onboarding URL:', error);
+      console.error('Error fetching Rapyd onboarding URL:', error);
       return null;
     }
   }
@@ -517,6 +713,8 @@ export default function DashboardClient() {
   };
 
   const overviewStats = getOverviewStats();
+  // const hasOnHoldBalance = balance?.on_hold_balance !== null && balance?.on_hold_balance !== undefined;
+  // const hasReceivedBalance = balance?.received_balance !== null && balance?.received_balance !== undefined;
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#070C14]">
@@ -542,7 +740,7 @@ export default function DashboardClient() {
             </div>
             <div className="flex items-center space-x-3">
               <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
-                <AvatarImage src={user.avatar} />
+                <AvatarImage src={user.avatar ?? undefined} />
                 <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
                   {user.firstName[0]}{user.lastName[0]}
                 </AvatarFallback>
@@ -554,26 +752,48 @@ export default function DashboardClient() {
                     {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
                   </Badge>
                   {user.rapyd_wallet_id ? (
-                      ''
-                      // <>
-                      //   <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
-                      //     <CheckCircle className="w-3 h-3 mr-1" />
-                      //     Balance: {balance?.balance} {balance?.currency}
-                      //   </Badge>
-                      //
-                      //   {balance?.on_hold_balance && (
-                      //       <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>
-                      //         <CheckCircle className="w-3 h-3 mr-1" />
-                      //         Balance: {balance?.on_hold_balance} {balance?.currency}
-                      //       </Badge>
-                      //   )}
-                      //   {balance?.received_balance && (
-                      //       <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>
-                      //         <CheckCircle className="w-3 h-3 mr-1" />
-                      //         Balance: {balance?.received_balance} {balance?.currency}
-                      //       </Badge>
-                      //   )}
-                      // </>
+                      <>
+                        {balanceLoading ? (
+                          <Badge className="bg-slate-50 text-[#0B1C2D] border border-slate-100">
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            {t('dashboard.hero.balance.loading')}
+                          </Badge>
+                        ) : balanceError ? (
+                          <Badge className="bg-red-50 text-[#0B1C2D] border border-red-100" title={balanceError}>
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            {t('dashboard.hero.balance.error')}
+                          </Badge>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
+                              <div className="flex flex-col px-2">
+                                <div className="flex flex-row items-center space-x-2">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  {t('dashboard.hero.balance.available')}:
+                                </div>
+                                {wallets.map((item) => (
+                                  <div key={item.id}>
+                                    {formatBalanceAmount(item.balance, item.currency)}
+                                  </div>
+                                ))}
+                              </div>
+                            </Badge>
+
+                            {/*{hasOnHoldBalance && (*/}
+                            {/*  <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>*/}
+                            {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
+                            {/*    {t('dashboard.hero.balance.on_hold')}: {formatBalanceAmount(balance?.on_hold_balance, balance?.currency)}*/}
+                            {/*  </Badge>*/}
+                            {/*)}*/}
+                            {/*{hasReceivedBalance && (*/}
+                            {/*  <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>*/}
+                            {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
+                            {/*    {t('dashboard.hero.balance.received')}: {formatBalanceAmount(balance?.received_balance, balance?.currency)}*/}
+                            {/*  </Badge>*/}
+                            {/*)}*/}
+                          </div>
+                        )}
+                      </>
                   ) : (
                       <Button
                           variant="outline"
@@ -596,7 +816,7 @@ export default function DashboardClient() {
         <div className="max-w-6xl mx-auto">
           {/* Dashboard Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]">
+            <TabsList className={`grid w-full grid-cols-2 sm:grid-cols-3 ${isProvider ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]`}>
               <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.overview')}</span>
@@ -617,6 +837,12 @@ export default function DashboardClient() {
                 <MessageSquare className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.messages')}</span>
               </TabsTrigger>
+              {isProvider && (
+                <TabsTrigger value="finance" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+                  <DollarSign className="hidden sm:block w-4 h-4 pe-1" />
+                  <span>{t('dashboard.tabs.finance')}</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Settings className="hidden sm:block w-4 h-4 pe-1" />
                 <span>{t('dashboard.tabs.settings')}</span>
@@ -791,7 +1017,7 @@ export default function DashboardClient() {
             {/* Projects Tab */}
             <TabsContent value="projects" className="space-y-6">
               {isClient && !isProvider ? (
-                <ClientProjectRequests withLayout={false} />
+                activeTab === 'projects' ? <ClientProjectRequests withLayout={false} /> : null
               ) : (
                 <>
                   {/* Filters and Search */}
@@ -1041,6 +1267,121 @@ export default function DashboardClient() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Finance Tab */}
+            {isProvider && (
+              <TabsContent value="finance" className="space-y-6">
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <DollarSign className="w-5 h-5" />
+                      <span>{t('dashboard.finance.title')}</span>
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                      {t('dashboard.finance.wallet_balance')}: {formatBalanceAmount(balance?.balance, balance?.currency)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
+                        <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                          {t('dashboard.finance.wallet_balance')}
+                        </div>
+                        {balanceLoading ? (
+                          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('dashboard.hero.balance.loading')}
+                          </div>
+                        ) : balanceError ? (
+                          <div className="mt-3 text-sm text-red-500">{balanceError}</div>
+                        ) : (
+                          wallets.map((item) => (
+                            <div key={item.id} className="mt-3 text-2xl font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {formatBalanceAmount(item.balance, item.currency)}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        {wallets.length > 1 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                              {t('dashboard.finance.wallet_currency')}
+                            </div>
+                            <Select
+                              value={balance?.id ?? ''}
+                              onValueChange={handleWalletChange}
+                              disabled={balanceLoading || wallets.length === 0}
+                            >
+                              <SelectTrigger className="w-full bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                                <SelectValue placeholder={t('dashboard.finance.select_wallet')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {wallets.map((wallet) => (
+                                  <SelectItem key={wallet.id} value={wallet.id}>
+                                    {wallet.currency} • {formatBalanceAmount(wallet.balance, wallet.currency)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                          {t('dashboard.finance.transfer_amount')}
+                        </div>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            value={transferAmount}
+                            onChange={(e) => handleTransferAmountChange(e.target.value)}
+                            placeholder="0.00"
+                            className="pr-16 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
+                            disabled={balanceLoading || balance?.balance == null}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-1/2 h-8 -translate-y-1/2 px-2 text-xs font-semibold"
+                            onClick={() => {
+                              const maxValue = balance?.balance ?? 0;
+                              setTransferAmount(maxValue ? maxValue.toString() : '0');
+                              setTransferError(null);
+                            }}
+                            disabled={balanceLoading || balance?.balance == null}
+                          >
+                            {t('dashboard.finance.max')}
+                          </Button>
+                        </div>
+                        {transferError && (
+                          <p className="text-xs text-red-500">{transferError}</p>
+                        )}
+                        <Button
+                          variant="default"
+                          className="w-full bg-[#1BC47D] hover:bg-[#159c63]"
+                          onClick={handleTransfer}
+                          disabled={
+                            transferLoading ||
+                            balanceLoading ||
+                            balance?.balance == null ||
+                            !transferAmount ||
+                            Number(normalizeAmountInput(transferAmount)) <= 0 ||
+                            Number(normalizeAmountInput(transferAmount)) > (balance?.balance ?? 0)
+                          }
+                        >
+                          {transferLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {t('dashboard.finance.transfer')}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
 
             {/* Settings Tab */}
             <SettingsComponent />
