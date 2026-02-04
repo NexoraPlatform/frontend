@@ -40,7 +40,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  X
+  X, Euro, Currency
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
@@ -71,10 +71,9 @@ export default function DashboardClient() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [projectsError, setProjectsError] = useState('');
   const roleSlugs = useMemo(() => {
-    const fromRoles = Array.isArray(user?.roles)
-      ? user.roles.map((role: any) => role?.slug).filter(Boolean)
-      : [];
-    const fromRoleSlugs = Array.isArray(user?.role_slugs) ? user.role_slugs : [];
+    const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
+    const fromRoles = (rolesList ?? []).map((role: any) => role?.slug).filter(Boolean);
+    const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user?.role_slugs : []) ?? [];
     const fromSingleRole = user?.role ? [user.role] : [];
     return Array.from(
       new Set(
@@ -772,7 +771,14 @@ export default function DashboardClient() {
                                   {t('dashboard.hero.balance.available')}:
                                 </div>
                                 {wallets.map((item) => (
-                                  <div key={item.id}>
+                                  <div key={item.id} className="flex flex-row items-center space-x-2">
+                                    {item.currency === "EUR" ? (
+                                        <Euro className="w-3 h-3" />
+                                    ) : item.currency === "USD" ? (
+                                        <DollarSign className="w-3 h-3" />
+                                    ) : (
+                                        <Currency className="w-3 h-3" />
+                                    )}
                                     {formatBalanceAmount(item.balance, item.currency)}
                                   </div>
                                 ))}

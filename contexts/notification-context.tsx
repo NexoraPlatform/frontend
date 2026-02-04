@@ -20,7 +20,7 @@ type RawLaravelNotification = {
 
 export type AppNotification = {
     id: string;
-    type: 'PROJECT_ADDED' | 'ORDER_UPDATE' | 'MESSAGE' | 'SYSTEM';
+    type: 'PROJECT_ADDED' | 'ORDER_UPDATE' | 'MESSAGE' | 'PAYMENT' | 'SYSTEM';
     title: string;
     message: string;
     isRead: boolean;
@@ -62,11 +62,13 @@ function mapType(laraType: string | undefined, data?: any): AppNotification['typ
         if (declared.startsWith('chat.')) return 'MESSAGE';
         if (declared === 'project.requested') return 'PROJECT_ADDED';
         if (declared.startsWith('budget.')) return 'ORDER_UPDATE';
+        if (declared.startsWith('rapyd.')) return 'PAYMENT';
     }
     const cls = (laraType ?? '').split('\\').pop()?.toLowerCase() || '';
     if (!cls) return 'SYSTEM';
     if (cls.includes('chat') && (cls.includes('message') || cls.includes('addedtogroup'))) return 'MESSAGE';
     if (cls.includes('projectproviderrequested') || (cls.includes('project') && cls.includes('requested'))) return 'PROJECT_ADDED';
+    if (cls.includes('rapyd')) return 'PAYMENT';
     if (cls.includes('budget') || cls.includes('accepted') || cls.includes('rejected') || cls.includes('suggested') || cls.includes('decision')) {
         return 'ORDER_UPDATE';
     }

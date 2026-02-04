@@ -24,10 +24,9 @@ import CompanyManagersSettingsDialog from "@/components/dashboard/settings/compa
 export default function SettingsComponent() {
     const { user, loading, userLoading } = useAuth();
     const roleSlugs = useMemo(() => {
-        const fromRoles = Array.isArray(user?.roles)
-            ? user.roles.map((role: any) => role?.slug).filter(Boolean)
-            : [];
-        const fromRoleSlugs = Array.isArray(user?.role_slugs) ? user.role_slugs : [];
+        const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
+        const fromRoles = (rolesList ?? []).map((role: any) => role?.slug).filter(Boolean);
+        const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user?.role_slugs : []) ?? [];
         const fromSingleRole = user?.role ? [user.role] : [];
         return Array.from(
             new Set(
