@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotifications } from '@/contexts/notification-context';
 import { toast } from 'sonner';
+import { useLocale } from 'next-intl';
 
 export interface ChatGroup {
     id: string;
@@ -109,6 +110,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const { notifications, loading: notificationsLoading } = useNotifications();
+    const locale = useLocale();
     const [groups, setGroups] = useState<ChatGroup[]>([]);
     const [activeGroup, setActiveGroup] = useState<ChatGroup | null>(null);
     const [messages, setMessages] = useState<{ [groupId: string]: ChatMessage[] }>({});
@@ -143,7 +145,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             }
             return { ...prev, [gid]: [...list, msg] };
         });
-    }, []);
+    }, [locale]);
 
     const refreshGroups = useCallback(async () => {
         try {
@@ -152,7 +154,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.error('Failed to load chat groups:', e);
         }
-    }, []);
+    }, [locale]);
 
     const loadMessages = useCallback(async (groupId: string, page = 1, pageSize = 20) => {
         try {
@@ -406,7 +408,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     const sendMessage = useCallback(async (groupId: string, content: string, attachments?: any[]) => {
         try {
-            const message = await chatService.sendMessageViaApi(groupId, content, attachments);
+            const message = await chatService.sendMessageViaApi(groupId, content, attachments, locale);
 
             setMessages(prev => ({
                 ...prev,
@@ -476,7 +478,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         participantIds: string[];
     }): Promise<ChatGroup> => {
         try {
-            const response = await apiClient.createChatGroup(data);
+            const response = await apiClient.createChatGroup(data, locale);
             const newGroup = response.group;
             setGroups(prev => [newGroup, ...prev]);
             return newGroup;

@@ -44,6 +44,7 @@ import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
+import { updateProviderProfileAction } from "@/app/actions/secure";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Form } from '@/components/ui/form';
 import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
@@ -432,7 +433,7 @@ export default function ProviderProfileEditPage() {
             }
             const billingValues = billingForm.getValues();
             // Save profile data
-            await apiClient.updateProviderProfile({
+            await updateProviderProfileAction({
                 ...profileData,
                 ...billingValues,
             });

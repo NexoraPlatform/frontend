@@ -32,6 +32,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { rapydReleasePaymentAction } from '@/app/actions/secure';
 import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -155,8 +156,29 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         const echo = getEcho(token);
         if (!echo) return;
         const channel = echo.private(`App.Models.User.${user.id}`);
-        const handler = (notification: { type?: string }) => {
-            if (notification?.type !== 'project.status.updated') return;
+        const handler = (notification: {
+            type?: string;
+            data?: { type?: string; projectId?: string | number; payload?: { projectId?: string | number } };
+            projectId?: string | number;
+            payload?: { projectId?: string | number };
+        }) => {
+            const declaredType = String(
+                notification?.data?.type ??
+                notification?.type ??
+                ''
+            );
+            const projectId =
+                notification?.data?.projectId ??
+                notification?.projectId ??
+                notification?.data?.payload?.projectId ??
+                notification?.payload?.projectId;
+            const isProjectEvent =
+                declaredType.startsWith('project.') ||
+                declaredType.startsWith('budget.');
+            const isRapydProjectEvent =
+                declaredType.startsWith('rapyd.') && Boolean(projectId);
+
+            if (!isProjectEvent && !isRapydProjectEvent) return;
             loadProjects();
         };
         channel.notification(handler);
@@ -217,7 +239,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
-            await apiClient.respondToBudgetProposal(projectId, providerId, { response });
+            await apiClient.respondToBudgetProposal(projectId, providerId, { response }, locale);
             await loadProjects();
             toast.success(
                 response === 'ACCEPTED'
@@ -229,7 +251,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         } finally {
             setResponding(null);
         }
-    }, [loadProjects, t]);
+    }, [loadProjects, locale, t]);
 
     const generateContract = async (projectId: string, clientId: string, providerId: string) => {
         const response = await apiClient.generateProjectContract(projectId, clientId, providerId);
@@ -242,7 +264,11 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
         setReleasingId(releaseKey);
         try {
-            const response = await apiClient.rapydReleasePayment(projectId, milestoneId);
+            const response = await rapydReleasePaymentAction({
+                projectId,
+                milestoneId,
+                language: locale,
+            });
             toast.success(response?.message ?? t('client.project_requests.release.success'));
             await loadProjects();
         } catch (error: any) {
@@ -252,7 +278,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         } finally {
             setReleasingId(null);
         }
-    }, [loadProjects, t]);
+    }, [loadProjects, locale, t]);
 
     const getStatusBadge = (status: string) => {
         switch (status) {

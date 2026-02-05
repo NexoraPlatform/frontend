@@ -51,6 +51,11 @@ import { Link } from '@/lib/navigation';
 import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
+import {
+  rapydCreatePayoutBankAction,
+  rapydGetWalletBalanceAction,
+  rapydOnboardingAction
+} from '@/app/actions/secure';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 
@@ -63,7 +68,7 @@ interface WalletData {
 }
 
 export default function DashboardClient() {
-  const { user, loading, userLoading } = useAuth();
+  const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
   const t = useTranslations();
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
@@ -142,7 +147,8 @@ export default function DashboardClient() {
   }, [selectedWalletId]);
 
   const fetchBalance = useCallback(async () => {
-    if (!user?.rapyd_wallet_id) {
+    if (!isProvider || !user?.rapyd_wallet_id) {
+      balanceRequestId.current += 1;
       setWallets([]);
       setBalance(null);
       setSelectedWalletId(null);
@@ -155,7 +161,7 @@ export default function DashboardClient() {
     setBalanceLoading(true);
     setBalanceError(null);
     try {
-      const response = await apiClient.rapydGetWalletBalance();
+      const response = await rapydGetWalletBalanceAction(locale);
 
       if (balanceRequestId.current !== requestId) return;
 
@@ -200,11 +206,12 @@ export default function DashboardClient() {
         setBalanceLoading(false);
       }
     }
-  }, [parseBalanceAmount, t, user?.rapyd_wallet_id]);
+  }, [isProvider, locale, parseBalanceAmount, t, user?.rapyd_wallet_id]);
 
   useEffect(() => {
+    if (!isProvider || !user?.rapyd_wallet_id) return;
     fetchBalance();
-  }, [fetchBalance]);
+  }, [fetchBalance, isProvider, user?.rapyd_wallet_id]);
 
   const updateTabQuery = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -219,9 +226,9 @@ export default function DashboardClient() {
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
-    if (activeTab !== 'finance') return;
+    if (activeTab !== 'finance' || !isProvider || !user?.rapyd_wallet_id) return;
     fetchBalance();
-  }, [activeTab, fetchBalance]);
+  }, [activeTab, fetchBalance, isProvider, user?.rapyd_wallet_id]);
 
   useEffect(() => {
     if (userLoading || !user) return;
@@ -310,7 +317,7 @@ export default function DashboardClient() {
 
     setTransferLoading(true);
     try {
-      await apiClient.rapydCreatePayoutBank(amount, balance?.currency);
+      await rapydCreatePayoutBankAction({ amount, currency: balance?.currency, language: locale });
       toast.success(t('dashboard.finance.transfer_success'));
       setTransferAmount('');
       setTransferError(null);
@@ -388,10 +395,16 @@ export default function DashboardClient() {
 
       // Calculate pagination
       const total = filteredProjects.length;
-      setTotalPages(Math.ceil(total / projectsPerPage));
+      const nextTotalPages = Math.ceil(total / projectsPerPage);
+      setTotalPages(nextTotalPages);
+
+      const clampedPage = nextTotalPages > 0 ? Math.min(currentPage, nextTotalPages) : 1;
+      if (clampedPage !== currentPage) {
+        setCurrentPage(clampedPage);
+      }
 
       // Apply pagination
-      const startIndex = (currentPage - 1) * projectsPerPage;
+      const startIndex = (clampedPage - 1) * projectsPerPage;
       const paginatedProjects = filteredProjects.slice(startIndex, startIndex + projectsPerPage);
 
       setProjects(paginatedProjects);
@@ -420,8 +433,29 @@ export default function DashboardClient() {
     const echo = getEcho(token);
     if (!echo) return;
     const channel = echo.private(`App.Models.User.${user.id}`);
-    const handler = (notification: { type?: string }) => {
-      if (notification?.type !== 'project.status.updated') return;
+    const handler = (notification: {
+      type?: string;
+      data?: { type?: string; projectId?: string | number; payload?: { projectId?: string | number } };
+      projectId?: string | number;
+      payload?: { projectId?: string | number };
+    }) => {
+      const declaredType = String(
+        notification?.data?.type ??
+          notification?.type ??
+          ''
+      );
+      const projectId =
+        notification?.data?.projectId ??
+        notification?.projectId ??
+        notification?.data?.payload?.projectId ??
+        notification?.payload?.projectId;
+      const isProjectEvent =
+        declaredType.startsWith('project.') ||
+        declaredType.startsWith('budget.');
+      const isRapydProjectEvent =
+        declaredType.startsWith('rapyd.') && Boolean(projectId);
+
+      if (!isProjectEvent && !isRapydProjectEvent) return;
       loadProjects();
     };
     channel.notification(handler);
@@ -444,15 +478,38 @@ export default function DashboardClient() {
     loadProjects();
   }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage, loadProjects, isClient, isProvider]);
 
+  useEffect(() => {
+    if (activeTab !== 'projects') return;
+    if (typeof window === 'undefined') return;
+
+    const handleFocus = () => {
+      loadProjects();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadProjects();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [activeTab, loadProjects]);
+
   const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
     try {
-      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget });
+      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget }, locale);
       let message = '';
       if (response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
       else if (response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
       else if (response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
       toast.success(message);
-      loadProjects();
+      await loadProjects();
     } catch (error: any) {
       toast.error(t('dashboard.errors.generic', { message: error.message }));
     }
@@ -479,14 +536,27 @@ export default function DashboardClient() {
   const getRapydOnboardingUrl = async () => {
     try {
       if (!user) return;
-      const response = await apiClient.rapydOnboarding();
+      const response = await rapydOnboardingAction(locale);
 
-      if (!response || !response.url) {
-        console.error('No URL returned from Rapyd onboarding');
+      const walletId = response?.wallet_id ?? response?.data?.wallet_id;
+      const contactId =
+        response?.rapyd_contact_id ??
+        response?.contact_id ??
+        response?.data?.rapyd_contact_id ??
+        response?.data?.contact_id;
+
+      if (!response || !walletId) {
+        console.error('No wallet id returned from Rapyd onboarding');
         return null;
       }
 
-      window.location.href = response.url;
+      await updateUser({
+        rapyd_wallet_id: walletId,
+        ...(contactId ? { rapyd_contact_id: contactId } : {}),
+      });
+      refreshUser().catch(() => {});
+
+      // window.location.href = response.url;
     } catch (error) {
       console.error('Error fetching Rapyd onboarding URL:', error);
       return null;
@@ -750,7 +820,7 @@ export default function DashboardClient() {
                   <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
                     {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
                   </Badge>
-                  {user.rapyd_wallet_id ? (
+                  {isProvider && user.rapyd_wallet_id ? (
                       <>
                         {balanceLoading ? (
                           <Badge className="bg-slate-50 text-[#0B1C2D] border border-slate-100">
@@ -800,7 +870,7 @@ export default function DashboardClient() {
                           </div>
                         )}
                       </>
-                  ) : (
+                  ) : !user.rapyd_wallet_id ? (
                       <Button
                           variant="outline"
                           size="sm"
@@ -810,7 +880,7 @@ export default function DashboardClient() {
 
                         {t('dashboard.hero.rapyd.connect')}
                       </Button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

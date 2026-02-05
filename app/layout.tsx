@@ -4,8 +4,6 @@ import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/contexts/auth-context"
 import { CurrencyProvider } from "@/contexts/CurrencyContext"
 import ActivityTracker from "@/components/ActivityTracker"
-import { NotificationProvider } from "@/contexts/notification-context"
-import { ChatProvider } from "@/contexts/chat-context"
 import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
@@ -21,7 +19,7 @@ import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-langua
 import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
 import {Footer} from "@/components/footer";
 import OneSignalInit from "@/components/OneSignalInit";
-import {NextIntlClientProvider} from 'next-intl';
+import { auth } from "@/auth";
 
 // Separate viewport export for Next.js 15
 export const viewport: Viewport = {
@@ -147,11 +145,12 @@ export const metadata: Metadata = generateSEO({
     url: "/",
 })
 
-export default function RootLayout({
+export default async function RootLayout({
                                        children,
                                    }: {
     children: React.ReactNode
 }) {
+    const session = await auth();
 
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -260,31 +259,25 @@ export default function RootLayout({
                 __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
-        <NextIntlClientProvider>
-        <AuthProvider>
+        <AuthProvider session={session}>
             <CurrencyProvider>
                 <OneSignalInit />
-                <NotificationProvider>
-                    <ChatProvider>
-                        <ThemeProvider
-                            attribute="class"
-                            defaultTheme="system"
-                            enableSystem
-                            disableTransitionOnChange
-                            storageKey="Trustora-theme"
-                        >
-                            <ActivityTracker />
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                    storageKey="Trustora-theme"
+                >
+                    <ActivityTracker />
 
-                            {/* Main content */}
-                            <main id="main-content">{children}</main>
+                    {/* Main content */}
+                    <main id="main-content">{children}</main>
 
-                            <Toaster position="top-right" expand={false} richColors closeButton />
-                        </ThemeProvider>
-                    </ChatProvider>
-                </NotificationProvider>
+                    <Toaster position="top-right" expand={false} richColors closeButton />
+                </ThemeProvider>
             </CurrencyProvider>
         </AuthProvider>
-        </NextIntlClientProvider>
         </body>
         </html>
     )

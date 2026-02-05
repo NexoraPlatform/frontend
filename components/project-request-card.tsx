@@ -137,7 +137,12 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     }
 
     const handleMarkMilestoneAsComplete = async (projectId: number, milestone: number) => {
-        const response = await apiClient.markMilestoneAsComplete(projectId, milestone);
+        try {
+            await apiClient.markMilestoneAsComplete(projectId, milestone, locale);
+            await onRefresh?.();
+        } catch (error: any) {
+            toast.error(t('client.project_requests.errors.generic', { message: error?.message ?? 'Unknown error' }));
+        }
     }
 
     const handleBudgetResponse = async (
@@ -147,7 +152,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
-            await apiClient.respondToBudgetProposal(projectId, providerId, { response });
+            await apiClient.respondToBudgetProposal(projectId, providerId, { response }, locale);
             toast.success(
                 response === 'ACCEPTED'
                     ? t('client.project_requests.budget.approved')

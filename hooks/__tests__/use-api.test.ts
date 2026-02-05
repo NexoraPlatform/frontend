@@ -1,11 +1,15 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useApi } from '../use-api';
+import { CurrencyProvider } from '@/contexts/CurrencyContext';
 
 describe('useApi', () => {
   it('sets loading true initially and false after success', async () => {
     const apiCall = vi.fn().mockResolvedValue('result');
-    const { result } = renderHook(() => useApi(apiCall));
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <CurrencyProvider>{children}</CurrencyProvider>
+    );
+    const { result } = renderHook(() => useApi(apiCall), { wrapper });
 
     expect(result.current.loading).toBe(true);
 
@@ -20,7 +24,10 @@ describe('useApi', () => {
 
   it('sets error when apiCall rejects', async () => {
     const apiCall = vi.fn().mockRejectedValue(new Error('fail'));
-    const { result } = renderHook(() => useApi(apiCall));
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <CurrencyProvider>{children}</CurrencyProvider>
+    );
+    const { result } = renderHook(() => useApi(apiCall), { wrapper });
 
     await waitFor(() => {
       expect(result.current.error).toBe('fail');

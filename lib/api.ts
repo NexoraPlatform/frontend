@@ -193,22 +193,32 @@ export class ApiClient {
       return null;
     }
 
-    const pathnameLocale = window.location.pathname.split('/')[1];
+    const pathnameLocale = window.location.pathname.split('/')[1]?.toLowerCase();
     if (pathnameLocale === 'ro' || pathnameLocale === 'en') {
       return pathnameLocale;
     }
 
-    const storedLocale = localStorage.getItem('NEXT_LOCALE');
-    if (storedLocale) {
+    const storedLocale = localStorage.getItem('NEXT_LOCALE')?.toLowerCase();
+    if (storedLocale === 'ro' || storedLocale === 'en') {
       return storedLocale;
     }
 
     const cookieLocale = document.cookie
       .split('; ')
       .find(row => row.startsWith('NEXT_LOCALE='))
-      ?.split('=')[1];
+      ?.split('=')[1]
+      ?.toLowerCase();
 
-    return cookieLocale ?? null;
+    if (cookieLocale === 'ro' || cookieLocale === 'en') {
+      return cookieLocale;
+    }
+
+    const htmlLang = document.documentElement?.lang?.toLowerCase();
+    if (htmlLang === 'ro' || htmlLang === 'en') {
+      return htmlLang;
+    }
+
+    return null;
   }
 
   private getSelectedCurrencyFromStorage(): string {
@@ -1330,8 +1340,11 @@ export class ApiClient {
   async respondToProjectRequest(projectId: string, response: {
     response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
     proposedBudget?: number;
-  }) {
-    return this.request<any>(`/projects/${projectId}/respond`, {
+  }, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects/${projectId}/respond${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(response),
       headers: {
@@ -1341,8 +1354,11 @@ export class ApiClient {
     });
   }
 
-  async markMilestoneAsComplete(projectId: number, milestone: number) {
-    return this.request<any>(`/projects/${projectId}/markMilestone`, {
+  async markMilestoneAsComplete(projectId: number, milestone: number, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects/${projectId}/markMilestone${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify({ milestone: milestone }),
       headers: {
@@ -1394,8 +1410,11 @@ export class ApiClient {
 
   async respondToBudgetProposal(projectId: string, providerId: string, response: {
     response: 'ACCEPTED' | 'REJECTED';
-  }) {
-    return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response`, {
+  }, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(response),
       headers: {
@@ -1431,8 +1450,11 @@ export class ApiClient {
     });
   }
 
-  async createProject(projectData: CreateProjectPayload) {
-    return this.request<any>('/projects', {
+  async createProject(projectData: CreateProjectPayload, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(projectData),
       headers: {
@@ -1497,12 +1519,17 @@ export class ApiClient {
   }
 
   async updateLastActive() {
+    if (!this.token && typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken) {
+        this.token = storedToken;
+      }
+    }
+
+    if (!this.token) return;
+
     return this.request<any>('/users/active', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      }
     });
   }
 
@@ -1530,13 +1557,20 @@ export class ApiClient {
   // Notifications endpoints
   async getNotifications(params?: {
     unreadOnly?: boolean;
+    unread?: boolean;
     type?: string;
     page?: number;
     limit?: number;
     cursor?: string; // <-- NOU, pt. cursor-based pagination
+    language?: string;
   }) {
     const sp = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
+    const normalizedParams: Record<string, unknown> = { ...(params || {}) };
+    if (normalizedParams.unread === undefined && normalizedParams.unreadOnly !== undefined) {
+      normalizedParams.unread = normalizedParams.unreadOnly;
+      delete normalizedParams.unreadOnly;
+    }
+    Object.entries(normalizedParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         sp.append(key, String(value));
       }
@@ -1598,8 +1632,11 @@ export class ApiClient {
     });
   }
 
-  async rapydOnboarding() {
-    return this.request<any>('/rapyd/onboard', {
+  async rapydOnboarding(language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/onboard${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1608,8 +1645,11 @@ export class ApiClient {
     })
   }
 
-  async rapydCheckoutSession(projectId: string | number, currency: string, countryCode: string, milestoneId?: string) {
-    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId? `/${milestoneId}` : ''}`, {
+  async rapydCheckoutSession(projectId: string | number, currency: string, countryCode: string, milestoneId?: string, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1619,8 +1659,11 @@ export class ApiClient {
     })
   }
 
-  async rapydReleasePayment(projectId: string | number, milestoneId?: string) {
-    return this.request<any>(`/rapyd/escrow/release`, {
+  async rapydReleasePayment(projectId: string | number, milestoneId?: string, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/escrow/release${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1634,8 +1677,11 @@ export class ApiClient {
     return this.request<any>(`/rapyd/balance`);
   }
 
-  async rapydCreatePayoutBank(amount: number | string, currency?: string | null) {
-    return this.request<any>(`/rapyd/payout/bank`, {
+  async rapydCreatePayoutBank(amount: number | string, currency?: string | null, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/payout/bank${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1716,8 +1762,11 @@ export class ApiClient {
     type: 'PROJECT' | 'PROVIDER_ONLY' | 'DIRECT';
     projectId?: string;
     participantIds: string[];
-  }) {
-    return this.request<any>('/chat/groups', {
+  }, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/chat/groups${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(groupData),
     });
@@ -1727,8 +1776,11 @@ export class ApiClient {
     return this.request<any>(`/chat/groups/${groupId}/messages?page=${page}&limit=${limit}`);
   }
 
-  async sendChatMessage(groupId: string, content: string, attachments?: any[]) {
-    return this.request<any>(`/chat/groups/${groupId}/messages`, {
+  async sendChatMessage(groupId: string, content: string, attachments?: any[], language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/chat/groups/${groupId}/messages${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify({ content, attachments }),
       headers: {

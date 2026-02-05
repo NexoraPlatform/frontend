@@ -165,10 +165,13 @@ export class ChatService {
         }
     }
 
-    async sendMessageViaApi(groupId: string, content: string, attachments?: any[]) {
+    async sendMessageViaApi(groupId: string, content: string, attachments?: any[], language?: string) {
         const censoredContent = this.censorMessage(content);
         const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages`, {
+        const params = new URLSearchParams();
+        if (language) params.set('language', language);
+        const qs = params.toString();
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages${qs ? `?${qs}` : ''}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

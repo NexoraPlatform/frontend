@@ -804,7 +804,7 @@ export default function NewProjectPage() {
                 milestones: milestonesPayload,
             };
 
-            const createdProject = await apiClient.createProject(projectData);
+            const createdProject = await apiClient.createProject(projectData, locale);
 
             // Send notifications to selected providers
             if (selectedProviders.length > 0) {

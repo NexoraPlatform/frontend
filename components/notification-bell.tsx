@@ -110,17 +110,17 @@ export function NotificationBell() {
             (typeof redirectUrl === 'string' && redirectUrl.length > 0 && redirectUrl) ||
             null;
         if (resolvedLink) return resolvedLink;
-        if (n.type === 'PAYMENT') {
-            const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
-            if (projectId) return `/projects/${projectId}`;
-            return '/dashboard?tab=finance';
+        const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
+        const groupId = n.data?.groupId ?? n.data?.payload?.groupId;
+        if (n.type === 'MESSAGE') {
+            if (groupId) return `/dashboard?tab=messages&groupId=${encodeURIComponent(String(groupId))}`;
+            return '/dashboard?tab=messages';
         }
-        switch (n.type) {
-            case 'PROJECT_ADDED': return n.data?.projectId ? `/projects/${n.data.projectId}` : '/projects';
-            case 'ORDER_UPDATE': return '/dashboard?tab=orders';
-            case 'MESSAGE': return '/dashboard?tab=messages';
-            default: return '/dashboard';
-        }
+        if (projectId) return `/projects/${projectId}`;
+        if (n.type === 'PAYMENT') return '/dashboard?tab=finance';
+        if (n.type === 'PROJECT_ADDED') return '/projects';
+        if (n.type === 'ORDER_UPDATE') return '/dashboard?tab=orders';
+        return '/dashboard';
     };
 
     const onClickNotification = async (n: AppNotification) => {

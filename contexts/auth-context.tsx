@@ -1,8 +1,10 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { Session } from "next-auth";
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import { apiClient } from '@/lib/api';
+import { getCurrentUserAction, updateUserLanguageAction } from '@/app/actions/secure';
 import { AccessRole } from "@/lib/access";
 
 interface Company {
@@ -248,7 +250,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     isRefreshing.current = true;
 
     try {
-      const freshUser = await apiClient.me();
+      const freshUser = await getCurrentUserAction();
 
       // FIX: Verificăm explicit dacă normalizeUser returnează null
       // în loc să folosim ?? {}, ceea ce cauza eroarea de tip
@@ -371,7 +373,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     async (language: string) => {
       if (!language) return null;
       try {
-        const updatedUser = await apiClient.updateUserLanguage(language);
+        const updatedUser = await updateUserLanguageAction(language);
         const normalizedUser = normalizeUser(updatedUser);
 
         if (!normalizedUser) {
@@ -409,9 +411,15 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+  session,
+}: {
+  children: React.ReactNode;
+  session?: Session | null;
+}) {
   return (
-      <SessionProvider>
+      <SessionProvider session={session} refetchOnWindowFocus={false} refetchInterval={0}>
         <AuthProviderInner>{children}</AuthProviderInner>
       </SessionProvider>
   );
