@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { NotificationProvider } from "@/contexts/notification-context";
+import { ChatProvider } from "@/contexts/chat-context";
+import { LocaleSync } from "@/components/LocaleSync";
 
 type LocaleLayoutProps = {
   children: ReactNode;
@@ -13,7 +16,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      {children}
+      <LocaleSync />
+      <NotificationProvider>
+        <ChatProvider>{children}</ChatProvider>
+      </NotificationProvider>
     </NextIntlClientProvider>
   );
 }

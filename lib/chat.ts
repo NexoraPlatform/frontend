@@ -1,6 +1,7 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { apiClient } from '@/lib/api';
+import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -84,6 +85,7 @@ export class ChatService {
             }
         }
 
+        disablePusherUnloadListener(Pusher);
         (window as any).Pusher = Pusher;
 
         this.echo = new Echo({
@@ -163,10 +165,13 @@ export class ChatService {
         }
     }
 
-    async sendMessageViaApi(groupId: string, content: string, attachments?: any[]) {
+    async sendMessageViaApi(groupId: string, content: string, attachments?: any[], language?: string) {
         const censoredContent = this.censorMessage(content);
         const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages`, {
+        const params = new URLSearchParams();
+        if (language) params.set('language', language);
+        const qs = params.toString();
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages${qs ? `?${qs}` : ''}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

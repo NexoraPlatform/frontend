@@ -112,6 +112,8 @@ export default function EditUserClient({ id }: { id: number }) {
         testVerified: false,
         callVerified: false,
         stripe_account_id: "",
+        rapyd_wallet_id: "",
+        rapyd_contact_id: "",
         location: "",
         user_permissions: {},
     });

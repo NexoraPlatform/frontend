@@ -1,6 +1,7 @@
 "use client";
 
 import {useState, useEffect, useRef, useCallback} from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -43,7 +44,13 @@ import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
+import { updateProviderProfileAction } from "@/app/actions/secure";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Form } from '@/components/ui/form';
+import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
+import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
 type Languages = {
     id: number;
@@ -55,6 +62,7 @@ type Languages = {
 }
 
 export default function ProviderProfileEditPage() {
+    const t = useTranslations();
     const { user, loading, userLoading } = useAuth();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -69,6 +77,18 @@ export default function ProviderProfileEditPage() {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const { data: languages } = useGetLanguages();
+    const billingForm = useForm<BillingDetailsFormValues>({
+        resolver: zodResolver(billingDetailsSchema),
+        defaultValues: {
+            company_name: '',
+            tax_id: '',
+            trade_registry_number: '',
+            billing_address: '',
+            billing_city: '',
+            billing_state: '',
+            billing_postal_code: '',
+        },
+    });
 
     const [profileData, setProfileData] = useState({
         // Basic Info
@@ -313,6 +333,15 @@ export default function ProviderProfileEditPage() {
                 }))
 
             }));
+            billingForm.reset({
+                company_name: providerProfile.company_name || '',
+                tax_id: providerProfile.tax_id || '',
+                trade_registry_number: providerProfile.trade_registry_number || '',
+                billing_address: providerProfile.billing_address || '',
+                billing_city: providerProfile.billing_city || '',
+                billing_state: providerProfile.billing_state || '',
+                billing_postal_code: providerProfile.billing_postal_code || '',
+            });
 
             // profileData.languages.map((language => {
             //     setProfileData(prev => ({
@@ -327,7 +356,7 @@ export default function ProviderProfileEditPage() {
         } catch (error: any) {
             setError('Nu s-au putut încărca datele profilului');
         }
-    }, [providerProfile]);
+    }, [providerProfile, billingForm]);
 
     useEffect(() => {
         if (userLoading || profileLoading) {
@@ -396,8 +425,18 @@ export default function ProviderProfileEditPage() {
         setSuccess('');
 
         try {
+            const billingValid = await billingForm.trigger();
+            if (!billingValid) {
+                setError('Completează câmpurile de facturare obligatorii.');
+                setSaving(false);
+                return;
+            }
+            const billingValues = billingForm.getValues();
             // Save profile data
-            await apiClient.updateProviderProfile(profileData);
+            await updateProviderProfileAction({
+                ...profileData,
+                ...billingValues,
+            });
             setSuccess('Profilul a fost actualizat cu succes!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (error: any) {
@@ -550,7 +589,7 @@ export default function ProviderProfileEditPage() {
                         </p>
                     </div>
                     <div className="flex space-x-3">
-                        <Button variant="outline" onClick={() => router.push(`/provider/${user.id}`)}>
+                        <Button variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>
                             <Eye className="w-4 h-4 mr-2" />
                             Previzualizare
                         </Button>
@@ -745,6 +784,23 @@ export default function ProviderProfileEditPage() {
                                         />
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Briefcase className="w-5 h-5" />
+                                    <span>{t('common.billing.section_title')}</span>
+                                </CardTitle>
+                                <CardDescription>
+                                    {t('common.billing.section_description')}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Form {...billingForm}>
+                                    <BillingDetailsForm showTitle={false} />
+                                </Form>
                             </CardContent>
                         </Card>
                     </TabsContent>

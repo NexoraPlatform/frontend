@@ -1,12 +1,9 @@
 import type { Metadata, Viewport } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/contexts/auth-context"
 import { CurrencyProvider } from "@/contexts/CurrencyContext"
 import ActivityTracker from "@/components/ActivityTracker"
-import { NotificationProvider } from "@/contexts/notification-context"
-import { ChatProvider } from "@/contexts/chat-context"
 import "./globals.css"
 import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
@@ -22,25 +19,7 @@ import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-langua
 import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
 import {Footer} from "@/components/footer";
 import OneSignalInit from "@/components/OneSignalInit";
-import {NextIntlClientProvider} from 'next-intl';
-
-const inter = Inter({
-    subsets: ["latin"],
-    display: "swap",
-    preload: true,
-    variable: "--font-inter",
-    adjustFontFallback: true,
-    fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Arial", "sans-serif"],
-    weight: ["400", "500", "600", "700", "900"],
-})
-
-const jetbrainsMono = JetBrains_Mono({
-    subsets: ["latin"],
-    display: "swap",
-    preload: true,
-    variable: "--font-jetbrains-mono",
-    weight: ["500"],
-})
+import { auth } from "@/auth";
 
 // Separate viewport export for Next.js 15
 export const viewport: Viewport = {
@@ -59,11 +38,10 @@ export const viewport: Viewport = {
 const criticalCSS = `
 /* Critical above-the-fold styles only */
 :root {
-    --font-inter: ${inter.style.fontFamily}, system-ui, sans-serif;
+    --font-inter: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", sans-serif;
     --color-background: light-dark(#ffffff, #0f172a);
     --color-foreground: light-dark(#0f172a, #f8fafc);
-    --font-jetbrains-mono: ${jetbrainsMono.style.fontFamily}, ui-monospace, SFMono-Regular, SFMono-Regular, Menlo,
-        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-jetbrains-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 html {
@@ -167,11 +145,12 @@ export const metadata: Metadata = generateSEO({
     url: "/",
 })
 
-export default function RootLayout({
+export default async function RootLayout({
                                        children,
                                    }: {
     children: React.ReactNode
 }) {
+    const session = await auth();
 
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -214,7 +193,7 @@ export default function RootLayout({
     });
 
     return (
-        <html lang="ro" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
+        <html lang="ro" suppressHydrationWarning>
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID as string} />
         <head>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -264,7 +243,7 @@ export default function RootLayout({
             </Script>
         </head>
 
-        <body className={`font-sans antialiased ${inter.className}`}>
+        <body className="font-sans antialiased">
         <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded"
@@ -280,31 +259,25 @@ export default function RootLayout({
                 __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
-        <NextIntlClientProvider>
-        <AuthProvider>
+        <AuthProvider session={session}>
             <CurrencyProvider>
                 <OneSignalInit />
-                <NotificationProvider>
-                    <ChatProvider>
-                        <ThemeProvider
-                            attribute="class"
-                            defaultTheme="system"
-                            enableSystem
-                            disableTransitionOnChange
-                            storageKey="Trustora-theme"
-                        >
-                            <ActivityTracker />
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                    storageKey="Trustora-theme"
+                >
+                    <ActivityTracker />
 
-                            {/* Main content */}
-                            <main id="main-content">{children}</main>
+                    {/* Main content */}
+                    <main id="main-content">{children}</main>
 
-                            <Toaster position="top-right" expand={false} richColors closeButton />
-                        </ThemeProvider>
-                    </ChatProvider>
-                </NotificationProvider>
+                    <Toaster position="top-right" expand={false} richColors closeButton />
+                </ThemeProvider>
             </CurrencyProvider>
         </AuthProvider>
-        </NextIntlClientProvider>
         </body>
         </html>
     )

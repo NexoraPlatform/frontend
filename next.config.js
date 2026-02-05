@@ -7,7 +7,7 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
-
+  reactStrictMode: false,
   // Compiler optimizations with modern JS target
   compiler: {
     // Remove console logs in production

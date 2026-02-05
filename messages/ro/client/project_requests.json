@@ -83,7 +83,7 @@
       "description": "Protejează-ți investiția cu escrow",
       "project_label": "Proiect:",
       "project_value": "Valoare proiect:",
-      "platform_fee": "Comision platformă (10%):",
+      "platform_fee": "Comision platformă:",
       "total_value": "Valoare totală:",
       "how_it_works": {
         "title": "Cum funcționează escrow",

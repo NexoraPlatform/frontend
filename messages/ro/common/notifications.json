@@ -11,6 +11,16 @@
     "list_aria": "Lista notificări",
     "empty": "Nu ai notificări",
     "end_of_list": "Ai ajuns la capăt",
-    "see_all": "Vezi Toate Notificările"
+    "see_all": "Vezi Toate Notificările",
+    "toast": {
+      "view": "Vezi",
+      "types": {
+        "message": "Mesaj nou",
+        "project_added": "Proiect nou",
+        "order_update": "Actualizare comandă",
+        "payment": "Actualizare plată",
+        "system": "Notificare"
+      }
+    }
   }
 }

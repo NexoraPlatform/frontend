@@ -15,18 +15,20 @@ export type AccessUser = {
     email: string;
 
     // optional profile fields
-    firstName?: string;
-    lastName?: string;
-    location?: string;
-    language?: string;
-    bio?: string;
-    avatar?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    location?: string | null;
+    language?: string | null;
+    bio?: string | null;
+    avatar?: string | null;
     testVerified?: boolean;
     callVerified?: boolean;
     stripe_account_id?: string;
+    rapyd_wallet_id?: string;
+    rapyd_contact_id?: string;
 
     // RBAC fields
-    role?: string;             // optional single role slug
+    role?: string | null;             // optional single role slug
     roles?: Array<AccessRole | string>;        // <-- array of roles with slugs
     permissions?: string[];      // optional extra permissions (strings)
     is_superuser?: boolean;       // optional boolean flag
