@@ -223,7 +223,7 @@ export default function ServicesPage() {
     );
 
     return [...firstPageServices, ...remainingServices];
-  }, [currency]);
+  }, []);
 
   useEffect(() => {
     const initializeFilters = async () => {
@@ -283,7 +283,7 @@ export default function ServicesPage() {
         isLoadingRef.current = false;
       }
     },
-    [selectedServiceType, selectedTechnologies, currency]
+    [selectedServiceType, selectedTechnologies]
   );
 
   useEffect(() => {

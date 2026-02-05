@@ -44,6 +44,7 @@ import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
+import { updateProviderProfileAction } from "@/app/actions/secure";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Form } from '@/components/ui/form';
 import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
@@ -432,7 +433,7 @@ export default function ProviderProfileEditPage() {
             }
             const billingValues = billingForm.getValues();
             // Save profile data
-            await apiClient.updateProviderProfile({
+            await updateProviderProfileAction({
                 ...profileData,
                 ...billingValues,
             });
@@ -588,7 +589,7 @@ export default function ProviderProfileEditPage() {
                         </p>
                     </div>
                     <div className="flex space-x-3">
-                        <Button variant="outline" onClick={() => router.push(`/provider/${user.id}`)}>
+                        <Button variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>
                             <Eye className="w-4 h-4 mr-2" />
                             Previzualizare
                         </Button>

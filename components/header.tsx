@@ -154,6 +154,19 @@ export function Header() {
     return null;
   }
 
+  const ThemeToggle = ({ className }: { className?: string }) => (
+      <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className={cn("w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105", className)}
+          aria-label={`${t('common.change_theme')} ${theme === 'dark' ? t('common.light') : t('common.dark')}`}
+      >
+        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      </Button>
+  );
+
   if (earlyAccessEnabled) {
     return (
       <header
@@ -416,16 +429,7 @@ export function Header() {
             <CurrencySwitcher className="hidden lg:block" />
 
             {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
-              aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
+            <ThemeToggle className="hidden lg:flex" />
 
             {/* User Menu or Auth Buttons */}
             {user ? (
@@ -433,7 +437,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label={openMainUserMenuText}>
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatar} alt={user.firstName} />
+                      <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
                       <AvatarFallback>
                         {user.firstName[0]}{user.lastName[0]}
                       </AvatarFallback>
@@ -487,6 +491,13 @@ export function Header() {
               <SheetContent side="right" className="w-80 glass-effect border-l-2 border-emerald-200 dark:border-emerald-500/40">
                 <div className="flex flex-col space-y-6 mt-8">
                   <SearchBar className="lg:hidden" />
+                  <div className="flex items-center justify-between px-4 py-2 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {theme === 'dark' ? t('common.dark') : t('common.light')}
+                    </span>
+                    <ThemeToggle />
+                  </div>
+
                   {navigation.map((item, index) => (
                     <Link
                       key={index}

@@ -41,6 +41,7 @@ import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
 import { Locale } from '@/types/locale';
 import { PriceDisplay } from '@/components/PriceDisplay';
+import RapydCheckoutButton from "@/components/RapydCheckoutButton";
 
 interface ProjectRequestCardProps {
     project: any;
@@ -70,17 +71,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
     const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
     const [newBudget, setNewBudget] = useState<number>(0);
-
-    useEffect(() => {
-        if (!loading && !user) {
-            // router.push('/auth/signin');
-        }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
-            router.push('/dashboard');
-        }
-        if (user) {
-        }
-    }, [user, loading, router]);
 
     useEffect(() => {
         if (checkoutDialogOpen) {
@@ -147,7 +137,12 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     }
 
     const handleMarkMilestoneAsComplete = async (projectId: number, milestone: number) => {
-        const response = await apiClient.markMilestoneAsComplete(projectId, milestone);
+        try {
+            await apiClient.markMilestoneAsComplete(projectId, milestone, locale);
+            await onRefresh?.();
+        } catch (error: any) {
+            toast.error(t('client.project_requests.errors.generic', { message: error?.message ?? 'Unknown error' }));
+        }
     }
 
     const handleBudgetResponse = async (
@@ -157,7 +152,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
-            await apiClient.respondToBudgetProposal(projectId, providerId, { response });
+            await apiClient.respondToBudgetProposal(projectId, providerId, { response }, locale);
             toast.success(
                 response === 'ACCEPTED'
                     ? t('client.project_requests.budget.approved')
@@ -552,6 +547,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 )}
                             </div>
                         ))}
+
+
                     </div>
                 </div>
 

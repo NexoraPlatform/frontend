@@ -2,6 +2,7 @@
 
 import {useState, useEffect, useCallback, useRef} from 'react';
 import { apiClient } from '../lib/api';
+import { getProviderProfileAction } from '@/app/actions/secure';
 import { useCurrency } from '@/hooks/useCurrency';
 
 function stableStringify(obj: any) {
@@ -151,7 +152,7 @@ export function useProviderProfileById(providerId: string) {
 }
 
 export function useProviderProfile(enabled: boolean = true) {
-  return useApi(() => apiClient.getProviderProfile(), [], enabled);
+  return useApi(() => getProviderProfileAction(), [], enabled);
 }
 
 export function useGetProviderProfileByUrl(url: string) {

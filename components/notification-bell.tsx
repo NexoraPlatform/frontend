@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import {
     Bell, BellRing, Check, CheckCheck, Settings, Eye, Clock,
-    Rocket, Package, MessageSquare, Cog
+    Rocket, Package, MessageSquare, Cog, DollarSign
 } from 'lucide-react';
 
 import { useNotifications } from '@/contexts/notification-context';
@@ -85,6 +85,7 @@ export function NotificationBell() {
             case 'PROJECT_ADDED': return 'bg-emerald-50/70 dark:bg-emerald-500/10 border-l-4 border-l-[#1BC47D]';
             case 'ORDER_UPDATE': return 'bg-emerald-100/60 dark:bg-emerald-500/15 border-l-4 border-l-[#21D19F]';
             case 'MESSAGE': return 'bg-slate-50 dark:bg-[#0B1220] border-l-4 border-l-[#0B1C2D]';
+            case 'PAYMENT': return 'bg-sky-50/70 dark:bg-sky-500/10 border-l-4 border-l-sky-500';
             case 'SYSTEM':
             default: return 'bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-500';
         }
@@ -95,25 +96,41 @@ export function NotificationBell() {
             case 'PROJECT_ADDED': return <Rocket className="w-4 h-4 text-emerald-600" />;
             case 'ORDER_UPDATE': return <Package className="w-4 h-4 text-emerald-500" />;
             case 'MESSAGE': return <MessageSquare className="w-4 h-4 text-[#0B1C2D] dark:text-emerald-200" />;
+            case 'PAYMENT': return <DollarSign className="w-4 h-4 text-sky-600" />;
             case 'SYSTEM':
             default: return <Cog className="w-4 h-4 text-amber-500" />;
         }
     };
 
     const navigateFor = (n: AppNotification) => {
-        const link = n.data?.link as string | undefined;
-        if (link) return link;
-        switch (n.type) {
-            case 'PROJECT_ADDED': return n.data?.projectId ? `/projects/${n.data.projectId}` : '/projects';
-            case 'ORDER_UPDATE': return '/dashboard?tab=orders';
-            case 'MESSAGE': return '/dashboard?tab=messages';
-            default: return '/dashboard';
+        const link = n.data?.link;
+        const redirectUrl = n.data?.payload?.redirectUrl;
+        const resolvedLink =
+            (typeof link === 'string' && link.length > 0 && link) ||
+            (typeof redirectUrl === 'string' && redirectUrl.length > 0 && redirectUrl) ||
+            null;
+        if (resolvedLink) return resolvedLink;
+        const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
+        const groupId = n.data?.groupId ?? n.data?.payload?.groupId;
+        if (n.type === 'MESSAGE') {
+            if (groupId) return `/dashboard?tab=messages&groupId=${encodeURIComponent(String(groupId))}`;
+            return '/dashboard?tab=messages';
         }
+        if (projectId) return `/projects/${projectId}`;
+        if (n.type === 'PAYMENT') return '/dashboard?tab=finance';
+        if (n.type === 'PROJECT_ADDED') return '/projects';
+        if (n.type === 'ORDER_UPDATE') return '/dashboard?tab=orders';
+        return '/dashboard';
     };
 
     const onClickNotification = async (n: AppNotification) => {
         if (!n.isRead) await markAsRead(n.id);
-        router.push(navigateFor(n));
+        const target = navigateFor(n);
+        if (target.startsWith('http://') || target.startsWith('https://')) {
+            window.location.href = target;
+            return;
+        }
+        router.push(target);
     };
 
     const handleWebPushToggle = async (enabled: boolean) => {
@@ -221,10 +238,7 @@ export function NotificationBell() {
                                         >
                                             <div className="flex items-start space-x-3">
                                                 <div className="flex-shrink-0 mt-1">
-                                                    {n.type === 'PROJECT_ADDED' ? <Rocket className="w-4 h-4 text-emerald-600" /> :
-                                                        n.type === 'ORDER_UPDATE' ? <Package className="w-4 h-4 text-emerald-500" /> :
-                                                            n.type === 'MESSAGE' ? <MessageSquare className="w-4 h-4 text-[#0B1C2D] dark:text-emerald-200" /> :
-                                                                <Cog className="w-4 h-4 text-amber-500" />}
+                                                    {getNotificationIcon(n.type)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between">
