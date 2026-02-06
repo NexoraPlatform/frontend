@@ -10,6 +10,7 @@ vi.mock('@/contexts/auth-context', () => ({
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
+    getToken: vi.fn(),
     getNotifications: vi.fn(),
     markNotificationAsRead: vi.fn(),
     markAllNotificationsAsRead: vi.fn(),
@@ -58,17 +59,17 @@ vi.mock('next-intl', () => ({
 describe('contexts/notification-context', () => {
   const mockedUseAuth = useAuth as unknown as vi.Mock;
   const mockedApi = apiClient as unknown as {
+    getToken: vi.Mock;
     getNotifications: vi.Mock;
     markNotificationAsRead: vi.Mock;
   };
 
   beforeEach(() => {
-    localStorage.setItem('auth_token', 'token-123');
+    mockedApi.getToken.mockReturnValue('token-123');
     mockedUseAuth.mockReturnValue({ user: { id: '1' } });
   });
 
   afterEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 

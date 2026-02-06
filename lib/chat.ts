@@ -2,6 +2,7 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { apiClient } from '@/lib/api';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
+import axios, { ensureCsrfCookie } from '@/lib/axios';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -92,14 +93,30 @@ export class ChatService {
             broadcaster: 'pusher',
             key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
             cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-            authEndpoint: `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
-            auth: {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            },
             forceTLS: true,
             enableStats: false,
+            authorizer: (channel: any) => {
+                return {
+                    authorize: async (socketId: string, callback: Function) => {
+                        try {
+                            await ensureCsrfCookie();
+                            const response = await axios.post(
+                                '/broadcasting/auth',
+                                {
+                                    socket_id: socketId,
+                                    channel_name: channel.name,
+                                },
+                                {
+                                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                                }
+                            );
+                            callback(false, response.data);
+                        } catch (error) {
+                            callback(true, error);
+                        }
+                    }
+                };
+            },
         });
 
         this.echo.private(`chat.user.${userId}`)
@@ -167,55 +184,53 @@ export class ChatService {
 
     async sendMessageViaApi(groupId: string, content: string, attachments?: any[], language?: string) {
         const censoredContent = this.censorMessage(content);
-        const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
+        const token = apiClient.getToken();
         const params = new URLSearchParams();
         if (language) params.set('language', language);
         const qs = params.toString();
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages${qs ? `?${qs}` : ''}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ content: censoredContent, attachments }),
-        });
-
-        const data = await res.json();
-        return data.message;
+        try {
+            const res = await axios.post(
+                `/chat/groups/${groupId}/messages${qs ? `?${qs}` : ''}`,
+                { content: censoredContent, attachments },
+                {
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                }
+            );
+            return res.data?.message;
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                error?.message ||
+                'Failed to send message';
+            throw new Error(message);
+        }
     }
 
     async uploadAttachment(groupId: string | number, file: File, text = '') {
-        const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
+        const token = apiClient.getToken();
         const fd = new FormData();
         fd.append('file', file);
         if (text) fd.append('message', text);
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/attachments`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: fd,
-        });
-
-        if (!res.ok) {
-            let msg = 'Upload failed';
-            try { const j = await res.json(); msg = j.message || msg; } catch {}
+        try {
+            const res = await axios.post(
+                `/chat/groups/${groupId}/attachments`,
+                fd,
+                {
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                }
+            );
+            return res.data?.message;
+        } catch (error: any) {
+            const msg =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                error?.message ||
+                'Upload failed';
             throw new Error(msg);
         }
-
-        const data = await res.json();
-        return data.message; // are attachment.status = "scanning"
     }
-
-    // sendTypingEvent(groupId: string, isTyping: boolean) {
-    //     fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/typing`, {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-    //         },
-    //         body: JSON.stringify({ isTyping }),
-    //     });
-    // }
 
     on(event: string, callback: Function) {
         if (!this.listeners[event]) this.listeners[event] = [];

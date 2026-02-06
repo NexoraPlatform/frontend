@@ -204,7 +204,7 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
         <ul className="space-y-1 pl-5 list-disc">
           <li>Criptare: Datele sensibile sunt criptate în tranzit (SSL/TLS) și în repaus.</li>
           <li>
-            Controlul Accesului: Folosim autentificare securizată (server-auth.ts, middleware.ts) și roluri de utilizator
+            Controlul Accesului: Folosim autentificare securizată și roluri de utilizator
             stricte (Admin, Client, Provider) pentru a limita accesul la date (PermissionMatrixTab).
           </li>
           <li>Audit: Monitorizăm activitatea pentru a detecta tentativele de fraudă sau acces neautorizat (ActivityTracker).</li>
@@ -460,7 +460,7 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
         <ul className="space-y-1 pl-5 list-disc">
           <li>Encryption: Sensitive data is encrypted in transit (SSL/TLS) and at rest.</li>
           <li>
-            Access control: We use secure authentication (server-auth.ts, middleware.ts) and strict user roles (Admin,
+            Access control: We use secure authentication and strict user roles (Admin,
             Client, Provider) to limit data access (PermissionMatrixTab).
           </li>
           <li>Audit: We monitor activity to detect fraud attempts or unauthorized access (ActivityTracker).</li>

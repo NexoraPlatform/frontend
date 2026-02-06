@@ -52,7 +52,7 @@ export default function SignInPage() {
     setError('');
 
     try {
-      await login(email, password);
+      await login({ email, password });
       router.push('/dashboard');
     } catch (error: any) {
       setError(error.message || genericErrorText);

@@ -1,4 +1,10 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
+import axios from '@/lib/axios';
+import Axios, { type AxiosRequestConfig } from 'axios';
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://Trustorabe.dacars.ro/api';
 const DEFAULT_CURRENCY = 'USD';
 const CURRENCY_STORAGE_KEY = 'preferred_currency';
 
@@ -238,55 +244,61 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    if (!this.token && typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        this.token = storedToken;
-      }
-    }
     const url = new URL(`${this.baseURL}${endpoint}`);
+    const shouldAttachParams = !endpoint.startsWith('/broadcasting/auth');
     const selectedLanguage = this.getSelectedLanguageFromPathname();
     const selectedCurrency = this.getSelectedCurrencyFromStorage();
 
-    if (selectedLanguage && !url.searchParams.has('language')) {
+    if (shouldAttachParams && selectedLanguage && !url.searchParams.has('language')) {
       url.searchParams.set('language', selectedLanguage);
     }
 
-    if (selectedCurrency && !url.searchParams.has('currency')) {
+    if (shouldAttachParams && selectedCurrency && !url.searchParams.has('currency')) {
       url.searchParams.set('currency', selectedCurrency);
     }
 
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
-        ...options.headers,
-      },
-      credentials: 'include',
-      ...options,
+    const headers = new Headers(options.headers || {});
+    if (this.token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${this.token}`);
+    }
+
+    const body = options.body;
+    const isFormData =
+      typeof FormData !== 'undefined' && body instanceof FormData;
+    if (!headers.has('Content-Type') && body !== undefined && !isFormData) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const config: AxiosRequestConfig = {
+      url: url.toString(),
+      method: options.method ?? 'GET',
+      headers: Object.fromEntries(headers.entries()),
+      data: body,
+      withCredentials: true,
+      validateStatus: (status) => status >= 200 && status < 300,
     };
 
     try {
-      const response = await fetch(url.toString(), config);
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      } else {
+      const response = await axios.request(config);
+      if (response.status === 204) {
         return {} as T;
       }
+      const contentType = response.headers?.['content-type'];
+      if (contentType && contentType.includes('application/json')) {
+        return response.data as T;
+      }
+      return {} as T;
     } catch (error) {
+      if (Axios.isAxiosError(error)) {
+        const payload = error.response?.data as any;
+        const message =
+          payload?.message ||
+          payload?.error ||
+          error.message ||
+          'API request failed';
+        console.error('API request failed:', message);
+        throw new Error(message);
+      }
       console.error('API request failed:', error);
       throw error;
     }
@@ -309,9 +321,7 @@ export class ApiClient {
   async me() {
     return this.request<any>(`/auth/me`, {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-      }
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : undefined,
     });
   }
 
@@ -1519,15 +1529,6 @@ export class ApiClient {
   }
 
   async updateLastActive() {
-    if (!this.token && typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        this.token = storedToken;
-      }
-    }
-
-    if (!this.token) return;
-
     return this.request<any>('/users/active', {
       method: 'POST',
     });

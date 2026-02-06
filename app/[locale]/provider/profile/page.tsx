@@ -38,13 +38,13 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages, useProviderProfile} from "@/hooks/use-api";
 import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
+import axios from '@/lib/axios';
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
-import { updateProviderProfileAction } from "@/app/actions/secure";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Form } from '@/components/ui/form';
 import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
@@ -399,8 +399,24 @@ export default function ProviderProfileEditPage() {
 
         const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
 
-        // Convertim base64 în Blob
-        const blob = await fetch(croppedImage as string).then(r => r.blob());
+        // Convertim base64 în Blob fără fetch
+        const resolveBlob = async (source: string): Promise<Blob> => {
+            if (source.startsWith('data:')) {
+                const [meta, base64] = source.split(',');
+                const mimeMatch = meta?.match(/data:(.*?);base64/);
+                const mime = mimeMatch?.[1] ?? 'image/jpeg';
+                const binary = atob(base64 || '');
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i += 1) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return new Blob([bytes], { type: mime });
+            }
+            const response = await axios.get(source, { responseType: 'blob' });
+            return response.data as Blob;
+        };
+
+        const blob = await resolveBlob(croppedImage as string);
 
         // Convertim Blob în File (pentru a trimite cu uploadAvatar)
         const file = new File([blob], 'avatar_' + user?.firstName + '-' + user?.lastName + '.jpg', { type: 'image/jpeg' });
@@ -433,7 +449,7 @@ export default function ProviderProfileEditPage() {
             }
             const billingValues = billingForm.getValues();
             // Save profile data
-            await updateProviderProfileAction({
+            await apiClient.updateProviderProfile({
                 ...profileData,
                 ...billingValues,
             });

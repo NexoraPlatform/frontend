@@ -32,7 +32,6 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import { rapydReleasePaymentAction } from '@/app/actions/secure';
 import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -152,8 +151,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
     useEffect(() => {
         if (!user?.id) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        const echo = getEcho(token);
+        const echo = getEcho();
         if (!echo) return;
         const channel = echo.private(`App.Models.User.${user.id}`);
         const handler = (notification: {
@@ -264,11 +262,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         const releaseKey = milestoneId ? `milestone-${milestoneId}` : `project-${projectId}`;
         setReleasingId(releaseKey);
         try {
-            const response = await rapydReleasePaymentAction({
-                projectId,
-                milestoneId,
-                language: locale,
-            });
+            const response = await apiClient.rapydReleasePayment(projectId, milestoneId, locale);
             toast.success(response?.message ?? t('client.project_requests.release.success'));
             await loadProjects();
         } catch (error: any) {

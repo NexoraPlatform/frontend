@@ -195,7 +195,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
         try {
             setLoading(true);
-            const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
+            const token = apiClient.getToken();
             if (token) {
                 await chatService.connect(user.id, token);
                 setIsConnected(true);
@@ -491,7 +491,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const connect = async (): Promise<boolean> => {
         if (!user) return false;
         try {
-            const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
+            const token = apiClient.getToken();
             if (token) {
                 return await chatService.connect(user.id, token);
             }

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { MuiIcon } from './MuiIcons';
+import axios from '@/lib/axios';
 
 type IconResult = { id: string; prefix: string; name: string };
 
@@ -70,8 +71,8 @@ export function IconSearchDropdown({
                 if (collectionsKey) qs.set('collections', collectionsKey);
 
                 const url = `http://127.0.0.1:8000/api/general/search/icons?${qs.toString()}`;
-                const res = await fetch(url);
-                const data = await res.json();
+                const res = await axios.get(url);
+                const data = res.data;
 
                 if (!alive) return;
                 setResults(Array.isArray(data.results) ? data.results : []);

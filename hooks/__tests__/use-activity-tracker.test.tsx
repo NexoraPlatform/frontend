@@ -7,8 +7,6 @@ import { useAuth } from '@/contexts/auth-context';
 vi.mock('@/lib/api', () => ({
   default: {
     updateLastActive: vi.fn(),
-    getToken: vi.fn(),
-    setToken: vi.fn(),
   },
 }));
 
@@ -20,8 +18,6 @@ describe('hooks/useActivityTracker', () => {
   const mockedUseAuth = useAuth as unknown as vi.Mock;
   const mockedApi = apiClient as unknown as {
     updateLastActive: vi.Mock;
-    getToken: vi.Mock;
-    setToken: vi.Mock;
   };
 
   beforeEach(() => {
@@ -43,10 +39,9 @@ describe('hooks/useActivityTracker', () => {
     expect(mockedApi.updateLastActive).not.toHaveBeenCalled();
   });
 
-  it('calls updateLastActive once token is available and on interval', async () => {
+  it('calls updateLastActive on interval once user is available', async () => {
     vi.useFakeTimers();
     mockedUseAuth.mockReturnValue({ user: { id: '1' }, userLoading: false });
-    mockedApi.getToken.mockReturnValue('token-123');
 
     const { unmount } = renderHook(() => useActivityTracker());
 

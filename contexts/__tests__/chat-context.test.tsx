@@ -20,6 +20,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
+    getToken: vi.fn(),
     getChatGroups: vi.fn(),
     getChatMessages: vi.fn(),
     markChatMessagesAsRead: vi.fn(),
@@ -69,13 +70,14 @@ describe('contexts/chat-context', () => {
   const mockedUseAuth = useAuth as unknown as vi.Mock;
   const mockedUseNotifications = useNotifications as unknown as vi.Mock;
   const mockedApi = apiClient as unknown as {
+    getToken: vi.Mock;
     getChatGroups: vi.Mock;
     getChatMessages: vi.Mock;
     markChatMessagesAsRead: vi.Mock;
   };
 
   beforeEach(() => {
-    localStorage.setItem('auth_token', 'token-123');
+    mockedApi.getToken.mockReturnValue('token-123');
     mockedUseAuth.mockReturnValue({ user: { id: 'u1' } });
     mockedUseNotifications.mockReturnValue({ notifications: [], loading: false });
 
@@ -95,7 +97,6 @@ describe('contexts/chat-context', () => {
   });
 
   afterEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 

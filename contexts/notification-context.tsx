@@ -420,7 +420,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const refresh = useCallback(async () => {
         if (!user) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const token = apiClient.getToken();
         if (!token) return;
 
         setLoading(true);
@@ -576,7 +576,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (!user) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const token = apiClient.getToken();
         if (!token) return;
 
         const echo = getOrCreateEcho(token);

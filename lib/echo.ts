@@ -1,12 +1,13 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { apiClient } from '@/lib/api';
+import axios, { ensureCsrfCookie } from '@/lib/axios';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 
 let echoInstance: Echo<any> | null = null;
 
-export function getEcho(token?: string | null): Echo<any> | null {
+export function getEcho(): Echo<any> | null {
   if (typeof window === 'undefined') return null;
-  if (!token) return null;
   if (echoInstance) return echoInstance;
 
   disablePusherUnloadListener(Pusher);
@@ -16,9 +17,28 @@ export function getEcho(token?: string | null): Echo<any> | null {
     broadcaster: 'pusher',
     key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
     cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-    authEndpoint: `/api/broadcasting/auth`,
     forceTLS: true,
     enableStats: false,
+    authorizer: (channel: any) => {
+      return {
+        authorize: async (socketId: string, callback: Function) => {
+          try {
+            await ensureCsrfCookie();
+            const token = apiClient.getToken?.();
+            const response = await axios.post(
+              '/broadcasting/auth',
+              { socket_id: socketId, channel_name: channel.name },
+              {
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+              }
+            );
+            callback(false, response.data);
+          } catch (error) {
+            callback(true, error);
+          }
+        },
+      };
+    },
   });
 
   (window as any).Echo = echoInstance;

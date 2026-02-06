@@ -24,6 +24,7 @@ import {useAuth} from "@/contexts/auth-context";
 import { postcodeValidator, postcodeValidatorExistsForCountry } from 'postcode-validator';
 import { Country, State, City }  from 'country-state-city';
 import apiClient from "@/lib/api";
+import axios from "@/lib/axios";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
 import Flag from "react-world-flags";
@@ -275,27 +276,23 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 qs.set("q", query);
                 qs.set("limit", "10");
 
-                const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+                const token = apiClient.getToken();
                 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://Trustorabe.dacars.ro/api";
-                const response = await fetch(`${baseUrl}/companies/search?${qs.toString()}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    credentials: "include",
-                    signal: controller.signal,
-                });
+                const response = await axios.get(
+                    `${baseUrl}/companies/search?${qs.toString()}`,
+                    {
+                        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                        signal: controller.signal,
+                    }
+                );
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const payload = await response.json();
+                const payload = response.data;
                 const results = Array.isArray(payload?.data) ? payload.data : [];
                 setCompanySearchResults(results);
             } catch (error: any) {
-                if (error?.name === "AbortError") return;
+                if (error?.name === "AbortError" || error?.name === "CanceledError" || error?.code === "ERR_CANCELED") {
+                    return;
+                }
                 setCompanySearchResults([]);
                 setCompanySearchError("Eroare la căutare. Încearcă din nou.");
             } finally {
