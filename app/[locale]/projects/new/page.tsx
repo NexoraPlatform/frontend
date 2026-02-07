@@ -1093,7 +1093,7 @@ export default function NewProjectPage() {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+    if (!user || !hasRole(user, ['client'])) {
         return null;
     }
 

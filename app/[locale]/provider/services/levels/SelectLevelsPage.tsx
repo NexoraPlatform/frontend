@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { hasRole } from '@/lib/access';
 
 export default function SelectLevelsPageClient() {
     const { user, loading, userLoading } = useAuth();
@@ -48,7 +49,7 @@ export default function SelectLevelsPageClient() {
             router.push('/auth/signin');
             return;
         }
-        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (!hasRole(user, ['provider'])) {
             router.push('/dashboard');
             return;
         }
@@ -182,7 +183,7 @@ export default function SelectLevelsPageClient() {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+    if (!user || !hasRole(user, ['provider'])) {
         return null;
     }
 

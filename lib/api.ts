@@ -1534,8 +1534,9 @@ export class ApiClient {
     });
   }
 
-  async rapydGetWalletBalance() {
-    return this.request<any>(`/rapyd/balance`);
+  async rapydGetWalletBalance(language?: string) {
+    const qs = language ? `?language=${encodeURIComponent(language)}` : '';
+    return this.request<any>(`/rapyd/balance${qs}`);
   }
 
   async rapydCreatePayoutBank(amount: number | string, currency?: string | null, language?: string) {

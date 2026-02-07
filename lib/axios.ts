@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosHeaders } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 const API_ROOT_URL = API_URL.replace(/\/+$/, '').replace(/\/api$/, '');
@@ -146,7 +146,7 @@ axiosInstance.interceptors.request.use((config) => {
         headers[headerName] = decoded;
       }
     } else {
-      config.headers = { [headerName]: decoded };
+      config.headers = new AxiosHeaders({ [headerName]: decoded });
     }
   }
   return config;

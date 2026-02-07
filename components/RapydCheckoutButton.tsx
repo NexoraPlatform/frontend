@@ -5,7 +5,7 @@ import Script from 'next/script';
 import { Button } from '@/components/ui/button'; // Folosim butonul tău UI
 import { toast } from 'sonner'; // Sau hook-ul tău de toast
 import { useAuth } from '@/contexts/auth-context';
-import { rapydCheckoutSessionAction } from "@/app/actions/secure";
+import { apiClient } from "@/lib/api";
 import { useLocale, useTranslations } from "next-intl";
 import {AlertCircle, CheckCircle, Globe, Shield, X} from "lucide-react";
 import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
@@ -99,15 +99,13 @@ export default function RapydCheckoutButton({
 
         try {
             // A. Cerem checkout_id de la Backend-ul Laravel
-            const response = await rapydCheckoutSessionAction({
-                projectId: project.id,
-                currency: milestone.currency,
+            const data = await apiClient.rapydCheckoutSession(
+                project.id,
+                milestone.currency,
                 countryCode,
-                milestoneId: getMilestoneId(milestone),
-                language: locale,
-            });
-
-            const data = await response;
+                getMilestoneId(milestone),
+                locale
+            );
 
 
             if (!data.checkout_id) {

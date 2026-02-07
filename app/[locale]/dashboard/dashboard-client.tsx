@@ -51,11 +51,6 @@ import { Link } from '@/lib/navigation';
 import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
-import {
-  rapydCreatePayoutBankAction,
-  rapydGetWalletBalanceAction,
-  rapydOnboardingAction
-} from '@/app/actions/secure';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 
@@ -161,7 +156,7 @@ export default function DashboardClient() {
     setBalanceLoading(true);
     setBalanceError(null);
     try {
-      const response = await rapydGetWalletBalanceAction(locale);
+      const response = await apiClient.rapydGetWalletBalance(locale);
 
       if (balanceRequestId.current !== requestId) return;
 
@@ -317,7 +312,7 @@ export default function DashboardClient() {
 
     setTransferLoading(true);
     try {
-      await rapydCreatePayoutBankAction({ amount, currency: balance?.currency, language: locale });
+      await apiClient.rapydCreatePayoutBank(amount, balance?.currency, locale);
       toast.success(t('dashboard.finance.transfer_success'));
       setTransferAmount('');
       setTransferError(null);
@@ -535,7 +530,7 @@ export default function DashboardClient() {
   const getRapydOnboardingUrl = async () => {
     try {
       if (!user) return;
-      const response = await rapydOnboardingAction(locale);
+      const response = await apiClient.rapydOnboarding(locale);
 
       const walletId = response?.wallet_id ?? response?.data?.wallet_id;
       const contactId =

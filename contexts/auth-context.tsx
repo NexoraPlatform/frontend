@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import axios from '@/lib/axios';
-import { updateUserLanguageAction } from '@/app/actions/secure';
+import { apiClient } from '@/lib/api';
 import { AccessRole } from '@/lib/access';
 
 interface Company {
@@ -176,17 +176,7 @@ const fetcher = async () => {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const stored = localStorage.getItem('user_data');
-      if (!stored) return null;
-      return normalizeUser(JSON.parse(stored));
-    } catch (error) {
-      console.warn('Failed to parse stored user:', error);
-      return null;
-    }
-  });
+  const [user, setUser] = useState<User | null>(null);
 
   const { data, isLoading, mutate } = useSWR<User | null>('/api/auth/me', fetcher, {
     revalidateOnFocus: false,
@@ -204,25 +194,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data ?? null);
   }, [data]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (user) {
-      localStorage.setItem('user_data', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user_data');
-    }
-  }, [user]);
-
   const login = async (email: string, password: string) => {
-    await axios.get('/sanctum/csrf-cookie');
-    await axios.post('/auth/login', { email, password });
+    await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) {
+      let message = 'Login failed';
+      try {
+        const data = await response.json();
+        message = data?.message || data?.error || message;
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
     await mutate();
   };
 
   const register = async (userData: any) => {
     try {
-      await axios.get('/sanctum/csrf-cookie');
-      await axios.post('/auth/register', userData);
+      await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+      if (!response.ok) {
+        let message = 'Registration failed';
+        try {
+          const data = await response.json();
+          message = data?.message || data?.error || message;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
       await login(userData.email, userData.password);
     } catch (error: any) {
       throw new Error(error?.message || 'Registration failed');
@@ -239,9 +250,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user_data');
-      }
       setUser(null);
       await mutate(null, false);
       window.location.href = '/auth/signin';
@@ -259,11 +267,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (language: string) => {
       if (!language) return null;
       try {
-        const updatedUser = await updateUserLanguageAction(language);
-        const normalizedUser = normalizeUser(updatedUser);
+        const updatedUser = await apiClient.updateUserLanguage(language);
+        const normalizedUser = normalizeUser(updatedUser?.user ?? updatedUser);
 
         if (!normalizedUser) {
           console.warn('Received invalid user data after language update');
+          const refreshed = await mutate();
+          const normalizedRefreshed = normalizeUser(refreshed);
+          if (normalizedRefreshed) {
+            setUser(normalizedRefreshed);
+            return normalizedRefreshed;
+          }
           return null;
         }
 

@@ -34,6 +34,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
+import { hasRole } from '@/lib/access';
 
 export default function SelectServicesPage() {
     const { user, loading, userLoading } = useAuth();
@@ -57,7 +58,7 @@ export default function SelectServicesPage() {
             router.push('/auth/signin');
             return;
         }
-        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (!hasRole(user, ['provider'])) {
             router.push('/dashboard');
         }
     }, [user, userLoading, router]);
@@ -161,7 +162,7 @@ export default function SelectServicesPage() {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+    if (!user || !hasRole(user, ['provider'])) {
         return null;
     }
 

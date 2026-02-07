@@ -10,13 +10,14 @@ import Cal, { getCalApi } from "@calcom/embed-react";
 import apiClient from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
+import { hasRole } from '@/lib/access';
 
 export default function ScheduleCallClient({ id }: { id: string; }) {
     const t = useTranslations('tests.schedule');
     const router = useRouter();
     const [service, setService] = useState<any>(null);
     const { user, loading, userLoading } = useAuth();
-    const isProvider = user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider');
+    const isProvider = hasRole(user, ['provider']);
 
     useEffect(() => {
         if (userLoading) return;

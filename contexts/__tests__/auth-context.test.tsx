@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import axios from '@/lib/axios';
-import { updateUserLanguageAction } from '@/app/actions/secure';
+import { apiClient } from '@/lib/api';
 
 vi.mock('@/lib/axios', () => ({
   default: {
@@ -11,21 +11,21 @@ vi.mock('@/lib/axios', () => ({
   },
 }));
 
-vi.mock('@/app/actions/secure', () => ({
-  updateUserLanguageAction: vi.fn(),
+vi.mock('@/lib/api', () => ({
+  apiClient: {
+    updateUserLanguage: vi.fn(),
+  },
 }));
 
 describe('contexts/auth-context', () => {
   const mockedAxios = axios as unknown as { get: vi.Mock; post: vi.Mock };
-  const mockedActions = {
-    updateUserLanguageAction: updateUserLanguageAction as unknown as vi.Mock,
-  };
+  const mockedApi = apiClient as unknown as { updateUserLanguage: vi.Mock };
 
   beforeEach(() => {
     localStorage.clear();
     mockedAxios.get.mockReset();
     mockedAxios.post.mockReset();
-    mockedActions.updateUserLanguageAction.mockReset();
+    mockedApi.updateUserLanguage.mockReset();
   });
 
   afterEach(() => {
@@ -69,7 +69,7 @@ describe('contexts/auth-context', () => {
       },
     });
 
-    mockedActions.updateUserLanguageAction.mockResolvedValue({
+    mockedApi.updateUserLanguage.mockResolvedValue({
       id: 1,
       email: 'test@example.com',
       firstName: 'Old',
