@@ -1,11 +1,10 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import type { Session } from "next-auth";
-import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
-import { apiClient } from '@/lib/api';
-import { getCurrentUserAction, updateUserLanguageAction } from '@/app/actions/secure';
-import { AccessRole } from "@/lib/access";
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import useSWR from 'swr';
+import axios from '@/lib/axios';
+import { updateUserLanguageAction } from '@/app/actions/secure';
+import { AccessRole } from '@/lib/access';
 
 interface Company {
   id?: number | string;
@@ -125,20 +124,20 @@ const normalizeUser = (input: any): User | null => {
   const hasCompanyFields =
     companyFromObject ||
     [
-    input.company_id,
-    input.id_type,
-    input.id_number,
-    input.company_country,
-    input.company_county,
-    input.company_city,
-    input.company_zip,
-    input.company_address,
-    input.company_bank_iban,
-    input.company_bank_bic,
-    input.company_bank_name,
-    input.bank_currency,
-    companyName,
-  ].some((value) => value !== undefined && value !== null && value !== '');
+      input.company_id,
+      input.id_type,
+      input.id_number,
+      input.company_country,
+      input.company_county,
+      input.company_city,
+      input.company_zip,
+      input.company_address,
+      input.company_bank_iban,
+      input.company_bank_bic,
+      input.company_bank_name,
+      input.bank_currency,
+      companyName,
+    ].some((value) => value !== undefined && value !== null && value !== '');
 
   const company = hasCompanyFields
     ? {
@@ -170,8 +169,13 @@ const normalizeUser = (input: any): User | null => {
   } as User;
 };
 
-function AuthProviderInner({ children }: { children: React.ReactNode }) {
-  const { data: session, status, update } = useSession();
+const fetcher = async () => {
+  const response = await axios.get('/api/auth/me');
+  const payload = response.data;
+  return normalizeUser(payload?.user ?? payload);
+};
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -184,38 +188,21 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   });
 
-  const loading = status === "loading";
-  const userLoading = loading || (status === "authenticated" && !user);
+  const { data, isLoading, mutate } = useSWR<User | null>('/api/auth/me', fetcher, {
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+    onSuccess: (next) => {
+      setUser(next ?? null);
+    },
+    onError: () => {
+      setUser(null);
+    },
+  });
 
   useEffect(() => {
-    if (session?.accessToken) {
-      apiClient.setToken(session.accessToken);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', session.accessToken);
-      }
-    } else if (status === 'unauthenticated') {
-      apiClient.removeToken();
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-      }
-    }
-
-    if (session?.user) {
-      setUser((prev) => {
-        // @ts-ignore
-        const next = normalizeUser(session.user as User);
-        if (!prev) return next;
-        // Check IDs to replace user entirely if different
-        if (prev.id && next?.id && String(prev.id) !== String(next.id)) {
-          return next;
-        }
-        // Merge if same user
-        return next ? { ...prev, ...next } : prev;
-      });
-    } else if (status === 'unauthenticated') {
-      setUser(null);
-    }
-  }, [session, status]);
+    if (data === undefined) return;
+    setUser(data ?? null);
+  }, [data]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -227,146 +214,45 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const login = async (email: string, password: string) => {
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      throw new Error(result.error);
-    }
+    await axios.get('/sanctum/csrf-cookie');
+    await axios.post('/auth/login', { email, password });
+    await mutate();
   };
-
-  const isRefreshing = useRef(false);
-  const updateRef = useRef(update);
-
-  useEffect(() => {
-    updateRef.current = update;
-  }, [update]);
-
-  const refreshUser = useCallback(async () => {
-    if (isRefreshing.current) return;
-    isRefreshing.current = true;
-
-    try {
-      const freshUser = await getCurrentUserAction();
-
-      // FIX: Verificăm explicit dacă normalizeUser returnează null
-      // în loc să folosim ?? {}, ceea ce cauza eroarea de tip
-      const normalizedUser = normalizeUser(freshUser);
-
-      if (!normalizedUser) {
-        console.warn("Received invalid user data during refresh");
-        return;
-      }
-
-      setUser(normalizedUser);
-
-      const sameNullable = (left?: string | number | null, right?: string | number | null) =>
-          (left ?? null) === (right ?? null);
-
-      const sameCompany = (left?: Company | null, right?: Company | null) => {
-        if (!left && !right) return true;
-        if (!left || !right) return false;
-        return (
-            sameNullable(left.id ?? null, right.id ?? null) &&
-            sameNullable(left.name ?? null, right.name ?? null) &&
-            sameNullable(left.id_type ?? null, right.id_type ?? null) &&
-            sameNullable(left.id_number ?? null, right.id_number ?? null) &&
-            sameNullable(left.company_country ?? null, right.company_country ?? null) &&
-            sameNullable(left.company_county ?? null, right.company_county ?? null) &&
-            sameNullable(left.company_city ?? null, right.company_city ?? null) &&
-            sameNullable(left.company_zip ?? null, right.company_zip ?? null) &&
-            sameNullable(left.company_address ?? null, right.company_address ?? null) &&
-            sameNullable(left.company_bank_iban ?? null, right.company_bank_iban ?? null) &&
-            sameNullable(left.company_bank_bic ?? null, right.company_bank_bic ?? null) &&
-            sameNullable(left.company_bank_name ?? null, right.company_bank_name ?? null) &&
-            sameNullable(left.bank_currency ?? null, right.bank_currency ?? null) &&
-            sameNullable(left.created_at ?? null, right.created_at ?? null) &&
-            sameNullable(left.updated_at ?? null, right.updated_at ?? null)
-        );
-      };
-
-      const companyChanged = !sameCompany(normalizedUser.company ?? null, session?.user?.company ?? null);
-
-      const hasChanged =
-          normalizedUser.firstName !== session?.user?.firstName ||
-          normalizedUser.lastName !== session?.user?.lastName ||
-          normalizedUser.role !== session?.user?.role ||
-          normalizedUser.avatar !== session?.user?.avatar ||
-          normalizedUser.email !== session?.user?.email ||
-          normalizedUser.language !== session?.user?.language ||
-          companyChanged;
-
-      if (hasChanged) {
-        await updateRef.current(normalizedUser);
-      }
-    } catch (error) {
-      console.error("Failed to refresh user:", error);
-    } finally {
-      isRefreshing.current = false;
-    }
-  }, [
-    session?.user?.firstName,
-    session?.user?.lastName,
-    session?.user?.role,
-    session?.user?.avatar,
-    session?.user?.email,
-    session?.user?.language,
-    session?.user?.company,
-  ]);
-
-  const lastRefreshedUserIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      lastRefreshedUserIdRef.current = null;
-      return;
-    }
-    if (status !== "authenticated") return;
-    const sessionUserId = session?.user?.id ? String(session.user.id) : null;
-    if (!sessionUserId) return;
-    if (lastRefreshedUserIdRef.current === sessionUserId) return;
-    lastRefreshedUserIdRef.current = sessionUserId;
-    refreshUser().catch(() => { });
-  }, [status, session?.user?.id, refreshUser]);
 
   const register = async (userData: any) => {
     try {
-      await apiClient.register(userData);
+      await axios.get('/sanctum/csrf-cookie');
+      await axios.post('/auth/register', userData);
       await login(userData.email, userData.password);
     } catch (error: any) {
-      throw new Error(error.message || 'Registration failed');
+      throw new Error(error?.message || 'Registration failed');
     }
   };
 
+  const refreshUser = useCallback(async () => {
+    await mutate();
+  }, [mutate]);
+
   const logout = async () => {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        document.cookie.split(";").forEach((c) => {
-          document.cookie = c
-              .replace(/^ +/, "")
-              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-      }
-
-      setUser(null);
-      await signOut({ redirect: true, callbackUrl: '/auth/signin' });
-
+      await axios.post('/auth/logout');
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Logout error:', error);
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user_data');
+      }
+      setUser(null);
+      await mutate(null, false);
       window.location.href = '/auth/signin';
     }
   };
 
   const updateUser = async (userData: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...userData });
-      await update(userData);
-    }
+    if (!user) return;
+    const next = { ...user, ...userData } as User;
+    setUser(next);
+    await mutate(next, false);
   };
 
   const setUserLanguage = useCallback(
@@ -382,15 +268,18 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         }
 
         setUser(normalizedUser);
-        await updateRef.current(normalizedUser);
+        await mutate(normalizedUser, false);
         return normalizedUser;
       } catch (error) {
         console.error('Failed to update user language:', error);
         return null;
       }
     },
-    [],
+    [mutate],
   );
+
+  const loading = isLoading;
+  const userLoading = isLoading && !user;
 
   const value: AuthContextType = {
     user,
@@ -404,25 +293,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setUserLanguage,
   };
 
-  return (
-      <AuthContext.Provider value={value}>
-        {children}
-      </AuthContext.Provider>
-  );
-}
-
-export function AuthProvider({
-  children,
-  session,
-}: {
-  children: React.ReactNode;
-  session?: Session | null;
-}) {
-  return (
-      <SessionProvider session={session} refetchOnWindowFocus={false} refetchInterval={0}>
-        <AuthProviderInner>{children}</AuthProviderInner>
-      </SessionProvider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -8,11 +8,29 @@ const API_BASE_URL =
 
 export async function getServerUser() {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    if (!token) return null;
+    const cookieHeader = cookieStore
+        .getAll()
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join('; ');
+    if (!cookieHeader) return null;
 
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
+    const xsrfToken = cookieStore.get('XSRF-TOKEN')?.value;
+
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+            Accept: 'application/json',
+            Cookie: cookieHeader,
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(xsrfToken ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrfToken) } : {}),
+            Origin:
+                process.env.NEXT_PUBLIC_APP_URL ||
+                process.env.NEXTAUTH_URL ||
+                'http://127.0.0.1:3000',
+            Referer:
+                process.env.NEXT_PUBLIC_APP_URL ||
+                process.env.NEXTAUTH_URL ||
+                'http://127.0.0.1:3000',
+        },
         cache: 'no-store',
     });
     if (!res.ok) return null;

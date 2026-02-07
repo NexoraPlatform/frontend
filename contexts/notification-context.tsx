@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
+import axios from '@/lib/axios';
+import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 
 type RawLaravelNotification = {
     id: string;
@@ -378,7 +380,7 @@ function getNotificationPermission(): NotificationPermission {
 }
 
 let echoSingleton: Echo<any> | null = null;
-function getOrCreateEcho(token: string): Echo<any> {
+function getOrCreateEcho(): Echo<any> {
     if (echoSingleton) return echoSingleton;
     disablePusherUnloadListener(Pusher);
     (window as any).Pusher = Pusher;
@@ -386,8 +388,27 @@ function getOrCreateEcho(token: string): Echo<any> {
         broadcaster: 'pusher',
         key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
         cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-        authEndpoint: `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
-        auth: { headers: { Authorization: `Bearer ${token}` } },
+        authEndpoint: `/api/broadcasting/auth`,
+        authorizer: (channel: any) => ({
+            authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
+                ensureCsrfCookie()
+                    .then(() => {
+                        const xsrfToken = getXsrfToken();
+                        return axios.post(
+                            '/api/broadcasting/auth',
+                            {
+                                socket_id: socketId,
+                                channel_name: channel.name,
+                            },
+                            xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : undefined
+                        );
+                    })
+                    .then((response) => callback(null, response.data))
+                    .catch((error) =>
+                        callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
+                    );
+            },
+        }),
         forceTLS: true,
         enableStats: false,
     });
@@ -420,8 +441,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const refresh = useCallback(async () => {
         if (!user) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        if (!token) return;
 
         setLoading(true);
         try {
@@ -576,10 +595,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (!user) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        if (!token) return;
-
-        const echo = getOrCreateEcho(token);
+        const echo = getOrCreateEcho();
         const channelName = `App.Models.User.${user.id}`;
         const ch = echo.private(channelName);
         privateChannelRef.current = ch;

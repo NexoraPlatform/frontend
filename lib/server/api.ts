@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { auth } from '@/auth';
 import { cookies } from 'next/headers';
 import { defaultLocale } from '@/lib/i18n';
 
@@ -28,10 +27,19 @@ const resolveLocale = async (explicit?: string | null) => {
   return normalizeLocale(defaultLocale) ?? null;
 };
 
-const resolveAccessToken = async () => {
-  const session = await auth();
-  if (!session) return null;
-  return (session as any).accessToken ?? (session as any)?.user?.accessToken ?? null;
+const buildCookieHeader = (cookieStore: Awaited<ReturnType<typeof cookies>>) =>
+  cookieStore
+    .getAll()
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join('; ');
+
+const resolveXsrfToken = (cookieHeader: string) => {
+  const match = cookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('XSRF-TOKEN='));
+  if (!match) return null;
+  return decodeURIComponent(match.slice('XSRF-TOKEN='.length));
 };
 
 type ServerRequestOptions = {
@@ -61,15 +69,24 @@ export async function serverRequest<T>(
     url.searchParams.set('language', selectedLanguage);
   }
 
-  const token = await resolveAccessToken();
+  const cookieStore = await cookies();
+  const cookieHeader = buildCookieHeader(cookieStore);
+  const xsrfToken = resolveXsrfToken(cookieHeader);
+
   const headers = new Headers({ Accept: 'application/json' });
   if (options.headers) {
     const incoming = new Headers(options.headers);
     incoming.forEach((value, key) => headers.set(key, value));
   }
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+  if (cookieHeader) headers.set('Cookie', cookieHeader);
+  if (xsrfToken) headers.set('X-XSRF-TOKEN', xsrfToken);
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+  const appOrigin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    'http://127.0.0.1:3000';
+  headers.set('Origin', appOrigin);
+  headers.set('Referer', appOrigin);
 
   let body = options.body;
   if (body instanceof FormData) {

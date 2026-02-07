@@ -195,15 +195,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
         try {
             setLoading(true);
-            const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
-            if (token) {
-                await chatService.connect(user.id, token);
-                setIsConnected(true);
+            await chatService.connect(user.id);
+            setIsConnected(true);
 
-                if (!listenersReadyRef.current) {
-                    setupEventListeners();
-                    listenersReadyRef.current = true;
-                }
+            if (!listenersReadyRef.current) {
+                setupEventListeners();
+                listenersReadyRef.current = true;
             }
 
             await refreshGroups();
@@ -491,11 +488,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const connect = async (): Promise<boolean> => {
         if (!user) return false;
         try {
-            const token = apiClient.getToken() ?? localStorage.getItem('auth_token');
-            if (token) {
-                return await chatService.connect(user.id, token);
-            }
-            return false;
+            return await chatService.connect(user.id);
         } catch (e) {
             console.error('Failed to connect to chat:', e);
             return false;

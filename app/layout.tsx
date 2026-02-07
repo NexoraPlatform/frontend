@@ -19,7 +19,6 @@ import {TrustoraVisualLanguageSection} from "@/components/trustora/visual-langua
 import {TrustoraFinalCtaSection} from "@/components/trustora/final-cta-section";
 import {Footer} from "@/components/footer";
 import OneSignalInit from "@/components/OneSignalInit";
-import { auth } from "@/auth";
 
 // Separate viewport export for Next.js 15
 export const viewport: Viewport = {
@@ -150,8 +149,6 @@ export default async function RootLayout({
                                    }: {
     children: React.ReactNode
 }) {
-    const session = await auth();
-
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
@@ -259,7 +256,7 @@ export default async function RootLayout({
                 __html: JSON.stringify([jsonLd, structuredData]),
             }}
         />
-        <AuthProvider session={session}>
+        <AuthProvider>
             <CurrencyProvider>
                 <OneSignalInit />
                 <ThemeProvider

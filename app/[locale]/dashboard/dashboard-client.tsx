@@ -244,9 +244,9 @@ export default function DashboardClient() {
   useEffect(() => {
     if (userLoading) return;
 
-    if (!user) {
-      router.push('/auth/signin');
-    }
+    // if (!user) {
+    //   router.push('/auth/signin');
+    // }
   }, [user, userLoading, router]);
 
   const handleTabChange = (value: string) => {
@@ -429,8 +429,7 @@ export default function DashboardClient() {
 
   useEffect(() => {
     if (!user?.id || !isProvider || activeTab !== 'projects') return;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    const echo = getEcho(token);
+    const echo = getEcho();
     if (!echo) return;
     const channel = echo.private(`App.Models.User.${user.id}`);
     const handler = (notification: {

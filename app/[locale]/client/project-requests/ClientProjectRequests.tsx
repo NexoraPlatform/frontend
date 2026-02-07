@@ -152,8 +152,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
     useEffect(() => {
         if (!user?.id) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        const echo = getEcho(token);
+        const echo = getEcho();
         if (!echo) return;
         const channel = echo.private(`App.Models.User.${user.id}`);
         const handler = (notification: {

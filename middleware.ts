@@ -189,9 +189,11 @@ export default auth(async (req) => {
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
   // req.auth is the session object
-  const session = req.auth;
+  const session = (req as any).auth;
   const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
-  const isAuthenticated = !!user;
+  const sessionCookie = req.cookies.get('laravel_session')?.value;
+  const hasSessionCookie = Boolean(sessionCookie);
+  const isAuthenticated = !!user || hasSessionCookie;
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
 
@@ -297,6 +299,9 @@ export default auth(async (req) => {
   if (!isAuthenticated) return redirectToSignin(req, locale);
 
   if (requirement === 'auth-only') return baseResponse;
+
+  // If we only have a session cookie, skip role checks here and let the API enforce.
+  if (!user && hasSessionCookie) return baseResponse;
 
   const allowed = checkRequirement(user || null, requirement);
 

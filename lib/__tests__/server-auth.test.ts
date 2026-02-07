@@ -18,8 +18,8 @@ describe('lib/server-auth', () => {
     vi.unstubAllGlobals();
   });
 
-  it('getServerUser returns null without auth_token', async () => {
-    cookiesMock.mockReturnValue({ get: () => undefined });
+  it('getServerUser returns null without session cookies', async () => {
+    cookiesMock.mockReturnValue({ getAll: () => [], get: () => undefined });
 
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -30,7 +30,10 @@ describe('lib/server-auth', () => {
   });
 
   it('getServerUser returns user from API (data.user)', async () => {
-    cookiesMock.mockReturnValue({ get: () => ({ value: 'token-123' }) });
+    cookiesMock.mockReturnValue({
+      getAll: () => [{ name: 'laravel_session', value: 'token-123' }],
+      get: () => undefined,
+    });
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -43,7 +46,10 @@ describe('lib/server-auth', () => {
   });
 
   it('getServerUser returns data when API returns direct user', async () => {
-    cookiesMock.mockReturnValue({ get: () => ({ value: 'token-123' }) });
+    cookiesMock.mockReturnValue({
+      getAll: () => [{ name: 'laravel_session', value: 'token-123' }],
+      get: () => undefined,
+    });
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -56,13 +62,16 @@ describe('lib/server-auth', () => {
   });
 
   it('requirePermission throws 401 when unauthenticated', async () => {
-    cookiesMock.mockReturnValue({ get: () => undefined });
+    cookiesMock.mockReturnValue({ getAll: () => [], get: () => undefined });
 
     await expect(requirePermission('admin')).rejects.toMatchObject({ status: 401 });
   });
 
   it('requirePermission throws 403 when forbidden', async () => {
-    cookiesMock.mockReturnValue({ get: () => ({ value: 'token-123' }) });
+    cookiesMock.mockReturnValue({
+      getAll: () => [{ name: 'laravel_session', value: 'token-123' }],
+      get: () => undefined,
+    });
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -78,7 +87,10 @@ describe('lib/server-auth', () => {
   });
 
   it('requirePermission passes for superuser', async () => {
-    cookiesMock.mockReturnValue({ get: () => ({ value: 'token-123' }) });
+    cookiesMock.mockReturnValue({
+      getAll: () => [{ name: 'laravel_session', value: 'token-123' }],
+      get: () => undefined,
+    });
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
