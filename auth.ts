@@ -25,6 +25,8 @@ const getCookieValue = (cookieHeader: string, name: string) => {
   return match.slice(name.length + 1);
 };
 
+const hasSessionCookie = (cookieHeader: string) => Boolean(getCookieValue(cookieHeader, 'laravel_session'));
+
 const resolveAppOrigin = (fallback?: string | null) =>
   fallback ||
   process.env.NEXT_PUBLIC_APP_URL ||
@@ -32,7 +34,7 @@ const resolveAppOrigin = (fallback?: string | null) =>
   'http://127.0.0.1:3000';
 
 const fetchAuthUser = async (cookieHeader: string, origin?: string | null): Promise<AuthUser> => {
-  if (!cookieHeader) return null;
+  if (!cookieHeader || !hasSessionCookie(cookieHeader)) return null;
 
   const headers: HeadersInit = {
     Accept: 'application/json',

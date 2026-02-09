@@ -1,7 +1,6 @@
 'use client';
 
-import useSWR from 'swr';
-import axios from '@/lib/axios';
+import { useAuth as useContextAuth } from '@/contexts/auth-context';
 
 type LoginPayload = {
   email: string;
@@ -24,33 +23,26 @@ type RegisterPayload = {
   billing_postal_code?: string;
 };
 
-const fetcher = (url: string) => axios.get(url).then((res) => res.data);
-
 export function useAuth() {
-  const { data, error, isLoading, mutate } = useSWR('/api/auth/me', fetcher);
-  const user = (data as any)?.user ?? data ?? null;
+  const { user, loading, login: contextLogin, register: contextRegister, refreshUser } = useContextAuth();
 
   const login = async (payload: LoginPayload) => {
-    await axios.get('/sanctum/csrf-cookie');
-    const response = await axios.post('/auth/login', payload);
-    await mutate();
-    return response.data;
+    await contextLogin(payload.email, payload.password);
+    return null;
   };
 
   const register = async (payload: RegisterPayload) => {
-    await axios.get('/sanctum/csrf-cookie');
-    const response = await axios.post('/auth/register', payload);
-    await mutate();
-    return response.data;
+    await contextRegister(payload);
+    return null;
   };
 
   return {
     user,
-    error,
-    isLoading,
-    loading: isLoading,
+    error: undefined,
+    isLoading: loading,
+    loading,
     login,
     register,
-    refreshUser: mutate,
+    refreshUser,
   };
 }

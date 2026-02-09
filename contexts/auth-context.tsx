@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import axios from '@/lib/axios';
 import { apiClient } from '@/lib/api';
 import { AccessRole } from '@/lib/access';
@@ -81,6 +81,11 @@ interface AuthContextType {
   updateUser: (userData: Partial<User>) => void;
   setUserLanguage: (language: string) => Promise<User | null>;
 }
+
+type AuthProviderProps = {
+  children: React.ReactNode;
+  initialUser?: User | null;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -175,17 +180,34 @@ const fetcher = async () => {
   return normalizeUser(payload?.user ?? payload);
 };
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
+  const [initialUserSnapshot] = useState<User | null>(() => normalizeUser(initialUser));
+  const [user, setUser] = useState<User | null>(initialUserSnapshot);
+  const [shouldFetchUser, setShouldFetchUser] = useState(Boolean(initialUserSnapshot));
+  const { mutate: mutateCache } = useSWRConfig();
 
-  const { data, isLoading, mutate } = useSWR<User | null>('/api/auth/me', fetcher, {
+  const swrKey = shouldFetchUser ? '/api/auth/me' : null;
+
+  const { data, isLoading, mutate } = useSWR<User | null>(swrKey, fetcher, {
+    fallbackData: initialUserSnapshot ?? undefined,
+    revalidateOnMount: false,
+    revalidateIfStale: false,
     revalidateOnFocus: false,
     shouldRetryOnError: false,
     onSuccess: (next) => {
       setUser(next ?? null);
+      if (next) {
+        return;
+      }
+      setShouldFetchUser(false);
     },
-    onError: () => {
+    onError: (error: any) => {
       setUser(null);
+
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
+        setShouldFetchUser(false);
+      }
     },
   });
 
@@ -212,7 +234,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       throw new Error(message);
     }
-    await mutate();
+    if (shouldFetchUser) {
+      await mutate();
+    } else {
+      try {
+        const nextUser = await fetcher();
+        await mutateCache('/api/auth/me', nextUser ?? null, false);
+        setUser(nextUser ?? null);
+        setShouldFetchUser(true);
+      } catch (error) {
+        console.error('Failed to load user after login:', error);
+      }
+    }
   };
 
   const register = async (userData: any) => {
@@ -241,8 +274,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = useCallback(async () => {
+    if (!shouldFetchUser) return;
     await mutate();
-  }, [mutate]);
+  }, [mutate, shouldFetchUser]);
 
   const logout = async () => {
     try {
@@ -250,6 +284,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      await mutateCache('/api/auth/me', null, false);
+      setShouldFetchUser(false);
       setUser(null);
       await mutate(null, false);
       window.location.href = '/auth/signin';
@@ -292,8 +328,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [mutate],
   );
 
-  const loading = isLoading;
-  const userLoading = isLoading && !user;
+  const loading = shouldFetchUser && isLoading;
+  const userLoading = shouldFetchUser && isLoading && !user;
 
   const value: AuthContextType = {
     user,

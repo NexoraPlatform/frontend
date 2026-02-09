@@ -8,11 +8,13 @@ const API_BASE_URL =
 
 export async function getServerUser() {
     const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('laravel_session')?.value;
+    if (!sessionCookie) return null;
+
     const cookieHeader = cookieStore
         .getAll()
         .map((cookie) => `${cookie.name}=${cookie.value}`)
         .join('; ');
-    if (!cookieHeader) return null;
 
     const xsrfToken = cookieStore.get('XSRF-TOKEN')?.value;
 
