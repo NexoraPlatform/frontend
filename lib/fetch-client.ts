@@ -159,7 +159,66 @@ export async function fetchClient<T = any>(
             // Response is not JSON
         }
 
+        // CSRF token mismatch (419) - refresh token and retry once
+        if (response.status === 419 && typeof window !== 'undefined' && !endpoint.includes('/sanctum/csrf-cookie')) {
+            try {
+                // Fetch new CSRF token from Laravel Sanctum
+                await fetch(`${baseUrl}/sanctum/csrf-cookie`, {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+
+                // Get fresh XSRF token from cookie
+                const freshXsrfToken = getCookieValue('XSRF-TOKEN');
+                if (freshXsrfToken) {
+                    headers['X-XSRF-TOKEN'] = decodeURIComponent(freshXsrfToken);
+                }
+
+                // Retry the original request with fresh CSRF token
+                const retryResponse = await fetch(url, {
+                    ...init,
+                    headers,
+                    body: finalBody,
+                });
+
+                if (retryResponse.ok) {
+                    const contentType = retryResponse.headers.get('content-type');
+                    if (contentType?.includes('application/json')) {
+                        return await retryResponse.json();
+                    }
+                    return retryResponse as any;
+                }
+
+                // Retry failed - parse error from retry response
+                try {
+                    errorData = await retryResponse.json();
+                    errorMessage = errorData?.message || errorData?.error || `HTTP ${retryResponse.status}`;
+                } catch {
+                    errorMessage = `HTTP ${retryResponse.status}: ${retryResponse.statusText}`;
+                }
+                throw new FetchError(errorMessage, retryResponse.status, retryResponse, errorData);
+            } catch (csrfError: any) {
+                // If CSRF refresh itself failed, throw that error
+                if (csrfError instanceof FetchError) {
+                    throw csrfError;
+                }
+                // Otherwise throw original error
+                throw new FetchError(errorMessage, response.status, response, errorData);
+            }
+        }
+
         throw new FetchError(errorMessage, response.status, response, errorData);
+    }
+
+    // Helper function for getting cookies (needed for CSRF retry)
+    function getCookieValue(name: string): string | null {
+        if (typeof window === 'undefined') return null;
+        const match = document.cookie
+            .split(';')
+            .map((part) => part.trim())
+            .find((part) => part.startsWith(`${name}=`));
+        if (!match) return null;
+        return match.slice(name.length + 1);
     }
 
     // Parse successful response

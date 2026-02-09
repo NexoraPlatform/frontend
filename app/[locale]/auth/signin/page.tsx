@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/lib/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const t = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const badgeText = t('auth.signin.badge');
   const titlePrefix = t('auth.signin.title_prefix');
@@ -53,7 +54,14 @@ export default function SignInPage() {
 
     try {
       await login(email, password);
-      router.push('/dashboard');
+
+      // Redirect to callbackUrl if provided, otherwise to dashboard
+      const callbackUrl = searchParams.get('callbackUrl');
+      if (callbackUrl && callbackUrl.startsWith('/')) {
+        router.push(callbackUrl);
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       setError(error.message || genericErrorText);
     } finally {
@@ -85,14 +93,14 @@ export default function SignInPage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {benefits.map((item) => (
-                    <div
-                      key={item}
-                      className="glass-card flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
-                    >
-                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                      {item}
-                    </div>
-                  ))}
+                  <div
+                    key={item}
+                    className="glass-card flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    {item}
+                  </div>
+                ))}
               </div>
             </div>
 

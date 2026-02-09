@@ -38,9 +38,6 @@ const nextConfig = {
     'react-icons': {
       transform: 'react-icons/{{member}}',
     },
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
-    },
     '@mui/icons-material': {
       transform: '@mui/icons-material/{{member}}',
     },
