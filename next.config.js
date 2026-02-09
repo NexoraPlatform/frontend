@@ -91,14 +91,18 @@ const nextConfig = {
   experimental: {
     // CSS optimization
     optimizeCss: process.env.NEXT_OPTIMIZE_CSS === 'true',
-    reactCompiler: process.env.NEXT_REACT_COMPILER === 'true',
+    reactCompiler: true, // Enabled for React 19 / Next.js 15+
 
     // Package imports optimization
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-slot',
       'class-variance-authority',
-      'date-fns'
+      'date-fns',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+      'lodash'
     ],
 
     // Bundle optimization
@@ -127,6 +131,8 @@ const nextConfig = {
 
   // Modern headers with security optimizations
   async headers() {
+    const isDev = process.env.NODE_ENV === 'development';
+
     return [
       {
         source: '/(.*)',
@@ -152,49 +158,6 @@ const nextConfig = {
             key: 'Accept-CH',
             value: 'Viewport-Width, Width, DPR',
           },
-        ],
-      },
-      {
-        // Long-term caching for static assets
-        source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        // Long-term caching for Next.js static files
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
-  },
-
-  // Rewrites for better SEO
-  async rewrites() {
-    return [
-      {
-        source: '/sitemap.xml',
-        destination: '/api/sitemap',
-      },
-    ];
-  },
-
-  // Security headers
-  async headers() {
-    const isDev = process.env.NODE_ENV === 'development';
-
-    return [
-      {
-        source: '/:path*',
-        headers: [
           {
             key: 'Content-Security-Policy',
             value: `
@@ -226,30 +189,35 @@ const nextConfig = {
               frame-ancestors 'none';
               base-uri 'self';
               form-action 'self';
+              sandbox allow-forms allow-scripts allow-same-origin allow-popups allow-downloads;
             `.replace(/\s+/g, ' ').trim()
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
           },
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
-          },
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
           }
-        ]
-      }
+        ],
+      },
+      {
+        // Long-term caching for static assets
+        source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Long-term caching for Next.js static files
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ];
   },
 };
