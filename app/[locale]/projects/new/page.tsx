@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from '@/lib/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
-import {useGetServicesGroupedByCategory, useMainCategories} from '@/hooks/use-api';
+import { useGetServicesGroupedByCategory, useMainCategories } from '@/hooks/use-api';
 import TitleIcon from '@mui/icons-material/Title';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -57,26 +57,13 @@ import { formatDeadline } from '@/lib/projects';
 import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
 import { PriceDisplay } from '@/components/PriceDisplay';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
 import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
-
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
-
-import 'dayjs/locale/ro';
-import 'dayjs/locale/en';
 import GithubConnect from "@/components/GithubConnect";
 
-
-function setDayjsLocale(locale: string) {
-    const supported = ['ro', 'en'];
-    if (supported.includes(locale)) {
-        dayjs.locale(locale);
-    } else {
-        dayjs.locale('ro');
-    }
+function getDateFnsLocale(locale: string) {
+    return locale === 'ro' ? ro : enUS;
 }
 
 type ServiceItem = {
@@ -171,10 +158,6 @@ type SelectedProvider = {
 export default function NewProjectPage() {
     const locale = useLocale() as Locale;
     const t = useTranslations();
-    useEffect(() => {
-        setDayjsLocale(locale);
-    }, [locale]);
-
     const { user, loading, userLoading, refreshUser } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
@@ -213,7 +196,7 @@ export default function NewProjectPage() {
     const [skipValidation, setSkipValidation] = useState(false);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
     const [selectedProviders, setSelectedProviders] = useState<SelectedProvider[]>([]);
-    const [providerBudgets, setProviderBudgets] = useState<{[key: string]: number}>({});
+    const [providerBudgets, setProviderBudgets] = useState<{ [key: string]: number }>({});
     const [loadingProviders, setLoadingProviders] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -693,7 +676,7 @@ export default function NewProjectPage() {
         if (selectedProviders.length === 0) return;
 
         const equalBudget = Math.floor(Number(formData.budget) / selectedProviders.length);
-        const newBudgets: {[key: string]: number} = {};
+        const newBudgets: { [key: string]: number } = {};
         selectedProviders.forEach(provider => {
             newBudgets[provider.id] = equalBudget;
         });
@@ -751,8 +734,9 @@ export default function NewProjectPage() {
     };
 
     const getLastActiveText = (lastActiveAt: string): string => {
-        const time = dayjs.utc(lastActiveAt);
-        return `${time.fromNow()}`;
+        const time = parseISO(lastActiveAt);
+        const currentLocale = getDateFnsLocale(locale);
+        return formatDistanceToNow(time, { addSuffix: true, locale: currentLocale });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -980,7 +964,7 @@ export default function NewProjectPage() {
                 })(),
             }));
         } catch (e: any) {
-            console.error ('Error generating AI output:', e);
+            console.error('Error generating AI output:', e);
         } finally {
             setAiLoading(false);
         }
@@ -1152,1444 +1136,1444 @@ export default function NewProjectPage() {
                                     </TabsTrigger>
                                 </TabsList>
 
-                        {/* Detalii Proiect */}
-                        <TabsContent value="details" className="space-y-6">
-                            <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
-                                <div>
-                                    <Card className="mb-6 glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <FileText className="w-5 h-5" />
-                                                <span>{t('projects.new.sections.general_info')}</span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div>
-                                                <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">
-                                                    {t('projects.new.fields.title')} <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Input
-                                                    id="title"
-                                                    className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.title}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                    placeholder={t('projects.new.fields.title_placeholder')}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">
-                                                    {t('projects.new.fields.description')} <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Textarea
-                                                    id="description"
-                                                    className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.description}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                                    placeholder={t('projects.new.fields.description_placeholder')}
-                                                    rows={5}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label htmlFor="requirements">{t('projects.new.fields.requirements')}</Label>
-                                                <Textarea
-                                                    id="requirements"
-                                                    value={formData.requirements}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                                                    placeholder={t('projects.new.fields.requirements_placeholder')}
-                                                    rows={3}
-                                                />
-                                            </div>
-
-                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/*<div>*/}
-                                                {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
-                                                {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
-                                                {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
-                                                {/*    }}>*/}
-                                                {/*        <SelectTrigger>*/}
-                                                {/*            <SelectValue placeholder="Selectează categoria" />*/}
-                                                {/*        </SelectTrigger>*/}
-                                                {/*        <SelectContent>*/}
-                                                {/*            {(categoriesData || []).map((category: any) => (*/}
-                                                {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
-                                                {/*                    {category.name}*/}
-                                                {/*                </SelectItem>*/}
-                                                {/*            ))}*/}
-                                                {/*        </SelectContent>*/}
-                                                {/*    </Select>*/}
-                                                {/*</div>*/}
-
-                                                {/*<div>*/}
-                                                {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
-                                                {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
-                                                {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
-                                                {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
-                                                {/*        </SelectTrigger>*/}
-                                                {/*        <SelectContent>*/}
-                                                {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
-                                                {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
-                                                {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
-                                                {/*        </SelectContent>*/}
-                                                {/*    </Select>*/}
-                                                {/*</div>*/}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card className="mb-6 glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <Code className="w-5 h-5" />
-                                                <span className={errors.technologies ? "text-red-500" : ""}>
-                                                    {t('projects.new.technologies.title')}
-                                                </span>
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t('projects.new.technologies.description')}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {formData.technologies.length > 0 && (
-                                                <div>
-                                                    <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>
-                                                        {t('projects.new.technologies.selected', { count: formData.technologies.length })}
-                                                    </Label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {formData.technologies.map((tech) => (
-                                                            <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
-                                                                <span>{tech.name}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeTechnology(tech)}
-                                                                    className="ml-1 hover:text-red-300"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        ))}
+                                {/* Detalii Proiect */}
+                                <TabsContent value="details" className="space-y-6">
+                                    <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
+                                        <div>
+                                            <Card className="mb-6 glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <FileText className="w-5 h-5" />
+                                                        <span>{t('projects.new.sections.general_info')}</span>
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    <div>
+                                                        <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">
+                                                            {t('projects.new.fields.title')} <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            id="title"
+                                                            className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
+                                                            value={formData.title}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                                            placeholder={t('projects.new.fields.title_placeholder')}
+                                                            required
+                                                        />
                                                     </div>
-                                                </div>
-                                            )}
 
-                                            {/* Adaugă tehnologie personalizată */}
-                                            <div>
-                                                <Label className={errors.technologies ? "text-red-500" : ""}>
-                                                    {t('projects.new.technologies.add_custom')}
-                                                </Label>
-                                                <div className="flex space-x-2 mt-2">
-                                                    <Input
-                                                        value={newTechnology}
-                                                        className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
-                                                        onChange={(e) => setNewTechnology(e.target.value)}
-                                                        placeholder={t('projects.new.technologies.add_custom_placeholder')}
-                                                        onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
-                                                    />
-                                                    <Button type="button" onClick={addCustomTechnology} variant="outline">
-                                                        <Plus className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
+                                                    <div>
+                                                        <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">
+                                                            {t('projects.new.fields.description')} <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Textarea
+                                                            id="description"
+                                                            className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
+                                                            value={formData.description}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                                            placeholder={t('projects.new.fields.description_placeholder')}
+                                                            rows={5}
+                                                            required
+                                                        />
+                                                    </div>
 
-                                            {/* Tehnologii disponibile grupate */}
-                                            <div className="space-y-6">
-                                                {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
-                                                    <div key={parentCategory}>
-                                                        {/* Categoria părinte - text mai mare */}
-                                                        <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
+                                                    <div>
+                                                        <Label htmlFor="requirements">{t('projects.new.fields.requirements')}</Label>
+                                                        <Textarea
+                                                            id="requirements"
+                                                            value={formData.requirements}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+                                                            placeholder={t('projects.new.fields.requirements_placeholder')}
+                                                            rows={3}
+                                                        />
+                                                    </div>
 
-                                                        {/* Categorii copil */}
-                                                        {Object.entries(childCategories).map(([childCategory, services]) => (
-                                                            <div key={childCategory} className="mb-6">
-                                                                {/* Categoria copil */}
-                                                                <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
+                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {/*<div>*/}
+                                                        {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
+                                                        {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
+                                                        {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
+                                                        {/*    }}>*/}
+                                                        {/*        <SelectTrigger>*/}
+                                                        {/*            <SelectValue placeholder="Selectează categoria" />*/}
+                                                        {/*        </SelectTrigger>*/}
+                                                        {/*        <SelectContent>*/}
+                                                        {/*            {(categoriesData || []).map((category: any) => (*/}
+                                                        {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
+                                                        {/*                    {category.name}*/}
+                                                        {/*                </SelectItem>*/}
+                                                        {/*            ))}*/}
+                                                        {/*        </SelectContent>*/}
+                                                        {/*    </Select>*/}
+                                                        {/*</div>*/}
 
-                                                                {/* Lista serviciilor */}
-                                                                <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
-                                                                    {services.map((service) => (
-                                                                        <div key={service.id} className="flex items-center space-x-2">
-                                                                            <Checkbox
-                                                                                id={service.id}
-                                                                                // checked={formData.technologies.some(t => t.id === service.id)}
-                                                                                checked={markedNamesSet.has(normalizeTechnologyName(service.name))}
-                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
-                                                                            />
-                                                                            <Label htmlFor={service.id} className="text-sm cursor-pointer">
-                                                                                {service.name}
-                                                                            </Label>
+                                                        {/*<div>*/}
+                                                        {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
+                                                        {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
+                                                        {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
+                                                        {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
+                                                        {/*        </SelectTrigger>*/}
+                                                        {/*        <SelectContent>*/}
+                                                        {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
+                                                        {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
+                                                        {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
+                                                        {/*        </SelectContent>*/}
+                                                        {/*    </Select>*/}
+                                                        {/*</div>*/}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className="mb-6 glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <Code className="w-5 h-5" />
+                                                        <span className={errors.technologies ? "text-red-500" : ""}>
+                                                            {t('projects.new.technologies.title')}
+                                                        </span>
+                                                    </CardTitle>
+                                                    <CardDescription>
+                                                        {t('projects.new.technologies.description')}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    {formData.technologies.length > 0 && (
+                                                        <div>
+                                                            <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>
+                                                                {t('projects.new.technologies.selected', { count: formData.technologies.length })}
+                                                            </Label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {formData.technologies.map((tech) => (
+                                                                    <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
+                                                                        <span>{tech.name}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeTechnology(tech)}
+                                                                            className="ml-1 hover:text-red-300"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Adaugă tehnologie personalizată */}
+                                                    <div>
+                                                        <Label className={errors.technologies ? "text-red-500" : ""}>
+                                                            {t('projects.new.technologies.add_custom')}
+                                                        </Label>
+                                                        <div className="flex space-x-2 mt-2">
+                                                            <Input
+                                                                value={newTechnology}
+                                                                className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
+                                                                onChange={(e) => setNewTechnology(e.target.value)}
+                                                                placeholder={t('projects.new.technologies.add_custom_placeholder')}
+                                                                onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
+                                                            />
+                                                            <Button type="button" onClick={addCustomTechnology} variant="outline">
+                                                                <Plus className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Tehnologii disponibile grupate */}
+                                                    <div className="space-y-6">
+                                                        {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
+                                                            <div key={parentCategory}>
+                                                                {/* Categoria părinte - text mai mare */}
+                                                                <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
+
+                                                                {/* Categorii copil */}
+                                                                {Object.entries(childCategories).map(([childCategory, services]) => (
+                                                                    <div key={childCategory} className="mb-6">
+                                                                        {/* Categoria copil */}
+                                                                        <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
+
+                                                                        {/* Lista serviciilor */}
+                                                                        <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
+                                                                            {services.map((service) => (
+                                                                                <div key={service.id} className="flex items-center space-x-2">
+                                                                                    <Checkbox
+                                                                                        id={service.id}
+                                                                                        // checked={formData.technologies.some(t => t.id === service.id)}
+                                                                                        checked={markedNamesSet.has(normalizeTechnologyName(service.name))}
+                                                                                        onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
+                                                                                    />
+                                                                                    <Label htmlFor={service.id} className="text-sm cursor-pointer">
+                                                                                        {service.name}
+                                                                                    </Label>
+                                                                                </div>
+                                                                            ))}
                                                                         </div>
-                                                                    ))}
-                                                                </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                ))}
-                                            </div>
 
-                                        </CardContent>
-                                    </Card>
+                                                </CardContent>
+                                            </Card>
 
-                                    {existsRequireRepo && (
-                                        <Card className="mb-6 glass-card shadow-sm">
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center space-x-2">
-                                                    <GithubIcon className="w-5 h-5" />
-                                                    {t('projects.new.github.title')}
-                                                </CardTitle>
-                                                <CardDescription>
-                                                    {t('projects.new.github.description')}
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="space-y-6">
-                                                <div className="space-y-6">
-                                                <Label>
-                                                    {t('projects.new.github.connect_label')}
-                                                    <span className="block text-xs text-muted-foreground">
-                                                        {t('projects.new.github.connect_description')}
-                                                    </span>
-                                                </Label>
-                                                    <GithubConnect isConnected={!!user?.github_token} />
-                                                </div>
-
-                                                <div className="p-4 border rounded-lg bg-card">
-                                                    <h3 className="font-semibold mb-4">{t('projects.new.github.repository_title')}</h3>
-                                                    <RadioGroup
-                                                        value={formData.githubRepoTarget}
-                                                        onValueChange={(value) =>
-                                                            setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
-                                                        }
-                                                        className="mb-4"
-                                                    >
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="platform" id="github-platform" />
-                                                            <Label htmlFor="github-platform">
-                                                                {t('projects.new.github.platform_repo')}
-                                                                {/*<span className="block text-xs text-muted-foreground">*/}
-                                                                {/*    Noi deținem repo-ul, tu ești colaborator.*/}
-                                                                {/*</span>*/}
-                                                            </Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2 mt-2">
-                                                            <RadioGroupItem
-                                                                value="provider"
-                                                                id="github-provider"
-                                                                disabled={!user?.github_token}
-                                                            />
-                                                            <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                {t('projects.new.github.provider_repo')}
-                                                                {!user?.github_token && (
-                                                                    <span className="block text-xs text-red-500">
-                                                                        {t('projects.new.github.connect_first')}
+                                            {existsRequireRepo && (
+                                                <Card className="mb-6 glass-card shadow-sm">
+                                                    <CardHeader>
+                                                        <CardTitle className="flex items-center space-x-2">
+                                                            <GithubIcon className="w-5 h-5" />
+                                                            {t('projects.new.github.title')}
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            {t('projects.new.github.description')}
+                                                        </CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-6">
+                                                        <div className="space-y-6">
+                                                            <Label>
+                                                                {t('projects.new.github.connect_label')}
+                                                                <span className="block text-xs text-muted-foreground">
+                                                                    {t('projects.new.github.connect_description')}
                                                                 </span>
-                                                                )}
                                                             </Label>
+                                                            <GithubConnect isConnected={!!user?.github_token} />
                                                         </div>
-                                                        <div className="flex items-center space-x-2 mt-2">
-                                                            <RadioGroupItem
-                                                                value="client"
-                                                                id="github-client"
-                                                                disabled={!user?.github_token}
-                                                            />
-                                                            <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                {t('projects.new.github.client_repo')}
-                                                                {!user?.github_token && (
-                                                                    <span className="block text-xs text-red-500">
-                                                                        {t('projects.new.github.connect_first')}
-                                                                </span>
-                                                                )}
-                                                            </Label>
-                                                        </div>
-                                                    </RadioGroup>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    )}
 
-                                    <Card className="glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <DollarSign className="w-5 h-5" />
-                                                <span>{t('projects.new.budget.title')}</span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div>
-                                                <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>
-                                                    {t('projects.new.budget.type_label')} <span className="text-red-500">*</span>
-                                                </Label>
-                                                <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
+                                                        <div className="p-4 border rounded-lg bg-card">
+                                                            <h3 className="font-semibold mb-4">{t('projects.new.github.repository_title')}</h3>
+                                                            <RadioGroup
+                                                                value={formData.githubRepoTarget}
+                                                                onValueChange={(value) =>
+                                                                    setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
+                                                                }
+                                                                className="mb-4"
+                                                            >
+                                                                <div className="flex items-center space-x-2">
+                                                                    <RadioGroupItem value="platform" id="github-platform" />
+                                                                    <Label htmlFor="github-platform">
+                                                                        {t('projects.new.github.platform_repo')}
+                                                                        {/*<span className="block text-xs text-muted-foreground">*/}
+                                                                        {/*    Noi deținem repo-ul, tu ești colaborator.*/}
+                                                                        {/*</span>*/}
+                                                                    </Label>
+                                                                </div>
+                                                                <div className="flex items-center space-x-2 mt-2">
+                                                                    <RadioGroupItem
+                                                                        value="provider"
+                                                                        id="github-provider"
+                                                                        disabled={!user?.github_token}
+                                                                    />
+                                                                    <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                        {t('projects.new.github.provider_repo')}
+                                                                        {!user?.github_token && (
+                                                                            <span className="block text-xs text-red-500">
+                                                                                {t('projects.new.github.connect_first')}
+                                                                            </span>
+                                                                        )}
+                                                                    </Label>
+                                                                </div>
+                                                                <div className="flex items-center space-x-2 mt-2">
+                                                                    <RadioGroupItem
+                                                                        value="client"
+                                                                        id="github-client"
+                                                                        disabled={!user?.github_token}
+                                                                    />
+                                                                    <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                        {t('projects.new.github.client_repo')}
+                                                                        {!user?.github_token && (
+                                                                            <span className="block text-xs text-red-500">
+                                                                                {t('projects.new.github.connect_first')}
+                                                                            </span>
+                                                                        )}
+                                                                    </Label>
+                                                                </div>
+                                                            </RadioGroup>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
+                                            <Card className="glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <DollarSign className="w-5 h-5" />
+                                                        <span>{t('projects.new.budget.title')}</span>
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    <div>
+                                                        <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>
+                                                            {t('projects.new.budget.type_label')} <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
                                                             value={formData.budgetType}
                                                             onValueChange={(value) => {
                                                                 const normalizedBudgetType: BudgetType = value === 'HOURLY' ? 'HOURLY' : 'FIXED';
                                                                 setFormData(prev => ({ ...prev, budgetType: normalizedBudgetType }));
                                                             }}>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="FIXED" id="fixed" />
-                                                        <Label htmlFor="fixed">{t('projects.new.budget.fixed_label')}</Label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="HOURLY" id="hourly" />
-                                                        <Label htmlFor="hourly">{t('projects.new.budget.hourly_label')}</Label>
-                                                    </div>
-                                                </RadioGroup>
-                                            </div>
-
-                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
-                                                        {t('projects.new.budget.amount_label', {
-                                                            suffix: formData.budgetType === 'HOURLY'
-                                                                ? t('projects.new.budget.hourly_suffix')
-                                                                : t('projects.new.budget.fixed_suffix'),
-                                                        })}{' '}
-                                                        <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Input
-                                                        id="budget"
-                                                        className={errors.buget ? "text-red-500" : ""}
-                                                        type="number"
-                                                        value={formData.budget}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                                        placeholder={formData.budgetType === 'HOURLY'
-                                                            ? t('projects.new.budget.hourly_placeholder')
-                                                            : t('projects.new.budget.fixed_placeholder')}
-                                                        required={!skipValidation}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">
-                                                        {t('projects.new.deadline.label')} <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Select
-                                                        value={formData.deadline}
-                                                        onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
-                                                    >
-                                                        <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
-                                                            <SelectValue placeholder={t('projects.new.deadline.placeholder')} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="1day">{t('projects.new.deadline.options.one_day')}</SelectItem>
-                                                            <SelectItem value="1week">{t('projects.new.deadline.options.one_week')}</SelectItem>
-                                                            <SelectItem value="2weeks">{t('projects.new.deadline.options.two_weeks')}</SelectItem>
-                                                            <SelectItem value="3weeks">{t('projects.new.deadline.options.three_weeks')}</SelectItem>
-                                                            <SelectItem value="1month">{t('projects.new.deadline.options.one_month')}</SelectItem>
-                                                            <SelectItem value="3months">{t('projects.new.deadline.options.three_months')}</SelectItem>
-                                                            <SelectItem value="6months">{t('projects.new.deadline.options.six_months')}</SelectItem>
-                                                            <SelectItem value="1year">{t('projects.new.deadline.options.one_year')}</SelectItem>
-                                                            <SelectItem value="1plusyear">{t('projects.new.deadline.options.one_plus_year')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                                <div>
-                                    <Card className="glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <AutoAwesomeIcon className="w-5 h-5" />
-                                                <span>{t('projects.new.ai.title')}</span>
-                                            </CardTitle>
-                                            <CardDescription className="flex items-center space-x-2">
-                                                {t('projects.new.ai.description')}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {generatedAiOutput.title.trim() && (
-                                                <h2 className="font-bold">{t('projects.new.ai.suggested')}</h2>
-                                            )}
-                                            {generatedAiOutput?.title.trim() && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
-                                                        <TitleIcon />
-                                                        {t('projects.new.ai.actions.use_title')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.description.trim() && (
-                                                <>
-                                                    <div className="whitespace-pre-wrap">
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
-                                                        <DescriptionIcon />
-                                                        {t('projects.new.ai.actions.use_description')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.technologies.length > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.technologies')}</span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.technologies.map((tech, index) => (
-                                                                <li key={index}>{tech}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
-                                                        <AddCircleIcon />
-                                                        {t('projects.new.ai.actions.use_technologies')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.additional_services?.length > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.additional_services_label')}</span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.additional_services.map((tech, index) => (
-                                                                <li key={index}>{tech}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
-                                                        <AddCircleIcon />
-                                                        {t('projects.new.ai.actions.add_additional_services')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.team_structure.length > 0 && (
-                                                <div>
-                                                    <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.team_structure')}</span>
-                                                    {generatedAiOutput?.team_structure.map((team, index) => {
-                                                        const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
-                                                        return (
-                                                            <div key={index}>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
-                                                                {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - <PriceDisplay value={typedTeam.estimated_cost} /> {t('projects.new.ai.fields.estimated')}
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="FIXED" id="fixed" />
+                                                                <Label htmlFor="fixed">{t('projects.new.budget.fixed_label')}</Label>
                                                             </div>
-                                                        );
-                                                    })}
-
-                                                </div>
-                                            )}
-
-                                            {generatedAiOutput.deadline.trim() && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="HOURLY" id="hourly" />
+                                                                <Label htmlFor="hourly">{t('projects.new.budget.hourly_label')}</Label>
+                                                            </div>
+                                                        </RadioGroup>
                                                     </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
-                                                        <AccessTimeFilledIcon />
-                                                        {t('projects.new.ai.actions.use_deadline')}
-                                                    </a>
-                                                </>
-                                            )}
 
-                                            {generatedAiOutput?.estimated_budget !== 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
-                                                        <PriceDisplay value={generatedAiOutput?.estimated_budget ?? 0} /> {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => {
-                                                           handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
-                                                           handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
-                                                       }}>
-                                                        <EuroIcon />
-                                                        {t('projects.new.ai.actions.use_budget')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
-                                                        {generatedAiOutput?.payment_plan || t('projects.new.ai.fields.unspecified')}
-                                                    {generatedAiOutput?.milestone_count
-                                                        ? t('projects.new.ai.milestone_count', { count: generatedAiOutput.milestone_count })
-                                                        : ''}
-                                                    </div>
-                                            )}
-
-                                            {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.milestones')}</span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
-                                                                <li key={index}>
-                                                                    {group.provider_role ? `${group.provider_role}: ` : ''}
-                                                                    {group.milestones.map((milestone, milestoneIndex) => (
-                                                                        <span key={milestoneIndex}>
-                                                                            {t('projects.new.ai.milestone_item', {
-                                                                                title: milestone.title,
-                                                                            })}{' '}
-                                                                            <PriceDisplay value={milestone.amount} />
-                                                                            {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
-                                                                        </span>
-                                                                    ))}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
-                                                        <AddCircleIcon />
-                                                        {t('projects.new.ai.actions.use_milestones')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {(generatedAiOutput?.notes ?? '').trim() && (
-                                                <div>
-                                                    <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
-                                                </div>
-                                            )}
-
-                                            <div className="col-span-2">
-                                                <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
-                                                    <AutoAwesomeIcon className="w-4 h-4 me-2" />
-                                                    {t('projects.new.ai.actions.improve_description')}
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                            <div className="flex justify-end">
-                                <Button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!validate()) return;
-                                        setActiveTab('providers');
-                                        loadSuggestedProviders();
-                                    }}
-                                    disabled={formData.technologies.length === 0}
-                                    className="px-8"
-                                >
-                                    {t('projects.new.actions.continue_to_providers')}
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </TabsContent>
-
-                        {/* Prestatori Sugerați */}
-                        <TabsContent value="providers" className="space-y-6">
-                            <Card id="suggested-providers" className="glass-card shadow-sm">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Users className="w-5 h-5" />
-                                        <span>{t('projects.new.providers.title')}</span>
-                                        <Badge variant="outline">
-                                            {t('projects.new.providers.count', {
-                                                count: filteredProviders.length,
-                                                currentPage,
-                                                totalPages,
-                                            })}
-                                        </Badge>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {t('projects.new.providers.subtitle')}<br />
-                                        <span className="text-red-500 font-bold">
-                                            {!foundSuggestedProvider ? t('projects.new.providers.no_suggestions') : ''}
-                                        </span>
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {loadingProviders ? (
-                                        <div className="flex items-center justify-center py-12">
-                                            <div className="text-center">
-                                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                                                <p className="text-muted-foreground">{t('projects.new.providers.loading')}</p>
-                                            </div>
-                                        </div>
-                                    ) : suggestedProviders.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.empty_title')}</h3>
-                                            <p className="text-muted-foreground">
-                                                {t('projects.new.providers.empty_description')}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {/* Search and Filter Bar */}
-                                            <div className="mb-6 space-y-4">
-                                                <div className="flex flex-col md:flex-row gap-4">
-                                                    {/* Search Bar */}
-                                                    <div className="flex-1">
-                                                        <div className="relative">
-                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
+                                                                {t('projects.new.budget.amount_label', {
+                                                                    suffix: formData.budgetType === 'HOURLY'
+                                                                        ? t('projects.new.budget.hourly_suffix')
+                                                                        : t('projects.new.budget.fixed_suffix'),
+                                                                })}{' '}
+                                                                <span className="text-red-500">*</span>
+                                                            </Label>
                                                             <Input
-                                                                placeholder={t('projects.new.providers.search_placeholder')}
-                                                                value={providerSearchTerm}
-                                                                onChange={(e) => setProviderSearchTerm(e.target.value)}
-                                                                className="pl-10"
+                                                                id="budget"
+                                                                className={errors.buget ? "text-red-500" : ""}
+                                                                type="number"
+                                                                value={formData.budget}
+                                                                onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
+                                                                placeholder={formData.budgetType === 'HOURLY'
+                                                                    ? t('projects.new.budget.hourly_placeholder')
+                                                                    : t('projects.new.budget.fixed_placeholder')}
+                                                                required={!skipValidation}
                                                             />
                                                         </div>
-                                                    </div>
 
-                                                    {/* Service Filter Dropdown */}
-                                                    <div className="md:w-64">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" className="w-full justify-between">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <Filter className="w-4 h-4" />
-                                                                        <span>
-                                                                            {selectedServiceFilters.length === 0
-                                                                                ? t('projects.new.providers.filters.services')
-                                                                                : t('projects.new.providers.filters.services_count', { count: selectedServiceFilters.length })
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-                                                                    <ChevronDown className="w-4 h-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                                <div className="p-2 max-h-80 overflow-y-auto">
-                                                                    <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.services_label')}</div>
-                                                                    {availableServices.map((service) => (
-                                                                        <div key={service.id} className="flex items-center space-x-2 py-1">
-                                                                            <Checkbox
-                                                                                id={`service-${service.id}`}
-                                                                                checked={selectedServiceFilters.includes(service.id)}
-                                                                                onCheckedChange={(checked) => {
-                                                                                    if (checked) {
-                                                                                        setSelectedServiceFilters(prev => [...prev, service.id]);
-                                                                                    } else {
-                                                                                        setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                            <label
-                                                                                htmlFor={`service-${service.id}`}
-                                                                                className="text-sm cursor-pointer flex-1"
-                                                                            >
-                                                                                {service.name}
-                                                                            </label>
-                                                                        </div>
-                                                                    ))}
-                                                                    {availableServices.length === 0 && (
-                                                                        <div className="text-sm text-muted-foreground py-2">
-                                                                            {t('projects.new.providers.filters.no_services')}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {selectedServiceFilters.length > 0 && (
-                                                                    <div className="border-t p-2">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setSelectedServiceFilters([])}
-                                                                            className="w-full text-xs"
-                                                                        >
-                                                                            <X className="w-3 h-3 mr-1" />
-                                                                            {t('projects.new.providers.filters.reset')}
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="outline" className="min-w-40">
-                                                                <Target className="w-4 h-4 mr-2" />
-                                                                {skillLevelFilter.length > 0
-                                                                    ? t('projects.new.providers.filters.levels_count', { count: skillLevelFilter.length })
-                                                                    : t('projects.new.providers.filters.levels')}
-                                                                <ChevronDown className="w-4 h-4 ml-2" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                            <div className="p-2">
-                                                                <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.levels_label')}</div>
-                                                                {skillLevels.map(level => (
-                                                                    <div key={level.value} className="flex items-center space-x-2 py-1">
-                                                                        <Checkbox
-                                                                            id={`skill-${level.value}`}
-                                                                            checked={skillLevelFilter.includes(level.value)}
-                                                                            onCheckedChange={(checked) =>
-                                                                                handleSkillLevelFilterChange(level.value, checked as boolean)
-                                                                            }
-                                                                        />
-                                                                        <label
-                                                                            htmlFor={`skill-${level.value}`}
-                                                                            className="flex items-center space-x-2 cursor-pointer flex-1"
-                                                                        >
-                                                                            <span>{level.icon}</span>
-                                                                            <span className="text-sm">{level.label}</span>
-                                                                        </label>
-                                                                    </div>
-                                                                ))}
-                                                                {skillLevelFilter.length > 0 && (
-                                                                    <div className="pt-2 mt-2 border-t">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setSkillLevelFilter([])}
-                                                                            className="w-full text-xs"
-                                                                        >
-                                                                            {t('projects.new.providers.filters.reset_levels')}
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-
-                                                {/* Active Filters Display */}
-                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="text-sm text-muted-foreground">{t('projects.new.providers.filters.active')}</span>
-
-                                                        {providerSearchTerm && (
-                                                            <Badge variant="secondary" className="flex items-center space-x-1">
-                                                                <Search className="w-3 h-3" />
-                                                                <span>&#34;{providerSearchTerm}&#34;</span>
-                                                                <button
-                                                                    onClick={() => setProviderSearchTerm('')}
-                                                                    className="ml-1 hover:text-red-500"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        )}
-
-                                                        {selectedServiceFilters.map(serviceId => {
-                                                            const service = availableServices.find(s => s.id === serviceId);
-                                                            return service ? (
-                                                                <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
-                                                                    <span>{service.name}</span>
-                                                                    <button
-                                                                        onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
-                                                                        className="ml-1 hover:text-red-500"
-                                                                    >
-                                                                        <X className="w-3 h-3" />
-                                                                    </button>
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
-
-                                                        {skillLevelFilter.map(level => {
-                                                            const levelInfo = skillLevels.find(l => l.value === level);
-                                                            return (
-                                                                <Badge key={level} variant="secondary" className="flex items-center space-x-1">
-                                                                    <span>{levelInfo?.icon}</span>
-                                                                    <span>{levelInfo?.label}</span>
-                                                                    <button
-                                                                        onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
-                                                                        className="ml-1 hover:text-red-500"
-                                                                    >
-                                                                        <X className="w-3 h-3" />
-                                                                    </button>
-                                                                </Badge>
-                                                            );
-                                                        })}
-
-                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setProviderSearchTerm('');
-                                                                    setSelectedServiceFilters([]);
-                                                                    setSkillLevelFilter([]);
-                                                                }}
-                                                                className="text-xs h-6"
+                                                        <div>
+                                                            <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">
+                                                                {t('projects.new.deadline.label')} <span className="text-red-500">*</span>
+                                                            </Label>
+                                                            <Select
+                                                                value={formData.deadline}
+                                                                onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
                                                             >
-                                                                {t('projects.new.providers.filters.reset_all')}
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {currentProviders.length === 0 ? (
-                                                <div className="text-center py-8">
-                                                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.none_title')}</h3>
-                                                    <p className="text-muted-foreground mb-4">
-                                                        {filteredProviders.length === 0
-                                                            ? t('projects.new.providers.none_description')
-                                                            : t('projects.new.providers.none_page')
-                                                        }
-                                                    </p>
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setProviderSearchTerm('');
-                                                            setSelectedServiceFilters([]);
-                                                            setSkillLevelFilter([]);
-                                                            setCurrentPage(1);
-                                                        }}
-                                                    >
-                                                        {t('projects.new.providers.filters.reset_filters')}
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                                        {currentProviders.map((provider) => {
-                                                            const passedReasons = provider.matchReasons.filter(reason => reason.passed);
-                                                            const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
-                                                            const availabilityStatus = getAvailabilityStatus(provider.availability);
-                                                            return (
-                                                                <Card
-                                                                    key={provider.id}
-                                                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                                        selectedProviders.some(p => p.id === provider.id)
-                                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                                            : 'border-gray-200 hover:border-blue-300'
-                                                                    }`}
-                                                                    onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
-                                                                >
-                                                                    <CardContent className="p-6">
-                                                                        <div className="flex flex-col items-start justify-between">
-                                                                            <div className="flex flex-row items-start space-x-4 flex-1">
-                                                                                <div className="relative">
-                                                                                    <Avatar className="w-16 h-16">
-                                                                                        <AvatarImage src={provider.avatar} />
-                                                                                        <AvatarFallback>
-                                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                                        </AvatarFallback>
-                                                                                    </Avatar>
-                                                                                    {provider.isVerified && (
-                                                                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                            <CheckCircle className="w-4 h-4 text-white" />
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-
-                                                                                <div className="flex-1">
-                                                                                    <div className="flex items-center space-x-2 mb-2">
-                                                                                        <h3 className="text-lg font-semibold">
-                                                                                            {provider.firstName} {provider.lastName}
-                                                                                        </h3>
-                                                                                        {provider.isVerified && (
-                                                                                            <CheckCircle className="w-4 h-4 text-green-500" />
-                                                                                        )}
-                                                                                        <Badge className={
-                                                                                            skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                            'bg-blue-100 text-blue-800'
-                                                                                        }>
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
-                                                                                        </Badge>
-
-                                                                                        <Badge className={`${availabilityStatus.color}`}>
-                                                                                            {
-                                                                                                (() => {
-                                                                                                    const Icon = availabilityStatus.icon;
-                                                                                                    return <Icon className="mr-1 w-4 h-4" />;
-                                                                                                })()
-                                                                                            }
-                                                                                            {availabilityStatus.label}
-                                                                                        </Badge>
-
-                                                                                    </div>
-                                                                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                        <Badge className="bg-green-100 text-green-800">
-                                                                                            {t('projects.new.providers.match_score', { score: provider.matchScore })}
-                                                                                        </Badge>
-                                                                                        {provider.isVerified && (
-                                                                                            <Badge className="bg-blue-100 text-blue-800">
-                                                                                                {t('projects.new.providers.verified')}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                                            <span className="font-medium">{provider.rating}</span>
-                                                                                            <span>({t('projects.new.providers.reviews', { count: provider.reviewCount })})</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <MapPin className="w-4 h-4" />
-                                                                                            <span>{provider.location}</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <Clock className="w-4 h-4" />
-                                                                                            <span>
-                                                                                                {t('projects.new.providers.response_time', {
-                                                                                                    time: provider.responseTime,
-                                                                                                    unit: provider.responseTime === "1"
-                                                                                                        ? t('projects.new.providers.hour_singular')
-                                                                                                        : t('projects.new.providers.hour_plural'),
-                                                                                                })}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <div className="flex flex-wrap gap-1 mb-3">
-                                                                                        {provider.skills.map((skill, index) =>
-                                                                                            index < 4 ? (
-                                                                                                <Badge key={skill} variant="outline" className="text-xs">
-                                                                                                    {skill}
-                                                                                                </Badge>
-                                                                                            ) : null
-                                                                                        )}
-                                                                                        {provider.skills.length > 4 && (
-                                                                                            <Badge variant="outline" className="text-xs">
-                                                                                                +{provider.skills.length - 4}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div className="space-y-1">
-                                                                                        {/*<div className="text-sm font-medium text-green-600">*/}
-                                                                                        {/*    De ce este potrivit:*/}
-                                                                                        {/*</div>*/}
-                                                                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                                                            {/* Coloana 1: Passed */}
-                                                                                            <div>
-                                                                                                <h4 className="text-sm font-medium text-green-600 mb-2">{t('projects.new.providers.why_fit')}</h4>
-                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                    {passedReasons.map((reason, index) => (
-                                                                                                        <li key={`passed-${index}`} className="flex items-center space-x-2">
-                                                                                                            <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                                            <span className="text-green-600">{reason.message}</span>
-                                                                                                        </li>
-                                                                                                    ))}
-                                                                                                </ul>
-                                                                                            </div>
-
-                                                                                            {/* Coloana 2: Nepotriviri */}
-                                                                                            <div>
-                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                    {failedReasons.map((reason, index) => (
-                                                                                                        <li key={`failed-${index}`} className="flex items-center space-x-2">
-                                                                                                            <BadgeAlert className="w-3 h-3 text-red-500" />
-                                                                                                            <span className="text-red-600">{reason.message}</span>
-                                                                                                        </li>
-                                                                                                    ))}
-                                                                                                </ul>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div className="text-right space-y-2">
-                                                                                {/*<div className="text-sm text-muted-foreground">*/}
-                                                                                {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                                {/*</div>*/}
-                                                                                {/*<div className="text-sm">*/}
-                                                                                {/*    <div className="flex items-center space-x-1 justify-end">*/}
-                                                                                {/*        <Calendar className="w-3 h-3" />*/}
-                                                                                {/*        <span>{provider.deliveryTime} zile</span>*/}
-                                                                                {/*    </div>*/}
-                                                                                {/*</div>*/}
-
-                                                                                <div className="text-xs text-muted-foreground">
-                                                                                    {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
-                                                                                </div>
-
-                                                                                <div className="flex space-x-2 mt-4">
-                                                                                    <a href={`/provider/${provider.profileUrl}`} target="_blank"
-                                                                                       className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                    >
-                                                                                        <Eye className="w-3 h-3 mr-1" />
-                                                                                        {t('projects.new.providers.profile')}
-                                                                                    </a>
-                                                                                    {/*<a*/}
-                                                                                    {/*    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"*/}
-                                                                                    {/*>*/}
-                                                                                    {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
-                                                                                    {/*    {t('projects.new.providers.message')}*/}
-                                                                                    {/*</a>*/}
-                                                                                </div>
-
-                                                                            </div>
-                                                                        </div>
-
-                                                                    </CardContent>
-                                                                </Card>
-                                                            );})}
-                                                    </div>
-
-                                                    {/* Pagination */}
-                                                    {totalPages > 1 && (
-                                                        <div className="flex items-center justify-between pt-6 border-t">
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {t('projects.new.providers.pagination', {
-                                                                    start: indexOfFirstProvider + 1,
-                                                                    end: Math.min(indexOfLastProvider, filteredProviders.length),
-                                                                    total: filteredProviders.length,
-                                                                })}
-                                                            </div>
-
-                                                            <div className="flex items-center space-x-2">
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handlePageChange(currentPage - 1)}
-                                                                    disabled={currentPage === 1}
-                                                                    className="flex items-center space-x-1"
-                                                                >
-                                                                    <ArrowLeft className="w-4 h-4" />
-                                                                    <span>{t('projects.new.pagination.previous')}</span>
-                                                                </Button>
-
-                                                                <div className="flex items-center space-x-1">
-                                                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                                                                        // Show first page, last page, current page, and pages around current
-                                                                        const showPage = page === 1 ||
-                                                                            page === totalPages ||
-                                                                            Math.abs(page - currentPage) <= 1;
-
-                                                                        if (!showPage && page === 2 && currentPage > 4) {
-                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                        }
-
-                                                                        if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
-                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                        }
-
-                                                                        if (!showPage) return null;
-
-                                                                        return (
-                                                                            <Button
-                                                                                key={page}
-                                                                                variant={currentPage === page ? "default" : "outline"}
-                                                                                size="sm"
-                                                                                onClick={() => handlePageChange(page)}
-                                                                                className="w-8 h-8 p-0"
-                                                                            >
-                                                                                {page}
-                                                                            </Button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handlePageChange(currentPage + 1)}
-                                                                    disabled={currentPage === totalPages}
-                                                                    className="flex items-center space-x-1"
-                                                                >
-                                                                    <span>{t('projects.new.pagination.next')}</span>
-                                                                    <ArrowRight className="w-4 h-4" />
-                                                                </Button>
-                                                            </div>
+                                                                <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
+                                                                    <SelectValue placeholder={t('projects.new.deadline.placeholder')} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="1day">{t('projects.new.deadline.options.one_day')}</SelectItem>
+                                                                    <SelectItem value="1week">{t('projects.new.deadline.options.one_week')}</SelectItem>
+                                                                    <SelectItem value="2weeks">{t('projects.new.deadline.options.two_weeks')}</SelectItem>
+                                                                    <SelectItem value="3weeks">{t('projects.new.deadline.options.three_weeks')}</SelectItem>
+                                                                    <SelectItem value="1month">{t('projects.new.deadline.options.one_month')}</SelectItem>
+                                                                    <SelectItem value="3months">{t('projects.new.deadline.options.three_months')}</SelectItem>
+                                                                    <SelectItem value="6months">{t('projects.new.deadline.options.six_months')}</SelectItem>
+                                                                    <SelectItem value="1year">{t('projects.new.deadline.options.one_year')}</SelectItem>
+                                                                    <SelectItem value="1plusyear">{t('projects.new.deadline.options.one_plus_year')}</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
                                                         </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {selectedProviders.length > 0 && (
-                                        <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                                <span className="font-medium text-green-800 dark:text-green-200">
-                                                    {t('projects.new.providers.selected_count', {
-                                                        count: selectedProviders.length,
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-green-700 dark:text-green-300">
-                                                {t('projects.new.providers.selected_message')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setActiveTab('details')}
-                                >
-                                    {t('projects.new.actions.back_to_details')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={() => setActiveTab('review')}
-                                    disabled={selectedProviders.length === 0}
-                                    className="btn-primary px-8"
-                                >
-                                    {t('projects.new.actions.review_final')}
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </TabsContent>
-
-                        {/* Revizuire și Trimitere */}
-                        <TabsContent value="review" className="space-y-6">
-                            <Card className="glass-card shadow-sm">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Target className="w-5 h-5" />
-                                        <span>{t('projects.new.review.title')}</span>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {t('projects.new.review.subtitle')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Rezumat proiect */}
-                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
-                                                <div className="space-y-2 text-sm">
-                                                    <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
-
-                                                    {/*<div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData*/}
-                                                    {/*    ?.flatMap((c: any) => [c, ...(c.children || [])]) */}
-                                                    {/*    .find((c: any) => String(c.id) === String(formData.serviceId)) // Căutăm ID-ul (convertit la string)*/}
-                                                    {/*    ?.name}</div>*/}
-                                                    <div>
-                                                        <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
                                                     </div>
-                                                    <div>
-                                                        <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? 150 : Number(formData.budget ?? 0) * 0.10} />
-                                                    </div>
-                                                    <div>
-                                                        <strong>{t('projects.new.review.labels.total')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? Number(formData.budget ?? 0) + 150 : Number(formData.budget ?? 0) * 1.10} />
-                                                    </div>
-                                                    {formData.deadline && (
-                                                        <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
-                                                    )}
-                                                    {/*<div>*/}
-                                                    {/*    <strong>Tip proiect:</strong>*/}
-                                                    {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
-                                                    {/*        {formData.visibility}*/}
-                                                    {/*    </Badge>*/}
-                                                    {/*</div>*/}
-                                                </div>
-                                            </div>
 
-                                            <div>
-                                                <h4 className="font-semibold mb-2">{t('projects.new.review.technologies_title', { count: formData.technologies.length })}</h4>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {formData.technologies.map((tech) => (
-                                                        <Badge key={tech.id} variant="outline" className="text-xs">
-                                                            {tech.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                                </CardContent>
+                                            </Card>
                                         </div>
-
                                         <div>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-semibold">{t('projects.new.review.selected_providers_title', { count: selectedProviders.length })}</h3>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={redistributeBudget}
-                                                            disabled={selectedProviders.length === 0}
-                                                        >
-                                                            <DollarSign className="w-4 h-4 mr-1" />
-                                                            {t('projects.new.review.split_evenly')}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Budget Summary */}
-                                                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-                                                    <CardContent className="p-4">
-                                                        <div className="grid grid-cols-3 gap-4 text-sm">
+                                            <Card className="glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <AutoAwesomeIcon className="w-5 h-5" />
+                                                        <span>{t('projects.new.ai.title')}</span>
+                                                    </CardTitle>
+                                                    <CardDescription className="flex items-center space-x-2">
+                                                        {t('projects.new.ai.description')}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    {generatedAiOutput.title.trim() && (
+                                                        <h2 className="font-bold">{t('projects.new.ai.suggested')}</h2>
+                                                    )}
+                                                    {generatedAiOutput?.title.trim() && (
+                                                        <>
                                                             <div>
-                                                                <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
-                                                                <div className="text-lg font-bold text-blue-600">
-                                                                    <PriceDisplay value={Number(formData.budget)} />
-                                                                </div>
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
                                                             </div>
-                                                            <div>
-                                                                <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
-                                                                <div className="text-lg font-bold text-green-600">
-                                                                    <PriceDisplay value={getTotalAllocatedBudget()} />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
-                                                                <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                                                    <PriceDisplay value={getRemainingBudget()} />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        {getRemainingBudget() !== 0 && (
-                                                            <Alert className="mt-3 border-orange-200 bg-orange-50">
-                                                                <AlertCircle className="h-4 w-4" />
-                                                                <AlertDescription className="text-orange-800">
-                                                                    {getRemainingBudget() > 0
-                                                                        ? (
-                                                                            <>
-                                                                                {t('projects.new.review.budget_remaining_positive')}{' '}
-                                                                                <PriceDisplay value={getRemainingBudget()} />
-                                                                            </>
-                                                                        )
-                                                                        : (
-                                                                            <>
-                                                                                {t('projects.new.review.budget_remaining_negative')}{' '}
-                                                                                <PriceDisplay value={Math.abs(getRemainingBudget())} />
-                                                                            </>
-                                                                        )
-                                                                    }
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
+                                                                <TitleIcon />
+                                                                {t('projects.new.ai.actions.use_title')}
+                                                            </a>
+                                                        </>
+                                                    )}
 
-                                                {isLongProject && (
-                                                    <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
-                                                        <CardHeader>
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <CardTitle className="text-base">{t('projects.new.review.milestones.title')}</CardTitle>
-                                                                    <CardDescription>
-                                                                        {t('projects.new.review.milestones.description')}
-                                                                    </CardDescription>
-                                                                </div>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={applyAiMilestonesToProviders}
-                                                                    disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
-                                                                >
-                                                                    <AutoAwesomeIcon className="w-4 h-4 mr-2" />
-                                                                    {t('projects.new.review.milestones.apply_ai')}
-                                                                </Button>
+                                                    {generatedAiOutput?.description.trim() && (
+                                                        <>
+                                                            <div className="whitespace-pre-wrap">
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
                                                             </div>
-                                                        </CardHeader>
-                                                        <CardContent className="space-y-4">
-                                                            {selectedProviders.map((selectedProvider) => {
-                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                                const milestones = providerMilestones[selectedProvider.id] ?? [];
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                                onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
+                                                                <DescriptionIcon />
+                                                                {t('projects.new.ai.actions.use_description')}
+                                                            </a>
+                                                        </>
+                                                    )}
 
+                                                    {generatedAiOutput?.technologies.length > 0 && (
+                                                        <>
+                                                            <div>
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.technologies')}</span>
+                                                                <ul className="ml-6 list-disc">
+                                                                    {generatedAiOutput?.technologies.map((tech, index) => (
+                                                                        <li key={index}>{tech}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                                onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
+                                                                <AddCircleIcon />
+                                                                {t('projects.new.ai.actions.use_technologies')}
+                                                            </a>
+                                                        </>
+                                                    )}
+
+                                                    {generatedAiOutput?.additional_services?.length > 0 && (
+                                                        <>
+                                                            <div>
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.additional_services_label')}</span>
+                                                                <ul className="ml-6 list-disc">
+                                                                    {generatedAiOutput?.additional_services.map((tech, index) => (
+                                                                        <li key={index}>{tech}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                                onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
+                                                                <AddCircleIcon />
+                                                                {t('projects.new.ai.actions.add_additional_services')}
+                                                            </a>
+                                                        </>
+                                                    )}
+
+                                                    {generatedAiOutput?.team_structure.length > 0 && (
+                                                        <div>
+                                                            <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.team_structure')}</span>
+                                                            {generatedAiOutput?.team_structure.map((team, index) => {
+                                                                const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
                                                                 return (
-                                                                    <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="font-medium">
-                                                                                {provider ? `${provider.firstName} ${provider.lastName}` : t('projects.new.review.milestones.provider_fallback', { id: selectedProvider.id })}
-                                                                            </div>
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={() => addProviderMilestone(selectedProvider.id)}
-                                                                            >
-                                                                                <Plus className="w-4 h-4 mr-2" />
-                                                                                {t('projects.new.review.milestones.add')}
-                                                                            </Button>
-                                                                        </div>
-                                                                        {milestones.length === 0 ? (
-                                                                            <div className="text-sm text-muted-foreground">
-                                                                                {t('projects.new.review.milestones.empty')}
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="space-y-3">
-                                                                                {milestones.map((milestone, index) => (
-                                                                                    <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
-                                                                                        <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>{t('projects.new.review.milestones.name_label')}</Label>
-                                                                                            <Input
-                                                                                                id={`provider-${selectedProvider.id}-milestone-title-${index}`}
-                                                                                                value={milestone.title}
-                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
-                                                                                                placeholder={t('projects.new.review.milestones.name_placeholder')}
-                                                                                            />
-                                                                                        </div>
-                                                                                        <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label')}</Label>
-                                                                                            <Input
-                                                                                                id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
-                                                                                                type="number"
-                                                                                                min="0"
-                                                                                                value={milestone.amount}
-                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
-                                                                                                placeholder={t('projects.new.review.milestones.budget_placeholder')}
-                                                                                            />
-                                                                                        </div>
-                                                                                        <Button
-                                                                                            type="button"
-                                                                                            variant="ghost"
-                                                                                            size="icon"
-                                                                                            onClick={() => removeProviderMilestone(selectedProvider.id, index)}
-                                                                                            aria-label={t('projects.new.review.milestones.delete_aria')}
-                                                                                        >
-                                                                                            <X className="w-4 h-4" />
-                                                                                        </Button>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="text-sm text-muted-foreground">
-                                                                            {t('projects.new.review.milestones.total_provider')}{' '}
-                                                                            <PriceDisplay value={milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0)} />
-                                                                        </div>
+                                                                    <div key={index}>
+                                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
+                                                                        {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - <PriceDisplay value={typedTeam.estimated_cost} /> {t('projects.new.ai.fields.estimated')}
                                                                     </div>
                                                                 );
                                                             })}
 
-                                                            {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
-                                                                <div className="text-sm text-red-500">
-                                                                    {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
+                                                        </div>
+                                                    )}
+
+                                                    {generatedAiOutput.deadline.trim() && (
+                                                        <>
+                                                            <div>
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
+                                                            </div>
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
+                                                                <AccessTimeFilledIcon />
+                                                                {t('projects.new.ai.actions.use_deadline')}
+                                                            </a>
+                                                        </>
+                                                    )}
+
+                                                    {generatedAiOutput?.estimated_budget !== 0 && (
+                                                        <>
+                                                            <div>
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
+                                                                <PriceDisplay value={generatedAiOutput?.estimated_budget ?? 0} /> {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
+                                                            </div>
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                                onClick={() => {
+                                                                    handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
+                                                                    handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
+                                                                }}>
+                                                                <EuroIcon />
+                                                                {t('projects.new.ai.actions.use_budget')}
+                                                            </a>
+                                                        </>
+                                                    )}
+
+                                                    {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
+                                                        <div>
+                                                            <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
+                                                            {generatedAiOutput?.payment_plan || t('projects.new.ai.fields.unspecified')}
+                                                            {generatedAiOutput?.milestone_count
+                                                                ? t('projects.new.ai.milestone_count', { count: generatedAiOutput.milestone_count })
+                                                                : ''}
+                                                        </div>
+                                                    )}
+
+                                                    {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
+                                                        <>
+                                                            <div>
+                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.milestones')}</span>
+                                                                <ul className="ml-6 list-disc">
+                                                                    {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
+                                                                        <li key={index}>
+                                                                            {group.provider_role ? `${group.provider_role}: ` : ''}
+                                                                            {group.milestones.map((milestone, milestoneIndex) => (
+                                                                                <span key={milestoneIndex}>
+                                                                                    {t('projects.new.ai.milestone_item', {
+                                                                                        title: milestone.title,
+                                                                                    })}{' '}
+                                                                                    <PriceDisplay value={milestone.amount} />
+                                                                                    {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
+                                                                                </span>
+                                                                            ))}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
+                                                                onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
+                                                                <AddCircleIcon />
+                                                                {t('projects.new.ai.actions.use_milestones')}
+                                                            </a>
+                                                        </>
+                                                    )}
+
+                                                    {(generatedAiOutput?.notes ?? '').trim() && (
+                                                        <div>
+                                                            <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="col-span-2">
+                                                        <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
+                                                            <AutoAwesomeIcon className="w-4 h-4 me-2" />
+                                                            {t('projects.new.ai.actions.improve_description')}
+                                                        </Button>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!validate()) return;
+                                                setActiveTab('providers');
+                                                loadSuggestedProviders();
+                                            }}
+                                            disabled={formData.technologies.length === 0}
+                                            className="px-8"
+                                        >
+                                            {t('projects.new.actions.continue_to_providers')}
+                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Prestatori Sugerați */}
+                                <TabsContent value="providers" className="space-y-6">
+                                    <Card id="suggested-providers" className="glass-card shadow-sm">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <Users className="w-5 h-5" />
+                                                <span>{t('projects.new.providers.title')}</span>
+                                                <Badge variant="outline">
+                                                    {t('projects.new.providers.count', {
+                                                        count: filteredProviders.length,
+                                                        currentPage,
+                                                        totalPages,
+                                                    })}
+                                                </Badge>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t('projects.new.providers.subtitle')}<br />
+                                                <span className="text-red-500 font-bold">
+                                                    {!foundSuggestedProvider ? t('projects.new.providers.no_suggestions') : ''}
+                                                </span>
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {loadingProviders ? (
+                                                <div className="flex items-center justify-center py-12">
+                                                    <div className="text-center">
+                                                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                                                        <p className="text-muted-foreground">{t('projects.new.providers.loading')}</p>
+                                                    </div>
+                                                </div>
+                                            ) : suggestedProviders.length === 0 ? (
+                                                <div className="text-center py-12">
+                                                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                                    <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.empty_title')}</h3>
+                                                    <p className="text-muted-foreground">
+                                                        {t('projects.new.providers.empty_description')}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {/* Search and Filter Bar */}
+                                                    <div className="mb-6 space-y-4">
+                                                        <div className="flex flex-col md:flex-row gap-4">
+                                                            {/* Search Bar */}
+                                                            <div className="flex-1">
+                                                                <div className="relative">
+                                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                                                    <Input
+                                                                        placeholder={t('projects.new.providers.search_placeholder')}
+                                                                        value={providerSearchTerm}
+                                                                        onChange={(e) => setProviderSearchTerm(e.target.value)}
+                                                                        className="pl-10"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Service Filter Dropdown */}
+                                                            <div className="md:w-64">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="outline" className="w-full justify-between">
+                                                                            <div className="flex items-center space-x-2">
+                                                                                <Filter className="w-4 h-4" />
+                                                                                <span>
+                                                                                    {selectedServiceFilters.length === 0
+                                                                                        ? t('projects.new.providers.filters.services')
+                                                                                        : t('projects.new.providers.filters.services_count', { count: selectedServiceFilters.length })
+                                                                                    }
+                                                                                </span>
+                                                                            </div>
+                                                                            <ChevronDown className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
+                                                                        <div className="p-2 max-h-80 overflow-y-auto">
+                                                                            <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.services_label')}</div>
+                                                                            {availableServices.map((service) => (
+                                                                                <div key={service.id} className="flex items-center space-x-2 py-1">
+                                                                                    <Checkbox
+                                                                                        id={`service-${service.id}`}
+                                                                                        checked={selectedServiceFilters.includes(service.id)}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            if (checked) {
+                                                                                                setSelectedServiceFilters(prev => [...prev, service.id]);
+                                                                                            } else {
+                                                                                                setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                    <label
+                                                                                        htmlFor={`service-${service.id}`}
+                                                                                        className="text-sm cursor-pointer flex-1"
+                                                                                    >
+                                                                                        {service.name}
+                                                                                    </label>
+                                                                                </div>
+                                                                            ))}
+                                                                            {availableServices.length === 0 && (
+                                                                                <div className="text-sm text-muted-foreground py-2">
+                                                                                    {t('projects.new.providers.filters.no_services')}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        {selectedServiceFilters.length > 0 && (
+                                                                            <div className="border-t p-2">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => setSelectedServiceFilters([])}
+                                                                                    className="w-full text-xs"
+                                                                                >
+                                                                                    <X className="w-3 h-3 mr-1" />
+                                                                                    {t('projects.new.providers.filters.reset')}
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
+
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="outline" className="min-w-40">
+                                                                        <Target className="w-4 h-4 mr-2" />
+                                                                        {skillLevelFilter.length > 0
+                                                                            ? t('projects.new.providers.filters.levels_count', { count: skillLevelFilter.length })
+                                                                            : t('projects.new.providers.filters.levels')}
+                                                                        <ChevronDown className="w-4 h-4 ml-2" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
+                                                                    <div className="p-2">
+                                                                        <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.levels_label')}</div>
+                                                                        {skillLevels.map(level => (
+                                                                            <div key={level.value} className="flex items-center space-x-2 py-1">
+                                                                                <Checkbox
+                                                                                    id={`skill-${level.value}`}
+                                                                                    checked={skillLevelFilter.includes(level.value)}
+                                                                                    onCheckedChange={(checked) =>
+                                                                                        handleSkillLevelFilterChange(level.value, checked as boolean)
+                                                                                    }
+                                                                                />
+                                                                                <label
+                                                                                    htmlFor={`skill-${level.value}`}
+                                                                                    className="flex items-center space-x-2 cursor-pointer flex-1"
+                                                                                >
+                                                                                    <span>{level.icon}</span>
+                                                                                    <span className="text-sm">{level.label}</span>
+                                                                                </label>
+                                                                            </div>
+                                                                        ))}
+                                                                        {skillLevelFilter.length > 0 && (
+                                                                            <div className="pt-2 mt-2 border-t">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => setSkillLevelFilter([])}
+                                                                                    className="w-full text-xs"
+                                                                                >
+                                                                                    {t('projects.new.providers.filters.reset_levels')}
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+
+                                                        {/* Active Filters Display */}
+                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="text-sm text-muted-foreground">{t('projects.new.providers.filters.active')}</span>
+
+                                                                {providerSearchTerm && (
+                                                                    <Badge variant="secondary" className="flex items-center space-x-1">
+                                                                        <Search className="w-3 h-3" />
+                                                                        <span>&#34;{providerSearchTerm}&#34;</span>
+                                                                        <button
+                                                                            onClick={() => setProviderSearchTerm('')}
+                                                                            className="ml-1 hover:text-red-500"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </Badge>
+                                                                )}
+
+                                                                {selectedServiceFilters.map(serviceId => {
+                                                                    const service = availableServices.find(s => s.id === serviceId);
+                                                                    return service ? (
+                                                                        <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
+                                                                            <span>{service.name}</span>
+                                                                            <button
+                                                                                onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
+                                                                                className="ml-1 hover:text-red-500"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </button>
+                                                                        </Badge>
+                                                                    ) : null;
+                                                                })}
+
+                                                                {skillLevelFilter.map(level => {
+                                                                    const levelInfo = skillLevels.find(l => l.value === level);
+                                                                    return (
+                                                                        <Badge key={level} variant="secondary" className="flex items-center space-x-1">
+                                                                            <span>{levelInfo?.icon}</span>
+                                                                            <span>{levelInfo?.label}</span>
+                                                                            <button
+                                                                                onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
+                                                                                className="ml-1 hover:text-red-500"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </button>
+                                                                        </Badge>
+                                                                    );
+                                                                })}
+
+                                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            setProviderSearchTerm('');
+                                                                            setSelectedServiceFilters([]);
+                                                                            setSkillLevelFilter([]);
+                                                                        }}
+                                                                        className="text-xs h-6"
+                                                                    >
+                                                                        {t('projects.new.providers.filters.reset_all')}
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {currentProviders.length === 0 ? (
+                                                        <div className="text-center py-8">
+                                                            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                                            <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.none_title')}</h3>
+                                                            <p className="text-muted-foreground mb-4">
+                                                                {filteredProviders.length === 0
+                                                                    ? t('projects.new.providers.none_description')
+                                                                    : t('projects.new.providers.none_page')
+                                                                }
+                                                            </p>
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    setProviderSearchTerm('');
+                                                                    setSelectedServiceFilters([]);
+                                                                    setSkillLevelFilter([]);
+                                                                    setCurrentPage(1);
+                                                                }}
+                                                            >
+                                                                {t('projects.new.providers.filters.reset_filters')}
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                                                                {currentProviders.map((provider) => {
+                                                                    const passedReasons = provider.matchReasons.filter(reason => reason.passed);
+                                                                    const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
+                                                                    const availabilityStatus = getAvailabilityStatus(provider.availability);
+                                                                    return (
+                                                                        <Card
+                                                                            key={provider.id}
+                                                                            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedProviders.some(p => p.id === provider.id)
+                                                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
+                                                                                : 'border-gray-200 hover:border-blue-300'
+                                                                                }`}
+                                                                            onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
+                                                                        >
+                                                                            <CardContent className="p-6">
+                                                                                <div className="flex flex-col items-start justify-between">
+                                                                                    <div className="flex flex-row items-start space-x-4 flex-1">
+                                                                                        <div className="relative">
+                                                                                            <Avatar className="w-16 h-16">
+                                                                                                <AvatarImage src={provider.avatar} />
+                                                                                                <AvatarFallback>
+                                                                                                    {provider.firstName[0]}{provider.lastName[0]}
+                                                                                                </AvatarFallback>
+                                                                                            </Avatar>
+                                                                                            {provider.isVerified && (
+                                                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                                    <CheckCircle className="w-4 h-4 text-white" />
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        <div className="flex-1">
+                                                                                            <div className="flex items-center space-x-2 mb-2">
+                                                                                                <h3 className="text-lg font-semibold">
+                                                                                                    {provider.firstName} {provider.lastName}
+                                                                                                </h3>
+                                                                                                {provider.isVerified && (
+                                                                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                                                                )}
+                                                                                                <Badge className={
+                                                                                                    skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                                    'bg-blue-100 text-blue-800'
+                                                                                                }>
+                                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
+                                                                                                </Badge>
+
+                                                                                                <Badge className={`${availabilityStatus.color}`}>
+                                                                                                    {
+                                                                                                        (() => {
+                                                                                                            const Icon = availabilityStatus.icon;
+                                                                                                            return <Icon className="mr-1 w-4 h-4" />;
+                                                                                                        })()
+                                                                                                    }
+                                                                                                    {availabilityStatus.label}
+                                                                                                </Badge>
+
+                                                                                            </div>
+                                                                                            <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+                                                                                                <Badge className="bg-green-100 text-green-800">
+                                                                                                    {t('projects.new.providers.match_score', { score: provider.matchScore })}
+                                                                                                </Badge>
+                                                                                                {provider.isVerified && (
+                                                                                                    <Badge className="bg-blue-100 text-blue-800">
+                                                                                                        {t('projects.new.providers.verified')}
+                                                                                                    </Badge>
+                                                                                                )}
+                                                                                            </div>
+
+                                                                                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                                                                                                <div className="flex items-center space-x-1">
+                                                                                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                                                                    <span className="font-medium">{provider.rating}</span>
+                                                                                                    <span>({t('projects.new.providers.reviews', { count: provider.reviewCount })})</span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center space-x-1">
+                                                                                                    <MapPin className="w-4 h-4" />
+                                                                                                    <span>{provider.location}</span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center space-x-1">
+                                                                                                    <Clock className="w-4 h-4" />
+                                                                                                    <span>
+                                                                                                        {t('projects.new.providers.response_time', {
+                                                                                                            time: provider.responseTime,
+                                                                                                            unit: provider.responseTime === "1"
+                                                                                                                ? t('projects.new.providers.hour_singular')
+                                                                                                                : t('projects.new.providers.hour_plural'),
+                                                                                                        })}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                                                                {provider.skills.map((skill, index) =>
+                                                                                                    index < 4 ? (
+                                                                                                        <Badge key={skill} variant="outline" className="text-xs">
+                                                                                                            {skill}
+                                                                                                        </Badge>
+                                                                                                    ) : null
+                                                                                                )}
+                                                                                                {provider.skills.length > 4 && (
+                                                                                                    <Badge variant="outline" className="text-xs">
+                                                                                                        +{provider.skills.length - 4}
+                                                                                                    </Badge>
+                                                                                                )}
+                                                                                            </div>
+
+                                                                                            <div className="space-y-1">
+                                                                                                {/*<div className="text-sm font-medium text-green-600">*/}
+                                                                                                {/*    De ce este potrivit:*/}
+                                                                                                {/*</div>*/}
+                                                                                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                                                                    {/* Coloana 1: Passed */}
+                                                                                                    <div>
+                                                                                                        <h4 className="text-sm font-medium text-green-600 mb-2">{t('projects.new.providers.why_fit')}</h4>
+                                                                                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                            {passedReasons.map((reason, index) => (
+                                                                                                                <li key={`passed-${index}`} className="flex items-center space-x-2">
+                                                                                                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                                                                    <span className="text-green-600">{reason.message}</span>
+                                                                                                                </li>
+                                                                                                            ))}
+                                                                                                        </ul>
+                                                                                                    </div>
+
+                                                                                                    {/* Coloana 2: Nepotriviri */}
+                                                                                                    <div>
+                                                                                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                            {failedReasons.map((reason, index) => (
+                                                                                                                <li key={`failed-${index}`} className="flex items-center space-x-2">
+                                                                                                                    <BadgeAlert className="w-3 h-3 text-red-500" />
+                                                                                                                    <span className="text-red-600">{reason.message}</span>
+                                                                                                                </li>
+                                                                                                            ))}
+                                                                                                        </ul>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    <div className="text-right space-y-2">
+                                                                                        {/*<div className="text-sm text-muted-foreground">*/}
+                                                                                        {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                                                        {/*</div>*/}
+                                                                                        {/*<div className="text-sm">*/}
+                                                                                        {/*    <div className="flex items-center space-x-1 justify-end">*/}
+                                                                                        {/*        <Calendar className="w-3 h-3" />*/}
+                                                                                        {/*        <span>{provider.deliveryTime} zile</span>*/}
+                                                                                        {/*    </div>*/}
+                                                                                        {/*</div>*/}
+
+                                                                                        <div className="text-xs text-muted-foreground">
+                                                                                            {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
+                                                                                        </div>
+
+                                                                                        <div className="flex space-x-2 mt-4">
+                                                                                            <a href={`/provider/${provider.profileUrl}`} target="_blank"
+                                                                                                className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                                                                                            >
+                                                                                                <Eye className="w-3 h-3 mr-1" />
+                                                                                                {t('projects.new.providers.profile')}
+                                                                                            </a>
+                                                                                            {/*<a*/}
+                                                                                            {/*    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"*/}
+                                                                                            {/*>*/}
+                                                                                            {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
+                                                                                            {/*    {t('projects.new.providers.message')}*/}
+                                                                                            {/*</a>*/}
+                                                                                        </div>
+
+                                                                                    </div>
+                                                                                </div>
+
+                                                                            </CardContent>
+                                                                        </Card>
+                                                                    );
+                                                                })}
+                                                            </div>
+
+                                                            {/* Pagination */}
+                                                            {totalPages > 1 && (
+                                                                <div className="flex items-center justify-between pt-6 border-t">
+                                                                    <div className="text-sm text-muted-foreground">
+                                                                        {t('projects.new.providers.pagination', {
+                                                                            start: indexOfFirstProvider + 1,
+                                                                            end: Math.min(indexOfLastProvider, filteredProviders.length),
+                                                                            total: filteredProviders.length,
+                                                                        })}
+                                                                    </div>
+
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handlePageChange(currentPage - 1)}
+                                                                            disabled={currentPage === 1}
+                                                                            className="flex items-center space-x-1"
+                                                                        >
+                                                                            <ArrowLeft className="w-4 h-4" />
+                                                                            <span>{t('projects.new.pagination.previous')}</span>
+                                                                        </Button>
+
+                                                                        <div className="flex items-center space-x-1">
+                                                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                                                                // Show first page, last page, current page, and pages around current
+                                                                                const showPage = page === 1 ||
+                                                                                    page === totalPages ||
+                                                                                    Math.abs(page - currentPage) <= 1;
+
+                                                                                if (!showPage && page === 2 && currentPage > 4) {
+                                                                                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                                                                                }
+
+                                                                                if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
+                                                                                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                                                                                }
+
+                                                                                if (!showPage) return null;
+
+                                                                                return (
+                                                                                    <Button
+                                                                                        key={page}
+                                                                                        variant={currentPage === page ? "default" : "outline"}
+                                                                                        size="sm"
+                                                                                        onClick={() => handlePageChange(page)}
+                                                                                        className="w-8 h-8 p-0"
+                                                                                    >
+                                                                                        {page}
+                                                                                    </Button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handlePageChange(currentPage + 1)}
+                                                                            disabled={currentPage === totalPages}
+                                                                            className="flex items-center space-x-1"
+                                                                        >
+                                                                            <span>{t('projects.new.pagination.next')}</span>
+                                                                            <ArrowRight className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </div>
                                                                 </div>
                                                             )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
 
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {t('projects.new.review.milestones.summary_total')}{' '}
-                                                                <PriceDisplay value={getMilestoneTotal()} />{' '}
-                                                                •{' '}
-                                                                {t('projects.new.review.milestones.summary_difference')}{' '}
-                                                                <PriceDisplay value={Number(formData.budget || 0) - getMilestoneTotal()} />
+                                            {selectedProviders.length > 0 && (
+                                                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                                                    <div className="flex items-center space-x-2 mb-2">
+                                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                                        <span className="font-medium text-green-800 dark:text-green-200">
+                                                            {t('projects.new.providers.selected_count', {
+                                                                count: selectedProviders.length,
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-green-700 dark:text-green-300">
+                                                        {t('projects.new.providers.selected_message')}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <div className="flex justify-between">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setActiveTab('details')}
+                                        >
+                                            {t('projects.new.actions.back_to_details')}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() => setActiveTab('review')}
+                                            disabled={selectedProviders.length === 0}
+                                            className="btn-primary px-8"
+                                        >
+                                            {t('projects.new.actions.review_final')}
+                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Revizuire și Trimitere */}
+                                <TabsContent value="review" className="space-y-6">
+                                    <Card className="glass-card shadow-sm">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <Target className="w-5 h-5" />
+                                                <span>{t('projects.new.review.title')}</span>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t('projects.new.review.subtitle')}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            {/* Rezumat proiect */}
+                                            <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
+
+                                                            {/*<div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData*/}
+                                                            {/*    ?.flatMap((c: any) => [c, ...(c.children || [])]) */}
+                                                            {/*    .find((c: any) => String(c.id) === String(formData.serviceId)) // Căutăm ID-ul (convertit la string)*/}
+                                                            {/*    ?.name}</div>*/}
+                                                            <div>
+                                                                <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
+                                                                <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
                                                             </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
+                                                            <div>
+                                                                <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
+                                                                <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? 150 : Number(formData.budget ?? 0) * 0.10} />
+                                                            </div>
+                                                            <div>
+                                                                <strong>{t('projects.new.review.labels.total')}</strong>{' '}
+                                                                <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? Number(formData.budget ?? 0) + 150 : Number(formData.budget ?? 0) * 1.10} />
+                                                            </div>
+                                                            {formData.deadline && (
+                                                                <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
+                                                            )}
+                                                            {/*<div>*/}
+                                                            {/*    <strong>Tip proiect:</strong>*/}
+                                                            {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
+                                                            {/*        {formData.visibility}*/}
+                                                            {/*    </Badge>*/}
+                                                            {/*</div>*/}
+                                                        </div>
+                                                    </div>
 
-                                                <div className="space-y-3">
-                                                    {selectedProviders.map(selectedProvider => {
-                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                        if (!provider) return null;
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">{t('projects.new.review.technologies_title', { count: formData.technologies.length })}</h4>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {formData.technologies.map((tech) => (
+                                                                <Badge key={tech.id} variant="outline" className="text-xs">
+                                                                    {tech.name}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                                        return (
-                                                            <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <Avatar className="w-10 h-10">
-                                                                        <AvatarImage src={provider.avatar} />
-                                                                        <AvatarFallback className="text-xs">
-                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <div className="flex-1">
-                                                                        <div className="font-medium text-sm">
-                                                                            {provider.firstName} {provider.lastName}
-                                                                            <Badge className={
-                                                                                skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                'bg-blue-100 text-blue-800'
-                                                                            }>
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
-                                                                            </Badge>
+                                                <div>
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <h3 className="text-lg font-semibold">{t('projects.new.review.selected_providers_title', { count: selectedProviders.length })}</h3>
+                                                            <div className="flex items-center space-x-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={redistributeBudget}
+                                                                    disabled={selectedProviders.length === 0}
+                                                                >
+                                                                    <DollarSign className="w-4 h-4 mr-1" />
+                                                                    {t('projects.new.review.split_evenly')}
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Budget Summary */}
+                                                        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                                                            <CardContent className="p-4">
+                                                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                                                    <div>
+                                                                        <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
+                                                                        <div className="text-lg font-bold text-blue-600">
+                                                                            <PriceDisplay value={Number(formData.budget)} />
                                                                         </div>
-                                                                        <div className="text-xs text-muted-foreground">
-                                                                            {t('projects.new.review.match_score', { score: provider.matchScore })}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
+                                                                        <div className="text-lg font-bold text-green-600">
+                                                                            <PriceDisplay value={getTotalAllocatedBudget()} />
                                                                         </div>
-                                                                        <div className="flex flex-wrap gap-1 mb-3">
-                                                                            {provider.skills.map((skill, index) =>
-                                                                                index < 4 ? (
-                                                                                    <Badge key={skill} variant="outline" className="text-xs">
-                                                                                        {skill}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
+                                                                        <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                                                            <PriceDisplay value={getRemainingBudget()} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {getRemainingBudget() !== 0 && (
+                                                                    <Alert className="mt-3 border-orange-200 bg-orange-50">
+                                                                        <AlertCircle className="h-4 w-4" />
+                                                                        <AlertDescription className="text-orange-800">
+                                                                            {getRemainingBudget() > 0
+                                                                                ? (
+                                                                                    <>
+                                                                                        {t('projects.new.review.budget_remaining_positive')}{' '}
+                                                                                        <PriceDisplay value={getRemainingBudget()} />
+                                                                                    </>
+                                                                                )
+                                                                                : (
+                                                                                    <>
+                                                                                        {t('projects.new.review.budget_remaining_negative')}{' '}
+                                                                                        <PriceDisplay value={Math.abs(getRemainingBudget())} />
+                                                                                    </>
+                                                                                )
+                                                                            }
+                                                                        </AlertDescription>
+                                                                    </Alert>
+                                                                )}
+                                                            </CardContent>
+                                                        </Card>
+
+                                                        {isLongProject && (
+                                                            <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
+                                                                <CardHeader>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div>
+                                                                            <CardTitle className="text-base">{t('projects.new.review.milestones.title')}</CardTitle>
+                                                                            <CardDescription>
+                                                                                {t('projects.new.review.milestones.description')}
+                                                                            </CardDescription>
+                                                                        </div>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={applyAiMilestonesToProviders}
+                                                                            disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
+                                                                        >
+                                                                            <AutoAwesomeIcon className="w-4 h-4 mr-2" />
+                                                                            {t('projects.new.review.milestones.apply_ai')}
+                                                                        </Button>
+                                                                    </div>
+                                                                </CardHeader>
+                                                                <CardContent className="space-y-4">
+                                                                    {selectedProviders.map((selectedProvider) => {
+                                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                                        const milestones = providerMilestones[selectedProvider.id] ?? [];
+
+                                                                        return (
+                                                                            <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="font-medium">
+                                                                                        {provider ? `${provider.firstName} ${provider.lastName}` : t('projects.new.review.milestones.provider_fallback', { id: selectedProvider.id })}
+                                                                                    </div>
+                                                                                    <Button
+                                                                                        type="button"
+                                                                                        variant="outline"
+                                                                                        size="sm"
+                                                                                        onClick={() => addProviderMilestone(selectedProvider.id)}
+                                                                                    >
+                                                                                        <Plus className="w-4 h-4 mr-2" />
+                                                                                        {t('projects.new.review.milestones.add')}
+                                                                                    </Button>
+                                                                                </div>
+                                                                                {milestones.length === 0 ? (
+                                                                                    <div className="text-sm text-muted-foreground">
+                                                                                        {t('projects.new.review.milestones.empty')}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="space-y-3">
+                                                                                        {milestones.map((milestone, index) => (
+                                                                                            <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
+                                                                                                <div>
+                                                                                                    <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>{t('projects.new.review.milestones.name_label')}</Label>
+                                                                                                    <Input
+                                                                                                        id={`provider-${selectedProvider.id}-milestone-title-${index}`}
+                                                                                                        value={milestone.title}
+                                                                                                        onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
+                                                                                                        placeholder={t('projects.new.review.milestones.name_placeholder')}
+                                                                                                    />
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label')}</Label>
+                                                                                                    <Input
+                                                                                                        id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
+                                                                                                        type="number"
+                                                                                                        min="0"
+                                                                                                        value={milestone.amount}
+                                                                                                        onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
+                                                                                                        placeholder={t('projects.new.review.milestones.budget_placeholder')}
+                                                                                                    />
+                                                                                                </div>
+                                                                                                <Button
+                                                                                                    type="button"
+                                                                                                    variant="ghost"
+                                                                                                    size="icon"
+                                                                                                    onClick={() => removeProviderMilestone(selectedProvider.id, index)}
+                                                                                                    aria-label={t('projects.new.review.milestones.delete_aria')}
+                                                                                                >
+                                                                                                    <X className="w-4 h-4" />
+                                                                                                </Button>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="text-sm text-muted-foreground">
+                                                                                    {t('projects.new.review.milestones.total_provider')}{' '}
+                                                                                    <PriceDisplay value={milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0)} />
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+
+                                                                    {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
+                                                                        <div className="text-sm text-red-500">
+                                                                            {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="text-sm text-muted-foreground">
+                                                                        {t('projects.new.review.milestones.summary_total')}{' '}
+                                                                        <PriceDisplay value={getMilestoneTotal()} />{' '}
+                                                                        •{' '}
+                                                                        {t('projects.new.review.milestones.summary_difference')}{' '}
+                                                                        <PriceDisplay value={Number(formData.budget || 0) - getMilestoneTotal()} />
+                                                                    </div>
+                                                                </CardContent>
+                                                            </Card>
+                                                        )}
+
+                                                        <div className="space-y-3">
+                                                            {selectedProviders.map(selectedProvider => {
+                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                                if (!provider) return null;
+
+                                                                return (
+                                                                    <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                                                                        <div className="flex items-center space-x-3">
+                                                                            <Avatar className="w-10 h-10">
+                                                                                <AvatarImage src={provider.avatar} />
+                                                                                <AvatarFallback className="text-xs">
+                                                                                    {provider.firstName[0]}{provider.lastName[0]}
+                                                                                </AvatarFallback>
+                                                                            </Avatar>
+                                                                            <div className="flex-1">
+                                                                                <div className="font-medium text-sm">
+                                                                                    {provider.firstName} {provider.lastName}
+                                                                                    <Badge className={
+                                                                                        skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                        'bg-blue-100 text-blue-800'
+                                                                                    }>
+                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
                                                                                     </Badge>
-                                                                                ) : null
-                                                                            )}
-                                                                            {provider.skills.length > 4 && (
-                                                                                <Badge variant="outline" className="text-xs">
-                                                                                    +{provider.skills.length - 4}
-                                                                                </Badge>
-                                                                            )}
+                                                                                </div>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    {t('projects.new.review.match_score', { score: provider.matchScore })}
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-1 mb-3">
+                                                                                    {provider.skills.map((skill, index) =>
+                                                                                        index < 4 ? (
+                                                                                            <Badge key={skill} variant="outline" className="text-xs">
+                                                                                                {skill}
+                                                                                            </Badge>
+                                                                                        ) : null
+                                                                                    )}
+                                                                                    {provider.skills.length > 4 && (
+                                                                                        <Badge variant="outline" className="text-xs">
+                                                                                            +{provider.skills.length - 4}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                </div>
 
-                                                                <div className="mt-3 flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-3">
-                                                                        <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
-                                                                            {t('projects.new.review.allocated_budget_label')}
-                                                                        </Label>
-                                                                        <div className="flex items-center space-x-2">
-                                                                            <Input
-                                                                                id={`budget-${selectedProvider.id}`}
-                                                                                type="number"
-                                                                                value={providerBudgets[selectedProvider.id] || 0}
-                                                                                onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
-                                                                                className="w-32"
-                                                                                min="0"
-                                                                                max={Number(formData.budget)}
-                                                                            />
+                                                                        <div className="mt-3 flex items-center justify-between">
+                                                                            <div className="flex items-center space-x-3">
+                                                                                <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
+                                                                                    {t('projects.new.review.allocated_budget_label')}
+                                                                                </Label>
+                                                                                <div className="flex items-center space-x-2">
+                                                                                    <Input
+                                                                                        id={`budget-${selectedProvider.id}`}
+                                                                                        type="number"
+                                                                                        value={providerBudgets[selectedProvider.id] || 0}
+                                                                                        onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
+                                                                                        className="w-32"
+                                                                                        min="0"
+                                                                                        max={Number(formData.budget)}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
+                                                                            >
+                                                                                <X className="w-4 h-4" />
+                                                                            </Button>
                                                                         </div>
                                                                     </div>
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
-                                                                    >
-                                                                        <X className="w-4 h-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    <div>
-                                        <h4 className="font-semibold mb-2">{t('projects.new.review.description_title')}</h4>
-                                        <div className="bg-muted p-4 rounded-lg text-sm">
-                                            {formData.description}
-                                        </div>
-                                    </div>
-
-                                    {formData.requirements && (
-                                        <div>
-                                            <h4 className="font-semibold mb-2">{t('projects.new.review.requirements_title')}</h4>
-                                            <div className="bg-muted p-4 rounded-lg text-sm">
-                                                {formData.requirements}
+                                            <div>
+                                                <h4 className="font-semibold mb-2">{t('projects.new.review.description_title')}</h4>
+                                                <div className="bg-muted p-4 rounded-lg text-sm">
+                                                    {formData.description}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
 
-                            <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setActiveTab('providers')}
-                                >
-                                    {t('projects.new.actions.back_to_providers')}
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={submitting || getRemainingBudget() !== 0}
-                                    className="btn-primary px-8"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            {t('projects.new.actions.submitting')}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Zap className="w-4 h-4 mr-2" />
-                                            {t('projects.new.actions.submit_project')}
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
+                                            {formData.requirements && (
+                                                <div>
+                                                    <h4 className="font-semibold mb-2">{t('projects.new.review.requirements_title')}</h4>
+                                                    <div className="bg-muted p-4 rounded-lg text-sm">
+                                                        {formData.requirements}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <div className="flex justify-between">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setActiveTab('providers')}
+                                        >
+                                            {t('projects.new.actions.back_to_providers')}
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={submitting || getRemainingBudget() !== 0}
+                                            className="btn-primary px-8"
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    {t('projects.new.actions.submitting')}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Zap className="w-4 h-4 mr-2" />
+                                                    {t('projects.new.actions.submit_project')}
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
                         </form>
                     </div>
                 </section>

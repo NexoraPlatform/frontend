@@ -62,10 +62,40 @@ function findRequirement(pathname: string): Requirement | 'auth-only' | null {
 
 // ---- Helper Functions ----
 
+/**
+ * Sanitize callback URL to prevent Open Redirect attacks
+ * Only allows relative URLs (same origin)
+ */
+function sanitizeCallbackUrl(callback: string, fallback: string = '/dashboard'): string {
+  if (!callback || callback.trim() === '') return fallback;
+
+  try {
+    // Try to parse as URL
+    const parsed = new URL(callback, 'http://localhost');
+
+    // Only allow relative URLs (http://localhost means it was relative)
+    if (parsed.protocol === 'http:' && parsed.hostname === 'localhost') {
+      return callback.startsWith('/') ? callback : `/${callback}`;
+    }
+
+    // Absolute URL detected - reject
+    return fallback;
+  } catch {
+    // Invalid URL - only allow if it starts with /
+    if (callback.startsWith('/')) {
+      return callback;
+    }
+    return fallback;
+  }
+}
+
 function redirectToSignin(req: any, locale: string) {
   const url = req.nextUrl.clone();
   url.pathname = `/${locale}/auth/signin`;
-  url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
+  // SECURITY: Sanitize callbackUrl to prevent Open Redirect
+  const rawCallback = req.nextUrl.pathname + req.nextUrl.search;
+  const safeCallback = sanitizeCallbackUrl(rawCallback);
+  url.searchParams.set('callbackUrl', safeCallback);
   return NextResponse.redirect(url);
 }
 
@@ -89,7 +119,14 @@ function isBasicAuthEnabled() {
   return process.env.BASIC_AUTH_ENABLED === 'true' || process.env.BASIC_AUTH === 'true';
 }
 
+// Cache credentials in closure to avoid repeated parsing
+let cachedBasicAuthCredentials: Array<{ user: string; password: string }> | null = null;
+
 function getBasicAuthCredentials() {
+  if (cachedBasicAuthCredentials !== null) {
+    return cachedBasicAuthCredentials;
+  }
+
   const users = (process.env.BASIC_AUTH_USERS || '')
     .split(',')
     .map((value) => value.trim())
@@ -98,13 +135,15 @@ function getBasicAuthCredentials() {
     .split(',')
     .map((value) => value.trim());
 
-  return users
+  cachedBasicAuthCredentials = users
     .map((user, index) => {
       const password = passwords[index];
       if (!password) return null;
       return { user, password };
     })
     .filter(Boolean) as Array<{ user: string; password: string }>;
+
+  return cachedBasicAuthCredentials;
 }
 
 function isBasicAuthAuthorized(request: any) {
@@ -135,10 +174,10 @@ function isAdminUser(user: AccessUser | null) {
   if (user.is_superuser) return true;
   return Array.isArray(user.roles)
     ? user.roles.some((role) =>
-        typeof role === 'string'
-          ? role.toLowerCase() === 'admin'
-          : role.slug?.toLowerCase() === 'admin'
-      )
+      typeof role === 'string'
+        ? role.toLowerCase() === 'admin'
+        : role.slug?.toLowerCase() === 'admin'
+    )
     : false;
 }
 
@@ -156,8 +195,8 @@ export default auth(async (req) => {
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
-      pathname.includes('.') ||
-      pathname.includes('manifest.json') ||
+    pathname.includes('.') ||
+    pathname.includes('manifest.json') ||
     pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
@@ -172,12 +211,19 @@ export default auth(async (req) => {
     });
   }
 
-  const country = req.headers.get('x-vercel-ip-country') || 'XX';
+  // SECURITY: Use platform-specific headers for geo-location (harder to spoof)
+  // x-vercel-ip-country (Vercel) and cf-ipcountry (Cloudflare) are set by the CDN
+  const country = req.headers.get('x-vercel-ip-country') ||
+    req.headers.get('cf-ipcountry') ||
+    'XX';
 
-  // 2. Extrage IP-ul (poate fi în x-forwarded-for sau x-real-ip)
-  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+  // For IP, prefer x-real-ip over x-forwarded-for
+  // If using x-forwarded-for, take only the first IP (client IP)
+  const realIp = req.headers.get('x-real-ip');
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const ip = realIp || (forwardedFor ? forwardedFor.split(',')[0].trim() : null);
 
-  // Exemplu de logică: Blocare acces pentru o anumită țară
+  // Block specific countries (example: Russia)
   if (country === 'RU') {
     return new NextResponse('Access Denied', { status: 403 });
   }
@@ -282,7 +328,9 @@ export default auth(async (req) => {
 
   // 2. Auth Flow
   // Redirect authenticated users away from auth pages
-  if (AUTH_PAGES.has(normalizedPath) && isAuthenticated) {
+  // IMPORTANT: Only redirect if we have a valid user session, not just a cookie
+  // A cookie might exist but be invalid/expired
+  if (AUTH_PAGES.has(normalizedPath) && user) {
     const url = new URL(`/${locale}/dashboard`, req.url);
     url.search = req.nextUrl.search;
     return NextResponse.redirect(url);

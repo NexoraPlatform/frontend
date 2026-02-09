@@ -15,7 +15,6 @@ import { getServerUser } from "@/lib/server-auth";
 import "./globals.css";
 
 const OneSignalInit = dynamic(() => import("@/components/OneSignalInit"), {
-  ssr: false,
   loading: () => null,
 });
 

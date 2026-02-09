@@ -7,7 +7,7 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  reactStrictMode: false,
+  reactStrictMode: true,
   // Compiler optimizations with modern JS target
   compiler: {
     // Remove console logs in production
@@ -34,6 +34,15 @@ const nextConfig = {
   modularizeImports: {
     'lodash': {
       transform: 'lodash/{{member}}',
+    },
+    'react-icons': {
+      transform: 'react-icons/{{member}}',
+    },
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+    '@mui/icons-material': {
+      transform: '@mui/icons-material/{{member}}',
     },
   },
 
@@ -168,8 +177,8 @@ const nextConfig = {
 
 // Bundle analyzer wrapper
 const withBundleAnalyzer = process.env.ANALYZE === 'true'
-    ? require('@next/bundle-analyzer')({ enabled: true })
-    : (config) => config;
+  ? require('@next/bundle-analyzer')({ enabled: true })
+  : (config) => config;
 
 
 
