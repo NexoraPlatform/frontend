@@ -8,6 +8,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  reactCompiler: true,
   // Compiler optimizations with modern JS target
   compiler: {
     // Remove console logs in production
@@ -89,10 +90,6 @@ const nextConfig = {
 
   // Experimental features for performance
   experimental: {
-    // CSS optimization
-    optimizeCss: process.env.NEXT_OPTIMIZE_CSS === 'true',
-    reactCompiler: true, // Enabled for React 19 / Next.js 15+
-
     // Package imports optimization
     optimizePackageImports: [
       'lucide-react',
@@ -104,9 +101,6 @@ const nextConfig = {
       '@mui/x-date-pickers',
       'lodash'
     ],
-
-    // Bundle optimization
-    optimizeServerReact: true,
   },
 
   env: {
@@ -118,11 +112,6 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
-  // ESLint configuration
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
-
   // Static export optimization
   trailingSlash: false,
 
@@ -132,8 +121,7 @@ const nextConfig = {
   // Modern headers with security optimizations
   async headers() {
     const isDev = process.env.NODE_ENV === 'development';
-
-    return [
+    const securityHeaders = [
       {
         source: '/(.*)',
         headers: [
@@ -153,7 +141,6 @@ const nextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
-          // Enable modern browser features
           {
             key: 'Accept-CH',
             value: 'Viewport-Width, Width, DPR',
@@ -162,27 +149,29 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ''} 
-                https://www.googletagmanager.com 
-                https://cdn.onesignal.com 
-                https://onesignal.com 
+              script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ''}
+                https://www.googletagmanager.com
+                https://cdn.onesignal.com
+                https://onesignal.com
                 https://api.onesignal.com
+                https://cdn.cookie-script.com
+                https://backend.trustora.ro;
+              style-src 'self' 'unsafe-inline'
                 https://cdn.cookie-script.com;
-              style-src 'self' 'unsafe-inline' https://cdn.cookie-script.com;
-              img-src 'self' data: blob: https: 
-                http://127.0.0.1:8000 
-                https://trustorabe.dacars.ro 
-                https://backend.trustora.ro 
+              img-src 'self' data: blob: https:
+                http://127.0.0.1:8000
+                https://trustorabe.dacars.ro
+                https://backend.trustora.ro
                 https://previewbe.trustora.ro;
               font-src 'self' data:;
-              connect-src 'self' 
-                https://trustorabe.dacars.ro 
+              connect-src 'self'
+                https://trustorabe.dacars.ro
                 https://backend.trustora.ro
                 https://previewbe.trustora.ro
-                https://www.google-analytics.com 
-                https://cdn.onesignal.com 
-                https://onesignal.com 
-                https://api.onesignal.com 
+                https://www.google-analytics.com
+                https://cdn.onesignal.com
+                https://onesignal.com
+                https://api.onesignal.com
                 https://cdn.cookie-script.com
                 ${isDev ? 'http://127.0.0.1:8000 http://localhost:8000 ws: wss:' : ''};
               frame-src 'self' https://onesignal.com;
@@ -190,16 +179,18 @@ const nextConfig = {
               base-uri 'self';
               form-action 'self';
               sandbox allow-forms allow-scripts allow-same-origin allow-popups allow-downloads;
-            `.replace(/\s+/g, ' ').trim()
+            `.replace(/\s+/g, ' ').trim(),
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
-          }
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
         ],
       },
+    ];
+
+    const staticAssetCachingHeaders = [
       {
-        // Long-term caching for static assets
         source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
         headers: [
           {
@@ -209,7 +200,6 @@ const nextConfig = {
         ],
       },
       {
-        // Long-term caching for Next.js static files
         source: '/_next/static/(.*)',
         headers: [
           {
@@ -219,6 +209,8 @@ const nextConfig = {
         ],
       },
     ];
+
+    return [...securityHeaders, ...staticAssetCachingHeaders];
   },
 };
 

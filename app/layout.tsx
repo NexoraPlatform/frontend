@@ -18,11 +18,10 @@ export const viewport: Viewport = {
   ],
 };
 
-// Root Layout serves as a fallback pass-through.
-// The actual HTML/Body structure is handled in:
-// 1. app/[locale]/layout.tsx (for app routes)
-// 2. app/not-found.tsx (for 404s)
-// This prevents dynamic logic (like getServerUser) from crashing static error pages.
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body>{children}</body>
+    </html>
+  );
 }

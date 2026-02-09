@@ -1,4 +1,4 @@
-// middleware.ts
+// proxy.ts
 import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { auth } from '@/auth';
@@ -181,9 +181,9 @@ function isAdminUser(user: AccessUser | null) {
     : false;
 }
 
-// ---- Middleware Main ----
+// ---- Proxy Main ----
 
-export default auth(async (req) => {
+export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;
   const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
 
@@ -362,6 +362,8 @@ export default auth(async (req) => {
 
   return baseResponse;
 });
+
+export default proxy;
 
 export const config = {
   matcher: [

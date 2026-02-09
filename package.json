@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
+    "postinstall": "node scripts/ensure-next-internals.mjs",
+    "prebuild": "node scripts/ensure-next-internals.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -71,15 +73,15 @@
     "dayjs": "^1.11.13",
     "embla-carousel-react": "^8.3.0",
     "emoji-mart": "^5.6.0",
-    "eslint": "8.49.0",
-    "eslint-config-next": "13.5.1",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.1.6",
     "framer-motion": "^12.23.6",
     "ibantools": "^4.5.1",
     "input-otp": "^1.2.4",
     "jose": "^6.0.12",
     "laravel-echo": "^2.3.0",
     "lucide-react": "^0.539.0",
-    "next": "^15.3.6",
+    "next": "16.1.6",
     "next-intl": "^4.7.0",
     "next-themes": "^0.3.0",
     "postcode-validator": "^3.10.9",
@@ -124,9 +126,8 @@
     "node": "22.x"
   },
   "browserslist": [
-    "chrome >= 92",
-    "firefox >= 90",
-    "safari >= 15.4",
-    "edge >= 92"
+    "defaults",
+    "not ie 11",
+    "maintained node versions"
   ]
 }
