@@ -9,7 +9,6 @@ import Script from "next/script"
 import { generateSEO, generateStructuredData } from "@/lib/seo"
 import type React from "react"
 import { GoogleTagManager } from '@next/third-parties/google'
-import {Partytown} from "@qwik.dev/partytown/react";
 import {TrustoraThemeStyles} from "@/components/trustora/theme-styles";
 import {Header} from "@/components/header";
 import {TrustoraHeroSection} from "@/components/trustora/hero-section";
