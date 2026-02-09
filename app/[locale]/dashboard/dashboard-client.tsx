@@ -435,8 +435,8 @@ export default function DashboardClient() {
     }) => {
       const declaredType = String(
         notification?.data?.type ??
-          notification?.type ??
-          ''
+        notification?.type ??
+        ''
       );
       const projectId =
         notification?.data?.projectId ??
@@ -509,23 +509,7 @@ export default function DashboardClient() {
     }
   };
 
-  const getStripeOnboardingUrl = async () => {
-    try {
-      if (!user) return;
-      const response = await apiClient.handleStripeOnboarding(user.email);
 
-      if (!response || !response.url) {
-        console.error('No URL returned from Stripe onboarding');
-        return null;
-      }
-
-      window.location.href = response.url;
-
-    } catch (error) {
-      console.error('Error fetching Stripe onboarding URL:', error);
-      return null;
-    }
-  }
 
   const getRapydOnboardingUrl = async () => {
     try {
@@ -548,7 +532,7 @@ export default function DashboardClient() {
         rapyd_wallet_id: walletId,
         ...(contactId ? { rapyd_contact_id: contactId } : {}),
       });
-      refreshUser().catch(() => {});
+      refreshUser().catch(() => { });
 
       // window.location.href = response.url;
     } catch (error) {
@@ -815,65 +799,65 @@ export default function DashboardClient() {
                     {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
                   </Badge>
                   {isProvider && user.rapyd_wallet_id ? (
-                      <>
-                        {balanceLoading ? (
-                          <Badge className="bg-slate-50 text-[#0B1C2D] border border-slate-100">
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            {t('dashboard.hero.balance.loading')}
-                          </Badge>
-                        ) : balanceError ? (
-                          <Badge className="bg-red-50 text-[#0B1C2D] border border-red-100" title={balanceError}>
-                            <AlertCircle className="w-3 h-3 mr-1" />
-                            {t('dashboard.hero.balance.error')}
-                          </Badge>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
-                              <div className="flex flex-col px-2">
-                                <div className="flex flex-row items-center space-x-2">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  {t('dashboard.hero.balance.available')}:
-                                </div>
-                                {wallets.map((item) => (
-                                  <div key={item.id} className="flex flex-row items-center space-x-2">
-                                    {item.currency === "EUR" ? (
-                                        <Euro className="w-3 h-3" />
-                                    ) : item.currency === "USD" ? (
-                                        <DollarSign className="w-3 h-3" />
-                                    ) : (
-                                        <Currency className="w-3 h-3" />
-                                    )}
-                                    {formatBalanceAmount(item.balance, item.currency)}
-                                  </div>
-                                ))}
+                    <>
+                      {balanceLoading ? (
+                        <Badge className="bg-slate-50 text-[#0B1C2D] border border-slate-100">
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          {t('dashboard.hero.balance.loading')}
+                        </Badge>
+                      ) : balanceError ? (
+                        <Badge className="bg-red-50 text-[#0B1C2D] border border-red-100" title={balanceError}>
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {t('dashboard.hero.balance.error')}
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
+                            <div className="flex flex-col px-2">
+                              <div className="flex flex-row items-center space-x-2">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                {t('dashboard.hero.balance.available')}:
                               </div>
-                            </Badge>
+                              {wallets.map((item) => (
+                                <div key={item.id} className="flex flex-row items-center space-x-2">
+                                  {item.currency === "EUR" ? (
+                                    <Euro className="w-3 h-3" />
+                                  ) : item.currency === "USD" ? (
+                                    <DollarSign className="w-3 h-3" />
+                                  ) : (
+                                    <Currency className="w-3 h-3" />
+                                  )}
+                                  {formatBalanceAmount(item.balance, item.currency)}
+                                </div>
+                              ))}
+                            </div>
+                          </Badge>
 
-                            {/*{hasOnHoldBalance && (*/}
-                            {/*  <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>*/}
-                            {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
-                            {/*    {t('dashboard.hero.balance.on_hold')}: {formatBalanceAmount(balance?.on_hold_balance, balance?.currency)}*/}
-                            {/*  </Badge>*/}
-                            {/*)}*/}
-                            {/*{hasReceivedBalance && (*/}
-                            {/*  <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>*/}
-                            {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
-                            {/*    {t('dashboard.hero.balance.received')}: {formatBalanceAmount(balance?.received_balance, balance?.currency)}*/}
-                            {/*  </Badge>*/}
-                            {/*)}*/}
-                          </div>
-                        )}
-                      </>
+                          {/*{hasOnHoldBalance && (*/}
+                          {/*  <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>*/}
+                          {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
+                          {/*    {t('dashboard.hero.balance.on_hold')}: {formatBalanceAmount(balance?.on_hold_balance, balance?.currency)}*/}
+                          {/*  </Badge>*/}
+                          {/*)}*/}
+                          {/*{hasReceivedBalance && (*/}
+                          {/*  <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>*/}
+                          {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
+                          {/*    {t('dashboard.hero.balance.received')}: {formatBalanceAmount(balance?.received_balance, balance?.currency)}*/}
+                          {/*  </Badge>*/}
+                          {/*)}*/}
+                        </div>
+                      )}
+                    </>
                   ) : !user.rapyd_wallet_id ? (
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                          onClick={getRapydOnboardingUrl}
-                      >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ms-2 bg-emerald-600 !text-white hover:bg-emerald-700 hover:!text-white border-transparent"
+                      onClick={getRapydOnboardingUrl}
+                    >
 
-                        {t('dashboard.hero.rapyd.connect')}
-                      </Button>
+                      {t('dashboard.hero.rapyd.connect')}
+                    </Button>
                   ) : null}
                 </div>
               </div>

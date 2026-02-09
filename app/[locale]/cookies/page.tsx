@@ -21,6 +21,10 @@ export async function generateMetadata({ params }: CookiePageProps) {
       : "Politica de cookie-uri Trustora și preferințele de tracking.",
     locale,
     url: "/cookies",
+    robots: {
+      index: false,
+      follow: false,
+    },
   });
 }
 

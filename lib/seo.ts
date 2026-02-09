@@ -57,6 +57,10 @@ export interface SEOProps {
   authors?: string[];
   section?: string;
   noIndex?: boolean;
+  robots?: {
+    index?: boolean;
+    follow?: boolean;
+  };
 }
 
 export interface PageKnowledgeGraphOptions {
@@ -263,6 +267,7 @@ export function generateSEO({
   authors,
   section,
   noIndex = false,
+  robots,
 }: SEOProps = {}): Metadata {
   const resolvedLocale = resolveLocale(locale);
   const baseUrl = getBaseUrl();
@@ -273,7 +278,11 @@ export function generateSEO({
   const ogTitle = buildOpenGraphTitle(title);
   const pageDescription = description ?? DEFAULT_DESCRIPTIONS[resolvedLocale];
   const imageUrl = toAbsoluteUrl(image);
-  const robotsIndex = !noIndex;
+
+  // Use robots prop if provided, otherwise fall back to noIndex
+  const robotsIndex = robots?.index ?? !noIndex;
+  const robotsFollow = robots?.follow ?? !noIndex;
+
   const alternateOgLocales = SUPPORTED_LOCALES.filter((entry) => entry !== resolvedLocale).map(
     (entry) => OG_LOCALE_MAP[entry]
   );
@@ -313,11 +322,11 @@ export function generateSEO({
       ],
       ...(type === "article" && publishedTime
         ? {
-            publishedTime,
-            modifiedTime,
-            authors,
-            section,
-          }
+          publishedTime,
+          modifiedTime,
+          authors,
+          section,
+        }
         : {}),
     },
     twitter: {
@@ -330,10 +339,10 @@ export function generateSEO({
     },
     robots: {
       index: robotsIndex,
-      follow: robotsIndex,
+      follow: robotsFollow,
       googleBot: {
         index: robotsIndex,
-        follow: robotsIndex,
+        follow: robotsFollow,
         "max-video-preview": -1,
         "max-image-preview": "large",
         "max-snippet": -1,

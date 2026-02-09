@@ -36,17 +36,11 @@ import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
-import { loadStripe } from "@stripe/stripe-js";
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import RapydCheckoutButton from "@/components/RapydCheckoutButton";
 
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
-    throw new Error('Stripe public key is not defined in environment variables');
-}
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
 
 type ClientProjectRequestsProps = {
     withLayout?: boolean;
@@ -84,15 +78,9 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
-    const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
-    const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
     const [selectedProviderId, setSelectedProviderId] = useState<number | string | null>(null);
-    const cardElementRef = useRef<any>(null);
-    const stripeRef = useRef<any>(null);
-    const [errorMessage, setErrorMessage] = useState('');
-    const [success, setSuccess] = useState(false);
     const [releasingId, setReleasingId] = useState<string | null>(null);
     const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
     const [openContractDialog, setOpenContractDialog] = useState(false);
@@ -186,10 +174,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         };
     }, [user?.id, loadProjects]);
 
-    const handleCheckoutComplete = useCallback(async () => {
-        setSuccess(true);
-        await loadProjects();
-    }, [loadProjects]);
+
 
     useEffect(() => {
         if (userLoading) return;
@@ -209,26 +194,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         loadProjects();
     }, [user, userLoading, router, loadProjects, hasRoleInfo, isClientRole, withLayout]);
 
-    const getClientSecret = async (project_id: string, providerId: number | string | null, milestoneId: number | string | null) => {
-        // router.push(response.url);
-        try {
-            const response = await apiClient.getPaymentSession(project_id, milestoneId, providerId);
-            setClientSecret(response.clientSecret);
-            setCheckoutDialogOpen(true);
-        } catch (err) {
-            console.error('Checkout error:', err);
-        }
-    };
 
-    const openCheckout = async (project: any, providerId: number | string | null, milestone: any | null) => {
-        setSelectedProject(project);
-        setSelectedMilestone(milestone);
-        setSelectedProviderId(providerId);
-        setSuccess(false);
-        setErrorMessage('');
-        setClientSecret(null);
-        await getClientSecret(project.id, providerId, getMilestoneId(milestone));
-    };
 
     const handleBudgetResponse = useCallback(async (
         projectId: string,
@@ -449,348 +415,348 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                 const canReleaseFull = !hasAnyMilestones && project.status === 'FINISHED';
 
                                 return (
-                                <Card key={project.id} className="glass-card border-transparent shadow-sm">
-                                    <CardHeader className="space-y-4">
-                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                            <div>
-                                                <CardTitle className="text-2xl text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                    {project.title}
-                                                </CardTitle>
-                                                <CardDescription className="mt-2 text-slate-500 dark:text-[#A3ADC2] line-clamp-2">
-                                                    {project.description}
-                                                </CardDescription>
-                                                <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-slate-500 dark:text-[#A3ADC2]">
-                                                    <div className="flex items-center gap-1">
-                                                        <DollarSign className="w-4 h-4 text-[#1BC47D]" />
-                                                        <span>
-                                                            {t('client.project_requests.project.total_budget')}{' '}
-                                                            {project.budget.amount != null ? (
-                                                                <PriceDisplay value={project.budget.amount} />
-                                                            ) : (
-                                                                '-'
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="w-4 h-4 text-[#1BC47D]" />
-                                                        <span>
-                                                            {t('client.project_requests.project.created')} {formatDistanceToNow(new Date(project.created_at), {
-                                                                addSuffix: true,
-                                                                locale: dateLocale
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <User className="w-4 h-4 text-[#1BC47D]" />
-                                                        <span>{t('client.project_requests.project.selected_providers', { count: project.providers?.length || 0 })}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {Array.from(
-                                                    new Map(
-                                                        project.existing_services.map((s: any) => [s.category.id, s.category])
-                                                    ).values()
-                                                ).map((category: any) => (
-                                                    <Badge
-                                                        key={category.id}
-                                                        className="bg-emerald-50 text-[#0B1C2D] border border-emerald-100 dark:bg-[rgba(27,196,125,0.12)] dark:text-[#E6EDF3] dark:border-[#1E2A3D]"
-                                                    >
-                                                        {category.name}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-
-                                    <CardContent className="space-y-6">
-                                        {(project?.existing_services?.length > 0
-                                            || project?.custom_services?.length > 0) && (
-                                                <div className="rounded-xl border border-slate-100 bg-white/80 px-4 py-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                                                    <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-2">
-                                                        {t('client.project_requests.project.technologies')}
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {project.existing_services.map((tech: any, index: number) => (
-                                                            <Badge
-                                                                key={index}
-                                                                variant="outline"
-                                                                className="text-xs border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]"
-                                                            >
-                                                                <Code className="w-3 h-3 mr-1 text-[#1BC47D]" />
-                                                                {tech.name}
-                                                            </Badge>
-                                                        ))}
+                                    <Card key={project.id} className="glass-card border-transparent shadow-sm">
+                                        <CardHeader className="space-y-4">
+                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                <div>
+                                                    <CardTitle className="text-2xl text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                        {project.title}
+                                                    </CardTitle>
+                                                    <CardDescription className="mt-2 text-slate-500 dark:text-[#A3ADC2] line-clamp-2">
+                                                        {project.description}
+                                                    </CardDescription>
+                                                    <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                        <div className="flex items-center gap-1">
+                                                            <DollarSign className="w-4 h-4 text-[#1BC47D]" />
+                                                            <span>
+                                                                {t('client.project_requests.project.total_budget')}{' '}
+                                                                {project.budget.amount != null ? (
+                                                                    <PriceDisplay value={project.budget.amount} />
+                                                                ) : (
+                                                                    '-'
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Calendar className="w-4 h-4 text-[#1BC47D]" />
+                                                            <span>
+                                                                {t('client.project_requests.project.created')} {formatDistanceToNow(new Date(project.created_at), {
+                                                                    addSuffix: true,
+                                                                    locale: dateLocale
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <User className="w-4 h-4 text-[#1BC47D]" />
+                                                            <span>{t('client.project_requests.project.selected_providers', { count: project.providers?.length || 0 })}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            )}
-
-                                        <div>
-                                            <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
-                                                {t('client.project_requests.providers.title')}
-                                            </div>
-                                            <div className="space-y-3">
-                                                {project.providers?.map((provider: any) => {
-                                                    const providerMilestones =
-                                                        project.milestones
-                                                            ?.find((m: any) => m.providerId === provider.id)
-                                                            ?.milestones || [];
-                                                    return (
-                                                        <div
-                                                            key={provider.id}
-                                                            className="border border-slate-100 rounded-xl p-4 bg-white/70 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                                <div className="flex flex-wrap gap-2">
+                                                    {Array.from(
+                                                        new Map(
+                                                            project.existing_services.map((s: any) => [s.category.id, s.category])
+                                                        ).values()
+                                                    ).map((category: any) => (
+                                                        <Badge
+                                                            key={category.id}
+                                                            className="bg-emerald-50 text-[#0B1C2D] border border-emerald-100 dark:bg-[rgba(27,196,125,0.12)] dark:text-[#E6EDF3] dark:border-[#1E2A3D]"
                                                         >
-                                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                                                <div className="flex items-start gap-3">
-                                                                    <Avatar className="w-11 h-11">
-                                                                        <AvatarImage src={provider.avatar} />
-                                                                        <AvatarFallback>
-                                                                            {provider.firstName?.[0]}{provider.lastName?.[0]}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <div>
-                                                                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                                            {provider.firstName} {provider.lastName}
-                                                                        </div>
-                                                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                                                                            <div className="flex items-center gap-1">
-                                                                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                                                                <span>{provider.rating || 0}</span>
+                                                            {category.name}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+
+                                        <CardContent className="space-y-6">
+                                            {(project?.existing_services?.length > 0
+                                                || project?.custom_services?.length > 0) && (
+                                                    <div className="rounded-xl border border-slate-100 bg-white/80 px-4 py-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                                        <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-2">
+                                                            {t('client.project_requests.project.technologies')}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {project.existing_services.map((tech: any, index: number) => (
+                                                                <Badge
+                                                                    key={index}
+                                                                    variant="outline"
+                                                                    className="text-xs border-slate-200 text-slate-600 dark:border-[#1E2A3D] dark:text-[#A3ADC2]"
+                                                                >
+                                                                    <Code className="w-3 h-3 mr-1 text-[#1BC47D]" />
+                                                                    {tech.name}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                            <div>
+                                                <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3] mb-3">
+                                                    {t('client.project_requests.providers.title')}
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {project.providers?.map((provider: any) => {
+                                                        const providerMilestones =
+                                                            project.milestones
+                                                                ?.find((m: any) => m.providerId === provider.id)
+                                                                ?.milestones || [];
+                                                        return (
+                                                            <div
+                                                                key={provider.id}
+                                                                className="border border-slate-100 rounded-xl p-4 bg-white/70 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                                            >
+                                                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                                    <div className="flex items-start gap-3">
+                                                                        <Avatar className="w-11 h-11">
+                                                                            <AvatarImage src={provider.avatar} />
+                                                                            <AvatarFallback>
+                                                                                {provider.firstName?.[0]}{provider.lastName?.[0]}
+                                                                            </AvatarFallback>
+                                                                        </Avatar>
+                                                                        <div>
+                                                                            <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                {provider.firstName} {provider.lastName}
                                                                             </div>
-                                                                            <div className="flex items-center gap-1">
-                                                                                <MapPin className="w-3 h-3 text-[#1BC47D]" />
-                                                                                <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
+                                                                            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                                                                    <span>{provider.rating || 0}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <MapPin className="w-3 h-3 text-[#1BC47D]" />
+                                                                                    <span>{provider.location || t('client.project_requests.providers.location_fallback')}</span>
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 mt-2">
-                                                                            {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
-                                                                                <Badge
-                                                                                    key={index}
-                                                                                    variant="outline"
-                                                                                    className="text-xs border-slate-200 "
-                                                                                >
-                                                                                    <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
-                                                                                    {service.name}
-                                                                                </Badge>
-                                                                            ))}
+                                                                            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 mt-2">
+                                                                                {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
+                                                                                    <Badge
+                                                                                        key={index}
+                                                                                        variant="outline"
+                                                                                        className="text-xs border-slate-200 "
+                                                                                    >
+                                                                                        <MuiIcon icon={service.categoryIcon} size={20} className="mr-1" />
+                                                                                        {service.name}
+                                                                                    </Badge>
+                                                                                ))}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                </div>
-                                                                <div className="text-left lg:text-right">
-                                                                    {getStatusBadge(provider.status)}
-                                                                    <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
-                                                                        {t('client.project_requests.providers.allocated')}{' '}
-                                                                        {provider.allocatedBudget != null ? (
-                                                                            <PriceDisplay value={provider.allocatedBudget} />
-                                                                        ) : (
-                                                                            '-'
+                                                                    <div className="text-left lg:text-right">
+                                                                        {getStatusBadge(provider.status)}
+                                                                        <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
+                                                                            {t('client.project_requests.providers.allocated')}{' '}
+                                                                            {provider.allocatedBudget != null ? (
+                                                                                <PriceDisplay value={provider.allocatedBudget} />
+                                                                            ) : (
+                                                                                '-'
+                                                                            )}
+                                                                        </div>
+                                                                        {project.status === 'ACCEPTED' && (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={() => generateContract(project.id, project.client_id, provider.id)}
+                                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                                            >
+                                                                                Contract
+                                                                            </Button>
                                                                         )}
-                                                                    </div>
-                                                                    {project.status === 'ACCEPTED' && (
-                                                                        <Button
-                                                                            size="sm"
-                                                                            onClick={() => generateContract(project.id, project.client_id, provider.id)}
-                                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                                                                        >
-                                                                            Contract
-                                                                        </Button>
-                                                                    )}
-                                                                    <div>
+                                                                        <div>
 
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {provider.status === 'NEW_PROPOSE' && (
-                                                                <Alert className="mt-4 border-emerald-200 bg-emerald-50 dark:border-[#1E2A3D] dark:bg-[rgba(27,196,125,0.1)]">
-                                                                    <DollarSign className="h-4 w-4 text-[#1BC47D]" />
-                                                                    <AlertDescription>
-                                                                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                                                            <div>
-                                                                                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                                                    {t('client.project_requests.budget.new_proposal')}
-                                                                                </div>
-                                                                                <div className="text-lg font-bold text-[#1BC47D]">
-                                                                                    {provider.proposedBudget != null ? (
-                                                                                        <PriceDisplay value={provider.proposedBudget} />
-                                                                                    ) : (
-                                                                                        '-'
-                                                                                    )}
-                                                                                </div>
-                                                                                <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
-                                                                                    {t('client.project_requests.budget.original')}{' '}
-                                                                                    {provider.allocatedBudget != null ? (
-                                                                                        <PriceDisplay value={provider.allocatedBudget} />
-                                                                                    ) : (
-                                                                                        '-'
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="flex flex-wrap gap-2">
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
-                                                                                    disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
-                                                                                    className="btn-primary"
-                                                                                >
-                                                                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                                                                    {t('client.project_requests.budget.approve')}
-                                                                                </Button>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    variant="outline"
-                                                                                    onClick={() => handleBudgetResponse(project.id, provider.id, 'REJECTED')}
-                                                                                    disabled={responding === `${project.id}-${provider.id}`}
-                                                                                    className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                                                >
-                                                                                    <XCircle className="w-4 h-4 mr-1" />
-                                                                                    {t('client.project_requests.budget.reject')}
-                                                                                </Button>
-                                                                            </div>
                                                                         </div>
-                                                                    </AlertDescription>
-                                                                </Alert>
-                                                            )}
-
-                                                            {provider.respondedAt && (
-                                                                <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
-                                                                    {t('client.project_requests.providers.response_received')} {formatDistanceToNow(new Date(provider.respondedAt), {
-                                                                        addSuffix: true,
-                                                                        locale: dateLocale
-                                                                    })}
+                                                                    </div>
                                                                 </div>
-                                                            )}
 
-                                                            <div className="space-y-2 mt-2">
-                                                                {providerMilestones.map((milestone: any, index: number) => {
-                                                                    const milestoneId = getMilestoneId(milestone);
+                                                                {provider.status === 'NEW_PROPOSE' && (
+                                                                    <Alert className="mt-4 border-emerald-200 bg-emerald-50 dark:border-[#1E2A3D] dark:bg-[rgba(27,196,125,0.1)]">
+                                                                        <DollarSign className="h-4 w-4 text-[#1BC47D]" />
+                                                                        <AlertDescription>
+                                                                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                                                                <div>
+                                                                                    <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                        {t('client.project_requests.budget.new_proposal')}
+                                                                                    </div>
+                                                                                    <div className="text-lg font-bold text-[#1BC47D]">
+                                                                                        {provider.proposedBudget != null ? (
+                                                                                            <PriceDisplay value={provider.proposedBudget} />
+                                                                                        ) : (
+                                                                                            '-'
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                                                                        {t('client.project_requests.budget.original')}{' '}
+                                                                                        {provider.allocatedBudget != null ? (
+                                                                                            <PriceDisplay value={provider.allocatedBudget} />
+                                                                                        ) : (
+                                                                                            '-'
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-2">
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
+                                                                                        disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
+                                                                                        className="btn-primary"
+                                                                                    >
+                                                                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                                                                        {t('client.project_requests.budget.approve')}
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="outline"
+                                                                                        onClick={() => handleBudgetResponse(project.id, provider.id, 'REJECTED')}
+                                                                                        disabled={responding === `${project.id}-${provider.id}`}
+                                                                                        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                                                                                    >
+                                                                                        <XCircle className="w-4 h-4 mr-1" />
+                                                                                        {t('client.project_requests.budget.reject')}
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </AlertDescription>
+                                                                    </Alert>
+                                                                )}
 
-                                                                    // 1. Logica pentru Release (existentă)
-                                                                    const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
+                                                                {provider.respondedAt && (
+                                                                    <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
+                                                                        {t('client.project_requests.providers.response_received')} {formatDistanceToNow(new Date(provider.respondedAt), {
+                                                                            addSuffix: true,
+                                                                            locale: dateLocale
+                                                                        })}
+                                                                    </div>
+                                                                )}
 
-                                                                    // 2. Logica pentru Secure Payment (NOUĂ)
-                                                                    // Verificăm dacă milestone-ul anterior este plătit (sau dacă e primul din listă)
-                                                                    const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+                                                                <div className="space-y-2 mt-2">
+                                                                    {providerMilestones.map((milestone: any, index: number) => {
+                                                                        const milestoneId = getMilestoneId(milestone);
 
-                                                                    // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
-                                                                    const showSecurePaymentBtn = milestone.payment_status === 'PENDING' && isPreviousPaid;
+                                                                        // 1. Logica pentru Release (existentă)
+                                                                        const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
 
-                                                                    return (
-                                                                        <div
-                                                                            key={milestoneId ?? index}
-                                                                            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
+                                                                        // 2. Logica pentru Secure Payment (NOUĂ)
+                                                                        // Verificăm dacă milestone-ul anterior este plătit (sau dacă e primul din listă)
+                                                                        const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+
+                                                                        // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
+                                                                        const showSecurePaymentBtn = milestone.payment_status === 'PENDING' && isPreviousPaid;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={milestoneId ?? index}
+                                                                                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
     ${milestone.status === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
     ${milestone.status === 'FINISHED' ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
     ${milestone.status === 'PAID' ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
     ${milestone.status === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
 `}
-                                                                        >
-                                                                            {/* Partea Stângă: Detalii Milestone */}
-                                                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4 dark:text-slate-200">
-        <span className="font-semibold text-slate-700 dark:text-slate-300">
-            {index + 1}. {milestone.title}
-        </span>
-                                                                                <span className="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
-                                                                                <span className="font-medium text-slate-600 dark:text-slate-400">
-            {t('client.project_requests.providers.milestone_budget')}{' '}
-                                                                                    <PriceDisplay value={milestone.amount} />
-        </span>
-                                                                            </div>
-
-                                                                            {/* Partea Dreaptă: Status + Butoane */}
-                                                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                                                                <div className="flex gap-2">
-                                                                                    {getMilestoneStatusBadge(milestone.status)}
-                                                                                    {getMilestonePaymentStatusBadge(milestone.payment_status)}
+                                                                            >
+                                                                                {/* Partea Stângă: Detalii Milestone */}
+                                                                                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4 dark:text-slate-200">
+                                                                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                                                                        {index + 1}. {milestone.title}
+                                                                                    </span>
+                                                                                    <span className="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
+                                                                                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                                                                                        {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                                                        <PriceDisplay value={milestone.amount} />
+                                                                                    </span>
                                                                                 </div>
 
-                                                                                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                                                                                    {/* BUTON RELEASE FUNDS */}
-                                                                                    {canReleaseMilestone && (
-                                                                                        <Button
-                                                                                            size="sm"
-                                                                                            onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
-                                                                                            disabled={releasingId === `milestone-${milestoneId}`}
-                                                                                            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                                                                                        >
-                                                                                            {releasingId === `milestone-${milestoneId}` ? (
-                                                                                                <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> ...</>
-                                                                                            ) : (
-                                                                                                <><CheckCircle className="w-3.5 h-3.5 mr-2" /> {t('client.project_requests.release.button')}</>
-                                                                                            )}
-                                                                                        </Button>
-                                                                                    )}
+                                                                                {/* Partea Dreaptă: Status + Butoane */}
+                                                                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                                                                    <div className="flex gap-2">
+                                                                                        {getMilestoneStatusBadge(milestone.status)}
+                                                                                        {getMilestonePaymentStatusBadge(milestone.payment_status)}
+                                                                                    </div>
 
-                                                                                    {/* BUTON SECURE FUNDS (Rapyd) */}
-                                                                                    {showSecurePaymentBtn && (
-                                                                                        <div className="flex-1 sm:flex-none">
-                                                                                            <RapydCheckoutButton
-                                                                                                project={project}
-                                                                                                milestone={milestone}
-                                                                                                countryCode="RO"
-                                                                                                onSuccess={() => window.location.reload()}
-                                                                                            />
-                                                                                        </div>
-                                                                                    )}
+                                                                                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                                                                        {/* BUTON RELEASE FUNDS */}
+                                                                                        {canReleaseMilestone && (
+                                                                                            <Button
+                                                                                                size="sm"
+                                                                                                onClick={() => handleReleaseFunds(project.id, String(milestoneId))}
+                                                                                                disabled={releasingId === `milestone-${milestoneId}`}
+                                                                                                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                                                                            >
+                                                                                                {releasingId === `milestone-${milestoneId}` ? (
+                                                                                                    <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> ...</>
+                                                                                                ) : (
+                                                                                                    <><CheckCircle className="w-3.5 h-3.5 mr-2" /> {t('client.project_requests.release.button')}</>
+                                                                                                )}
+                                                                                            </Button>
+                                                                                        )}
+
+                                                                                        {/* BUTON SECURE FUNDS (Rapyd) */}
+                                                                                        {showSecurePaymentBtn && (
+                                                                                            <div className="flex-1 sm:flex-none">
+                                                                                                <RapydCheckoutButton
+                                                                                                    project={project}
+                                                                                                    milestone={milestone}
+                                                                                                    countryCode="RO"
+                                                                                                    onSuccess={() => window.location.reload()}
+                                                                                                />
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
+                                                                        );
+                                                                    })}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
-                                            {/*{!project?.milestones && project.paymentStatus !== 'ESCROW' && (<Button*/}
-                                            {/*    onClick={() => openCheckout(project, null, null)}*/}
-                                            {/*    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"*/}
-                                            {/*    size="lg"*/}
-                                            {/*>*/}
-                                            {/*    <Shield className="w-5 h-5 mr-2" />*/}
-                                            {/*    {t('client.project_requests.actions.secure_payment')}*/}
-                                            {/*</Button>)}*/}
-                                            {project.paymentStatus === 'ESCROW' && canReleaseFull && (
-                                                <Button
-                                                    onClick={() => handleReleaseFunds(project.id)}
-                                                    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
-                                                    size="lg"
-                                                    disabled={releasingId === `project-${project.id}`}
-                                                >
-                                                    {releasingId === `project-${project.id}` ? (
-                                                        <>
-                                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                                            {t('client.project_requests.release.processing')}
-                                                        </>
-                                                    ) : (
-                                                        t('client.project_requests.release.button')
-                                                    )}
-                                                </Button>
-                                            )}
-                                            <div className="flex flex-col gap-2 sm:flex-row">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                >
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    {t('client.project_requests.actions.view_details')}
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                >
-                                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                                    {t('client.project_requests.actions.messages')}
-                                                </Button>
+                                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                                                {/*{!project?.milestones && project.paymentStatus !== 'ESCROW' && (<Button*/}
+                                                {/*    onClick={() => openCheckout(project, null, null)}*/}
+                                                {/*    className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"*/}
+                                                {/*    size="lg"*/}
+                                                {/*>*/}
+                                                {/*    <Shield className="w-5 h-5 mr-2" />*/}
+                                                {/*    {t('client.project_requests.actions.secure_payment')}*/}
+                                                {/*</Button>)}*/}
+                                                {project.paymentStatus === 'ESCROW' && canReleaseFull && (
+                                                    <Button
+                                                        onClick={() => handleReleaseFunds(project.id)}
+                                                        className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"
+                                                        size="lg"
+                                                        disabled={releasingId === `project-${project.id}`}
+                                                    >
+                                                        {releasingId === `project-${project.id}` ? (
+                                                            <>
+                                                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                                                {t('client.project_requests.release.processing')}
+                                                            </>
+                                                        ) : (
+                                                            t('client.project_requests.release.button')
+                                                        )}
+                                                    </Button>
+                                                )}
+                                                <div className="flex flex-col gap-2 sm:flex-row">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        {t('client.project_requests.actions.view_details')}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                                                    >
+                                                        <MessageSquare className="w-4 h-4 mr-2" />
+                                                        {t('client.project_requests.actions.messages')}
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        </CardContent>
+                                    </Card>
                                 );
                             })}
                         </div>
@@ -977,9 +943,9 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                         <p className="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded border-l-4 border-blue-400">
                                             {clause.text}
                                         </p>
-              {/*                          <span className="text-xs text-green-600 font-mono">*/}
-              {/*  [Engine Logic: {clause.logic_source}]*/}
-              {/*</span>*/}
+                                        {/*                          <span className="text-xs text-green-600 font-mono">*/}
+                                        {/*  [Engine Logic: {clause.logic_source}]*/}
+                                        {/*</span>*/}
                                     </div>
                                 ))}
                             </div>

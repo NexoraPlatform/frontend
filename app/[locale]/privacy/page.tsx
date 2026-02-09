@@ -21,6 +21,10 @@ export async function generateMetadata({ params }: PrivacyPageProps) {
       : "Politica de confidențialitate Trustora pentru clienți și furnizori.",
     locale,
     url: "/privacy",
+    robots: {
+      index: false,
+      follow: false,
+    },
   });
 }
 

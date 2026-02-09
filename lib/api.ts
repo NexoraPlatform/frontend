@@ -168,7 +168,7 @@ export interface AuditLogResponse {
 }
 
 export class ApiClient {
-  constructor(_baseURL: string) {}
+  constructor(_baseURL: string) { }
 
   private async request<T>(
     endpoint: string,
@@ -1095,9 +1095,9 @@ export class ApiClient {
   }
 
   async updateCompanyEditorsOrOwnership(
-      companyId: string | number | undefined,
-      members: string[] | null | undefined,
-      owner: string | null | undefined,
+    companyId: string | number | undefined,
+    members: string[] | null | undefined,
+    owner: string | null | undefined,
   ) {
     const payload: Record<string, unknown> = {
       company_id: companyId,
@@ -1316,20 +1316,6 @@ export class ApiClient {
     });
   }
 
-  async releaseProjectFunds(projectId: string | number, milestoneId?: string) {
-    const payload: Record<string, unknown> = { project_id: projectId };
-    if (milestoneId) {
-      payload.milestone_id = milestoneId;
-    }
-    return this.request<any>('/stripe/project/release-funds', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
   async createProject(projectData: CreateProjectPayload, language?: string) {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
@@ -1401,24 +1387,7 @@ export class ApiClient {
     });
   }
 
-  async handleStripeOnboarding(email: string) {
-    return this.request<any>('/stripe/onboard-link', {
-      method: 'POST',
-      body: JSON.stringify({ email: email }),
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-  }
 
-  async getStripeAccountStatus() {
-    return this.request<any>('/stripe/account-status', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-  }
 
   // Notifications endpoints
   async getNotifications(params?: {
@@ -1512,7 +1481,7 @@ export class ApiClient {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
-    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
+    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId ? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1574,31 +1543,7 @@ export class ApiClient {
     });
   }
 
-  async getPaymentLink(project_id: string) {
-    return this.request<any>(`/stripe/payment/${project_id}`);
-  }
 
-  async getPaymentSession(project_id: string, milestone_id: number|string|null, provider_id: number|string|null) {
-    return this.request<any>(`/stripe/session/payment/${project_id}/${provider_id ? provider_id + `${milestone_id ? `/` + milestone_id : ''}` : ''}`);
-  }
-
-  async getPayment(project_id: string, session_id: string) {
-    return this.request<any>(`/stripe/payment/${project_id}/${session_id}`);
-  }
-
-  async setPaymentIntent(project_id: string, pi: string) {
-    return this.request<any>(`/stripe/payment-intent/${project_id}`, {
-      method: 'POST',
-      body: JSON.stringify({ payment_intent: pi }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
-  async finishProject(project_id: string) {
-    return this.request<any>(`/stripe/capture/payment/${project_id}`);
-  }
 
   async updateOneSignalToken(token: string) {
     return this.request<any>(`/user/update-push-token`, {

@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/dialog";
 import { useRouter } from '@/lib/navigation';
 import { toast } from "sonner";
-import { loadStripe } from "@stripe/stripe-js";
 import { useLocale, useTranslations } from "next-intl";
 import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
@@ -49,92 +48,18 @@ interface ProjectRequestCardProps {
     onRefresh?: () => void;
 }
 
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) {
-    throw new Error('Stripe public key is not defined in environment variables');
-}
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
-
 export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRequestCardProps) {
     const { user, loading } = useAuth();
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
     const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
-    const [clientSecret, setClientSecret] = useState<string | null>(null);
-    const cardElementRef = useRef<any>(null);
-    const stripeRef = useRef<any>(null);
-    const elementsRef = useRef<any>(null);
-    const [errorMessage, setErrorMessage] = useState('');
-    const [success, setSuccess] = useState(false);
     const locale = useLocale() as Locale;
     const t = useTranslations();
     const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
     const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
     const [newBudget, setNewBudget] = useState<number>(0);
 
-    useEffect(() => {
-        if (checkoutDialogOpen) {
-            async function initStripe() {
-                const stripe = await stripePromise;
-                if (!stripe) return console.error(t('client.project_requests.stripe.load_error'));
 
-                const elements = stripe.elements();
-                const cardElement = elements.create('card');
-                cardElement.mount('#card-element');
-
-                // Salvezi pentru confirmare ulterioară
-                stripeRef.current = stripe;
-                elementsRef.current = elements;
-                cardElementRef.current = cardElement;
-            }
-
-            initStripe();
-        }
-
-        return () => {
-            // Demontezi elementul când se închide
-            cardElementRef.current?.unmount?.();
-            cardElementRef.current = null;
-        };
-    }, [checkoutDialogOpen, t]);
-
-    const handlePayment = async (project_id: any) => {
-        setErrorMessage('');
-
-        const stripe = stripeRef.current;
-        const cardElement = cardElementRef.current;
-
-        if (!stripe || !cardElement) {
-            setErrorMessage(t('client.project_requests.stripe.not_ready'));
-            return;
-        }
-
-        const result = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: {
-                card: cardElement,
-                billing_details: {
-                    name: `${user?.firstName} ${user?.lastName}`,
-                    email: user?.email,
-                },
-            },
-        });
-
-        await apiClient.setPaymentIntent(project_id, result.paymentIntent.id);
-
-        if (result.error) {
-            setErrorMessage(result.error.message || t('client.project_requests.stripe.payment_error'));
-        } else if (result.paymentIntent.status === 'requires_capture' || result.paymentIntent.status === 'succeeded') {
-            setSuccess(true);
-            // Poți închide dialogul, face redirect, etc.
-        }
-
-    };
-
-    const handleProjectFinish = async (projectId: string) => {
-        const response = await apiClient.finishProject(projectId);
-
-        const stripe = await stripePromise;
-    }
 
     const handleMarkMilestoneAsComplete = async (projectId: number, milestone: number) => {
         try {
@@ -366,17 +291,17 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                             </div>
                                         </div>
                                     </div>
-                                        <div className="text-right">
-                                            {getStatusBadge(provider.status)}
-                                            <div className="text-sm text-muted-foreground mt-1">
-                                                {t('client.project_requests.providers.allocated')}{' '}
-                                                {provider.allocatedBudget != null ? (
-                                                    <PriceDisplay value={provider.allocatedBudget} />
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </div>
+                                    <div className="text-right">
+                                        {getStatusBadge(provider.status)}
+                                        <div className="text-sm text-muted-foreground mt-1">
+                                            {t('client.project_requests.providers.allocated')}{' '}
+                                            {provider.allocatedBudget != null ? (
+                                                <PriceDisplay value={provider.allocatedBudget} />
+                                            ) : (
+                                                '-'
+                                            )}
                                         </div>
+                                    </div>
                                 </div>
                                 {(provider.provider_response === 'PENDING') && (
                                     <Dialog
@@ -436,7 +361,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         <DollarSign className="h-4 w-4" />
                                         <AlertDescription>
                                             <div className="flex items-center justify-between">
-                                                    <div>
+                                                <div>
                                                     <div className="font-medium">{t('client.project_requests.budget.new_proposal')}:</div>
                                                     <div className="text-lg font-bold text-emerald-600">
                                                         {provider.proposedBudget != null ? (
@@ -516,28 +441,28 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                             <span>{milestone.title}</span>
                                                             <span>/</span>
                                                             <span className="font-medium">
-                        {t('client.project_requests.providers.milestone_budget')}{' '}
+                                                                {t('client.project_requests.providers.milestone_budget')}{' '}
                                                                 <PriceDisplay value={milestone.amount} />
-                    </span>
+                                                            </span>
                                                         </div>
-                                                            <span className="ms-2">{getMilestonePaymentStatusBadge(milestone.payment_status)}</span>
+                                                        <span className="ms-2">{getMilestonePaymentStatusBadge(milestone.payment_status)}</span>
                                                         {project.status === 'ACCEPTED' && milestone.payment_status === 'ESCROW' && isPreviousMilestonePaid && (
                                                             <span>
-                        <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
-                            disabled={milestone.status !== 'PENDING'}
-                        >
-                            {milestone.status === 'PENDING'
-                                ? t('client.project_requests.milestones.mark_complete')
-                                : milestone.status === 'PAID'
-                                    ? t('client.project_requests.milestones.paid')
-                                    : milestone.status === 'REJECTED'
-                                        ? t('client.project_requests.milestones.rejected')
-                                        : t('client.project_requests.milestones.pending')}
-                        </Button>
-                    </span>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="default"
+                                                                    onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
+                                                                    disabled={milestone.status !== 'PENDING'}
+                                                                >
+                                                                    {milestone.status === 'PENDING'
+                                                                        ? t('client.project_requests.milestones.mark_complete')
+                                                                        : milestone.status === 'PAID'
+                                                                            ? t('client.project_requests.milestones.paid')
+                                                                            : milestone.status === 'REJECTED'
+                                                                                ? t('client.project_requests.milestones.rejected')
+                                                                                : t('client.project_requests.milestones.pending')}
+                                                                </Button>
+                                                            </span>
                                                         )}
                                                     </div>
                                                 );

@@ -61,10 +61,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="preconnect" href="https://images.pexels.com" crossOrigin="" />
-        <link rel="dns-prefetch" href="//images.pexels.com" />
-        <link rel="dns-prefetch" href="//cdn.onesignal.com" />
-        <link rel="dns-prefetch" href="//www.googletagmanager.com" />
+        {/* Resource Hints */}
+        <link rel="preconnect" href="https://backend.trustora.ro" />
+        <link rel="preconnect" href="https://cdn.onesignal.com" />
+        <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
         <script
           type="application/ld+json"

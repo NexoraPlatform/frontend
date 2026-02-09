@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import useSWR, { useSWRConfig } from 'swr';
 import axios from '@/lib/axios';
 import { apiClient } from '@/lib/api';
+import { ensureCsrfCookie } from '@/lib/csrf';
 import { AccessRole } from '@/lib/access';
 
 interface Company {
@@ -52,7 +53,7 @@ interface User {
   updated_at?: string;
   testVerified?: boolean;
   callVerified?: boolean;
-  stripe_account_id?: string;
+
   rapyd_wallet_id?: string;
   rapyd_contact_id?: string;
   is_online?: boolean;
@@ -146,22 +147,22 @@ const normalizeUser = (input: any): User | null => {
 
   const company = hasCompanyFields
     ? {
-        id: input.company_id ?? companyFromObject?.id ?? null,
-        name: companyName,
-        id_type: input.id_type ?? companyFromObject?.id_type ?? null,
-        id_number: input.id_number ?? companyFromObject?.id_number ?? null,
-        company_country: input.company_country ?? companyFromObject?.company_country ?? null,
-        company_county: input.company_county ?? companyFromObject?.company_county ?? null,
-        company_city: input.company_city ?? companyFromObject?.company_city ?? null,
-        company_zip: input.company_zip ?? companyFromObject?.company_zip ?? null,
-        company_address: input.company_address ?? companyFromObject?.company_address ?? null,
-        company_bank_iban: input.company_bank_iban ?? companyFromObject?.company_bank_iban ?? null,
-        company_bank_bic: input.company_bank_bic ?? companyFromObject?.company_bank_bic ?? null,
-        company_bank_name: input.company_bank_name ?? companyFromObject?.company_bank_name ?? null,
-        bank_currency: input.bank_currency ?? companyFromObject?.bank_currency ?? null,
-        created_at: companyFromObject?.created_at ?? null,
-        updated_at: companyFromObject?.updated_at ?? null,
-      }
+      id: input.company_id ?? companyFromObject?.id ?? null,
+      name: companyName,
+      id_type: input.id_type ?? companyFromObject?.id_type ?? null,
+      id_number: input.id_number ?? companyFromObject?.id_number ?? null,
+      company_country: input.company_country ?? companyFromObject?.company_country ?? null,
+      company_county: input.company_county ?? companyFromObject?.company_county ?? null,
+      company_city: input.company_city ?? companyFromObject?.company_city ?? null,
+      company_zip: input.company_zip ?? companyFromObject?.company_zip ?? null,
+      company_address: input.company_address ?? companyFromObject?.company_address ?? null,
+      company_bank_iban: input.company_bank_iban ?? companyFromObject?.company_bank_iban ?? null,
+      company_bank_bic: input.company_bank_bic ?? companyFromObject?.company_bank_bic ?? null,
+      company_bank_name: input.company_bank_name ?? companyFromObject?.company_bank_name ?? null,
+      bank_currency: input.bank_currency ?? companyFromObject?.bank_currency ?? null,
+      created_at: companyFromObject?.created_at ?? null,
+      updated_at: companyFromObject?.updated_at ?? null,
+    }
     : null;
 
   const permissions = input.permissions ?? input.permission_slugs;
@@ -215,6 +216,13 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     if (data === undefined) return;
     setUser(data ?? null);
   }, [data]);
+
+  // Initialize CSRF cookie on app startup
+  useEffect(() => {
+    ensureCsrfCookie().catch((error) => {
+      console.warn('Failed to initialize CSRF cookie:', error);
+    });
+  }, []);
 
   const login = async (email: string, password: string) => {
     await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
