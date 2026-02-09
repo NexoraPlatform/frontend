@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return generateSEO({
         title,
         description,
+        locale,
         url: `/projects/${id}`,
     });
 }

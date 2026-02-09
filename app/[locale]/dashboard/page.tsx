@@ -17,6 +17,7 @@ export async function generateMetadata({ params }: DashboardPageProps) {
     description: isEnglish
       ? 'Manage your account and services'
       : 'Administrează-ți contul și serviciile',
+    locale,
     url: '/dashboard',
   });
 }

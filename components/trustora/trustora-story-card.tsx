@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import {
     AlertTriangle,
@@ -59,7 +59,6 @@ export const TrustoraStoryCard = () => {
         primary: "#0B1C2D", // Midnight Blue
         accent: "#1BC47D", // Emerald Green
         error: "#E5484D",
-        bg: "#F5F7FA",
     };
 
     // Povestea structurată în 4 acte conform documentației de brand
@@ -70,7 +69,6 @@ export const TrustoraStoryCard = () => {
             subtitle: stepChaosSubtitle,
             description: stepChaosDescription,
             icon: <AlertTriangle size={24} color={colors.error} />,
-            visualState: "risk",
         },
         {
             id: 1,
@@ -78,7 +76,6 @@ export const TrustoraStoryCard = () => {
             subtitle: stepInfrastructureSubtitle,
             description: stepInfrastructureDescription,
             icon: <Layers size={24} color="#3B82F6" />,
-            visualState: "infrastructure",
         },
         {
             id: 2,
@@ -86,7 +83,6 @@ export const TrustoraStoryCard = () => {
             subtitle: stepMechanismSubtitle,
             description: stepMechanismDescription,
             icon: <Lock size={24} color={colors.accent} />,
-            visualState: "mechanism",
         },
         {
             id: 3,
@@ -94,7 +90,6 @@ export const TrustoraStoryCard = () => {
             subtitle: stepSuccessSubtitle,
             description: stepSuccessDescription,
             icon: <Globe size={24} color={colors.primary} />,
-            visualState: "success",
         },
     ];
 
@@ -120,7 +115,7 @@ export const TrustoraStoryCard = () => {
                             <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0B1C2D]">
                                 <div className="h-2.5 w-2.5 border-r-2 border-t-2 border-[#1BC47D]"></div>
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">
                                 {manifestLabel}
                             </span>
                         </div>
@@ -135,102 +130,127 @@ export const TrustoraStoryCard = () => {
                         {/* Connecting Line */}
                         <div className="absolute bottom-6 left-[27px] top-6 -z-10 w-0.5 bg-slate-100 dark:bg-slate-800"></div>
 
-                        {steps.map((step, index) => (
-                            <div
-                                key={step.id}
-                                onClick={() => handleStepClick(index)}
-                                className={`group cursor-pointer rounded-xl border border-transparent p-3 transition-all duration-300 ${
-                                    activeStep === index
-                                        ? "translate-x-2 border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-800/60"
-                                        : "hover:border-slate-100 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/50"
-                                }`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div
-                                        className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 bg-white transition-all duration-300 ${
-                                            activeStep === index
-                                                ? "scale-110 border-[#1BC47D] dark:bg-slate-900"
-                                                : "border-slate-200 grayscale dark:border-slate-700 dark:bg-slate-900"
-                                        }`}
-                                    >
-                                        <div className="scale-75 transform">{step.icon}</div>
-                                    </div>
+                        {steps.map((step, index) => {
+                            const isActive = activeStep === index;
+                            const titleId = `trustora-story-step-title-${step.id}`;
+                            const panelId = `trustora-story-step-panel-${step.id}`;
 
-                                    <div className="flex-grow">
-                                        <div className="mb-1 flex items-center justify-between">
-                                            <h3
-                                                className={`text-sm font-bold ${
-                                                    activeStep === index
-                                                        ? "text-[#0B1C2D] dark:text-white"
-                                                        : "text-slate-500 dark:text-slate-400"
+                            return (
+                                <button
+                                    key={step.id}
+                                    type="button"
+                                    onClick={() => handleStepClick(index)}
+                                    aria-pressed={isActive}
+                                    aria-controls={panelId}
+                                    className={`group w-full rounded-xl border border-transparent p-3 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1BC47D] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 ${
+                                        isActive
+                                            ? "translate-x-2 border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-800/60"
+                                            : "hover:border-slate-100 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/50"
+                                    }`}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div
+                                            className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 bg-white transition-all duration-300 ${
+                                                isActive
+                                                    ? "scale-110 border-[#1BC47D] dark:bg-slate-900"
+                                                    : "border-slate-200 grayscale dark:border-slate-700 dark:bg-slate-900"
+                                            }`}
+                                            aria-hidden="true"
+                                        >
+                                            <div className="scale-75 transform">{step.icon}</div>
+                                        </div>
+
+                                        <div className="flex-grow">
+                                            <div className="mb-1 flex items-center justify-between">
+                                                <h3
+                                                    id={titleId}
+                                                    className={`text-sm font-bold ${
+                                                        isActive
+                                                            ? "text-[#0B1C2D] dark:text-white"
+                                                            : "text-slate-600 dark:text-slate-300"
+                                                    }`}
+                                                >
+                                                    {step.title}
+                                                </h3>
+                                                {isActive && (
+                                                    <span className="rounded-full bg-[#1BC47D]/10 px-2 py-0.5 text-[10px] font-bold text-[#1BC47D] dark:bg-[#1BC47D]/20">
+                                                        {activeLabel}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p
+                                                className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
+                                                    isActive
+                                                        ? "text-slate-800 dark:text-slate-200"
+                                                        : "text-slate-500 dark:text-slate-300"
                                                 }`}
                                             >
-                                                {step.title}
-                                            </h3>
-                                            {activeStep === index && (
-                                                <span className="rounded-full bg-[#1BC47D]/10 px-2 py-0.5 text-[10px] font-bold text-[#1BC47D] dark:bg-[#1BC47D]/20">
-                                                    {activeLabel}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <p
-                                            className={`text-xs font-semibold uppercase tracking-wide transition-colors ${
-                                                activeStep === index
-                                                    ? "text-slate-800 dark:text-slate-200"
-                                                    : "text-slate-400 dark:text-slate-500"
-                                            }`}
-                                        >
-                                            {step.subtitle}
-                                        </p>
-
-                                        {/* Expandable Description */}
-                                        <div
-                                            className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                                                activeStep === index
-                                                    ? "mt-2 max-h-40 opacity-100"
-                                                    : "max-h-0 opacity-0"
-                                            }`}
-                                        >
-                                            <p className="border-l-2 border-[#1BC47D]/30 pl-3 text-sm leading-relaxed text-slate-600 dark:border-[#1BC47D]/50 dark:text-slate-300">
-                                                {step.description}
+                                                {step.subtitle}
                                             </p>
+
+                                            <div
+                                                id={panelId}
+                                                role="region"
+                                                aria-labelledby={titleId}
+                                                aria-hidden={!isActive}
+                                                className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                                                    isActive ? "mt-2 max-h-40 opacity-100" : "max-h-0 opacity-0"
+                                                }`}
+                                            >
+                                                <p className="border-l-2 border-[#1BC47D]/30 pl-3 text-sm leading-relaxed text-slate-600 dark:border-[#1BC47D]/50 dark:text-slate-300">
+                                                    {step.description}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        ))}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* Bottom Action Area */}
                     <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-                        <div className="flex gap-1.5">
-                            {steps.map((step) => (
-                                <div
+                        <div className="flex gap-1.5" role="group" aria-label={manifestLabel}>
+                            {steps.map((step, index) => (
+                                <button
                                     key={step.id}
+                                    type="button"
+                                    onClick={() => handleStepClick(index)}
+                                    aria-label={step.title}
+                                    aria-current={activeStep === step.id ? "step" : undefined}
                                     className={`h-1 rounded-full transition-all duration-500 ${
                                         activeStep === step.id
                                             ? "w-6 bg-[#1BC47D]"
-                                            : "w-2 bg-slate-200 dark:bg-slate-700"
+                                            : "w-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600"
                                     }`}
-                                />
+                                >
+                                    <span className="sr-only">{step.title}</span>
+                                </button>
                             ))}
                         </div>
 
                         {activeStep < steps.length - 1 ? (
                             <button
+                                type="button"
                                 onClick={handleNext}
+                                aria-label={nextStepLabel}
                                 className="group flex items-center gap-2 rounded px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#0B1C2D] transition-colors hover:bg-slate-50 hover:text-[#1BC47D] dark:text-slate-100 dark:hover:bg-slate-800"
                             >
                                 {nextStepLabel}{" "}
-                                <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                                <ArrowRight
+                                    size={14}
+                                    className="transition-transform group-hover:translate-x-1"
+                                    aria-hidden="true"
+                                />
                             </button>
                         ) : (
                             <a
                                 href="#early-access-client"
+                                aria-label={joinNetworkLabel}
                                 className="flex items-center gap-2 rounded-lg bg-[#0B1C2D] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-[#0B1C2D]/20 transition-colors hover:bg-[#152a3d] dark:bg-slate-950 dark:hover:bg-slate-800"
                             >
-                                {joinNetworkLabel} <ArrowRight size={14} />
+                                {joinNetworkLabel} <ArrowRight size={14} aria-hidden="true" />
                             </a>
                         )}
                     </div>

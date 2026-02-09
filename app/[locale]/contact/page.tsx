@@ -38,6 +38,7 @@ export async function generateMetadata({ params }: ContactPageProps): Promise<Me
     description: isEnglish
       ? 'Have a question or want to collaborate with Trustora? Reach out for fast support and service information.'
       : 'Ai o intrebare sau vrei să colaborezi cu Trustora? Contactează-ne pentru suport rapid și informații despre serviciile noastre.',
+    locale,
     url: '/contact',
   });
 }
