@@ -1,6 +1,5 @@
 // lib/server-auth.ts
 import { cookies } from 'next/headers';
-import { cache } from 'react';
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL ||
@@ -8,10 +7,9 @@ const API_BASE_URL =
     'https://Trustorabe.dacars.ro/api';
 
 /**
- * Get server-side user with Request Deduplication
- * Multiple calls in the same request will only fetch once
+ * Get the server-side user from request cookies.
  */
-export const getServerUser = cache(async () => {
+export async function getServerUser() {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('laravel_session')?.value;
     if (!sessionCookie) return null;
@@ -43,13 +41,12 @@ export const getServerUser = cache(async () => {
     if (!res.ok) return null;
     const data = await res.json();
     return data?.user ?? data;
-});
+}
 
 /**
- * Require specific permissions with Request Deduplication
- * Multiple calls in the same request will only fetch once
+ * Require specific permissions for the current server user.
  */
-export const requirePermission = cache(async (...perms: string[]) => {
+export async function requirePermission(...perms: string[]) {
     const user = await getServerUser();
     if (!user) {
         const err: any = new Error('Unauthenticated');
@@ -68,4 +65,4 @@ export const requirePermission = cache(async (...perms: string[]) => {
         throw err;
     }
     return user;
-});
+}

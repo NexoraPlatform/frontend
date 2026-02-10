@@ -16,7 +16,6 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { locales } from "@/lib/navigation";
 import { buildGlobalKnowledgeGraph, serializeJsonLd } from "@/lib/seo";
-import { getServerUser } from "@/lib/server-auth";
 
 const OneSignalInit = dynamic(() => import("@/components/OneSignalInit"), {
   loading: () => null,
@@ -54,7 +53,8 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
 
-  const [messages, initialUser] = await Promise.all([getMessages(), getServerUser()]);
+  const messages = await getMessages({ locale });
+  const initialUser = null;
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
   const shouldLoadOneSignal = Boolean(process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID);
 

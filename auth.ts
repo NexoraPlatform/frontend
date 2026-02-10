@@ -1,5 +1,4 @@
 import type { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -10,7 +9,11 @@ type AuthUser = Record<string, any> | null;
 
 const buildCookieHeader = (cookieHeader: string | null | undefined) => cookieHeader ?? '';
 
-const buildCookieHeaderFromStore = (store: Awaited<ReturnType<typeof cookies>>) =>
+type CookieStore = {
+  getAll: () => Array<{ name: string; value: string }>;
+};
+
+const buildCookieHeaderFromStore = (store: CookieStore) =>
   store
     .getAll()
     .map((cookie) => `${cookie.name}=${cookie.value}`)
@@ -65,6 +68,7 @@ const fetchAuthUser = async (cookieHeader: string, origin?: string | null): Prom
 };
 
 const fetchServerSession = async () => {
+  const { cookies } = await import('next/headers');
   const store = await cookies();
   const cookieHeader = buildCookieHeaderFromStore(store);
   const user = await fetchAuthUser(cookieHeader, resolveAppOrigin(null));
