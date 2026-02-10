@@ -32,6 +32,7 @@ const ROUTE_RULES: RouteRule[] = [
 ];
 
 const AUTH_PAGES = new Set(['/auth/signin', '/auth/signup']);
+const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/client', '/provider', '/tests'];
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -58,6 +59,12 @@ function findRequirement(pathname: string): Requirement | 'auth-only' | null {
     if (r.pattern.test(pathname)) return r.require;
   }
   return null;
+}
+
+function isAuthRequiredPath(pathname: string) {
+  return AUTH_REQUIRED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
 }
 
 // ---- Helper Functions ----
@@ -237,9 +244,8 @@ export const proxy = auth(async (req) => {
   // req.auth is the session object
   const session = (req as any).auth;
   const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
-  const sessionCookie = req.cookies.get('laravel_session')?.value;
-  const hasSessionCookie = Boolean(sessionCookie);
-  const isAuthenticated = !!user || hasSessionCookie;
+  // Treat only validated session data as authenticated to avoid stale-cookie false positives.
+  const isAuthenticated = Boolean(user);
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
 
@@ -336,6 +342,11 @@ export const proxy = auth(async (req) => {
     return NextResponse.redirect(url);
   }
 
+  // Explicitly protect authenticated-only sections and preserve callbackUrl.
+  if (!isAuthenticated && isAuthRequiredPath(normalizedPath)) {
+    return redirectToSignin(req, locale);
+  }
+
   // 3. Protected Routes
   const requirement = findRequirement(normalizedPath);
 
@@ -347,9 +358,6 @@ export const proxy = auth(async (req) => {
   if (!isAuthenticated) return redirectToSignin(req, locale);
 
   if (requirement === 'auth-only') return baseResponse;
-
-  // If we only have a session cookie, skip role checks here and let the API enforce.
-  if (!user && hasSessionCookie) return baseResponse;
 
   const allowed = checkRequirement(user || null, requirement);
 

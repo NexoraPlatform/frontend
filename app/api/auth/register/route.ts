@@ -21,6 +21,6 @@ export async function POST(req: Request) {
       'Content-Type': response.headers.get('content-type') ?? 'application/json',
     },
   });
-  appendSetCookie(response, nextResponse);
+  appendSetCookie(response, nextResponse, req);
   return nextResponse;
 }

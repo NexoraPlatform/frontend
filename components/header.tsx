@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Link, usePathname, useRouter } from '@/lib/navigation';
+import { Link, usePathname } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 
@@ -64,8 +64,6 @@ export function Header() {
     process.env.BASIC_AUTH === 'true';
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const t = useTranslations();
   const homeText = t('navigation.home');
@@ -99,6 +97,12 @@ export function Header() {
   const logoutText = t('navigation.logout');
   const loginText = t('navigation.login');
   const registerText = t('navigation.register');
+  const userFirstName = user?.firstName ?? user?.first_name ?? '';
+  const userLastName = user?.lastName ?? user?.last_name ?? '';
+  const userDisplayName =
+    `${userFirstName} ${userLastName}`.trim() || user?.email || 'User';
+  const userInitials =
+    `${userFirstName.charAt(0)}${userLastName.charAt(0)}`.toUpperCase() || 'U';
 
   const isAdminUser =
     user?.is_superuser ||
@@ -131,11 +135,6 @@ export function Header() {
     { name: contactText, href: '/contact' },
   ];
 
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -146,13 +145,8 @@ export function Header() {
 
 
   const handleLogout = () => {
-    logout();
-    router.push('/');
+    void logout();
   };
-
-  if (!mounted) {
-    return null;
-  }
 
   const ThemeToggle = ({ className }: { className?: string }) => (
     <Button
@@ -413,16 +407,16 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label={openMainUserMenuText}>
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
+                      <AvatarImage src={user.avatar ?? undefined} alt={userDisplayName} />
                       <AvatarFallback>
-                        {user.firstName[0]}{user.lastName[0]}
+                        {userInitials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex flex-col space-y-1 p-2">
-                    <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                    <p className="text-sm font-medium leading-none">{userDisplayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />

@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { JetBrains_Mono, Manrope } from "next/font/google";
 import Script from "next/script";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
@@ -19,18 +18,6 @@ import { buildGlobalKnowledgeGraph, serializeJsonLd } from "@/lib/seo";
 
 const OneSignalInit = dynamic(() => import("@/components/OneSignalInit"), {
   loading: () => null,
-});
-
-const manrope = Manrope({
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-  variable: "--font-manrope",
-});
-
-const jetBrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-jetbrains-mono",
 });
 
 type Props = {
@@ -56,14 +43,13 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages({ locale });
   const initialUser = null;
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
-  const shouldLoadOneSignal = Boolean(process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID);
+  const isProduction = process.env.NODE_ENV === "production";
+  const shouldLoadOneSignal = isProduction && Boolean(process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID);
 
   const globalJsonLd = serializeJsonLd(buildGlobalKnowledgeGraph());
 
   return (
-    <div
-      className={`${manrope.variable} ${jetBrainsMono.variable} ${manrope.className} font-sans antialiased`}
-    >
+    <div className="font-sans antialiased">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: globalJsonLd }}

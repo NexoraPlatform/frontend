@@ -11,6 +11,6 @@ export async function GET(req: Request) {
   });
 
   const nextResponse = new NextResponse(null, { status: response.status });
-  appendSetCookie(response, nextResponse);
+  appendSetCookie(response, nextResponse, req);
   return nextResponse;
 }

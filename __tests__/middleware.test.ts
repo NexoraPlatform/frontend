@@ -187,6 +187,18 @@ describe('proxy', () => {
     expect(res.url).toContain('callbackUrl=%2Fro%2Fdashboard');
   });
 
+  it('redirects unauthenticated users from /client/* with callbackUrl', async () => {
+    const req = makeReq('/ro/client/project-requests?tab=active', {
+      headers: { 'x-vercel-ip-country': 'RO' },
+    });
+    const res: any = await proxy(req);
+    expect(res.type).toBe('redirect');
+    expect(res.url).toContain('/ro/auth/signin');
+    expect(res.url).toContain(
+      'callbackUrl=%2Fro%2Fclient%2Fproject-requests%3Ftab%3Dactive'
+    );
+  });
+
   it('redirects non-admin from /admin to access-denied', async () => {
     const req = makeReq('/ro/admin', {
       headers: { 'x-vercel-ip-country': 'RO' },

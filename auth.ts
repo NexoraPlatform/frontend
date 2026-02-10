@@ -79,7 +79,8 @@ export function auth(handler?: (req: NextRequest) => Promise<Response> | Respons
   if (typeof handler === 'function') {
     return async (req: NextRequest) => {
       const cookieHeader = buildCookieHeader(req.headers.get('cookie'));
-      const user = await fetchAuthUser(cookieHeader, req.nextUrl.origin);
+      const requestOrigin = req.headers.get('origin');
+      const user = await fetchAuthUser(cookieHeader, requestOrigin);
       (req as any).auth = user ? { user } : null;
       return handler(req);
     };

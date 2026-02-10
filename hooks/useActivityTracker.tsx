@@ -7,8 +7,16 @@ export function useActivityTracker() {
     useEffect(() => {
         if (userLoading || !user) return;
 
-        apiClient.updateLastActive();
-        const interval = setInterval(() => apiClient.updateLastActive(), 60_000);
+        const updateActivity = () => {
+            void apiClient.updateLastActive().catch((error) => {
+                if (process.env.NODE_ENV !== 'production') {
+                    console.warn('Failed to update last active timestamp:', error);
+                }
+            });
+        };
+
+        updateActivity();
+        const interval = window.setInterval(updateActivity, 60_000);
 
         return () => {
             clearInterval(interval);

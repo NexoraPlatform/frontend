@@ -51,19 +51,50 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
   return headers;
 };
 
-export const appendSetCookie = (from: Response, to: NextResponse) => {
+const isLocalDevelopmentRequest = (req?: Request | null) => {
+  if (!req) return process.env.NODE_ENV !== 'production';
+  try {
+    const url = new URL(req.url);
+    return (
+      url.protocol === 'http:' &&
+      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+    );
+  } catch {
+    return process.env.NODE_ENV !== 'production';
+  }
+};
+
+const normalizeSetCookieForProxy = (cookie: string, req?: Request | null) => {
+  let normalized = cookie.replace(/;\s*Domain=[^;]*/gi, '');
+
+  // Browsers reject `Secure` and `SameSite=None` cookies on non-HTTPS localhost.
+  if (isLocalDevelopmentRequest(req)) {
+    normalized = normalized.replace(/;\s*Secure/gi, '');
+    normalized = normalized.replace(/;\s*SameSite=None/gi, '; SameSite=Lax');
+  }
+
+  return normalized.trim();
+};
+
+export const appendSetCookie = (from: Response, to: NextResponse, req?: Request | null) => {
   const getSetCookie = (from.headers as any).getSetCookie?.bind(from.headers);
   const setCookies: string[] = Array.isArray(getSetCookie?.()) ? getSetCookie() : [];
 
   if (setCookies.length === 0) {
     const single = from.headers.get('set-cookie');
     if (single) {
-      to.headers.append('Set-Cookie', single);
+      const parsed = single.split(/,(?=[^;,]+=[^;,]+)/g);
+      parsed.forEach((cookie) => {
+        const value = cookie.trim();
+        if (value) {
+          to.headers.append('Set-Cookie', normalizeSetCookieForProxy(value, req));
+        }
+      });
     }
     return;
   }
 
   setCookies.forEach((cookie) => {
-    to.headers.append('Set-Cookie', cookie);
+    to.headers.append('Set-Cookie', normalizeSetCookieForProxy(cookie, req));
   });
 };

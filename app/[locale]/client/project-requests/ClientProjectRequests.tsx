@@ -144,27 +144,56 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         const channel = echo.private(`App.Models.User.${user.id}`);
         const handler = (notification: {
             type?: string;
-            data?: { type?: string; projectId?: string | number; payload?: { projectId?: string | number } };
+            data?: {
+                type?: string;
+                projectId?: string | number;
+                milestoneId?: string | number;
+                milestone_id?: string | number;
+                payload?: {
+                    projectId?: string | number;
+                    milestoneId?: string | number;
+                    milestone_id?: string | number;
+                };
+            };
             projectId?: string | number;
-            payload?: { projectId?: string | number };
+            milestoneId?: string | number;
+            milestone_id?: string | number;
+            payload?: {
+                projectId?: string | number;
+                milestoneId?: string | number;
+                milestone_id?: string | number;
+            };
         }) => {
             const declaredType = String(
                 notification?.data?.type ??
                 notification?.type ??
                 ''
-            );
+            ).toLowerCase();
             const projectId =
                 notification?.data?.projectId ??
                 notification?.projectId ??
                 notification?.data?.payload?.projectId ??
                 notification?.payload?.projectId;
+            const milestoneId =
+                notification?.data?.milestoneId ??
+                notification?.data?.milestone_id ??
+                notification?.milestoneId ??
+                notification?.milestone_id ??
+                notification?.data?.payload?.milestoneId ??
+                notification?.data?.payload?.milestone_id ??
+                notification?.payload?.milestoneId ??
+                notification?.payload?.milestone_id;
+            const hasProjectContext = Boolean(projectId || milestoneId);
             const isProjectEvent =
                 declaredType.startsWith('project.') ||
-                declaredType.startsWith('budget.');
+                declaredType.startsWith('budget.') ||
+                declaredType.startsWith('milestone.') ||
+                declaredType.includes('milestone');
             const isRapydProjectEvent =
-                declaredType.startsWith('rapyd.') && Boolean(projectId);
+                declaredType.startsWith('rapyd.') && hasProjectContext;
+            const isFallbackProjectEvent = !declaredType && hasProjectContext;
 
-            if (!isProjectEvent && !isRapydProjectEvent) return;
+            if (!isProjectEvent && !isRapydProjectEvent && !isFallbackProjectEvent) return;
             loadProjects();
         };
         channel.notification(handler);
@@ -672,6 +701,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
                                                                                     <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                                                                                         {/* BUTON RELEASE FUNDS */}
+                                                                                        {}
                                                                                         {canReleaseMilestone && (
                                                                                             <Button
                                                                                                 size="sm"

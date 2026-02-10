@@ -81,6 +81,7 @@ const nextConfig = {
       }
     ],
     formats: ['image/avif', 'image/webp'],
+    qualities: [75, 90],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 31536000, // 1 year
@@ -155,7 +156,8 @@ const nextConfig = {
                 https://onesignal.com
                 https://api.onesignal.com
                 https://cdn.cookie-script.com
-                https://backend.trustora.ro;
+                https://backend.trustora.ro
+                https://sandboxcheckouttoolkit.rapyd.net;
               style-src 'self' 'unsafe-inline'
                 https://cdn.cookie-script.com;
               img-src 'self' data: blob: https:
@@ -168,13 +170,19 @@ const nextConfig = {
                 https://trustorabe.dacars.ro
                 https://backend.trustora.ro
                 https://previewbe.trustora.ro
+                https://api.iconify.design
+                https://api.simplesvg.com
+                https://api.unisvg.com
                 https://www.google-analytics.com
                 https://cdn.onesignal.com
                 https://onesignal.com
                 https://api.onesignal.com
                 https://cdn.cookie-script.com
+                https://sandboxcheckouttoolkit.rapyd.net
                 ${isDev ? 'http://127.0.0.1:8000 http://localhost:8000 ws: wss:' : ''};
-              frame-src 'self' https://onesignal.com;
+              frame-src 'self'
+              https://onesignal.com
+              https://sandboxcheckout.rapyd.net;
               frame-ancestors 'none';
               base-uri 'self';
               form-action 'self';
@@ -189,26 +197,38 @@ const nextConfig = {
       },
     ];
 
-    const staticAssetCachingHeaders = [
-      {
-        source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
+    const staticAssetCachingHeaders = isDev
+      ? [
+        {
+          source: '/_next/static/(.*)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'no-store, no-cache, must-revalidate',
+            },
+          ],
+        },
+      ]
+      : [
+        {
+          source: '/(.*).(jpg|jpeg|png|gif|ico|svg|webp|avif)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+        {
+          source: '/_next/static/(.*)',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'public, max-age=31536000, immutable',
+            },
+          ],
+        },
+      ];
 
     return [...securityHeaders, ...staticAssetCachingHeaders];
   },

@@ -2,7 +2,6 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import axios from '@/lib/axios';
 import { apiClient } from '@/lib/api';
 import { ensureCsrfCookie } from '@/lib/csrf';
 import { AccessRole } from '@/lib/access';
@@ -114,6 +113,9 @@ const normalizeUser = (input: any): User | null => {
   delete rest.company_bank_bic;
   delete rest.company_bank_name;
   delete rest.bank_currency;
+  delete rest.first_name;
+  delete rest.last_name;
+  delete rest.name;
 
   const rawCompany = input.company;
   const companyFromObject =
@@ -165,34 +167,79 @@ const normalizeUser = (input: any): User | null => {
     }
     : null;
 
+  const fullName = typeof input.name === 'string' ? input.name.trim() : '';
+  const [inferredFirstName = '', ...restNameParts] = fullName ? fullName.split(/\s+/) : [];
+  const inferredLastName = restNameParts.join(' ');
+  const firstName = input.firstName ?? input.first_name ?? inferredFirstName ?? '';
+  const lastName = input.lastName ?? input.last_name ?? inferredLastName ?? '';
+  const email = input.email ?? '';
+  const id = input.id ?? input.user_id;
+  const roleSlugsFromRoles = Array.isArray(input.roles)
+    ? input.roles
+      .map((role: any) =>
+        typeof role === 'string'
+          ? role
+          : role?.slug ?? role?.name ?? null
+      )
+      .filter(Boolean)
+      .map((role: string) => role.toLowerCase())
+    : [];
+  const roleSlugsFromPayload = Array.isArray(input.role_slugs)
+    ? input.role_slugs
+      .filter(Boolean)
+      .map((role: string) => String(role).toLowerCase())
+    : [];
+  const roleSlugs = Array.from(new Set([...roleSlugsFromPayload, ...roleSlugsFromRoles]));
   const permissions = input.permissions ?? input.permission_slugs;
 
   return {
     ...rest,
-    id: input.id ? String(input.id) : input.id,
+    id: id !== undefined && id !== null ? String(id) : '',
+    email,
+    firstName,
+    lastName,
+    avatar: input.avatar ?? input.profile_photo_url ?? null,
+    role: input.role ?? input.role_slug ?? null,
+    role_slugs: roleSlugs,
     company,
     permissions,
   } as User;
 };
 
 const fetcher = async () => {
-  const response = await axios.get('/api/auth/me');
-  const payload = response.data;
+  const response = await fetch('/api/auth/me', {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = new Error('Failed to fetch authenticated user') as Error & {
+      response?: { status: number };
+    };
+    error.response = { status: response.status };
+    throw error;
+  }
+
+  const payload = await response.json().catch(() => null);
   return normalizeUser(payload?.user ?? payload);
 };
 
 export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
   const [initialUserSnapshot] = useState<User | null>(() => normalizeUser(initialUser));
   const [user, setUser] = useState<User | null>(initialUserSnapshot);
-  const [shouldFetchUser, setShouldFetchUser] = useState(Boolean(initialUserSnapshot));
+  const [shouldFetchUser, setShouldFetchUser] = useState(true);
   const { mutate: mutateCache } = useSWRConfig();
 
   const swrKey = shouldFetchUser ? '/api/auth/me' : null;
 
   const { data, isLoading, mutate } = useSWR<User | null>(swrKey, fetcher, {
     fallbackData: initialUserSnapshot ?? undefined,
-    revalidateOnMount: false,
-    revalidateIfStale: false,
+    revalidateOnMount: true,
+    revalidateIfStale: true,
     revalidateOnFocus: false,
     shouldRetryOnError: false,
     onSuccess: (next) => {
@@ -203,10 +250,9 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       setShouldFetchUser(false);
     },
     onError: (error: any) => {
-      setUser(null);
-
       const status = error?.response?.status;
       if (status === 401 || status === 403) {
+        setUser(null);
         setShouldFetchUser(false);
       }
     },
@@ -232,28 +278,47 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
+
+    let payload: any = null;
+    try {
+      payload = await response.clone().json();
+    } catch {
+      payload = null;
+    }
+
     if (!response.ok) {
       let message = 'Login failed';
       try {
-        const data = await response.json();
-        message = data?.message || data?.error || message;
+        message = payload?.message || payload?.error || message;
       } catch {
         // ignore
       }
       throw new Error(message);
     }
-    if (shouldFetchUser) {
-      await mutate();
-    } else {
-      try {
-        const nextUser = await fetcher();
-        await mutateCache('/api/auth/me', nextUser ?? null, false);
-        setUser(nextUser ?? null);
-        setShouldFetchUser(true);
-      } catch (error) {
-        console.error('Failed to load user after login:', error);
-      }
+
+    const normalizedLoginUser = normalizeUser(payload?.user ?? null);
+
+    setShouldFetchUser(true);
+
+    if (normalizedLoginUser) {
+      setUser(normalizedLoginUser);
+      await mutateCache('/api/auth/me', normalizedLoginUser, false);
     }
+
+    // Do not block navigation after login while user refresh is in flight.
+    void (async () => {
+      try {
+        const refreshedUser = await fetcher();
+        const resolvedUser = refreshedUser ?? normalizedLoginUser ?? null;
+        await mutateCache('/api/auth/me', resolvedUser, false);
+        setUser(resolvedUser);
+        await mutate(resolvedUser, false);
+      } catch (error) {
+        if (!normalizedLoginUser) {
+          console.error('Failed to load user after login:', error);
+        }
+      }
+    })();
   };
 
   const register = async (userData: any) => {
@@ -288,7 +353,10 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout');
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -296,7 +364,14 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       setShouldFetchUser(false);
       setUser(null);
       await mutate(null, false);
-      window.location.href = '/auth/signin';
+      const localeFromPath =
+        typeof window !== 'undefined'
+          ? window.location.pathname.split('/')[1]?.toLowerCase()
+          : null;
+      const hasLocalePrefix = localeFromPath === 'en' || localeFromPath === 'ro';
+      window.location.href = hasLocalePrefix
+        ? `/${localeFromPath}/auth/signin`
+        : '/auth/signin';
     }
   };
 
@@ -336,8 +411,9 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     [mutate],
   );
 
-  const loading = shouldFetchUser && isLoading;
-  const userLoading = shouldFetchUser && isLoading && !user;
+  const isHydratingUser = shouldFetchUser && (isLoading || data === undefined);
+  const loading = isHydratingUser;
+  const userLoading = isHydratingUser && !user;
 
   const value: AuthContextType = {
     user,

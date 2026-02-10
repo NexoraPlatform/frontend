@@ -106,6 +106,7 @@ export default function DashboardClient() {
   const locale = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState('overview');
   const [wallets, setWallets] = useState<WalletData[]>([]);
@@ -239,10 +240,16 @@ export default function DashboardClient() {
   useEffect(() => {
     if (userLoading) return;
 
-    // if (!user) {
-    //   router.push('/auth/signin');
-    // }
-  }, [user, userLoading, router]);
+    if (!user) {
+      const currentPath = pathname || '/dashboard';
+      const callbackPath = currentPath.startsWith(`/${locale}`)
+        ? currentPath
+        : `/${locale}${currentPath.startsWith('/') ? currentPath : `/${currentPath}`}`;
+      const query = searchParamsString;
+      const callbackUrl = query ? `${callbackPath}?${query}` : callbackPath;
+      router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    }
+  }, [locale, pathname, router, searchParamsString, user, userLoading]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -423,7 +430,7 @@ export default function DashboardClient() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !isProvider || activeTab !== 'projects') return;
+    if (!user?.id || !isProvider) return;
     const echo = getEcho();
     if (!echo) return;
     const channel = echo.private(`App.Models.User.${user.id}`);
@@ -437,7 +444,7 @@ export default function DashboardClient() {
         notification?.data?.type ??
         notification?.type ??
         ''
-      );
+      ).toLowerCase();
       const projectId =
         notification?.data?.projectId ??
         notification?.projectId ??
@@ -446,18 +453,25 @@ export default function DashboardClient() {
       const isProjectEvent =
         declaredType.startsWith('project.') ||
         declaredType.startsWith('budget.');
-      const isRapydProjectEvent =
-        declaredType.startsWith('rapyd.') && Boolean(projectId);
+      const isRapydEvent = declaredType.startsWith('rapyd.');
 
-      if (!isProjectEvent && !isRapydProjectEvent) return;
-      loadProjects();
+      if (isRapydEvent) {
+        void fetchBalance();
+      }
+
+      const shouldRefetchProjects =
+        activeTab === 'projects' &&
+        (isProjectEvent || (isRapydEvent && Boolean(projectId)));
+
+      if (!shouldRefetchProjects) return;
+      void loadProjects();
     };
     channel.notification(handler);
 
     return () => {
       channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
     };
-  }, [user?.id, isProvider, activeTab, loadProjects]);
+  }, [user?.id, isProvider, activeTab, loadProjects, fetchBalance]);
 
   useEffect(() => {
     if (user && activeTab === 'overview') {
@@ -667,7 +681,14 @@ export default function DashboardClient() {
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>{t('dashboard.loading.dashboard')}</p>
+        </div>
+      </div>
+    );
   }
 
   // Data for overview stats

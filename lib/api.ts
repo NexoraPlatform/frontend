@@ -1384,6 +1384,10 @@ export class ApiClient {
   async updateLastActive() {
     return this.request<any>('/users/active', {
       method: 'POST',
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
   }
 

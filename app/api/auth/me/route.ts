@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
 import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/laravel-proxy';
 
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
-  const headers = buildProxyHeaders(req, {
-    'Content-Type': 'application/json',
-  });
+export async function GET(req: Request) {
+  const headers = buildProxyHeaders(req);
 
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    method: 'GET',
     headers,
-    body: body ? JSON.stringify(body) : undefined,
     cache: 'no-store',
   });
 
@@ -21,6 +17,7 @@ export async function POST(req: Request) {
       'Content-Type': response.headers.get('content-type') ?? 'application/json',
     },
   });
+
   appendSetCookie(response, nextResponse, req);
   return nextResponse;
 }

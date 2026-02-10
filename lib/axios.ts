@@ -38,6 +38,14 @@ const hasParamInUrl = (url: string, key: string) => {
   }
 };
 
+const shouldAttachDefaultQueryParams = (url?: string) => {
+  if (!url) return true;
+  const normalized = url.toLowerCase();
+  // Heartbeat endpoint rejects extra query params on some environments.
+  if (normalized.includes('/users/active')) return false;
+  return true;
+};
+
 const ensureParam = (params: ParamsType, key: string, value: string | null, url?: string) => {
   if (!value) return params;
   if (url && hasParamInUrl(url, key)) return params;
@@ -126,13 +134,16 @@ axiosInstance.interceptors.request.use((config) => {
   const currency = getSelectedCurrency();
   const params = normalizeParams(config.params);
   const url = typeof config.url === 'string' ? config.url : undefined;
-
-  config.params = ensureParam(
-    ensureParam(params, 'language', language, url),
-    'currency',
-    currency,
-    url
-  );
+  if (shouldAttachDefaultQueryParams(url)) {
+    config.params = ensureParam(
+      ensureParam(params, 'language', language, url),
+      'currency',
+      currency,
+      url
+    );
+  } else {
+    config.params = params;
+  }
 
   const xsrfToken = getCookieValue('XSRF-TOKEN');
   if (xsrfToken) {

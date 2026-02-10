@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,7 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const t = useTranslations();
-  const router = useRouter();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const { login } = useAuth();
   const badgeText = t('auth.signin.badge');
@@ -47,6 +47,28 @@ export default function SignInPage() {
   const genericErrorText = t('auth.signin.generic_error');
   const benefits = [benefitVerifiedContracts, benefitAutomatedEscrow, benefitProjectTimeline, benefitSupport];
 
+  const getSafeCallbackUrl = () => {
+    const fallback = `/${locale}/dashboard`;
+    const raw = searchParams.get('callbackUrl');
+    if (!raw) return fallback;
+
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    })();
+
+    try {
+      const parsed = new URL(decoded, window.location.origin);
+      if (parsed.origin !== window.location.origin) return fallback;
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return decoded.startsWith('/') ? decoded : fallback;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -54,14 +76,7 @@ export default function SignInPage() {
 
     try {
       await login(email, password);
-
-      // Redirect to callbackUrl if provided, otherwise to dashboard
-      const callbackUrl = searchParams.get('callbackUrl');
-      if (callbackUrl && callbackUrl.startsWith('/')) {
-        router.push(callbackUrl);
-      } else {
-        router.push('/dashboard');
-      }
+      window.location.assign(getSafeCallbackUrl());
     } catch (error: any) {
       setError(error.message || genericErrorText);
     } finally {

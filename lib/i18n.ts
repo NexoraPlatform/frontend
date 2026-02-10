@@ -55,6 +55,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
         contact: [() => import("@/locales/ro/contact/page.json")],
         client: [() => import("@/locales/ro/client/project_requests.json")],
         dashboard: [() => import("@/locales/ro/dashboard/page.json")],
+        tests: [() => import("@/locales/ro/tests/page.json")],
         trustora: [
             () => import("@/locales/ro/trustora/hero.json"),
             () => import("@/locales/ro/trustora/pillars.json"),
@@ -125,6 +126,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
         contact: [() => import("@/locales/en/contact/page.json")],
         client: [() => import("@/locales/en/client/project_requests.json")],
         dashboard: [() => import("@/locales/en/dashboard/page.json")],
+        tests: [() => import("@/locales/en/tests/page.json")],
         trustora: [
             () => import("@/locales/en/trustora/hero.json"),
             () => import("@/locales/en/trustora/pillars.json"),
