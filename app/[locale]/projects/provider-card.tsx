@@ -1,39 +1,48 @@
 "use client";
 
 import {Card, CardContent} from "@/components/ui/card";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {MapPin, Star} from "lucide-react";
 import ProviderService from "./[id]/provider-service";
 import { useRouter } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 interface ProviderCardProps {
     provider: any;
+    avatarPriority?: boolean;
 }
-export default function ProviderCard({ provider}: ProviderCardProps) {
+export default function ProviderCard({ provider, avatarPriority = false }: ProviderCardProps) {
     const router = useRouter();
     const t = useTranslations();
+    const profileTarget = provider.profile_url || provider.id;
 
     return (
         <Card
             key={provider.id}
             className="cursor-pointer glass-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            onClick={() => router.push(`/provider/${provider.profile_url}`)}
+            onClick={() => router.push(`/provider/${profileTarget}`)}
         >
             <CardContent className="p-6">
                 <div className="flex items-start space-x-4">
-                    <Avatar className="w-10 h-10">
-                        <AvatarImage
-                            src={provider.avatar}
-                            alt={t('projects.provider_card.avatar_alt', {
-                                firstName: provider.firstName,
-                                lastName: provider.lastName,
-                            })}
-                        />
-                        <AvatarFallback>
-                            {provider.firstName?.[0]}{provider.lastName?.[0]}
-                        </AvatarFallback>
-                    </Avatar>
+                    <div className="relative h-10 w-10 overflow-hidden rounded-full bg-slate-100 dark:bg-[#111B2D]">
+                        {provider.avatar ? (
+                            <Image
+                                src={provider.avatar}
+                                alt={t('projects.provider_card.avatar_alt', {
+                                    firstName: provider.firstName,
+                                    lastName: provider.lastName,
+                                })}
+                                fill
+                                priority={avatarPriority}
+                                className="object-cover"
+                                sizes="40px"
+                            />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-600 dark:text-[#A3ADC2]">
+                                {provider.firstName?.[0]}{provider.lastName?.[0]}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
                             <div>
