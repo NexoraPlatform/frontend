@@ -1,9 +1,16 @@
+import {
+  normalizeAiSearchMatchResponse,
+  type AiSearchMatchResponse,
+  type AiSearchNamespace,
+} from '@/types/ai-search';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.API_URL ||
   'https://Trustorabe.dacars.ro/api';
 
 const API_ROOT_URL = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '');
+const LARAVEL_AI_MATCH_ENDPOINT = `${API_BASE_URL.replace(/\/+$/, '')}/ai/match`;
 const DEFAULT_CURRENCY = 'USD';
 const CURRENCY_STORAGE_KEY = 'preferred_currency';
 const SUPPORTED_LOCALES = new Set(['ro', 'en']);
@@ -429,7 +436,56 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
 };
 
 export const apiFetch = createApiFetch();
-export const fetchClient = apiFetch;
+
+type MatchMethod = {
+  (
+    brief: string,
+    namespace: 'services' | 'projects' | 'providers',
+    limit?: number
+  ): Promise<AiSearchMatchResponse>;
+  (
+    brief: string,
+    namespace: AiSearchNamespace,
+    limit?: number
+  ): Promise<AiSearchMatchResponse>;
+};
+
+const match: MatchMethod = async (
+  brief: string,
+  namespace: AiSearchNamespace,
+  limit?: number
+): Promise<AiSearchMatchResponse> => {
+  const normalizedBrief = brief.trim();
+  if (!normalizedBrief) {
+    return normalizeAiSearchMatchResponse([], namespace);
+  }
+
+  // Current Laravel AiMatchingController contract returns only ServiceResource data.
+  // Keep non-service namespaces empty until backend exposes namespace-aware matching.
+  if (namespace !== 'services') {
+    return normalizeAiSearchMatchResponse([], namespace);
+  }
+
+  const payload = await apiFetch<unknown>(LARAVEL_AI_MATCH_ENDPOINT, {
+    method: 'POST',
+    cache: 'no-store',
+    skipDefaultParams: true,
+    body: {
+      brief: normalizedBrief,
+      ...(typeof limit === 'number' ? { limit } : {}),
+    },
+  });
+
+  return normalizeAiSearchMatchResponse(payload, namespace);
+};
+
+type FetchClientWithMatch = typeof apiFetch & {
+  match: typeof match;
+};
+
+export const fetchClient: FetchClientWithMatch = Object.assign(apiFetch, {
+  match,
+});
 
 export const http = {
   get: <T = unknown>(endpoint: string, options?: ApiFetchOptions) =>

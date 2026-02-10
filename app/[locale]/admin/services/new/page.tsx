@@ -292,7 +292,7 @@ export default function NewServicePage() {
                             key={category.id}
                             value={typeof category.id === 'string' ? category.id : String(category.id)}
                         >
-                          {category.displayName.trim()}
+                          {category.name.trim()}
                         </SelectItem>
                     ))}
                   </SelectContent>
