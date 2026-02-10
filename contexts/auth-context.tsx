@@ -3,8 +3,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { apiClient } from '@/lib/api';
+import { onApiUnauthorized } from '@/lib/fetch-client';
 import { ensureCsrfCookie } from '@/lib/csrf';
 import { AccessRole } from '@/lib/access';
+import { useAuthStore } from '@/lib/stores/use-auth-store';
 
 interface Company {
   id?: number | string;
@@ -230,9 +232,14 @@ const fetcher = async () => {
 
 export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
   const [initialUserSnapshot] = useState<User | null>(() => normalizeUser(initialUser));
-  const [user, setUser] = useState<User | null>(initialUserSnapshot);
+  const user = useAuthStore((state) => state.user as User | null);
+  const setUser = useAuthStore((state) => state.setUser as (next: User | null) => void);
   const [shouldFetchUser, setShouldFetchUser] = useState(true);
   const { mutate: mutateCache } = useSWRConfig();
+
+  useEffect(() => {
+    setUser(initialUserSnapshot);
+  }, [initialUserSnapshot, setUser]);
 
   const swrKey = shouldFetchUser ? '/api/auth/me' : null;
 
@@ -269,6 +276,18 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       console.warn('Failed to initialize CSRF cookie:', error);
     });
   }, []);
+
+  // Centralized sign-out trigger for transport-level 401 responses.
+  useEffect(() => {
+    const unsubscribe = onApiUnauthorized(() => {
+      void mutateCache('/api/auth/me', null, false);
+      setShouldFetchUser(false);
+      setUser(null);
+      void mutate(null, false);
+    });
+
+    return unsubscribe;
+  }, [mutate, mutateCache]);
 
   const login = async (email: string, password: string) => {
     await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });

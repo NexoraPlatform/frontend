@@ -1,9 +1,8 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
-import axios from '@/lib/axios';
+import { FetchError, http } from '@/lib/fetch-client';
 import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
-import { isAxiosError } from 'axios';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -100,7 +99,7 @@ export class ChatService {
                     ensureCsrfCookie()
                         .then(() => {
                             const xsrfToken = getXsrfToken();
-                            return axios.post(
+                            return http.post(
                                 '/api/broadcasting/auth',
                                 {
                                     socket_id: socketId,
@@ -109,7 +108,7 @@ export class ChatService {
                                 xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : undefined
                             );
                         })
-                        .then((response) => callback(null, response.data))
+                        .then((response) => callback(null, response))
                         .catch((error) =>
                             callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
                         );
@@ -184,13 +183,13 @@ export class ChatService {
 
     async sendMessageViaApi(groupId: string, content: string, attachments?: any[], language?: string) {
         const censoredContent = this.censorMessage(content);
-        const response = await axios.post(
+        const response = await http.post<any>(
             `/chat/groups/${groupId}/messages`,
             { content: censoredContent, attachments },
             language ? { params: { language } } : undefined
         );
 
-        return (response.data as any).message;
+        return response?.message;
     }
 
     async uploadAttachment(groupId: string | number, file: File, text = '') {
@@ -199,11 +198,12 @@ export class ChatService {
         if (text) fd.append('message', text);
 
         try {
-            const response = await axios.post(`/chat/groups/${groupId}/attachments`, fd);
-            return (response.data as any).message; // attachment.status = "scanning"
+            const response = await http.post<any>(`/chat/groups/${groupId}/attachments`, fd);
+            return response?.message; // attachment.status = "scanning"
         } catch (error) {
-            if (isAxiosError(error)) {
-                const msg = (error.response?.data as any)?.message || 'Upload failed';
+            if (error instanceof FetchError) {
+                const payload = error.data as Record<string, unknown> | null;
+                const msg = (payload?.message as string | undefined) || 'Upload failed';
                 throw new Error(msg);
             }
             throw error;

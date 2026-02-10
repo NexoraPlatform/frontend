@@ -1,5 +1,4 @@
-import axios from '@/lib/axios';
-import { isAxiosError } from 'axios';
+import { apiFetch, FetchError } from '@/lib/fetch-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
@@ -175,27 +174,18 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     try {
-      const headers = { ...(options.headers as Record<string, string> | undefined) };
-      const body = options.body;
-      const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-
-      if (body !== undefined && !isFormData && !headers?.['Content-Type']) {
-        headers['Content-Type'] = 'application/json';
-      }
-
-      const response = await axios.request<T>({
-        url: endpoint,
-        method: (options.method || 'GET') as any,
-        headers,
-        data: body,
+      const response = await apiFetch<T | null>(endpoint, {
+        ...options,
+        method: options.method || 'GET',
+        body: options.body as any,
       });
-
-      return response.data ?? ({} as T);
+      return (response ?? ({} as T)) as T;
     } catch (error) {
-      if (isAxiosError(error)) {
+      if (error instanceof FetchError) {
+        const payload = error.data as Record<string, unknown> | null;
         const message =
-          (error.response?.data as any)?.message ||
-          (error.response?.data as any)?.error ||
+          (payload && (payload.message as string)) ||
+          (payload && (payload.error as string)) ||
           error.message;
         throw new Error(message);
       }

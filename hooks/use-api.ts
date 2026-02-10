@@ -3,6 +3,7 @@
 import {useState, useEffect, useCallback, useRef} from 'react';
 import { apiClient } from '../lib/api';
 import { useCurrency } from '@/hooks/useCurrency';
+import { FetchError } from '@/lib/fetch-client';
 
 function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
@@ -25,7 +26,16 @@ export function useApi<T>(
       const result = await apiCall();
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof FetchError) {
+        const payload = err.data as Record<string, unknown> | null;
+        const message =
+          (payload?.message as string | undefined) ||
+          (payload?.error as string | undefined) ||
+          err.message;
+        setError(message);
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setLoading(false);
     }

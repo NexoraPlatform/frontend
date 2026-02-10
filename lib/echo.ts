@@ -1,7 +1,7 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
-import axios from '@/lib/axios';
+import { http } from '@/lib/fetch-client';
 import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 
 let echoInstance: Echo<any> | null = null;
@@ -23,7 +23,7 @@ export function getEcho(_token?: string | null): Echo<any> | null {
         ensureCsrfCookie()
           .then(() => {
             const xsrfToken = getXsrfToken();
-            return axios.post(
+            return http.post(
               '/api/broadcasting/auth',
               {
                 socket_id: socketId,
@@ -32,7 +32,7 @@ export function getEcho(_token?: string | null): Echo<any> | null {
               xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : undefined
             );
           })
-          .then((response) => callback(null, response.data))
+          .then((response) => callback(null, response))
           .catch((error) =>
             callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
           );

@@ -6,10 +6,12 @@
     "dev": "next dev --turbo",
     "postinstall": "node scripts/ensure-next-internals.mjs",
     "prebuild": "node scripts/ensure-next-internals.mjs",
-    "build": "next build",
+    "build": "next build --turbo",
+    "build:turbo": "next build --turbo",
+    "build:sandbox": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build --turbo"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
@@ -63,7 +65,6 @@
     "@types/react-dom": "18.2.7",
     "@types/web-push": "^3.6.4",
     "autoprefixer": "10.4.15",
-    "axios": "^1.13.4",
     "babel-plugin-react-compiler": "^19.1.0-rc.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

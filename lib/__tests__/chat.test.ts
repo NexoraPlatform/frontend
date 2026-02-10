@@ -1,11 +1,35 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ChatService } from '../chat';
-import axios from '../axios';
+import { FetchError } from '../fetch-client';
+
+vi.mock('../fetch-client', () => ({
+  http: {
+    post: vi.fn(),
+  },
+  FetchError: class MockFetchError extends Error {
+    status: number;
+    response: Response;
+    data: unknown;
+    url: string;
+    constructor(message: string, status: number, response: Response, data: unknown, url: string) {
+      super(message);
+      this.status = status;
+      this.response = response;
+      this.data = data;
+      this.url = url;
+    }
+  },
+}));
+
+import { http } from '../fetch-client';
 
 describe('lib/chat ChatService', () => {
+  const mockedHttp = http as unknown as { post: vi.Mock };
+
   beforeEach(() => {
     localStorage.clear();
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';
+    mockedHttp.post.mockReset();
   });
 
   afterEach(() => {
@@ -14,9 +38,9 @@ describe('lib/chat ChatService', () => {
   });
 
   it('sendMessageViaApi censors sensitive content', async () => {
-    const postMock = vi.spyOn(axios, 'post').mockResolvedValue({
-      data: { message: { id: 1 } },
-    } as any);
+    mockedHttp.post.mockResolvedValue({
+      message: { id: 1 },
+    });
 
     const service = new ChatService();
     await service.sendMessageViaApi(
@@ -25,8 +49,8 @@ describe('lib/chat ChatService', () => {
       []
     );
 
-    expect(postMock).toHaveBeenCalledOnce();
-    const [url, body] = postMock.mock.calls[0];
+    expect(mockedHttp.post).toHaveBeenCalledOnce();
+    const [url, body] = mockedHttp.post.mock.calls[0];
 
     expect(url).toBe('/chat/groups/123/messages');
     expect((body as any).content).toContain('[EMAIL CENZURAT]');
@@ -35,10 +59,11 @@ describe('lib/chat ChatService', () => {
   });
 
   it('uploadAttachment throws server error message when upload fails', async () => {
-    vi.spyOn(axios, 'post').mockRejectedValue({
-      isAxiosError: true,
-      response: { data: { message: 'Upload denied' } },
-    });
+    mockedHttp.post.mockRejectedValue(
+      new FetchError('Request failed', 422, new Response(null, { status: 422 }), {
+        message: 'Upload denied',
+      }, '/chat/groups/555/attachments')
+    );
 
     const service = new ChatService();
     const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
@@ -47,9 +72,9 @@ describe('lib/chat ChatService', () => {
   });
 
   it('uploadAttachment returns message on success', async () => {
-    vi.spyOn(axios, 'post').mockResolvedValue({
-      data: { message: { id: 9, status: 'scanning' } },
-    } as any);
+    mockedHttp.post.mockResolvedValue({
+      message: { id: 9, status: 'scanning' },
+    });
 
     const service = new ChatService();
     const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });

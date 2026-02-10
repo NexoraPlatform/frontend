@@ -4,6 +4,7 @@
  */
 
 import { http } from '@/lib/fetch-client';
+import { ensureCsrfCookie } from '@/lib/csrf';
 
 export type LoginCredentials = {
     email: string;
@@ -36,6 +37,7 @@ export const authService = {
      * Login with email and password
      */
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
+        await ensureCsrfCookie();
         return http.post<AuthResponse>('/auth/login', credentials);
     },
 
@@ -43,14 +45,27 @@ export const authService = {
      * Register a new user account
      */
     async register(userData: RegisterData): Promise<AuthResponse> {
+        await ensureCsrfCookie();
         return http.post<AuthResponse>('/auth/register', userData);
     },
 
     /**
      * Get current authenticated user
      */
+    async getMe(): Promise<any> {
+        return http.get('/auth/me');
+    },
+
     async me(): Promise<any> {
         return http.get('/auth/me');
+    },
+
+    /**
+     * Logout current authenticated user
+     */
+    async logout(): Promise<any> {
+        await ensureCsrfCookie();
+        return http.post('/auth/logout');
     },
 
     /**

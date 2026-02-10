@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
-import axios from '@/lib/axios';
+import { http } from '@/lib/fetch-client';
 import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 
 type RawLaravelNotification = {
@@ -394,7 +394,7 @@ function getOrCreateEcho(): Echo<any> {
                 ensureCsrfCookie()
                     .then(() => {
                         const xsrfToken = getXsrfToken();
-                        return axios.post(
+                        return http.post(
                             '/api/broadcasting/auth',
                             {
                                 socket_id: socketId,
@@ -403,7 +403,7 @@ function getOrCreateEcho(): Echo<any> {
                             xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : undefined
                         );
                     })
-                    .then((response) => callback(null, response.data))
+                    .then((response) => callback(null, response))
                     .catch((error) =>
                         callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
                     );
