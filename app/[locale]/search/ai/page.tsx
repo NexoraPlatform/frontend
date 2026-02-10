@@ -1,10 +1,10 @@
-import { AlertCircle } from 'lucide-react';
-import Image from 'next/image';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
+import { ProductCard } from '@/components/ProductCard';
 import { ProjectCard } from '@/components/ProjectCard';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -29,9 +29,46 @@ type PageProps = {
 };
 
 const RESULTS_LIMIT = 12;
+const BROADENING_THRESHOLD = 3;
 
 const getSingleParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
+
+const normalizeScore = (value: unknown): number | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+
+  if (value <= 1) {
+    return Math.round(value * 100);
+  }
+
+  return Math.round(value);
+};
+
+const extractServicePrice = (item: Record<string, unknown>): number => {
+  const priceCandidates = [
+    item.price,
+    item.base_price,
+    item.starting_price,
+    item.minimum_price,
+    item.min_price,
+  ];
+
+  for (const candidate of priceCandidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return candidate;
+    }
+    if (typeof candidate === 'string') {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return 0;
+};
 
 const createEmptyMatchResponse = (namespace: AiSearchNamespace): AiSearchMatchResponse => {
   if (namespace === 'services') {
@@ -50,6 +87,7 @@ export default async function AiSearchPage({ params, searchParams }: PageProps) 
   const queryParams = (await searchParams) ?? {};
 
   const query = (getSingleParam(queryParams.q) ?? '').trim();
+  const categoryId = getSingleParam(queryParams.category_id);
   const requestedType = resolveAiSearchNamespace(getSingleParam(queryParams.type));
   const requestedNamespace: AiSearchNamespace =
     requestedType === 'services' ? requestedType : 'services';
@@ -61,7 +99,7 @@ export default async function AiSearchPage({ params, searchParams }: PageProps) 
 
   if (query) {
     try {
-      results = await fetchClient.match(query, requestedNamespace, RESULTS_LIMIT);
+      results = await fetchClient.match(query, RESULTS_LIMIT, categoryId);
     } catch (error) {
       if (error instanceof FetchError) {
         errorMessage = error.message;
@@ -74,6 +112,8 @@ export default async function AiSearchPage({ params, searchParams }: PageProps) 
   }
 
   const noResults = query.length > 0 && results.total === 0;
+  const isBroadeningSearch =
+    query.length > 0 && !errorMessage && results.total > 0 && results.total <= BROADENING_THRESHOLD;
 
   const resultsFactory: {
     [K in AiSearchNamespace]: (items: AiSearchResponseByNamespace[K]) => ReactNode;
@@ -82,110 +122,93 @@ export default async function AiSearchPage({ params, searchParams }: PageProps) 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {items.map((item, index) => {
           const service = mapServiceResource(item, locale);
+          const score = normalizeScore(item.score);
+          const price = extractServicePrice(item as Record<string, unknown>);
 
           return (
-            <article
+            <div
               key={`service-${service.id}-${index}`}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+              className="relative"
             >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <Badge variant="secondary" className="text-xs">
-                  {service.category}
+              {score !== null ? (
+                <Badge className="absolute right-3 top-3 z-10 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  {t('match_score', { score })}
                 </Badge>
+              ) : null}
+              <ProductCard
+                title={service.name}
+                description={service.description || service.category}
+                price={price}
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
+                {service.tags.slice(0, 4).map((tag) => (
+                  <span
+                    key={`${service.id}-${tag}`}
+                    className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
                 {service.isFeatured ? (
                   <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">
                     {t('service.featured')}
                   </span>
                 ) : null}
               </div>
-
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-[#E6EDF3]">
-                {service.name}
-              </h3>
-
-              {service.description ? (
-                <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-[#A3ADC2]">
-                  {service.description}
-                </p>
-              ) : null}
-
-              {service.tags.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {service.tags.slice(0, 4).map((tag) => (
-                    <span
-                      key={`${service.id}-${tag}`}
-                      className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-[#1E2A3D]">
-                <p className="text-xs text-slate-500 dark:text-[#A3ADC2]">
-                  {t('service.providers', { count: service.providerCount })}
-                </p>
-
-                <div className="flex -space-x-2">
-                  {service.providers.slice(0, 3).map((provider, providerIndex) => {
-                    const providerName = `${provider.firstName ?? ''} ${provider.lastName ?? ''}`.trim();
-                    return (
-                      <div
-                        key={`${service.id}-provider-${provider.id}-${providerIndex}`}
-                        className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-white bg-slate-100 dark:border-[#0B1220] dark:bg-[#111B2D]"
-                      >
-                        {provider.avatar ? (
-                          <Image
-                            src={provider.avatar}
-                            alt={providerName || t('service.provider_avatar_alt')}
-                            fill
-                            sizes="32px"
-                            priority={index < 3 && providerIndex === 0}
-                            className="object-cover"
-                          />
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </article>
+            </div>
           );
         })}
       </div>
     ),
     projects: (items) => (
       <div className="space-y-4">
-        {items.map((item, index) => (
-          <ProjectCard
-            key={`project-${item.id}-${index}`}
-            project={mapProjectResource(item)}
-            prioritizeClientImage={index < 3}
-          />
-        ))}
+        {items.map((item, index) => {
+          const score = normalizeScore(item.score);
+          return (
+            <div key={`project-${item.id}-${index}`} className="relative">
+              {score !== null ? (
+                <Badge className="absolute right-3 top-3 z-10 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  {t('match_score', { score })}
+                </Badge>
+              ) : null}
+              <ProjectCard project={mapProjectResource(item)} prioritizeClientImage={index < 3} />
+            </div>
+          );
+        })}
       </div>
     ),
     providers: (items) => (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {items.map((item, index) => (
-          <ProviderCard
-            key={`provider-${item.id}-${index}`}
-            provider={mapProviderResource(item)}
-            avatarPriority={index < 3}
-          />
-        ))}
+        {items.map((item, index) => {
+          const score = normalizeScore(item.score);
+          return (
+            <div key={`provider-${item.id}-${index}`} className="relative">
+              {score !== null ? (
+                <Badge className="absolute right-3 top-3 z-10 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  {t('match_score', { score })}
+                </Badge>
+              ) : null}
+              <ProviderCard provider={mapProviderResource(item)} avatarPriority={index < 3} />
+            </div>
+          );
+        })}
       </div>
     ),
     provider_profiles: (items) => (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {items.map((item, index) => (
-          <ProviderCard
-            key={`provider-profile-${item.id}-${index}`}
-            provider={mapProviderResource(item)}
-            avatarPriority={index < 3}
-          />
-        ))}
+        {items.map((item, index) => {
+          const score = normalizeScore(item.score);
+          return (
+            <div key={`provider-profile-${item.id}-${index}`} className="relative">
+              {score !== null ? (
+                <Badge className="absolute right-3 top-3 z-10 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  {t('match_score', { score })}
+                </Badge>
+              ) : null}
+              <ProviderCard provider={mapProviderResource(item)} avatarPriority={index < 3} />
+            </div>
+          );
+        })}
       </div>
     ),
   };
@@ -199,7 +222,7 @@ export default async function AiSearchPage({ params, searchParams }: PageProps) 
           ? resultsFactory.providers(results.data)
           : resultsFactory.provider_profiles(results.data);
 
-  const activeNamespaceLabel = t(`namespaces.${requestedNamespace}`);
+  const activeNamespaceLabel = t(`namespaces.${results.namespace}`);
 
   return (
     <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
@@ -243,6 +266,18 @@ export default async function AiSearchPage({ params, searchParams }: PageProps) 
                   <AlertTitle>{t('error_title')}</AlertTitle>
                   <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
+              ) : null}
+
+              {isBroadeningSearch ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('broadening_title')}
+                  </div>
+                  <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-200/90">
+                    {t('broadening_description')}
+                  </p>
+                </div>
               ) : null}
 
               {!errorMessage && renderedResults}

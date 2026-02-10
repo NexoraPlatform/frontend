@@ -56,6 +56,7 @@ import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
 import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
+import { AI_BRIEF_DRAFT_STORAGE_KEY, type AiBriefFormDraft } from '@/types/ai';
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
@@ -320,6 +321,7 @@ export default function NewProjectPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const githubRefreshHandled = useRef(false);
+    const copilotDraftHandled = useRef(false);
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
 
@@ -904,6 +906,58 @@ export default function NewProjectPage() {
 
         return { id: techName, name: techName };
     }, [normalizeTechnologyName, serviceNameLookup]);
+
+    useEffect(() => {
+        if (copilotDraftHandled.current || typeof window === 'undefined') {
+            return;
+        }
+
+        const rawDraft = window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+        copilotDraftHandled.current = true;
+
+        if (!rawDraft) {
+            return;
+        }
+
+        try {
+            const parsedDraft = JSON.parse(rawDraft) as Partial<AiBriefFormDraft>;
+            const incomingTechnologies = Array.isArray(parsedDraft.technologies)
+                ? parsedDraft.technologies
+                    .map((entry) => String(entry).trim())
+                    .filter(Boolean)
+                : [];
+            const parsedBudgetType = String(parsedDraft.budgetType ?? '').toUpperCase();
+            const normalizedBudgetType: BudgetType =
+                parsedBudgetType === 'HOURLY'
+                    ? 'HOURLY'
+                    : 'FIXED';
+
+            setFormData((prev) => {
+                const existingNames = new Set(
+                    prev.technologies.map((tech) => normalizeTechnologyName(tech.name))
+                );
+                const mergedTechnologies = [
+                    ...prev.technologies,
+                    ...incomingTechnologies
+                        .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
+                        .map((techName) => resolveTechnology(techName)),
+                ];
+
+                return {
+                    ...prev,
+                    title: String(parsedDraft.title ?? '').trim() || prev.title,
+                    description: String(parsedDraft.description ?? '').trim() || prev.description,
+                    budget: String(parsedDraft.budget ?? '').trim() || prev.budget,
+                    budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
+                    technologies: mergedTechnologies,
+                };
+            });
+        } catch (error) {
+            console.error('Failed to parse AI brief draft:', error);
+        } finally {
+            window.sessionStorage.removeItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+        }
+    }, [normalizeTechnologyName, resolveTechnology]);
 
     const hasRequireRepo = (data: any): boolean => {
         if (Array.isArray(data)) {

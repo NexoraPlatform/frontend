@@ -1,8 +1,8 @@
 import {
   normalizeAiSearchMatchResponse,
   type AiSearchMatchResponse,
-  type AiSearchNamespace,
 } from '@/types/ai-search';
+import type { AiAssistantMessage, AiBriefBuilderResponse } from '@/types/ai';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -11,9 +11,13 @@ const API_BASE_URL =
 
 const API_ROOT_URL = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '');
 const LARAVEL_AI_MATCH_ENDPOINT = `${API_BASE_URL.replace(/\/+$/, '')}/ai/match`;
+const LARAVEL_AI_BRIEF_BUILDER_ENDPOINT = `${API_BASE_URL.replace(/\/+$/, '')}/ai/brief-builder`;
 const DEFAULT_CURRENCY = 'USD';
 const CURRENCY_STORAGE_KEY = 'preferred_currency';
 const SUPPORTED_LOCALES = new Set(['ro', 'en']);
+const BRIEF_BUILDER_TIMEOUT_MS = 15_000;
+const BRIEF_BUILDER_TIMEOUT_RETRIES = 2;
+const BRIEF_BUILDER_RETRY_DELAY_MS = 450;
 
 type ParamPrimitive = string | number | boolean | null | undefined;
 type ParamValue = ParamPrimitive | ParamPrimitive[];
@@ -244,6 +248,76 @@ const toErrorMessage = (data: unknown, response: Response) => {
   return `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
 };
 
+const getValidationMessage = (data: unknown): string | null => {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const payload = data as Record<string, unknown>;
+  const directMessage = payload.message ?? payload.error;
+  if (typeof directMessage === 'string' && directMessage.trim()) {
+    return directMessage;
+  }
+
+  const errors = payload.errors;
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) {
+    return null;
+  }
+
+  const firstErrorList = Object.values(errors).find((entry) => Array.isArray(entry));
+  if (!Array.isArray(firstErrorList)) {
+    return null;
+  }
+
+  const firstError = firstErrorList.find((entry) => typeof entry === 'string');
+  return typeof firstError === 'string' && firstError.trim() ? firstError : null;
+};
+
+const sleep = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+const isAbortError = (error: unknown) =>
+  Boolean(
+    error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      String((error as { name?: string }).name) === 'AbortError'
+  );
+
+const withTimeout = async <T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number
+): Promise<T> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await run(controller.signal);
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error('AI_REQUEST_TIMEOUT');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const normalizeBriefMessages = (messages: AiAssistantMessage[]) => {
+  return messages
+    .map((message) => ({
+      role: message.role,
+      content: message.content?.trim?.() ?? '',
+    }))
+    .filter(
+      (message) =>
+        (message.role === 'system' || message.role === 'user' || message.role === 'assistant') &&
+        message.content.length > 0
+    );
+};
+
 const buildUrl = (
   endpoint: string,
   params: Record<string, ParamValue>,
@@ -437,54 +511,117 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
 
 export const apiFetch = createApiFetch();
 
-type MatchMethod = {
-  (
-    brief: string,
-    namespace: 'services' | 'projects' | 'providers',
-    limit?: number
-  ): Promise<AiSearchMatchResponse>;
-  (
-    brief: string,
-    namespace: AiSearchNamespace,
-    limit?: number
-  ): Promise<AiSearchMatchResponse>;
-};
-
-const match: MatchMethod = async (
+const match = async (
   brief: string,
-  namespace: AiSearchNamespace,
-  limit?: number
+  limit?: number,
+  category_id?: number | string
 ): Promise<AiSearchMatchResponse> => {
   const normalizedBrief = brief.trim();
   if (!normalizedBrief) {
-    return normalizeAiSearchMatchResponse([], namespace);
+    return normalizeAiSearchMatchResponse([], 'services');
   }
 
-  // Current Laravel AiMatchingController contract returns only ServiceResource data.
-  // Keep non-service namespaces empty until backend exposes namespace-aware matching.
-  if (namespace !== 'services') {
-    return normalizeAiSearchMatchResponse([], namespace);
+  try {
+    const payload = await apiFetch<unknown>(LARAVEL_AI_MATCH_ENDPOINT, {
+      method: 'POST',
+      cache: 'no-store',
+      skipDefaultParams: true,
+      body: {
+        brief: normalizedBrief,
+        ...(typeof limit === 'number' ? { limit } : {}),
+        ...(category_id !== undefined && category_id !== null ? { category_id } : {}),
+      },
+    });
+
+    return normalizeAiSearchMatchResponse(payload, 'services');
+  } catch (error) {
+    if (error instanceof FetchError) {
+      if (error.status === 503) {
+        throw new FetchError(
+          'AI matching service is temporarily unavailable. Please retry shortly.',
+          error.status,
+          error.response,
+          error.data,
+          error.url
+        );
+      }
+
+      if (error.status === 422) {
+        throw new FetchError(
+          getValidationMessage(error.data) ?? 'The brief is invalid. Add more context and retry.',
+          error.status,
+          error.response,
+          error.data,
+          error.url
+        );
+      }
+    }
+
+    throw error;
+  }
+};
+
+const buildBrief = async (
+  messages: AiAssistantMessage[],
+  locale?: string
+): Promise<AiBriefBuilderResponse> => {
+  const normalizedMessages = normalizeBriefMessages(messages);
+  if (normalizedMessages.length === 0) {
+    throw new Error('At least one valid message is required.');
   }
 
-  const payload = await apiFetch<unknown>(LARAVEL_AI_MATCH_ENDPOINT, {
-    method: 'POST',
-    cache: 'no-store',
-    skipDefaultParams: true,
-    body: {
-      brief: normalizedBrief,
-      ...(typeof limit === 'number' ? { limit } : {}),
-    },
-  });
+  let attempt = 0;
+  while (attempt <= BRIEF_BUILDER_TIMEOUT_RETRIES) {
+    try {
+      return await withTimeout(
+        (signal) =>
+          apiFetch<AiBriefBuilderResponse>(LARAVEL_AI_BRIEF_BUILDER_ENDPOINT, {
+            method: 'POST',
+            cache: 'no-store',
+            skipDefaultParams: true,
+            signal,
+            body: {
+              messages: normalizedMessages,
+              ...(locale ? { locale } : {}),
+            },
+          }),
+        BRIEF_BUILDER_TIMEOUT_MS
+      );
+    } catch (error) {
+      const timeoutHappened =
+        error instanceof Error && error.message === 'AI_REQUEST_TIMEOUT';
 
-  return normalizeAiSearchMatchResponse(payload, namespace);
+      if (timeoutHappened && attempt < BRIEF_BUILDER_TIMEOUT_RETRIES) {
+        attempt += 1;
+        await sleep(BRIEF_BUILDER_RETRY_DELAY_MS * attempt);
+        continue;
+      }
+
+      if (error instanceof FetchError && error.status === 422) {
+        throw new FetchError(
+          getValidationMessage(error.data) ?? 'Unable to process this brief request.',
+          error.status,
+          error.response,
+          error.data,
+          error.url
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error('AI brief builder request failed.');
 };
 
 type FetchClientWithMatch = typeof apiFetch & {
   match: typeof match;
+  buildBrief: typeof buildBrief;
 };
 
 export const fetchClient: FetchClientWithMatch = Object.assign(apiFetch, {
   match,
+  buildBrief,
 });
 
 export const http = {

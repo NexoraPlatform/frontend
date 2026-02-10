@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
@@ -8,6 +8,9 @@ import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -39,6 +42,8 @@ import { enUS, ro } from 'date-fns/locale';
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
 import RapydCheckoutButton from "@/components/RapydCheckoutButton";
+import BriefCopilot from '@/components/projects/BriefCopilot';
+import { AI_BRIEF_DRAFT_STORAGE_KEY, type AiBriefFormDraft } from '@/types/ai';
 
 
 
@@ -69,6 +74,15 @@ interface ContractResponse {
     meta: ContractMeta[];
 }
 
+const createEmptyBriefDraft = (): AiBriefFormDraft => ({
+    title: '',
+    description: '',
+    budget: '',
+    budgetType: 'FIXED',
+    technologies: [],
+    team_structure: [],
+});
+
 export default function ClientProjectRequests({ withLayout = true }: ClientProjectRequestsProps) {
     const { user, loading, userLoading } = useAuth();
     const locale = useLocale();
@@ -84,6 +98,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [releasingId, setReleasingId] = useState<string | null>(null);
     const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
     const [openContractDialog, setOpenContractDialog] = useState(false);
+    const [briefDraft, setBriefDraft] = useState<AiBriefFormDraft>(createEmptyBriefDraft);
     const roleSlugs = [
         ...(user?.role_slugs ?? []),
         ...((user?.roles ?? []).map((role: any) => role?.slug).filter(Boolean)),
@@ -124,6 +139,38 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const displayedTotalAmount = displayedValueAmount != null && displayedFeeAmount != null
         ? displayedValueAmount + displayedFeeAmount
         : null;
+
+    const parseTechnologies = useCallback((value: string) => {
+        return Array.from(
+            new Set(
+                value
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+            )
+        );
+    }, []);
+
+    const handleCopilotApply = useCallback((draft: AiBriefFormDraft) => {
+        setBriefDraft((prev) => ({
+            ...prev,
+            ...draft,
+            title: draft.title || prev.title,
+            description: draft.description || prev.description,
+            budget: draft.budget || prev.budget,
+            budgetType: draft.budgetType || prev.budgetType,
+            technologies: draft.technologies.length > 0 ? draft.technologies : prev.technologies,
+            team_structure: draft.team_structure ?? prev.team_structure,
+        }));
+        toast.success(t('client.project_requests.brief_copilot.apply_to_form'));
+    }, [t]);
+
+    const handleContinueToProjectForm = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem(AI_BRIEF_DRAFT_STORAGE_KEY, JSON.stringify(briefDraft));
+        }
+        router.push('/projects/new?source=brief-copilot');
+    }, [briefDraft, router]);
 
     const loadProjects = useCallback(async () => {
         try {
@@ -417,26 +464,139 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
             <section className="bg-[#F5F7FA] dark:bg-[#0B1220]">
                 <div className="container mx-auto px-4 pb-16 pt-10">
-                    {projects.length === 0 ? (
+                    <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
                         <Card className="glass-card border-transparent shadow-sm">
-                            <CardContent className="text-center py-12">
-                                <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center mx-auto mb-4">
-                                    <Target className="w-8 h-8 text-[#1BC47D]" />
+                            <CardHeader>
+                                <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                    {t('client.project_requests.brief_copilot.draft.title')}
+                                </CardTitle>
+                                <CardDescription>
+                                    {t('client.project_requests.brief_copilot.draft.description')}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label htmlFor="brief-draft-title">
+                                        {t('client.project_requests.brief_copilot.draft.project_title')}
+                                    </Label>
+                                    <Input
+                                        id="brief-draft-title"
+                                        value={briefDraft.title}
+                                        onChange={(event) =>
+                                            setBriefDraft((prev) => ({ ...prev, title: event.target.value }))
+                                        }
+                                        placeholder={t('client.project_requests.brief_copilot.draft.project_title_placeholder')}
+                                    />
                                 </div>
-                                <h3 className="text-xl font-semibold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                    {t('client.project_requests.empty.title')}
-                                </h3>
-                                <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
-                                    {t('client.project_requests.empty.description')}
-                                </p>
-                                <Button onClick={() => router.push('/projects/new')} className="btn-primary">
-                                    <Target className="w-4 h-4 mr-2" />
-                                    {t('client.project_requests.empty.cta')}
+
+                                <div>
+                                    <Label htmlFor="brief-draft-description">
+                                        {t('client.project_requests.brief_copilot.draft.project_description')}
+                                    </Label>
+                                    <Textarea
+                                        id="brief-draft-description"
+                                        value={briefDraft.description}
+                                        onChange={(event) =>
+                                            setBriefDraft((prev) => ({ ...prev, description: event.target.value }))
+                                        }
+                                        rows={5}
+                                        placeholder={t('client.project_requests.brief_copilot.draft.project_description_placeholder')}
+                                    />
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div>
+                                        <Label htmlFor="brief-draft-budget">
+                                            {t('client.project_requests.brief_copilot.draft.budget')}
+                                        </Label>
+                                        <Input
+                                            id="brief-draft-budget"
+                                            value={briefDraft.budget}
+                                            type="number"
+                                            onChange={(event) =>
+                                                setBriefDraft((prev) => ({ ...prev, budget: event.target.value }))
+                                            }
+                                            placeholder={t('client.project_requests.brief_copilot.draft.budget_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="brief-draft-technologies">
+                                            {t('client.project_requests.brief_copilot.draft.technologies')}
+                                        </Label>
+                                        <Input
+                                            id="brief-draft-technologies"
+                                            value={briefDraft.technologies.join(', ')}
+                                            onChange={(event) =>
+                                                setBriefDraft((prev) => ({
+                                                    ...prev,
+                                                    technologies: parseTechnologies(event.target.value),
+                                                }))
+                                            }
+                                            placeholder={t('client.project_requests.brief_copilot.draft.technologies_placeholder')}
+                                        />
+                                    </div>
+                                </div>
+
+                                {briefDraft.team_structure && briefDraft.team_structure.length > 0 ? (
+                                    <div className="rounded-xl border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                            {t('client.project_requests.brief_copilot.team_title')}
+                                        </div>
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            {briefDraft.team_structure.map((member, index) => (
+                                                <div
+                                                    key={`${member.role}-${index}`}
+                                                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs dark:border-[#1E2A3D] dark:bg-[#0F1827]"
+                                                >
+                                                    <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                        {member.role}
+                                                        {member.count ? ` × ${member.count}` : ''}
+                                                    </div>
+                                                    {member.estimated_cost !== undefined ? (
+                                                        <div className="text-emerald-700 dark:text-emerald-300">
+                                                            <PriceDisplay value={member.estimated_cost} />
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                                        {t('client.project_requests.brief_copilot.draft.empty')}
+                                    </p>
+                                )}
+
+                                <Button type="button" onClick={handleContinueToProjectForm} className="w-full btn-primary">
+                                    {t('client.project_requests.brief_copilot.draft.open_form')}
                                 </Button>
                             </CardContent>
                         </Card>
-                    ) : (
-                        <div className="space-y-6">
+
+                        <BriefCopilot locale={locale} onApply={handleCopilotApply} />
+                    </div>
+
+                    <div className="mt-8">
+                        {projects.length === 0 ? (
+                            <Card className="glass-card border-transparent shadow-sm">
+                                <CardContent className="text-center py-12">
+                                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center mx-auto mb-4">
+                                        <Target className="w-8 h-8 text-[#1BC47D]" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                        {t('client.project_requests.empty.title')}
+                                    </h3>
+                                    <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
+                                        {t('client.project_requests.empty.description')}
+                                    </p>
+                                    <Button onClick={() => router.push('/projects/new')} className="btn-primary">
+                                        <Target className="w-4 h-4 mr-2" />
+                                        {t('client.project_requests.empty.cta')}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-6">
                             {projects.map((project) => {
                                 const hasAnyMilestones = (project.milestones ?? []).some(
                                     (milestoneGroup: any) => (milestoneGroup.milestones ?? []).length > 0
@@ -789,8 +949,9 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                     </Card>
                                 );
                             })}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </section>
 
