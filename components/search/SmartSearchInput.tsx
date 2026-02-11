@@ -13,7 +13,7 @@ import {
   resolveAiSearchNamespace,
 } from '@/types/ai-search';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -108,6 +108,16 @@ export function SmartSearchInput({
     setQuery(initialQuery ?? '');
   }, [initialQuery]);
 
+  const queryLength = query.trim().length;
+  const strength = queryLength >= 260 ? 'strong' : queryLength >= 120 ? 'medium' : 'weak';
+  const strengthValue = queryLength >= 260 ? 100 : queryLength >= 120 ? 65 : queryLength > 0 ? 35 : 8;
+  const strengthBarClassName =
+    strength === 'strong'
+      ? 'bg-emerald-500'
+      : strength === 'medium'
+        ? 'bg-amber-500'
+        : 'bg-slate-400';
+
   const currentPlaceholder = t(`search.ai.${namespace}.placeholder`);
   const currentContextLabel = t(`search.ai.${namespace}.context`);
 
@@ -167,20 +177,38 @@ export function SmartSearchInput({
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+          <Textarea
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={currentPlaceholder}
-            className="h-11 pl-10"
+            className="min-h-[140px] resize-y pl-10"
           />
         </div>
 
-        <Button type="submit" className="h-11 px-6">
-          {t('search.ai.submit')}
-        </Button>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#A3ADC2]">
+            <span>
+              {t('search.ai.strength.label')}: {t(`search.ai.strength.${strength}`)}
+            </span>
+            <span>{t('search.ai.char_count', { count: queryLength })}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-[#111B2D]">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${strengthBarClassName}`}
+              style={{ width: `${strengthValue}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">{t('search.ai.brief_hint')}</p>
+        </div>
+
+        <div className="flex justify-end">
+          <Button type="submit" className="h-11 px-6">
+            {t('search.ai.submit')}
+          </Button>
+        </div>
       </form>
     </section>
   );
