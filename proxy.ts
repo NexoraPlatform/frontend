@@ -338,7 +338,6 @@ export const proxy = auth(async (req) => {
   // A cookie might exist but be invalid/expired
   if (AUTH_PAGES.has(normalizedPath) && user) {
     const url = new URL(`/${locale}/dashboard`, req.url);
-    url.search = req.nextUrl.search;
     return NextResponse.redirect(url);
   }
 

@@ -400,7 +400,10 @@ function getOrCreateEcho(): Echo<any> {
                                 socket_id: socketId,
                                 channel_name: channel.name,
                             },
-                            xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : undefined
+                            {
+                                skipAuthHandling: true,
+                                ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
+                            }
                         );
                     })
                     .then((response) => callback(null, response))

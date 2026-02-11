@@ -2,7 +2,13 @@ import {
   normalizeAiSearchMatchResponse,
   type AiSearchMatchResponse,
 } from '@/types/ai-search';
-import type { AiAssistantMessage, AiBriefBuilderResponse } from '@/types/ai';
+import type {
+  AiAssistantMessage,
+  AiBriefAvailableService,
+  AiBriefBuilderRequestBody,
+  AiBriefBuilderResponse,
+} from '@/types/ai';
+import { ensureCsrfCookie } from '@/lib/csrf';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -309,13 +315,24 @@ const normalizeBriefMessages = (messages: AiAssistantMessage[]) => {
   return messages
     .map((message) => ({
       role: message.role,
-      content: message.content?.trim?.() ?? '',
+      content: message.content?.trim?.().slice(0, 8000) ?? '',
     }))
     .filter(
       (message) =>
         (message.role === 'system' || message.role === 'user' || message.role === 'assistant') &&
         message.content.length > 0
     );
+};
+
+const normalizeAvailableServices = (services?: AiBriefAvailableService[]) => {
+  if (!Array.isArray(services)) {
+    return [];
+  }
+
+  return services.filter(
+    (service): service is AiBriefAvailableService =>
+      Boolean(service) && typeof service === 'object' && !Array.isArray(service)
+  );
 };
 
 const buildUrl = (
@@ -360,9 +377,10 @@ const dispatchUnauthorized = (error: FetchError, skipAuthHandling?: boolean) => 
 
 const refreshCsrfCookie = async (baseURL: string) => {
   if (!isBrowser) return;
+  const csrfUrl = `${baseURL}/sanctum/csrf-cookie`;
 
   if (!csrfRefreshPromise) {
-    csrfRefreshPromise = fetch(`${baseURL}/sanctum/csrf-cookie`, {
+    csrfRefreshPromise = fetch(csrfUrl, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -563,27 +581,103 @@ const match = async (
 
 const buildBrief = async (
   messages: AiAssistantMessage[],
-  locale?: string
+  locale?: string,
+  availableServices?: AiBriefAvailableService[]
 ): Promise<AiBriefBuilderResponse> => {
+  console.log('[buildBrief] called', {
+    messageCount: Array.isArray(messages) ? messages.length : 0,
+    locale: locale ?? null,
+    availableServicesCount: Array.isArray(availableServices) ? availableServices.length : 0,
+  });
+
+  if (isBrowser) {
+    try {
+      await ensureCsrfCookie();
+      console.log('[buildBrief] ensureCsrfCookie ok');
+    } catch (error) {
+      console.error('[buildBrief] ensureCsrfCookie failed', error);
+      throw error;
+    }
+  }
+
   const normalizedMessages = normalizeBriefMessages(messages);
   if (normalizedMessages.length === 0) {
     throw new Error('At least one valid message is required.');
   }
+  const normalizedAvailableServices = normalizeAvailableServices(availableServices);
 
   let attempt = 0;
   while (attempt <= BRIEF_BUILDER_TIMEOUT_RETRIES) {
     try {
+      const requestBody: AiBriefBuilderRequestBody = {
+        ...(locale ? { locale } : {}),
+        messages: normalizedMessages,
+        ...(normalizedAvailableServices.length > 0
+          ? { available_services: normalizedAvailableServices }
+          : {}),
+      };
+
+      const xsrfToken = isBrowser ? getCookieValue('XSRF-TOKEN') : null;
+      const laravelSession = isBrowser ? getCookieValue('laravel_session') : null;
+      const briefHeaders: Record<string, string> = {};
+
+      if (xsrfToken) {
+        const decodedXsrfToken = decodeURIComponent(xsrfToken);
+        briefHeaders['X-XSRF-TOKEN'] = decodedXsrfToken;
+      }
+
+      const decodedXsrfToken = xsrfToken ? decodeURIComponent(xsrfToken) : null;
+      console.log('[buildBrief] csrf/session debug', {
+        attempt,
+        hasXsrfToken: Boolean(xsrfToken),
+        xsrfTokenPreview: decodedXsrfToken ? `${decodedXsrfToken.slice(0, 16)}...` : null,
+        hasLaravelSession: Boolean(laravelSession),
+        briefHeaderKeys: Object.keys(briefHeaders),
+        hasXXsrfHeader: Boolean(briefHeaders['X-XSRF-TOKEN']),
+        hasCsrfHeader: false,
+        hasLaravelSessionHeader: false,
+      });
+
+      if (isBrowser && attempt === 0) {
+        try {
+          const authProbeHeaders: Record<string, string> = {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          };
+          if (decodedXsrfToken) {
+            authProbeHeaders['X-XSRF-TOKEN'] = decodedXsrfToken;
+          }
+
+          const authProbeResponse = await fetch(
+            `${API_BASE_URL.replace(/\/+$/, '')}/auth/me`,
+            {
+              method: 'GET',
+              credentials: 'include',
+              headers: authProbeHeaders,
+              cache: 'no-store',
+            }
+          );
+          const authProbeBody = await authProbeResponse.text();
+          console.log('[buildBrief] auth/me probe', {
+            status: authProbeResponse.status,
+            ok: authProbeResponse.ok,
+            bodyPreview: authProbeBody.slice(0, 200),
+          });
+        } catch (probeError) {
+          console.error('[buildBrief] auth/me probe failed', probeError);
+        }
+      }
+
       return await withTimeout(
         (signal) =>
           apiFetch<AiBriefBuilderResponse>(LARAVEL_AI_BRIEF_BUILDER_ENDPOINT, {
             method: 'POST',
             cache: 'no-store',
             skipDefaultParams: true,
+            credentials: 'include',
             signal,
-            body: {
-              messages: normalizedMessages,
-              ...(locale ? { locale } : {}),
-            },
+            headers: briefHeaders,
+            body: requestBody as unknown as Record<string, unknown>,
           }),
         BRIEF_BUILDER_TIMEOUT_MS
       );
@@ -605,6 +699,15 @@ const buildBrief = async (
           error.data,
           error.url
         );
+      }
+
+      if (error instanceof FetchError && error.status === 401) {
+        console.error('[buildBrief] 401 details', {
+          url: error.url,
+          status: error.status,
+          message: error.message,
+          data: error.data,
+        });
       }
 
       throw error;

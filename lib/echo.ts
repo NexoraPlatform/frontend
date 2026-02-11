@@ -29,7 +29,10 @@ export function getEcho(_token?: string | null): Echo<any> | null {
                 socket_id: socketId,
                 channel_name: channel.name,
               },
-              xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : undefined
+              {
+                skipAuthHandling: true,
+                ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
+              }
             );
           })
           .then((response) => callback(null, response))
