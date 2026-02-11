@@ -40,7 +40,6 @@ import {
     Eye,
     ArrowRight,
     ArrowLeft,
-    EuroIcon,
     Filter,
     ChevronDown,
     BadgeAlert, GithubIcon
@@ -48,20 +47,20 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
 import { useGetServicesGroupedByCategory, useMainCategories } from '@/hooks/use-api';
-import TitleIcon from '@mui/icons-material/Title';
-import DescriptionIcon from '@mui/icons-material/Description';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { apiClient } from '@/lib/api';
-import type { GenerateProjectInformationResponse } from '@/lib/api';
 import { formatDeadline } from '@/lib/projects';
 import { hasRole } from '@/lib/access';
 import type { Locale } from '@/types/locale';
-import { AI_BRIEF_DRAFT_STORAGE_KEY, type AiBriefFormDraft } from '@/types/ai';
+import {
+    AI_BRIEF_DRAFT_STORAGE_KEY,
+    normalizeProjectDeadlineValue,
+    type AiBriefFormDraft
+} from '@/types/ai';
 import { PriceDisplay } from '@/components/PriceDisplay';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
-import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
 import GithubConnect from "@/components/GithubConnect";
+import BriefCopilot from '@/components/projects/BriefCopilot';
 
 function getDateFnsLocale(locale: string) {
     return locale === 'ro' ? ro : enUS;
@@ -108,13 +107,6 @@ interface SuggestedProvider {
     level: string;
 }
 
-
-const aiLoadingMessageKeys = [
-    'projects.new.ai_loading.analyzing',
-    'projects.new.ai_loading.generating',
-    'projects.new.ai_loading.verifying',
-    'projects.new.ai_loading.finalizing',
-];
 
 type TechnologySelected = {
     id: string;
@@ -178,21 +170,6 @@ export default function NewProjectPage() {
         paymentPlan: '',
         githubRepoTarget: 'without',
     });
-    const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
-        title: "",
-        description: "",
-        technologies: [],
-        estimated_budget: 0,
-        budget_type: "",
-        notes: "",
-        deadline: "",
-        additional_services: [],
-        team_structure: [],
-        payment_plan: "",
-        milestone_count: 0,
-        milestones: []
-    });
-    const [aiLoading, setAiLoading] = useState(false);
 
     const [skipValidation, setSkipValidation] = useState(false);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
@@ -202,11 +179,6 @@ export default function NewProjectPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [newTechnology, setNewTechnology] = useState('');
-    const [index] = useState(0);
-    const aiLoadingMessages = useMemo(
-        () => aiLoadingMessageKeys.map((key) => t(key)),
-        [t]
-    );
     const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [providerSearchTerm, setProviderSearchTerm] = useState('');
@@ -371,11 +343,10 @@ export default function NewProjectPage() {
     const markedNamesSet = useMemo(() => {
         const names = [
             ...formData.technologies.map(t => normalizeTechnologyName(t.name)),
-            ...generatedAiOutput.technologies.map((tech) => normalizeTechnologyName(tech)),
         ].filter(name => name.length > 0);
 
         return new Set(names);
-    }, [formData.technologies, generatedAiOutput.technologies, normalizeTechnologyName]);
+    }, [formData.technologies, normalizeTechnologyName]);
 
     const filteredProviders = suggestedProviders.filter(provider => {
         const searchMatch = !providerSearchTerm ||
@@ -735,8 +706,16 @@ export default function NewProjectPage() {
         setProviderMilestones(buildProviderMilestonesFromAi());
     };
 
-    const getLastActiveText = (lastActiveAt: string): string => {
+    const getLastActiveText = (lastActiveAt?: string | null): string => {
+        if (!lastActiveAt) {
+            return t('projects.new.availability.unknown');
+        }
+
         const time = parseISO(lastActiveAt);
+        if (!isValid(time)) {
+            return t('projects.new.availability.unknown');
+        }
+
         const currentLocale = getDateFnsLocale(locale);
         return formatDistanceToNow(time, { addSuffix: true, locale: currentLocale });
     };
@@ -907,6 +886,87 @@ export default function NewProjectPage() {
         return { id: techName, name: techName };
     }, [normalizeTechnologyName, serviceNameLookup]);
 
+    const handleCopilotApply = useCallback((draft: AiBriefFormDraft) => {
+        const incomingTechnologies = Array.isArray(draft.technologies)
+            ? draft.technologies
+                .map((entry) => String(entry).trim())
+                .filter(Boolean)
+            : [];
+        const parsedBudgetType = String(draft.budgetType ?? '').toUpperCase();
+        const normalizedBudgetType: BudgetType =
+            parsedBudgetType === 'HOURLY'
+                ? 'HOURLY'
+                : 'FIXED';
+        const normalizedTeam = Array.isArray(draft.team_structure)
+            ? draft.team_structure
+                .map((member) => ({
+                    role: String(member.role ?? '').trim(),
+                    level: String(member.level ?? '').trim(),
+                    service: String(member.service ?? '').trim(),
+                    count: Number(member.count ?? 0),
+                    estimated_cost: Number(member.estimated_cost ?? 0),
+                }))
+                .filter((member) => member.role || member.service)
+                .map((member) => ({
+                    role: member.role || member.service,
+                    level: member.level,
+                    service: member.service || member.role,
+                    count: Number.isFinite(member.count) && member.count > 0 ? member.count : 1,
+                    estimated_cost:
+                        Number.isFinite(member.estimated_cost) && member.estimated_cost > 0
+                            ? member.estimated_cost
+                            : 0,
+                }))
+            : [];
+        const normalizedMilestones = Array.isArray(draft.milestones)
+            ? draft.milestones
+                .map((milestone) => ({
+                    title: String(milestone.title ?? '').trim(),
+                    amount: Number(milestone.amount ?? 0),
+                }))
+                .filter(
+                    (milestone) =>
+                        milestone.title.length > 0 &&
+                        Number.isFinite(milestone.amount) &&
+                        milestone.amount > 0
+                )
+            : [];
+        const normalizedDeadline = normalizeProjectDeadlineValue(
+            String(draft.deadline ?? draft.durationLabel ?? '')
+        );
+
+        setSkipValidation(true);
+        setFormData((prev) => {
+            const existingNames = new Set(
+                prev.technologies.map((tech) => normalizeTechnologyName(tech.name))
+            );
+            const mergedTechnologies = [
+                ...prev.technologies,
+                ...incomingTechnologies
+                    .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
+                    .map((techName) => resolveTechnology(techName)),
+            ];
+
+            return {
+                ...prev,
+                title: String(draft.title ?? '').trim() || prev.title,
+                description: String(draft.description ?? '').trim() || prev.description,
+                budget: String(draft.budget ?? '').trim() || prev.budget,
+                budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
+                deadline: normalizedDeadline || prev.deadline,
+                technologies: mergedTechnologies,
+                recommendedProviders:
+                    normalizedTeam.length > 0
+                        ? normalizedTeam
+                        : prev.recommendedProviders,
+            };
+        });
+
+        if (normalizedMilestones.length > 0) {
+            setAiSuggestedMilestones([{ milestones: normalizedMilestones }]);
+        }
+    }, [normalizeTechnologyName, resolveTechnology]);
+
     useEffect(() => {
         if (copilotDraftHandled.current || typeof window === 'undefined') {
             return;
@@ -931,6 +991,9 @@ export default function NewProjectPage() {
                 parsedBudgetType === 'HOURLY'
                     ? 'HOURLY'
                     : 'FIXED';
+            const normalizedDeadline = normalizeProjectDeadlineValue(
+                String(parsedDraft.deadline ?? parsedDraft.durationLabel ?? '')
+            );
 
             setFormData((prev) => {
                 const existingNames = new Set(
@@ -949,6 +1012,7 @@ export default function NewProjectPage() {
                     description: String(parsedDraft.description ?? '').trim() || prev.description,
                     budget: String(parsedDraft.budget ?? '').trim() || prev.budget,
                     budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
+                    deadline: normalizedDeadline || prev.deadline,
                     technologies: mergedTechnologies,
                 };
             });
@@ -978,104 +1042,6 @@ export default function NewProjectPage() {
 
     const existsRequireRepo = hasRequireRepo(formData.technologies);
 
-    const generateDescription = async () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!formData.title.trim()) {
-            newErrors.title = t('projects.new.errors.title_required');
-        }
-        if (!formData.description.trim()) {
-            newErrors.description = t('projects.new.errors.description_required');
-        }
-
-        setErrors(newErrors);
-
-        if (Object.keys(newErrors).length !== 0) return;
-
-        setSkipValidation(true);
-        setAiLoading(true);
-
-        try {
-            const generatedOutput = await apiClient.generateProjectInformation(formData);
-            setGeneratedAiOutput(generatedOutput);
-            setFormData(prev => ({
-                ...prev,
-                notes: generatedOutput.notes || '',
-                recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
-                    role: member.role,
-                    level: member.level,
-                    service: member.service,
-                    count: member.count ?? 0,
-                    estimated_cost: member.estimated_cost
-                })),
-                technologies: (() => {
-                    const existing = prev.technologies;
-                    const existingNames = new Set(existing.map((tech) => normalizeTechnologyName(tech.name)));
-                    const newTechs = generatedOutput.technologies
-                        .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
-                        .map((techName) => resolveTechnology(techName));
-
-                    return [...existing, ...newTechs];
-                })(),
-            }));
-        } catch (e: any) {
-            console.error('Error generating AI output:', e);
-        } finally {
-            setAiLoading(false);
-        }
-    }
-
-    const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
-        setSkipValidation(true);
-        setFormData(prev => {
-            if (field === 'budgetType') {
-                const normalizedBudgetType: BudgetType = generatedText === 'HOURLY' ? 'HOURLY' : 'FIXED';
-                return {
-                    ...prev,
-                    budgetType: normalizedBudgetType,
-                };
-            }
-
-            return {
-                ...prev,
-                [field]: generatedText,
-            };
-        });
-    }
-
-    const handleUseGeneratedTechnologies = (technologies: string[]) => {
-        setFormData(prev => {
-            const existing = prev.technologies;
-
-            const newTechs = technologies
-                .filter((techName) => !existing.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(techName)))
-                .map((techName) => resolveTechnology(techName));
-
-            return {
-                ...prev,
-                technologies: [...existing, ...newTechs]
-            };
-        });
-    };
-
-    const handleUseGeneratedSuggestedTechnologies = (technologies: string[]) => {
-        setFormData(prev => {
-            const existing = prev.technologies;
-
-            const newTechs = technologies
-                .filter((techName) => !existing.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(techName)))
-                .map((techName) => resolveTechnology(techName));
-
-            return {
-                ...prev,
-                technologies: [...existing, ...newTechs]
-            };
-        });
-    };
-
-    const handleUseGeneratedMilestones = (milestones: { provider_role?: string; milestones: { title: string; amount: number }[] }[]) => {
-        setAiSuggestedMilestones(milestones);
-    };
-
     // const handleUpdateServicesByCategory = async (categoryId: string) => {
     //     const childrensAndServices = await apiClient.getServicesGroupedByCategory(categoryId);
     //     const test = await apiClient.getServicesGroupedByCategory();
@@ -1101,33 +1067,6 @@ export default function NewProjectPage() {
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
             </div>
-        );
-    }
-
-    if (aiLoading) {
-        return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-                <svg
-                    className="animate-spin h-12 w-12 text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <circle
-                        className="opacity-25"
-                        cx="12" cy="12" r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                    />
-                    <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                </svg>
-                <p className="text-lg font-medium text-gray-700">{aiLoadingMessages[index]}</p>
-            </div>
-
         );
     }
 
@@ -1528,179 +1467,11 @@ export default function NewProjectPage() {
                                             </Card>
                                         </div>
                                         <div>
-                                            <Card className="glass-card shadow-sm">
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center space-x-2">
-                                                        <AutoAwesomeIcon className="w-5 h-5" />
-                                                        <span>{t('projects.new.ai.title')}</span>
-                                                    </CardTitle>
-                                                    <CardDescription className="flex items-center space-x-2">
-                                                        {t('projects.new.ai.description')}
-                                                    </CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="space-y-6">
-                                                    {generatedAiOutput.title.trim() && (
-                                                        <h2 className="font-bold">{t('projects.new.ai.suggested')}</h2>
-                                                    )}
-                                                    {generatedAiOutput?.title.trim() && (
-                                                        <>
-                                                            <div>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
-                                                                <TitleIcon />
-                                                                {t('projects.new.ai.actions.use_title')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {generatedAiOutput?.description.trim() && (
-                                                        <>
-                                                            <div className="whitespace-pre-wrap">
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                                onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
-                                                                <DescriptionIcon />
-                                                                {t('projects.new.ai.actions.use_description')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {generatedAiOutput?.technologies.length > 0 && (
-                                                        <>
-                                                            <div>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.technologies')}</span>
-                                                                <ul className="ml-6 list-disc">
-                                                                    {generatedAiOutput?.technologies.map((tech, index) => (
-                                                                        <li key={index}>{tech}</li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                                onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
-                                                                <AddCircleIcon />
-                                                                {t('projects.new.ai.actions.use_technologies')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {generatedAiOutput?.additional_services?.length > 0 && (
-                                                        <>
-                                                            <div>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.additional_services_label')}</span>
-                                                                <ul className="ml-6 list-disc">
-                                                                    {generatedAiOutput?.additional_services.map((tech, index) => (
-                                                                        <li key={index}>{tech}</li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                                onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
-                                                                <AddCircleIcon />
-                                                                {t('projects.new.ai.actions.add_additional_services')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {generatedAiOutput?.team_structure.length > 0 && (
-                                                        <div>
-                                                            <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.team_structure')}</span>
-                                                            {generatedAiOutput?.team_structure.map((team, index) => {
-                                                                const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
-                                                                return (
-                                                                    <div key={index}>
-                                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
-                                                                        {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - <PriceDisplay value={typedTeam.estimated_cost} /> {t('projects.new.ai.fields.estimated')}
-                                                                    </div>
-                                                                );
-                                                            })}
-
-                                                        </div>
-                                                    )}
-
-                                                    {generatedAiOutput.deadline.trim() && (
-                                                        <>
-                                                            <div>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
-                                                                <AccessTimeFilledIcon />
-                                                                {t('projects.new.ai.actions.use_deadline')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {generatedAiOutput?.estimated_budget !== 0 && (
-                                                        <>
-                                                            <div>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
-                                                                <PriceDisplay value={generatedAiOutput?.estimated_budget ?? 0} /> {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                                onClick={() => {
-                                                                    handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
-                                                                    handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
-                                                                }}>
-                                                                <EuroIcon />
-                                                                {t('projects.new.ai.actions.use_budget')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
-                                                        <div>
-                                                            <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
-                                                            {generatedAiOutput?.payment_plan || t('projects.new.ai.fields.unspecified')}
-                                                            {generatedAiOutput?.milestone_count
-                                                                ? t('projects.new.ai.milestone_count', { count: generatedAiOutput.milestone_count })
-                                                                : ''}
-                                                        </div>
-                                                    )}
-
-                                                    {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
-                                                        <>
-                                                            <div>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.milestones')}</span>
-                                                                <ul className="ml-6 list-disc">
-                                                                    {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
-                                                                        <li key={index}>
-                                                                            {group.provider_role ? `${group.provider_role}: ` : ''}
-                                                                            {group.milestones.map((milestone, milestoneIndex) => (
-                                                                                <span key={milestoneIndex}>
-                                                                                    {t('projects.new.ai.milestone_item', {
-                                                                                        title: milestone.title,
-                                                                                    })}{' '}
-                                                                                    <PriceDisplay value={milestone.amount} />
-                                                                                    {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
-                                                                                </span>
-                                                                            ))}
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                            <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                                onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
-                                                                <AddCircleIcon />
-                                                                {t('projects.new.ai.actions.use_milestones')}
-                                                            </a>
-                                                        </>
-                                                    )}
-
-                                                    {(generatedAiOutput?.notes ?? '').trim() && (
-                                                        <div>
-                                                            <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="col-span-2">
-                                                        <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
-                                                            <AutoAwesomeIcon className="w-4 h-4 me-2" />
-                                                            {t('projects.new.ai.actions.improve_description')}
-                                                        </Button>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
+                                            <BriefCopilot
+                                                locale={locale}
+                                                onApply={handleCopilotApply}
+                                                className="glass-card shadow-sm"
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex justify-end">

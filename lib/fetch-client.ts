@@ -2,7 +2,12 @@ import {
   normalizeAiSearchMatchResponse,
   type AiSearchMatchResponse,
 } from '@/types/ai-search';
-import type { AiAssistantMessage, AiBriefBuilderResponse } from '@/types/ai';
+import type {
+  AiAssistantMessage,
+  AiBriefAvailableService,
+  AiBriefBuilderRequestBody,
+  AiBriefBuilderResponse,
+} from '@/types/ai';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -309,13 +314,24 @@ const normalizeBriefMessages = (messages: AiAssistantMessage[]) => {
   return messages
     .map((message) => ({
       role: message.role,
-      content: message.content?.trim?.() ?? '',
+      content: message.content?.trim?.().slice(0, 8000) ?? '',
     }))
     .filter(
       (message) =>
         (message.role === 'system' || message.role === 'user' || message.role === 'assistant') &&
         message.content.length > 0
     );
+};
+
+const normalizeAvailableServices = (services?: AiBriefAvailableService[]) => {
+  if (!Array.isArray(services)) {
+    return [];
+  }
+
+  return services.filter(
+    (service): service is AiBriefAvailableService =>
+      Boolean(service) && typeof service === 'object' && !Array.isArray(service)
+  );
 };
 
 const buildUrl = (
@@ -563,16 +579,26 @@ const match = async (
 
 const buildBrief = async (
   messages: AiAssistantMessage[],
-  locale?: string
+  locale?: string,
+  availableServices?: AiBriefAvailableService[]
 ): Promise<AiBriefBuilderResponse> => {
   const normalizedMessages = normalizeBriefMessages(messages);
   if (normalizedMessages.length === 0) {
     throw new Error('At least one valid message is required.');
   }
+  const normalizedAvailableServices = normalizeAvailableServices(availableServices);
 
   let attempt = 0;
   while (attempt <= BRIEF_BUILDER_TIMEOUT_RETRIES) {
     try {
+      const requestBody: AiBriefBuilderRequestBody = {
+        ...(locale ? { locale } : {}),
+        messages: normalizedMessages,
+        ...(normalizedAvailableServices.length > 0
+          ? { available_services: normalizedAvailableServices }
+          : {}),
+      };
+
       return await withTimeout(
         (signal) =>
           apiFetch<AiBriefBuilderResponse>(LARAVEL_AI_BRIEF_BUILDER_ENDPOINT, {
@@ -580,10 +606,7 @@ const buildBrief = async (
             cache: 'no-store',
             skipDefaultParams: true,
             signal,
-            body: {
-              messages: normalizedMessages,
-              ...(locale ? { locale } : {}),
-            },
+            body: requestBody as unknown as Record<string, unknown>,
           }),
         BRIEF_BUILDER_TIMEOUT_MS
       );

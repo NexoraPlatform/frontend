@@ -79,6 +79,7 @@ const createEmptyBriefDraft = (): AiBriefFormDraft => ({
     description: '',
     budget: '',
     budgetType: 'FIXED',
+    deadline: '',
     technologies: [],
     team_structure: [],
 });
@@ -159,6 +160,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             description: draft.description || prev.description,
             budget: draft.budget || prev.budget,
             budgetType: draft.budgetType || prev.budgetType,
+            deadline: draft.deadline || prev.deadline,
             technologies: draft.technologies.length > 0 ? draft.technologies : prev.technologies,
             team_structure: draft.team_structure ?? prev.team_structure,
         }));
@@ -464,8 +466,9 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
             <section className="bg-[#F5F7FA] dark:bg-[#0B1220]">
                 <div className="container mx-auto px-4 pb-16 pt-10">
-                    <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
-                        <Card className="glass-card border-transparent shadow-sm">
+                    {withLayout ? (
+                        <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
+                            <Card className="glass-card border-transparent shadow-sm">
                             <CardHeader>
                                 <CardTitle className="text-[#0B1C2D] dark:text-[#E6EDF3]">
                                     {t('client.project_requests.brief_copilot.draft.title')}
@@ -573,10 +576,11 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                             </CardContent>
                         </Card>
 
-                        <BriefCopilot locale={locale} onApply={handleCopilotApply} />
-                    </div>
+                            <BriefCopilot locale={locale} onApply={handleCopilotApply} />
+                        </div>
+                    ) : null}
 
-                    <div className="mt-8">
+                    <div className={withLayout ? "mt-8" : ""}>
                         {projects.length === 0 ? (
                             <Card className="glass-card border-transparent shadow-sm">
                                 <CardContent className="text-center py-12">
