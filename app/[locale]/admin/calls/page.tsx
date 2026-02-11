@@ -25,11 +25,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRange, RangeKeyDict, Range, DefinedRange } from "react-date-range";
-import { isWithinInterval, parseISO } from "date-fns";
+import { isWithinInterval, parseISO, format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { customStaticRanges } from "@/utils/dateShortcuts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { DateTime } from "luxon";
 import apiClient from "@/lib/api";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
@@ -357,7 +356,7 @@ export default function CallsPage() {
                                                 <Clock className="w-4 h-4 text-amber-500" />
                                                 <span>
                                                     {t.scheduledAtPrefix}{" "}
-                                                    {DateTime.fromISO(call.date_time, { setZone: true }).toFormat("dd.MM.yyyy HH:mm")}{" "}
+                                                    {format(parseISO(call.date_time), "dd.MM.yyyy HH:mm")}{" "}
                                                 </span>
                                             </div>
 

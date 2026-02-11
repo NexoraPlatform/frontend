@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Github } from "lucide-react";
-import { apiClient } from "@/lib/api"; // Axios instance-ul tău
+import { apiClient } from "@/lib/api"; // API client
 
 export default function GithubConnect({ isConnected }: { isConnected: boolean }) {
     const [loading, setLoading] = useState(false);

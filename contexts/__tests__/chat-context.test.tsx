@@ -75,7 +75,6 @@ describe('contexts/chat-context', () => {
   };
 
   beforeEach(() => {
-    localStorage.setItem('auth_token', 'token-123');
     mockedUseAuth.mockReturnValue({ user: { id: 'u1' } });
     mockedUseNotifications.mockReturnValue({ notifications: [], loading: false });
 

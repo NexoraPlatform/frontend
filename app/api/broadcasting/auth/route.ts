@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverRequest } from '@/lib/server/api';
+import { serverRequest, ServerRequestError } from '@/lib/server/api';
 
 export async function POST(request: Request) {
   let payload: Record<string, unknown> = {};
@@ -34,6 +34,12 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   } catch (error: any) {
     const message = error?.message ?? 'Broadcast auth failed';
-    return NextResponse.json({ message }, { status: 401 });
+    const status =
+      error instanceof ServerRequestError
+        ? error.status
+        : typeof error?.status === 'number'
+          ? error.status
+          : 500;
+    return NextResponse.json({ message }, { status });
   }
 }

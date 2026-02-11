@@ -4,9 +4,12 @@ import { useEffect, useRef } from 'react';
 import OneSignal from 'react-onesignal';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { usePathname } from 'next/navigation';
 
 export default function OneSignalInit() {
     const { user } = useAuth();
+    const pathname = usePathname();
+    const isDisabledRoute = /\/open-soon(?:\/|$)/i.test(pathname || '');
     // Folosim un ref global pentru a preveni re-inițializarea strictă
     const oneSignalInitialized = useRef(false);
     const oneSignalInitPromise = useRef<Promise<void> | null>(null);
@@ -23,6 +26,10 @@ export default function OneSignalInit() {
     };
 
     useEffect(() => {
+        if (isDisabledRoute) {
+            return;
+        }
+
         const initOneSignal = async () => {
             const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
             if (!appId) {
@@ -113,7 +120,7 @@ export default function OneSignalInit() {
         };
 
         initOneSignal();
-    }, [user]); // Rulăm efectul când user-ul se schimbă, dar init() e protejat de ref
+    }, [user, isDisabledRoute]); // Rulăm efectul când user-ul se schimbă, dar init() e protejat de ref
 
     return null;
 }

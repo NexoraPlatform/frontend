@@ -2,8 +2,8 @@
 
 import {useState, useEffect, useCallback, useRef} from 'react';
 import { apiClient } from '../lib/api';
-import { getProviderProfileAction } from '@/app/actions/secure';
 import { useCurrency } from '@/hooks/useCurrency';
+import { FetchError } from '@/lib/fetch-client';
 
 function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
@@ -26,7 +26,16 @@ export function useApi<T>(
       const result = await apiCall();
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof FetchError) {
+        const payload = err.data as Record<string, unknown> | null;
+        const message =
+          (payload?.message as string | undefined) ||
+          (payload?.error as string | undefined) ||
+          err.message;
+        setError(message);
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -152,7 +161,7 @@ export function useProviderProfileById(providerId: string) {
 }
 
 export function useProviderProfile(enabled: boolean = true) {
-  return useApi(() => getProviderProfileAction(), [], enabled);
+  return useApi(() => apiClient.getProviderProfile(), [], enabled);
 }
 
 export function useGetProviderProfileByUrl(url: string) {

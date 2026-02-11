@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useTranslations } from 'next-intl';
+import { hasRole } from '@/lib/access';
 
 export default function TestsPage() {
   const { user, loading, userLoading } = useAuth();
@@ -63,7 +64,7 @@ export default function TestsPage() {
     return null;
   }
 
-  if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+  if (!hasRole(user, ['provider'])) {
     return (
       <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
         <TrustoraThemeStyles />

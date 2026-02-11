@@ -23,7 +23,7 @@ export function TrustoraThemeStyles() {
                         color: #E6EDF3;
                     }
                     .mono {
-                        font-family: var(--font-jetbrains-mono);
+                        font-family: var(--font-jetbrains-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
                     }
                     .btn-primary {
                         background-color: var(--emerald-green);

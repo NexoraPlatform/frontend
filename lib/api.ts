@@ -1,6 +1,6 @@
+import { apiFetch, FetchError } from '@/lib/fetch-client';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
-const DEFAULT_CURRENCY = 'USD';
-const CURRENCY_STORAGE_KEY = 'preferred_currency';
 
 export type RoleLite = {
   id: number;
@@ -167,127 +167,28 @@ export interface AuditLogResponse {
 }
 
 export class ApiClient {
-  private baseURL: string;
-  private token: string | null = null;
-
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
-  }
-
-
-
-  setToken(token: string) {
-    this.token = token;
-  }
-
-  removeToken() {
-    this.token = null;
-  }
-
-  getToken() {
-    return this.token;
-  }
-
-  private getSelectedLanguageFromPathname(): string | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    const pathnameLocale = window.location.pathname.split('/')[1]?.toLowerCase();
-    if (pathnameLocale === 'ro' || pathnameLocale === 'en') {
-      return pathnameLocale;
-    }
-
-    const storedLocale = localStorage.getItem('NEXT_LOCALE')?.toLowerCase();
-    if (storedLocale === 'ro' || storedLocale === 'en') {
-      return storedLocale;
-    }
-
-    const cookieLocale = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('NEXT_LOCALE='))
-      ?.split('=')[1]
-      ?.toLowerCase();
-
-    if (cookieLocale === 'ro' || cookieLocale === 'en') {
-      return cookieLocale;
-    }
-
-    const htmlLang = document.documentElement?.lang?.toLowerCase();
-    if (htmlLang === 'ro' || htmlLang === 'en') {
-      return htmlLang;
-    }
-
-    return null;
-  }
-
-  private getSelectedCurrencyFromStorage(): string {
-    if (typeof window === 'undefined') {
-      return DEFAULT_CURRENCY;
-    }
-
-    const storedCurrency = localStorage.getItem(CURRENCY_STORAGE_KEY);
-    if (storedCurrency) {
-      return storedCurrency;
-    }
-
-    return DEFAULT_CURRENCY;
-  }
+  constructor(_baseURL: string) { }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    if (!this.token && typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        this.token = storedToken;
-      }
-    }
-    const url = new URL(`${this.baseURL}${endpoint}`);
-    const selectedLanguage = this.getSelectedLanguageFromPathname();
-    const selectedCurrency = this.getSelectedCurrencyFromStorage();
-
-    if (selectedLanguage && !url.searchParams.has('language')) {
-      url.searchParams.set('language', selectedLanguage);
-    }
-
-    if (selectedCurrency && !url.searchParams.has('currency')) {
-      url.searchParams.set('currency', selectedCurrency);
-    }
-
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
-        ...options.headers,
-      },
-      credentials: 'include',
-      ...options,
-    };
-
     try {
-      const response = await fetch(url.toString(), config);
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      } else {
-        return {} as T;
-      }
+      const response = await apiFetch<T | null>(endpoint, {
+        ...options,
+        method: options.method || 'GET',
+        body: options.body as any,
+      });
+      return (response ?? ({} as T)) as T;
     } catch (error) {
-      console.error('API request failed:', error);
+      if (error instanceof FetchError) {
+        const payload = error.data as Record<string, unknown> | null;
+        const message =
+          (payload && (payload.message as string)) ||
+          (payload && (payload.error as string)) ||
+          error.message;
+        throw new Error(message);
+      }
       throw error;
     }
   }
@@ -302,16 +203,12 @@ export class ApiClient {
       body: JSON.stringify(credentials),
     });
 
-    this.setToken(response.access_token);
     return response;
   }
 
   async me() {
     return this.request<any>(`/auth/me`, {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-      }
     });
   }
 
@@ -338,7 +235,6 @@ export class ApiClient {
       body: JSON.stringify(userData),
     });
 
-    this.setToken(response.access_token);
     return response;
   }
 
@@ -577,15 +473,7 @@ export class ApiClient {
     language?: string;
   }) {
     const searchParams = new URLSearchParams();
-    const selectedLanguage =
-      params?.language ?? this.getSelectedLanguageFromPathname();
-
-    if (selectedLanguage) {
-      searchParams.set('language', selectedLanguage);
-    }
-
-    const { language, ...restParams } = params || {};
-    Object.entries(restParams).forEach(([key, value]) => {
+    Object.entries(params || {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (Array.isArray(value)) {
           value.forEach(v => searchParams.append(key, v.toString()));
@@ -1042,7 +930,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify(testData),
     });
@@ -1080,7 +967,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify(testData),
     });
@@ -1142,13 +1028,11 @@ export class ApiClient {
   }
 
   async getProviderProfile() {
-    console.log(this.token);
     return this.request<any>(`/users/providers/profile`, {
       method: 'GET',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -1160,7 +1044,6 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
   }
@@ -1170,7 +1053,6 @@ export class ApiClient {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify(userCompanyDetails),
     })
@@ -1203,9 +1085,9 @@ export class ApiClient {
   }
 
   async updateCompanyEditorsOrOwnership(
-      companyId: string | number | undefined,
-      members: string[] | null | undefined,
-      owner: string | null | undefined,
+    companyId: string | number | undefined,
+    members: string[] | null | undefined,
+    owner: string | null | undefined,
   ) {
     const payload: Record<string, unknown> = {
       company_id: companyId,
@@ -1223,7 +1105,6 @@ export class ApiClient {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify(payload),
     })
@@ -1237,7 +1118,6 @@ export class ApiClient {
       method: 'POST',
       body: formData,
       headers: {
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
   }
@@ -1332,7 +1212,6 @@ export class ApiClient {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -1349,7 +1228,6 @@ export class ApiClient {
       body: JSON.stringify(response),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -1363,7 +1241,6 @@ export class ApiClient {
       body: JSON.stringify({ milestone: milestone }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     })
   }
@@ -1373,7 +1250,6 @@ export class ApiClient {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -1383,7 +1259,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     });
   }
@@ -1392,7 +1267,6 @@ export class ApiClient {
     return this.request<any>('/auth/github/redirect', {
       method: 'GET',
       headers: {
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     })
   }
@@ -1403,7 +1277,6 @@ export class ApiClient {
       body: JSON.stringify({ target: target }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     })
   }
@@ -1419,7 +1292,6 @@ export class ApiClient {
       body: JSON.stringify(response),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -1429,24 +1301,8 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({ project_id: projectId, client_id: clientId, provider_id: providerId }),
-    });
-  }
-
-  async releaseProjectFunds(projectId: string | number, milestoneId?: string) {
-    const payload: Record<string, unknown> = { project_id: projectId };
-    if (milestoneId) {
-      payload.milestone_id = milestoneId;
-    }
-    return this.request<any>('/stripe/project/release-funds', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      },
     });
   }
 
@@ -1459,7 +1315,6 @@ export class ApiClient {
       body: JSON.stringify(projectData),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     });
   }
@@ -1494,7 +1349,6 @@ export class ApiClient {
       body: JSON.stringify({ services }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -1513,46 +1367,21 @@ export class ApiClient {
       body: JSON.stringify(projectData),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
 
   async updateLastActive() {
-    if (!this.token && typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        this.token = storedToken;
-      }
-    }
-
-    if (!this.token) return;
-
     return this.request<any>('/users/active', {
       method: 'POST',
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
   }
 
-  async handleStripeOnboarding(email: string) {
-    return this.request<any>('/stripe/onboard-link', {
-      method: 'POST',
-      body: JSON.stringify({ email: email }),
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      }
-    });
-  }
 
-  async getStripeAccountStatus() {
-    return this.request<any>('/stripe/account-status', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      }
-    });
-  }
 
   // Notifications endpoints
   async getNotifications(params?: {
@@ -1589,7 +1418,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({
         subscription: subscription.toJSON(),
@@ -1603,7 +1431,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     });
   }
@@ -1640,7 +1467,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     })
   }
@@ -1649,11 +1475,10 @@ export class ApiClient {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
-    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
+    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId ? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({ currency: currency, country: countryCode })
     })
@@ -1667,14 +1492,14 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({ project_id: projectId, milestone_id: milestoneId }),
     });
   }
 
-  async rapydGetWalletBalance() {
-    return this.request<any>(`/rapyd/balance`);
+  async rapydGetWalletBalance(language?: string) {
+    const qs = language ? `?language=${encodeURIComponent(language)}` : '';
+    return this.request<any>(`/rapyd/balance${qs}`);
   }
 
   async rapydCreatePayoutBank(amount: number | string, currency?: string | null, language?: string) {
@@ -1685,7 +1510,6 @@ export class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({
         amount,
@@ -1708,38 +1532,12 @@ export class ApiClient {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({ lang: language }),
     });
   }
 
-  async getPaymentLink(project_id: string) {
-    return this.request<any>(`/stripe/payment/${project_id}`);
-  }
 
-  async getPaymentSession(project_id: string, milestone_id: number|string|null, provider_id: number|string|null) {
-    return this.request<any>(`/stripe/session/payment/${project_id}/${provider_id ? provider_id + `${milestone_id ? `/` + milestone_id : ''}` : ''}`);
-  }
-
-  async getPayment(project_id: string, session_id: string) {
-    return this.request<any>(`/stripe/payment/${project_id}/${session_id}`);
-  }
-
-  async setPaymentIntent(project_id: string, pi: string) {
-    return this.request<any>(`/stripe/payment-intent/${project_id}`, {
-      method: 'POST',
-      body: JSON.stringify({ payment_intent: pi }),
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      },
-    });
-  }
-
-  async finishProject(project_id: string) {
-    return this.request<any>(`/stripe/capture/payment/${project_id}`);
-  }
 
   async updateOneSignalToken(token: string) {
     return this.request<any>(`/user/update-push-token`, {
@@ -1747,7 +1545,6 @@ export class ApiClient {
       body: JSON.stringify({ push_token: token }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     })
   }
@@ -1785,7 +1582,6 @@ export class ApiClient {
       body: JSON.stringify({ content, attachments }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     });
   }
@@ -1862,7 +1658,6 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
   }

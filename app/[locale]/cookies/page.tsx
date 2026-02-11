@@ -19,7 +19,12 @@ export async function generateMetadata({ params }: CookiePageProps) {
     description: isEnglish
       ? "Trustora cookie policy and tracking preferences."
       : "Politica de cookie-uri Trustora și preferințele de tracking.",
+    locale,
     url: "/cookies",
+    robots: {
+      index: false,
+      follow: false,
+    },
   });
 }
 

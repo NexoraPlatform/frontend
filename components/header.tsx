@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Link, usePathname, useRouter } from '@/lib/navigation';
+import { Link, usePathname } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 
@@ -64,8 +64,6 @@ export function Header() {
     process.env.BASIC_AUTH === 'true';
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const t = useTranslations();
   const homeText = t('navigation.home');
@@ -99,6 +97,12 @@ export function Header() {
   const logoutText = t('navigation.logout');
   const loginText = t('navigation.login');
   const registerText = t('navigation.register');
+  const userFirstName = user?.firstName ?? user?.first_name ?? '';
+  const userLastName = user?.lastName ?? user?.last_name ?? '';
+  const userDisplayName =
+    `${userFirstName} ${userLastName}`.trim() || user?.email || 'User';
+  const userInitials =
+    `${userFirstName.charAt(0)}${userLastName.charAt(0)}`.toUpperCase() || 'U';
 
   const isAdminUser =
     user?.is_superuser ||
@@ -131,11 +135,6 @@ export function Header() {
     { name: contactText, href: '/contact' },
   ];
 
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -146,25 +145,20 @@ export function Header() {
 
 
   const handleLogout = () => {
-    logout();
-    router.push('/');
+    void logout();
   };
 
-  if (!mounted) {
-    return null;
-  }
-
   const ThemeToggle = ({ className }: { className?: string }) => (
-      <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className={cn("w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105", className)}
-          aria-label={`${t('common.change_theme')} ${theme === 'dark' ? t('common.light') : t('common.dark')}`}
-      >
-        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      </Button>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className={cn("w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105", className)}
+      aria-label={`${t('common.change_theme')} ${theme === 'dark' ? t('common.light') : t('common.dark')}`}
+    >
+      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
   );
 
   if (earlyAccessEnabled) {
@@ -194,27 +188,15 @@ export function Header() {
             >
               <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
                 <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcSet="/trustora-logo2-60.avif 1x, /trustora-logo2-120.avif 2x"
-                    className="relative z-10 rounded-xl h-13 w-auto"
-                  />
-                  <source
-                    type="image/webp"
-                    srcSet="/trustora-logo2-60.webp 1x, /trustora-logo2-120.webp 2x"
-                    className="relative z-10 rounded-xl h-13 w-auto"
-                  />
-                  <Image
-                    src="/trustora-logo2-60.webp"
-                    alt="Trustora Logo"
-                    width={60}
-                    height={75}
-                    className="relative z-10 rounded-xl h-13 w-auto"
-                    decoding="async"
-                    priority
-                  />
-                </picture>
+                <Image
+                  src="/trustora-logo2-60.webp"
+                  alt="Trustora Logo"
+                  width={60}
+                  height={75}
+                  className="relative z-10 rounded-xl h-13 w-auto"
+                  priority
+                  quality={90}
+                />
 
               </div>
               <div className="flex flex-col">
@@ -356,27 +338,15 @@ export function Header() {
           >
             <div className="relative w-12 h-12 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
               <div className="absolute inset-0 rounded-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-              <picture>
-                <source
-                  type="image/avif"
-                  srcSet="/trustora-logo2-60.avif 1x, /trustora-logo2-120.avif 2x"
-                  className="relative z-10 rounded-xl h-13 w-auto"
-                />
-                <source
-                  type="image/webp"
-                  srcSet="/trustora-logo2-60.webp 1x, /trustora-logo2-120.webp 2x"
-                  className="relative z-10 rounded-xl h-13 w-auto"
-                />
-                <Image
-                  src="/trustora-logo2-60.webp"
-                  alt="Trustora Logo"
-                  width={60}
-                  height={75}
-                  className="relative z-10 rounded-xl h-13 w-auto"
-                  decoding="async"
-                  priority
-                />
-              </picture>
+              <Image
+                src="/trustora-logo2-60.webp"
+                alt="Trustora Logo"
+                width={60}
+                height={75}
+                className="relative z-10 rounded-xl h-13 w-auto"
+                priority
+                quality={90}
+              />
 
             </div>
             <div className="flex flex-col">
@@ -437,16 +407,16 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label={openMainUserMenuText}>
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
+                      <AvatarImage src={user.avatar ?? undefined} alt={userDisplayName} />
                       <AvatarFallback>
-                        {user.firstName[0]}{user.lastName[0]}
+                        {userInitials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex flex-col space-y-1 p-2">
-                    <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                    <p className="text-sm font-medium leading-none">{userDisplayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />

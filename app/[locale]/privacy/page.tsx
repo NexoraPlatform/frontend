@@ -19,7 +19,12 @@ export async function generateMetadata({ params }: PrivacyPageProps) {
     description: isEnglish
       ? "Trustora privacy policy for clients and providers."
       : "Politica de confidențialitate Trustora pentru clienți și furnizori.",
+    locale,
     url: "/privacy",
+    robots: {
+      index: false,
+      follow: false,
+    },
   });
 }
 

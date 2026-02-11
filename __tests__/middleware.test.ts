@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import middleware from '../middleware';
+import proxy from '../proxy';
 
 const makeResponse = (type: string, url?: string, status = 200) => ({
   type,
@@ -43,7 +43,7 @@ vi.mock('@/auth', () => ({
   auth: (handler: any) => handler,
 }));
 
-describe('middleware', () => {
+describe('proxy', () => {
   const baseUrl = 'https://example.com';
 
   beforeEach(() => {
@@ -77,13 +77,13 @@ describe('middleware', () => {
 
   it('returns NextResponse.next for static/assets paths', async () => {
     const req = makeReq('/_next/static/file.js');
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('next');
   });
 
   it('bypasses OneSignal service worker script', async () => {
     const req = makeReq('/OneSignalSDKWorker.js');
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('next');
   });
 
@@ -93,7 +93,7 @@ describe('middleware', () => {
     process.env.BASIC_AUTH_PASSWORDS = 'secret';
 
     const req = makeReq('/ro/services');
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.status).toBe(401);
     expect(res.headers.get('WWW-Authenticate')).toContain('Basic');
   });
@@ -107,7 +107,7 @@ describe('middleware', () => {
     const req = makeReq('/ro/services', {
       headers: { authorization: `Basic ${token}`, 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('next');
     expect(res.headers.get('X-Client-Geo-Country')).toBe('RO');
   });
@@ -116,7 +116,7 @@ describe('middleware', () => {
     const req = makeReq('/ro/services', {
       headers: { 'x-vercel-ip-country': 'RU' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.status).toBe(403);
   });
 
@@ -124,7 +124,7 @@ describe('middleware', () => {
     const req = makeReq('/projects', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/projects');
   });
@@ -133,7 +133,7 @@ describe('middleware', () => {
     const req = makeReq('/en/projects', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/projects');
   });
@@ -143,7 +143,7 @@ describe('middleware', () => {
     const req = makeReq('/ro/projects', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/open-soon');
   });
@@ -153,7 +153,7 @@ describe('middleware', () => {
     const req = makeReq('/ro/open-soon', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('next');
   });
 
@@ -163,7 +163,7 @@ describe('middleware', () => {
       headers: { 'x-vercel-ip-country': 'RO' },
       auth: { user: { id: '1', roles: [{ slug: 'admin' }] } },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('next');
   });
 
@@ -172,7 +172,7 @@ describe('middleware', () => {
     const req = makeReq('/ro/services', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/early-access');
   });
@@ -181,10 +181,22 @@ describe('middleware', () => {
     const req = makeReq('/ro/dashboard', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/auth/signin');
     expect(res.url).toContain('callbackUrl=%2Fro%2Fdashboard');
+  });
+
+  it('redirects unauthenticated users from /client/* with callbackUrl', async () => {
+    const req = makeReq('/ro/client/project-requests?tab=active', {
+      headers: { 'x-vercel-ip-country': 'RO' },
+    });
+    const res: any = await proxy(req);
+    expect(res.type).toBe('redirect');
+    expect(res.url).toContain('/ro/auth/signin');
+    expect(res.url).toContain(
+      'callbackUrl=%2Fro%2Fclient%2Fproject-requests%3Ftab%3Dactive'
+    );
   });
 
   it('redirects non-admin from /admin to access-denied', async () => {
@@ -192,7 +204,7 @@ describe('middleware', () => {
       headers: { 'x-vercel-ip-country': 'RO' },
       auth: { user: { id: '1', roles: [{ slug: 'client' }] } },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/access-denied');
   });
@@ -202,7 +214,7 @@ describe('middleware', () => {
       headers: { 'x-vercel-ip-country': 'RO' },
       auth: { user: { id: '1' } },
     });
-    const res: any = await middleware(req);
+    const res: any = await proxy(req);
     expect(res.type).toBe('redirect');
     expect(res.url).toContain('/ro/dashboard');
   });

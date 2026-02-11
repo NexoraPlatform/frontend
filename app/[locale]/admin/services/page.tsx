@@ -226,7 +226,7 @@ export default function AdminServicesPage() {
                               {t('admin.services.slug_prefix')}{service.slug}
                             </span>
                             <span className="text-muted-foreground">
-                              {t('admin.services.category_prefix')}{service.category?.name[locale]}
+                              {t('admin.services.category_prefix')}{service.category?.name}
                             </span>
                           </div>
 

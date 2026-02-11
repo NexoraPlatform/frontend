@@ -5,7 +5,7 @@ import Script from 'next/script';
 import { Button } from '@/components/ui/button'; // Folosim butonul tău UI
 import { toast } from 'sonner'; // Sau hook-ul tău de toast
 import { useAuth } from '@/contexts/auth-context';
-import { rapydCheckoutSessionAction } from "@/app/actions/secure";
+import { apiClient } from "@/lib/api";
 import { useLocale, useTranslations } from "next-intl";
 import {AlertCircle, CheckCircle, Globe, Shield, X} from "lucide-react";
 import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
@@ -49,15 +49,33 @@ export default function RapydCheckoutButton({
         return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
     }, []);
 
+    const closeCheckoutToolkit = useCallback(() => {
+        const instance = checkoutInstance.current;
+        if (!instance) return;
+        try {
+            if (typeof instance.closeToolkit === 'function') {
+                instance.closeToolkit();
+            }
+        } catch (error) {
+            console.warn('Failed to close Rapyd checkout toolkit:', error);
+        } finally {
+            checkoutInstance.current = null;
+        }
+    }, []);
+
     // 1. Inițializăm Event Listeners pentru Rapyd
     useEffect(() => {
         const handleSuccess = (event: any) => {
             console.log('Rapyd Success:', event.detail);
             setSuccessMessage('Rapyd Success: ' + event.detail);
             toast.success('Plata a fost efectuată cu succes!');
-            // if (onSuccess) onSuccess();/**/
+            if (typeof onSuccess === 'function') {
+                onSuccess();
+            }
             setIsModalVisible(false);
-            checkoutInstance.current.closeToolkit();
+            setCheckoutDialog(false);
+            setIsLoading(false);
+            closeCheckoutToolkit();
         };
 
 
@@ -65,6 +83,7 @@ export default function RapydCheckoutButton({
             console.error('Rapyd Error:', event.detail);
             setErrorMessage('Rapyd Error: ' + event.detail);
             toast.error('Plata a eșuat sau a fost anulată.');
+            closeCheckoutToolkit();
             setTimeout(() => {
                 setCheckoutDialog(false);
                 setIsLoading(false);
@@ -78,8 +97,9 @@ export default function RapydCheckoutButton({
         return () => {
             window.removeEventListener('onCheckoutPaymentSuccess', handleSuccess);
             window.removeEventListener('onCheckoutFailure', handleFailure);
+            closeCheckoutToolkit();
         };
-    }, []);
+    }, [closeCheckoutToolkit, onSuccess]);
 
     // 2. Funcția de start plată
     const handlePayment = async () => {
@@ -99,15 +119,13 @@ export default function RapydCheckoutButton({
 
         try {
             // A. Cerem checkout_id de la Backend-ul Laravel
-            const response = await rapydCheckoutSessionAction({
-                projectId: project.id,
-                currency: milestone.currency,
+            const data = await apiClient.rapydCheckoutSession(
+                project.id,
+                milestone.currency,
                 countryCode,
-                milestoneId: getMilestoneId(milestone),
-                language: locale,
-            });
-
-            const data = await response;
+                getMilestoneId(milestone),
+                locale
+            );
 
 
             if (!data.checkout_id) {
@@ -243,7 +261,12 @@ export default function RapydCheckoutButton({
                                 </div>
                             </div>
                             <button
-                                onClick={() => setIsModalVisible(false)}
+                                onClick={() => {
+                                    setIsModalVisible(false);
+                                    setCheckoutDialog(false);
+                                    setIsLoading(false);
+                                    closeCheckoutToolkit();
+                                }}
                                 className="p-1.5 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                             >
                                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
