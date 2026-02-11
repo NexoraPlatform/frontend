@@ -51,6 +51,18 @@ type ServerRequestOptions = {
   language?: string | null;
 };
 
+export class ServerRequestError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.name = 'ServerRequestError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export async function serverRequest<T>(
   endpoint: string,
   options: ServerRequestOptions = {}
@@ -106,14 +118,21 @@ export async function serverRequest<T>(
   });
 
   if (!response.ok) {
+    let errorData: unknown = null;
     let errorMessage = `HTTP error! status: ${response.status}`;
     try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch (error) {
+      errorData = await response.json();
+      if (errorData && typeof errorData === 'object') {
+        const payload = errorData as Record<string, unknown>;
+        errorMessage =
+          (typeof payload.message === 'string' && payload.message) ||
+          (typeof payload.error === 'string' && payload.error) ||
+          errorMessage;
+      }
+    } catch {
       errorMessage = response.statusText || errorMessage;
     }
-    throw new Error(errorMessage);
+    throw new ServerRequestError(errorMessage, response.status, errorData);
   }
 
   if (response.status === 204) {

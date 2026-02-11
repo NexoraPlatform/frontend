@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/useAuth';
+import { getEcho } from '@/lib/echo';
 import { FetchError, fetchClient } from '@/lib/fetch-client';
 import { cn } from '@/lib/utils';
 import { normalizeProjectDeadlineValue } from '@/types/ai';
@@ -18,8 +20,10 @@ import type {
   AiBriefAvailableService,
   AiAssistantMessage,
   AiBriefBuilderResponse,
+  AiBriefBuilderStatus,
   AiBriefFormDraft,
   AiMilestoneItem,
+  AiStructuredBrief,
   AiTeamRecommendationMember,
   AiTeamStructureItem,
   AiTechStack,
@@ -32,6 +36,9 @@ type ChatMessage = {
   role: ChatRole;
   content: string;
 };
+
+type BriefEchoInstance = NonNullable<ReturnType<typeof getEcho>>;
+type BriefEchoChannel = ReturnType<BriefEchoInstance['private']>;
 
 type BriefCopilotProps = {
   locale: string;
@@ -690,6 +697,142 @@ const buildFormDraft = (response: AiBriefBuilderResponse): AiBriefFormDraft | nu
   };
 };
 
+const AI_BRIEF_GENERATED_EVENT_NAMES = [
+  '.AiBriefGenerated',
+  'AiBriefGenerated',
+  '.App\\Events\\AiBriefGenerated',
+  'App\\Events\\AiBriefGenerated',
+] as const;
+
+const AI_BRIEF_FAILED_EVENT_NAMES = [
+  '.AiBriefFailed',
+  'AiBriefFailed',
+  '.App\\Events\\AiBriefFailed',
+  'App\\Events\\AiBriefFailed',
+] as const;
+
+const AI_BRIEF_FIELD_KEYS = new Set([
+  'title',
+  'description',
+  'budget',
+  'budget_min',
+  'budget_max',
+  'budget_type',
+  'technologies',
+  'specific_requirements',
+  'business_analysis',
+  'tech_stack',
+  'technical_risks',
+  'complexity_estimation',
+  'team_structure',
+  'team_recommendation',
+  'complexity',
+  'milestones',
+  'recommended_duration',
+  'project_duration',
+  'duration',
+  'payment_plan',
+  'currency',
+  'final_brief_text',
+]);
+
+const toBriefStatus = (value: unknown): AiBriefBuilderStatus | null => {
+  const normalized = toString(value).toUpperCase();
+  if (normalized === 'FINAL') {
+    return 'FINAL';
+  }
+  if (normalized === 'CLARIFY') {
+    return 'CLARIFY';
+  }
+  return null;
+};
+
+const toStructuredBrief = (value: unknown): AiStructuredBrief | null => {
+  const data = toObject(value);
+  if (!data) {
+    return null;
+  }
+
+  const hasBriefFields = Object.keys(data).some((key) => AI_BRIEF_FIELD_KEYS.has(key));
+  if (!hasBriefFields) {
+    return null;
+  }
+
+  return data as AiStructuredBrief;
+};
+
+const normalizeBriefGeneratedPayload = (payload: unknown): AiBriefBuilderResponse | null => {
+  const root = toObject(payload);
+  if (!root) {
+    return null;
+  }
+
+  const nestedResult = toObject(root.result) ?? toObject(root.data);
+  const source = nestedResult ?? root;
+  const status = toBriefStatus(source.status ?? root.status);
+  const rawQuestions = source.questions ?? root.questions;
+  const hasQuestions = Array.isArray(rawQuestions);
+
+  const finalBrief =
+    toStructuredBrief(source.final_brief) ??
+    toStructuredBrief(root.final_brief) ??
+    toStructuredBrief(source.brief) ??
+    toStructuredBrief(root.brief) ??
+    toStructuredBrief(source.data) ??
+    toStructuredBrief(source.result) ??
+    (status === 'FINAL' ? toStructuredBrief(source) : null);
+
+  if (!status && !hasQuestions && !finalBrief) {
+    return null;
+  }
+
+  const message =
+    toString(source.message) ||
+    toString(root.message) ||
+    toString(source.summary) ||
+    toString(root.summary) ||
+    '';
+  const summary = toString(source.summary) || toString(root.summary) || '';
+  const finalBriefText =
+    toString(source.final_brief_text) || toString(root.final_brief_text) || '';
+
+  const quickRepliesRaw =
+    (Array.isArray(source.quick_replies) ? source.quick_replies : null) ??
+    (Array.isArray(root.quick_replies) ? root.quick_replies : null);
+  const quickReplies = quickRepliesRaw
+    ? quickRepliesRaw.map((entry) => toString(entry)).filter(Boolean)
+    : [];
+
+  const teamStructureRaw =
+    (Array.isArray(source.team_structure) ? source.team_structure : null) ??
+    (Array.isArray(root.team_structure) ? root.team_structure : null);
+
+  return {
+    status: status ?? (finalBrief ? 'FINAL' : 'CLARIFY'),
+    questions: hasQuestions ? (rawQuestions as string[]) : [],
+    final_brief: finalBrief,
+    ...(message ? { message } : {}),
+    ...(quickReplies.length > 0 ? { quick_replies: quickReplies } : {}),
+    ...(summary ? { summary } : {}),
+    ...(finalBriefText ? { final_brief_text: finalBriefText } : {}),
+    ...(teamStructureRaw ? { team_structure: teamStructureRaw as AiTeamStructureItem[] } : {}),
+  };
+};
+
+const extractBriefFailureMessage = (payload: unknown): string => {
+  const data = toObject(payload);
+  if (!data) {
+    return '';
+  }
+
+  return (
+    toString(data.errorMessage) ||
+    toString(data.error_message) ||
+    toString(data.message) ||
+    toString(data.error)
+  );
+};
+
 function TechnicalDraftSkeleton() {
   return (
     <Card className="border-dashed border-slate-300/90 bg-white/90 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
@@ -722,6 +865,7 @@ export default function BriefCopilot({
   onApply,
 }: BriefCopilotProps) {
   const t = useTranslations();
+  const { user } = useAuth();
 
   const welcomeMessage = t('client.project_requests.brief_copilot.welcome');
   const [conversation, setConversation] = useState<AiAssistantMessage[]>([
@@ -737,6 +881,76 @@ export default function BriefCopilot({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const briefSubscriptionRef = useRef<{
+    echo: BriefEchoInstance;
+    channelName: string;
+    channel: BriefEchoChannel;
+    requestId: number;
+  } | null>(null);
+  const requestCounterRef = useRef(0);
+
+  const cleanupBriefSubscription = useCallback(() => {
+    const activeSubscription = briefSubscriptionRef.current;
+    if (!activeSubscription) {
+      return;
+    }
+
+    AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+      activeSubscription.channel.stopListening(eventName);
+    });
+    AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+      activeSubscription.channel.stopListening(eventName);
+    });
+
+    activeSubscription.echo.leave(activeSubscription.channelName);
+    const privateChannelName = `private-${activeSubscription.channelName}`;
+    const echoWithLeaveChannel = activeSubscription.echo as BriefEchoInstance & {
+      leaveChannel?: (channelName: string) => void;
+    };
+    if (typeof echoWithLeaveChannel.leaveChannel === 'function') {
+      echoWithLeaveChannel.leaveChannel(privateChannelName);
+    }
+
+    briefSubscriptionRef.current = null;
+  }, []);
+
+  const applyAssistantResponse = useCallback(
+    (response: AiBriefBuilderResponse) => {
+      const status = toBriefStatus(response.status) ?? (response.final_brief ? 'FINAL' : 'CLARIFY');
+      const clarifyQuestions = normalizeQuestions(
+        (response as { questions?: unknown }).questions ?? response.questions
+      );
+      const baseAssistantText =
+        extractAssistantText(response) ||
+        (status === 'FINAL'
+          ? t('client.project_requests.brief_copilot.final_ready')
+          : t('client.project_requests.brief_copilot.clarify_ready'));
+      const assistantText =
+        status === 'CLARIFY'
+          ? buildClarifyChatMessage(baseAssistantText, clarifyQuestions)
+          : baseAssistantText;
+
+      if (assistantText) {
+        const assistantMessage: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: assistantText,
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setConversation((prev) => [...prev, { role: 'assistant', content: assistantText }]);
+      }
+
+      if (status === 'CLARIFY') {
+        setFinalDraft(null);
+        setQuickReplies(normalizeQuickReplies(response));
+        return;
+      }
+
+      setQuickReplies([]);
+      setFinalDraft(buildFormDraft(response));
+    },
+    [t]
+  );
 
   useEffect(() => {
     const container = chatScrollRef.current;
@@ -750,10 +964,23 @@ export default function BriefCopilot({
     });
   }, [messages, isLoading]);
 
+  useEffect(
+    () => () => {
+      cleanupBriefSubscription();
+    },
+    [cleanupBriefSubscription]
+  );
+
   const sendMessage = useCallback(
     async (rawContent: string) => {
       const normalizedContent = rawContent.trim();
       if (!normalizedContent || isLoading) {
+        return;
+      }
+
+      const userId = String(user?.id ?? '').trim();
+      if (!userId) {
+        setError(t('client.project_requests.brief_copilot.errors.generic'));
         return;
       }
 
@@ -775,41 +1002,85 @@ export default function BriefCopilot({
       setConversation(nextConversation);
       setQuickReplies([]);
 
-      try {
-        const response = await fetchClient.buildBrief(nextConversation, locale, availableServices);
-        const status = toString(response.status).toUpperCase();
-        const clarifyQuestions = normalizeQuestions(response.questions);
-        const baseAssistantText =
-          extractAssistantText(response) ||
-          (status === 'FINAL'
-            ? t('client.project_requests.brief_copilot.final_ready')
-            : t('client.project_requests.brief_copilot.clarify_ready'));
-        const assistantText =
-          status === 'CLARIFY'
-            ? buildClarifyChatMessage(baseAssistantText, clarifyQuestions)
-            : baseAssistantText;
+      cleanupBriefSubscription();
+      const echo = getEcho();
+      if (!echo) {
+        setIsLoading(false);
+        setError(t('client.project_requests.brief_copilot.errors.generic'));
+        return;
+      }
 
-        if (assistantText) {
-          const assistantMessage: ChatMessage = {
-            id: `assistant-${Date.now()}`,
-            role: 'assistant',
-            content: assistantText,
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
-          setConversation((prev) => [...prev, { role: 'assistant', content: assistantText }]);
-        }
+      const requestId = requestCounterRef.current + 1;
+      requestCounterRef.current = requestId;
+      const channelName = `user.${userId}.briefs`;
+      const channel = echo.private(channelName);
+      briefSubscriptionRef.current = {
+        echo,
+        channelName,
+        channel,
+        requestId,
+      };
 
-        if (status === 'CLARIFY') {
-          setFinalDraft(null);
-          setQuickReplies(normalizeQuickReplies(response));
+      const completePendingRequest = () => {
+        if (briefSubscriptionRef.current?.requestId !== requestId) {
           return;
         }
 
-        if (status === 'FINAL') {
-          setQuickReplies([]);
-          setFinalDraft(buildFormDraft(response));
+        setIsLoading(false);
+        cleanupBriefSubscription();
+      };
+
+      const handleGenerated = (payload: unknown) => {
+        if (briefSubscriptionRef.current?.requestId !== requestId) {
+          return;
+        }
+
+        const response = normalizeBriefGeneratedPayload(payload);
+        if (!response) {
+          setError(t('client.project_requests.brief_copilot.errors.generic'));
+          completePendingRequest();
+          return;
+        }
+
+        applyAssistantResponse(response);
+        completePendingRequest();
+      };
+
+      const handleFailed = (payload: unknown) => {
+        if (briefSubscriptionRef.current?.requestId !== requestId) {
+          return;
+        }
+
+        const failedMessage =
+          extractBriefFailureMessage(payload) || t('client.project_requests.brief_copilot.errors.generic');
+        setError(failedMessage);
+        completePendingRequest();
+      };
+
+      AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+        channel.listen(eventName, handleGenerated);
+      });
+      AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+        channel.listen(eventName, handleFailed);
+      });
+
+      try {
+        const immediatePayload = (await fetchClient.buildBrief(
+          nextConversation,
+          locale,
+          availableServices
+        )) as unknown;
+        const immediateResponse = normalizeBriefGeneratedPayload(immediatePayload);
+
+        if (immediateResponse && briefSubscriptionRef.current?.requestId === requestId) {
+          applyAssistantResponse(immediateResponse);
+          completePendingRequest();
         }
       } catch (cause) {
+        if (briefSubscriptionRef.current?.requestId !== requestId) {
+          return;
+        }
+
         if (cause instanceof FetchError) {
           setError(cause.message);
         } else if (cause instanceof Error) {
@@ -817,11 +1088,20 @@ export default function BriefCopilot({
         } else {
           setError(t('client.project_requests.brief_copilot.errors.generic'));
         }
-      } finally {
-        setIsLoading(false);
+
+        completePendingRequest();
       }
     },
-    [availableServices, conversation, isLoading, locale, t]
+    [
+      applyAssistantResponse,
+      availableServices,
+      cleanupBriefSubscription,
+      conversation,
+      isLoading,
+      locale,
+      t,
+      user?.id,
+    ]
   );
 
   const submitDisabled = useMemo(() => isLoading || input.trim().length === 0, [input, isLoading]);
