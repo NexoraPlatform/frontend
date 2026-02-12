@@ -15,6 +15,7 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { formatDeadline } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
 import { getTranslations } from 'next-intl/server';
+import DeliverableSubmissionForm from '@/components/projects/DeliverableSubmissionForm';
 
 
 export default async function ProjectDetailClient({ id, locale }: {  id: string; locale: Locale; }) {
@@ -152,6 +153,10 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                             </ul>
                                         </div>
                                     )}
+
+                                    <div className="my-6">
+                                        <DeliverableSubmissionForm project={project} />
+                                    </div>
 
                                     {project.providers.length > 0 && (
                                         <div className="lg:col-span-2 space-y-4">

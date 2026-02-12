@@ -3,8 +3,18 @@ import { API_BASE_URL, appendSetCookie, buildProxyHeaders } from '@/lib/server/l
 
 export async function GET(req: Request) {
   const headers = buildProxyHeaders(req);
+  const url = new URL(`${API_BASE_URL}/auth/me`);
+  const incomingUrl = new URL(req.url);
 
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+  incomingUrl.searchParams.forEach((value, key) => {
+    url.searchParams.set(key, value);
+  });
+
+  if (!url.searchParams.has('include')) {
+    url.searchParams.set('include', 'connected_accounts');
+  }
+
+  const response = await fetch(url.toString(), {
     method: 'GET',
     headers,
     cache: 'no-store',

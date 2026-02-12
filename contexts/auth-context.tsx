@@ -7,6 +7,7 @@ import { onApiUnauthorized } from '@/lib/fetch-client';
 import { ensureCsrfCookie } from '@/lib/csrf';
 import { AccessRole } from '@/lib/access';
 import { useAuthStore } from '@/lib/stores/use-auth-store';
+import type { ConnectedAccount } from '@/types/auth';
 
 interface Company {
   id?: number | string;
@@ -66,6 +67,7 @@ interface User {
   github_token?: string;
   github_refresh_token?: string | null;
   github_nickname?: string;
+  connected_accounts?: ConnectedAccount[];
   user_permissions?: Record<string, any> | any[];
   oldest_work_experience?: string | null;
   next_available_job?: string | null;

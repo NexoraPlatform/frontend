@@ -29,10 +29,11 @@ const ROUTE_RULES: RouteRule[] = [
   // { pattern: /\/client(\/|$)/i, require: { roles: ['client'] } },
   { pattern: /^\/projects\/new\/?$/i, require: { roles: ['client'] } },
   { pattern: /\/projects\/(?!profile(?:\/|$))[^\/]+\/?$/i, require: 'auth-only' },
+  { pattern: /^\/integrations\/?$/i, require: 'auth-only' },
 ];
 
 const AUTH_PAGES = new Set(['/auth/signin', '/auth/signup']);
-const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/client', '/provider', '/tests'];
+const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/client', '/provider', '/tests', '/integrations'];
 
 const intlMiddleware = createMiddleware({
   locales,
