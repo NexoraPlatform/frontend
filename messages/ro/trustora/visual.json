@@ -1,0 +1,11 @@
+{
+  "visual": {
+    "title": "Stripe + Notar + Marketplace",
+    "money_label": "Bani",
+    "money_subtitle": "Strat escrow",
+    "contracts_label": "Contracte",
+    "contracts_subtitle": "Execuție digitală",
+    "verification_label": "Verificare",
+    "verification_subtitle": "Strat de identitate"
+  }
+}

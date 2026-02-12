@@ -1,6 +1,6 @@
 "use client";
 
-import Link from 'next/link';
+import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,8 @@ import {
     Square
 } from 'lucide-react';
 import { useTestStatistics } from '@/hooks/use-api';
+import { useLocale, useTranslations } from 'next-intl';
+import { useMemo } from "react";
 
 interface QuestionStat {
     id: string;
@@ -31,8 +33,24 @@ interface QuestionStat {
     test_result_id: number;
 }
 
-export default function TestStatisticsPage({ id }: {  id: string; }) {
+export default function TestStatisticsPage({ id }: { id: string; }) {
     const { data: stats, loading: statsLoading, error: statsError } = useTestStatistics(id);
+    const locale = useLocale();
+    const t = useTranslations();
+    const subtitle = t('admin.tests.statistics.subtitle');
+    const titleSuffix = t('admin.tests.statistics.title_suffix');
+    const userLabel = t('admin.tests.statistics.user_label');
+    const passedLabel = t('admin.tests.statistics.passed_label');
+    const passedYes = t('admin.tests.statistics.passed_yes');
+    const passedNo = t('admin.tests.statistics.passed_no');
+    const scoreLabel = t('admin.tests.statistics.score_label');
+    const timeSpentLabel = t('admin.tests.statistics.time_spent_label');
+    const questionStatsTitle = t('admin.tests.statistics.question_stats_title');
+    const questionStatsDescription = t('admin.tests.statistics.question_stats_description');
+    const levelJunior = t('admin.tests.levels.JUNIOR');
+    const levelMediu = t('admin.tests.levels.MEDIU');
+    const levelSenior = t('admin.tests.levels.SENIOR');
+    const levelExpert = t('admin.tests.levels.EXPERT');
 
     const getQuestionTypeIcon = (type: string) => {
         switch (type) {
@@ -46,25 +64,26 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
     const getQuestionTypeLabel = (type: string) => {
         switch (type) {
-            case 'SINGLE_CHOICE': return 'Alegere Unică';
-            case 'MULTIPLE_CHOICE': return 'Alegere Multiplă';
-            case 'CODE_WRITING': return 'Scriere Cod';
-            case 'TEXT_INPUT': return 'Răspuns Text';
+            case 'SINGLE_CHOICE': return t('admin.tests.question_types.SINGLE_CHOICE');
+            case 'MULTIPLE_CHOICE': return t('admin.tests.question_types.MULTIPLE_CHOICE');
+            case 'CODE_WRITING': return t('admin.tests.question_types.CODE_WRITING');
+            case 'TEXT_INPUT': return t('admin.tests.question_types.TEXT_INPUT');
             default: return type;
         }
     };
 
     type Level = 'JUNIOR' | 'MEDIU' | 'SENIOR' | 'EXPERT';
 
-    const getLevelBadge = (level: Level) => {
-        const colors: Record<Level, string> = {
-            JUNIOR: 'bg-green-100 text-green-800',
-            MEDIU: 'bg-blue-100 text-blue-800',
-            SENIOR: 'bg-purple-100 text-purple-800',
-            EXPERT: 'bg-orange-100 text-orange-800',
-        };
+    const levelBadgeMap = useMemo(() => ({
+        JUNIOR: { label: levelJunior, color: 'bg-green-100 text-green-800' },
+        MEDIU: { label: levelMediu, color: 'bg-blue-100 text-blue-800' },
+        SENIOR: { label: levelSenior, color: 'bg-purple-100 text-purple-800' },
+        EXPERT: { label: levelExpert, color: 'bg-orange-100 text-orange-800' },
+    }), [levelJunior, levelMediu, levelSenior, levelExpert]);
 
-        return <Badge className={colors[level]}>{level}</Badge>;
+    const getLevelBadge = (level: Level) => {
+        const badge = levelBadgeMap[level];
+        return <Badge className={badge?.color || 'bg-gray-100 text-gray-800'}>{badge?.label || level}</Badge>;
     };
 
     if (statsLoading) {
@@ -77,18 +96,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
         );
     }
 
-    if (statsError) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        {statsError || 'Nu s-au putut încărca datele'}
-                    </AlertDescription>
-                </Alert>
-            </div>
-        );
-    }
+    if (statsError) return <div className="p-8 text-center text-red-500">{t('admin.tests.statistics.error_loading')}</div>;
 
     function formatTime(minutes: number): string {
         if (minutes < 60) {
@@ -114,9 +122,9 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                     </Button>
                 </Link>
                 <div className="flex-1">
-                    <h1 className="text-3xl font-bold">{stats.title} - {stats.test_results.user.firstName} {stats.test_results.user.lastName} - Statistici</h1>
+                    <h1 className="text-3xl font-bold">{stats.title} - {stats.test_results.user.firstName} {stats.test_results.user.lastName} - {titleSuffix}</h1>
                     <p className="text-muted-foreground">
-                        Analiză detaliată a performanței testului
+                        {subtitle}
                     </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -134,7 +142,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                         <div className="text-center">
                             <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                             <div className="text-3xl font-bold">{stats.test_results.user.firstName} {stats.test_results.user.lastName}</div>
-                            <p className="text-sm text-muted-foreground">Utilizator</p>
+                            <p className="text-sm text-muted-foreground">{userLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -143,8 +151,8 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                     <CardContent className="pt-6">
                         <div className="text-center">
                             <CheckCircle className={`w-8 h-8 ${stats.test_results.passed === 'YES' ? 'text-green-500' : 'text-red-500'} mx-auto mb-2`} />
-                            <div className="text-3xl font-bold">{stats.test_results.passed === 'YES' ? 'Da' : 'Nu'}</div>
-                            <p className="text-sm text-muted-foreground">Test Trecut</p>
+                            <div className="text-3xl font-bold">{stats.test_results.passed === 'YES' ? passedYes : passedNo}</div>
+                            <p className="text-sm text-muted-foreground">{passedLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -154,7 +162,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                         <div className="text-center">
                             <Target className="w-8 h-8 text-purple-500 mx-auto mb-2" />
                             <div className="text-3xl font-bold">{Number(stats.test_results.score)}%</div>
-                            <p className="text-sm text-muted-foreground">Scor</p>
+                            <p className="text-sm text-muted-foreground">{scoreLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -164,7 +172,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                         <div className="text-center">
                             <Clock className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                             <div className="text-3xl font-bold">{formatTime(stats.test_results.timeSpent)}</div>
-                            <p className="text-sm text-muted-foreground">Timp petrecut</p>
+                            <p className="text-sm text-muted-foreground">{timeSpentLabel}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -216,10 +224,10 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <Target className="w-5 h-5" />
-                        <span>Statistici per Întrebare</span>
+                        <span>{questionStatsTitle}</span>
                     </CardTitle>
                     <CardDescription>
-                        Performanța candidaților pentru fiecare întrebare
+                        {questionStatsDescription}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -247,11 +255,11 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                                                 {getQuestionTypeLabel(question.type)}
                                             </Badge>
                                             <Badge variant="secondary">
-                                                {question.points} puncte
+                                                {t('admin.tests.points_template', { count: question.points })}
                                             </Badge>
                                         </div>
                                         <div className="text-xl font-bold text-blue-500">
-                                            Întrebarea {index + 1}
+                                            {t('admin.tests.statistics.question_label', { number: (index + 1) })}
                                         </div>
                                     </div>
 
@@ -260,8 +268,8 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
                                     <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                         <div>
                                             <div className="flex justify-between text-sm mb-1">
-                                                <span>Raspuns {questionStat.is_correct ? 'corect' : 'incorect' }</span>
-                                                <span>{questionStat.points_earned} puncte</span>
+                                                <span>{questionStat.is_correct ? t('admin.tests.statistics.answer_correct') : t('admin.tests.statistics.answer_incorrect')}</span>
+                                                <span>{t('admin.tests.points_template', { count: questionStat.points_earned })}</span>
                                             </div>
                                             <Progress value={100} className="h-2" indicatorClassName={`${questionStat.is_correct ? 'bg-green-500' : 'bg-red-500'}`} />
                                         </div>
@@ -271,7 +279,7 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
                                     <div className="flex items-center space-x-2 text-sm mb-2">
                                         <CheckCircle className="w-4 h-4 text-green-500" />
-                                        <span>Raspuns corect</span>
+                                        <span className="text-muted-foreground">{t('admin.tests.statistics.correct_answer')}:</span>
                                         <span>
                                             {correctAnswers.map((ans, idx) => (
                                                 <span key={idx} className="font-bold text-green-500">{ans}{idx < correctAnswers.length - 1 ? ', ' : ''}</span>
@@ -282,11 +290,11 @@ export default function TestStatisticsPage({ id }: {  id: string; }) {
 
                                     <div className="flex items-center space-x-2 text-sm mb-2">
                                         <Users className="w-4 h-4 text-blue-500" />
-                                        <span>Raspuns utilizator</span>
+                                        <span>{t('admin.tests.statistics.user_answer')}:</span>
                                         <span>
                                             {userAnswers.map((ans, idx) => (
-                                            <span key={idx} className={`font-bold ${questionStat.is_correct ? 'text-blue-500' : 'text-red-500'}`}>{ans}{idx < userAnswers.length - 1 ? ', ' : ''}</span>
-                                        ))}
+                                                <span key={idx} className={`font-bold ${questionStat.is_correct ? 'text-blue-500' : 'text-red-500'}`}>{ans}{idx < userAnswers.length - 1 ? ', ' : ''}</span>
+                                            ))}
                                         </span>
                                     </div>
                                 </div>

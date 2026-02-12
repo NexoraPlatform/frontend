@@ -1,0 +1,163 @@
+{
+  "project_requests": {
+    "hero": {
+      "badge": "Hub client Trustora",
+      "title": "Cererile mele de proiecte",
+      "description": "Urmărește răspunsurile prestatorilor și securizează plățile prin escrow pentru colaborări sigure."
+    },
+    "empty": {
+      "title": "Nu ai cereri de proiecte",
+      "description": "Creează primul tău proiect pentru a începe colaborarea cu prestatorii.",
+      "cta": "Creează proiect"
+    },
+    "project": {
+      "total_budget": "Buget total:",
+      "deadline": "Deadline:",
+      "no_deadline": "Fără deadline fix",
+      "created": "Creat",
+      "selected_providers": "{count} prestatori selectați",
+      "technologies": "Tehnologii proiect"
+    },
+    "providers": {
+      "title": "Răspunsuri prestatori",
+      "location_fallback": "România",
+      "allocated": "Alocat:",
+      "response_received": "Răspuns primit",
+      "milestone_budget": "Buget alocat:"
+    },
+    "budget": {
+      "approved": "Buget aprobat!",
+      "rejected": "Buget respins",
+      "new_proposal": "Propunere de buget nou",
+      "new_proposal_description": "Propuneți o nouă sumă pentru acest proiect. Clientul va trebui să aprobe noua propunere.",
+      "original": "Buget original:",
+      "enter_proposal": "Introdu propunerea de buget:",
+      "approve": "Aprobă",
+      "propose_new": "Propune buget nou",
+      "cancel": "Anulează",
+      "save_changes": "Salvează modificările",
+      "reject": "Respinge"
+    },
+    "milestones": {
+      "title": "Milestone-uri proiect",
+      "mark_complete": "Marchează milestone ca finalizat",
+      "paid": "Plătit",
+      "finished": "Finalizat",
+      "rejected": "Refuzat",
+      "pending": "În lucru",
+      "payment_status": {
+        "pending": "Plată în așteptare",
+        "escrow": "Plată securizată",
+        "paid": "Plătit",
+        "rejected": "Refuzat"
+      }
+    },
+    "status": {
+      "pending": "În așteptare",
+      "accepted": "Acceptat",
+      "rejected": "Respins",
+      "budget_proposed": "Buget propus"
+    },
+    "actions": {
+      "secure_payment": "Securizează plata",
+      "view_details": "Vezi detalii",
+      "messages": "Mesaje"
+    },
+    "release": {
+      "button": "Eliberează fondurile",
+      "processing": "Se eliberează...",
+      "success": "Fondurile au fost eliberate cu succes.",
+      "error": "Eroare: {message}"
+    },
+    "stripe": {
+      "load_error": "Stripe nu s-a încărcat.",
+      "not_ready": "Stripe nu e gata.",
+      "session_not_ready": "Sesiunea de plată nu este pregătită încă.",
+      "payment_error": "Eroare la plată"
+    },
+    "errors": {
+      "generic": "Eroare: {message}"
+    },
+    "checkout": {
+      "title": "Securizează plata",
+      "description": "Protejează-ți investiția cu escrow",
+      "project_label": "Proiect:",
+      "project_value": "Valoare proiect:",
+      "platform_fee": "Comision platformă:",
+      "total_value": "Valoare totală:",
+      "how_it_works": {
+        "title": "Cum funcționează escrow",
+        "step_1": "Banii sunt blocați securizat",
+        "step_2": "Prestatorii lucrează la proiect",
+        "step_3": "Banii sunt eliberați la finalizare"
+      },
+      "guarantee": {
+        "title": "Protecție 100% garantată",
+        "description": "Banii tăi sunt în siguranță până când proiectul este finalizat conform specificațiilor."
+      },
+      "card_details": "Detalii card de plată",
+      "success": "Plata a fost autorizată cu succes! Prestatorii pot începe lucrul.",
+      "processing": "Se procesează...",
+      "secure_amount": "Securizează",
+      "cancel": "Anulează",
+      "footer": {
+        "ssl": "SSL securizat",
+        "pci": "PCI compliant",
+        "stripe": "Stripe powered"
+      }
+    },
+    "brief_copilot": {
+      "title": "Arhitect AI Trustora",
+      "subtitle": "Definește iterativ brief-ul tehnic și sincronizează-l cu formularul de proiect.",
+      "welcome": "Descrie produsul pe care vrei să îl construiești și te ajut să structurezi brief-ul.",
+      "assistant_name": "Arhitect AI",
+      "input_placeholder": "Explică obiectivul, timeline-ul, bugetul și tehnologiile preferate...",
+      "send": "Trimite",
+      "questions_title": "Clarificări necesare",
+      "clarify_ready": "Mai am nevoie de câteva detalii înainte de finalizarea brief-ului.",
+      "final_ready": "Brief-ul structurat este pregătit.",
+      "summary_title": "Rezumat Structurat",
+      "summary_title_empty": "Brief de proiect fără titlu",
+      "summary_budget": "Buget estimat",
+      "summary_technologies": "Tehnologii",
+      "summary_technologies_empty": "Nu au fost extrase tehnologii încă.",
+      "summary_duration": "Durată recomandată",
+      "summary_budget_range": "Interval de buget",
+      "summary_payment_meta": "Plată și monedă",
+      "team_title": "Structură recomandată de echipă",
+      "team_level": "Nivel: {level}",
+      "section_specific_requirements": "Cerințe specifice",
+      "section_business_analysis": "Analiză de business",
+      "business_problem_statement": "Problemă",
+      "business_target_users": "Utilizatori țintă",
+      "business_value_proposition": "Propoziție de valoare",
+      "business_feature_business_value": "Valoare de business pe funcționalități",
+      "section_tech_stack": "Stack tehnic recomandat",
+      "tech_architecture_notes": "Note de arhitectură",
+      "section_technical_risks": "Riscuri tehnice",
+      "section_complexity_estimation": "Estimare complexitate",
+      "section_complexity": "Complexitate",
+      "section_team_recommendation": "Recomandare echipă",
+      "section_milestones": "Milestone-uri",
+      "section_final_brief_text": "Text complet brief",
+      "apply_to_form": "Aplică în formular",
+      "errors": {
+        "generic": "Arhitectul AI este momentan indisponibil."
+      },
+      "draft": {
+        "title": "Ciornă Brief Proiect",
+        "description": "Verifică datele generate și continuă către formularul complet de proiect.",
+        "project_title": "Titlu",
+        "project_title_placeholder": "ex. Platformă SaaS multi-tenant pentru analytics",
+        "project_description": "Descriere",
+        "project_description_placeholder": "Obiective business, scope, integrări, constrângeri și criterii de acceptanță.",
+        "budget": "Buget",
+        "budget_placeholder": "Buget estimat în USD",
+        "technologies": "Tehnologii",
+        "technologies_placeholder": "React, Laravel, PostgreSQL, Redis",
+        "open_form": "Deschide Formularul Proiectului",
+        "empty": "Rulează copilotul pentru a pregăti o ciornă de proiect precompletată."
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "newsletter_email_address": "Adresa de email pentru newsletter",
+  "your_email": "Email-ul tău",
+  "subscribe_to_newsletter": "Abonează-te la newsletter",
+  "subscribe": "Abonează-te",
+  "unsubscribe_title": "Dezabonare newsletter",
+  "unsubscribe_success": "Te-ai dezabonat cu succes.",
+  "unsubscribe_description": "Nu vei mai primi emailuri de la Trustora.",
+  "unsubscribe_loading": "Procesăm dezabonarea...",
+  "unsubscribe_error": "Nu am putut procesa cererea de dezabonare."
+}

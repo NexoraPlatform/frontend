@@ -1,0 +1,11 @@
+{
+  "filters": {
+    "title": "Filtre",
+    "service_type": "Tip serviciu",
+    "technologies": "Tehnologii",
+    "all": "Toate",
+    "show_more": "Afișează mai multe",
+    "show_less": "Afișează mai puține",
+    "other": "Altele"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "hero": {
+    "badge": "Trustora Secure Area",
+    "title": "Acces interzis în zona ta securizată.",
+    "description": "Nu ai permisiunea necesară pentru a vedea această pagină. Revino la dashboard sau contactează echipa Trustora pentru suport.",
+    "attempted": "Ai încercat să accesezi: {path}",
+    "primary_cta": "Înapoi la dashboard",
+    "secondary_cta": "Pagina principală"
+  },
+  "card": {
+    "title": "Acces restricționat",
+    "description": "Contul tău nu are permisiunile necesare pentru această resursă. Dacă este nevoie, solicită acces administratorului.",
+    "actions": {
+      "title": "Ce poți face acum",
+      "items": [
+        "Revino în dashboard și verifică proiectele active.",
+        "Confirmă că ești autentificat cu rolul corect.",
+        "Contactează suportul Trustora pentru acces rapid."
+      ]
+    }
+  }
+}

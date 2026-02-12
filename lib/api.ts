@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexorabe.dacars.ro/api';
+import { apiFetch, FetchError } from '@/lib/fetch-client';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
 export type RoleLite = {
   id: number;
@@ -6,73 +8,187 @@ export type RoleLite = {
   slug: string;
 };
 
-class ApiClient {
-  private baseURL: string;
-  private token: string | null = null;
+export type LegalClauseContent = Record<string, string>;
 
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
+export type LegalClause = {
+  id: number;
+  identifier: string;
+  category: string;
+  content: LegalClauseContent;
+  created_at: string;
+  updated_at: string;
+};
 
-    // Get token from localStorage if available
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token');
-    }
-  }
+export type MilestoneEntry = {
+  title: string;
+  amount: number;
+};
 
+export type ProviderMilestonePayload = {
+  providerId: number;
+  milestones: MilestoneEntry[];
+};
 
+export type ProviderRoleMilestonePayload = {
+  provider_role: string;
+  milestones: MilestoneEntry[];
+};
 
-  setToken(token: string) {
-    this.token = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', token);
-    }
-  }
+export type CreateProjectPayload = {
+  title: string;
+  description: string;
+  budget: number;
+  budgetType: 'FIXED' | 'HOURLY';
+  paymentPlan?: string;
+  milestoneCount?: number;
+  milestones?: ProviderMilestonePayload[];
+  [key: string]: unknown;
+};
 
-  removeToken() {
-    this.token = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-    }
-  }
+export type GenerateProjectInformationResponse = {
+  title: string;
+  description: string;
+  technologies: string[];
+  estimated_budget: number;
+  budget_type: string;
+  team_structure: unknown[];
+  deadline: string;
+  additional_services: string[];
+  payment_plan?: string;
+  milestone_count?: number;
+  milestones?: ProviderRoleMilestonePayload[];
+  notes?: string;
+};
+
+export type StatsChangeType = 'increase' | 'decrease' | 'neutral';
+
+export type StatsEntry = {
+  value: number;
+  change: number;
+  change_type: StatsChangeType;
+};
+
+export type MoneyStatsEntry = StatsEntry & {
+  value: number;
+  currency: string;
+  change_percentage: number;
+};
+
+export type ProviderDashboardStats = {
+  active_projects: StatsEntry;
+  monthly_revenue: MoneyStatsEntry;
+  average_rating: StatsEntry;
+  new_requests: StatsEntry;
+};
+
+export type ClientDashboardStats = {
+  projects_posted: StatsEntry;
+  budget_spent: MoneyStatsEntry;
+  projects_completed: StatsEntry;
+  active_providers: StatsEntry;
+};
+
+export type DashboardStatsResponse =
+  | { role: 'provider'; stats: ProviderDashboardStats }
+  | { role: 'client'; stats: ClientDashboardStats };
+
+export type ActivityType = 'project_created' | 'invoice_paid' | 'proposal_received' | 'project_paid';
+
+export interface Activity {
+  id: number;
+  type: ActivityType;
+  metadata: Record<string, string>;
+  read_at: string | null;
+  created_at: string;
+  created_at_human: string;
+}
+
+export interface ActivityPageResponse {
+  data: Activity[];
+  links: {
+    first: string;
+    last: string;
+    prev: string | null;
+    next: string | null;
+  };
+  meta: {
+    current_page: number;
+    from: number;
+    last_page: number;
+    path: string;
+    per_page: number;
+    to: number;
+    total: number;
+  };
+}
+
+export interface ActivityFeedResponse {
+  data: Activity[];
+  meta: {
+    current_page: number;
+    last_page: number;
+  };
+}
+
+export interface RecentActivityQuick {
+  title: string;
+  time_ago: string;
+}
+
+export interface AuditLog {
+  id: number;
+  actor_name: string;
+  action: string;
+  event: 'created' | 'updated' | 'deleted';
+  subject_type: string;
+  subject_id: number;
+  old_values?: Record<string, any>;
+  new_values?: Record<string, any>;
+  ip: string;
+  created_at: string;
+}
+
+export interface AuditLogFilters {
+  user_id?: number;
+  subject_type?: string;
+  event?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+}
+
+export interface AuditLogResponse {
+  data: AuditLog[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+  };
+}
+
+export class ApiClient {
+  constructor(_baseURL: string) { }
 
   private async request<T>(
-      endpoint: string,
-      options: RequestInit = {}
+    endpoint: string,
+    options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
-
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
-        ...options.headers,
-      },
-      credentials: 'include',
-      ...options,
-    };
-
     try {
-      const response = await fetch(url, config);
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      } else {
-        return {} as T;
-      }
+      const response = await apiFetch<T | null>(endpoint, {
+        ...options,
+        method: options.method || 'GET',
+        body: options.body as any,
+      });
+      return (response ?? ({} as T)) as T;
     } catch (error) {
-      console.error('API request failed:', error);
+      if (error instanceof FetchError) {
+        const payload = error.data as Record<string, unknown> | null;
+        const message =
+          (payload && (payload.message as string)) ||
+          (payload && (payload.error as string)) ||
+          error.message;
+        throw new Error(message);
+      }
       throw error;
     }
   }
@@ -87,8 +203,13 @@ class ApiClient {
       body: JSON.stringify(credentials),
     });
 
-    this.setToken(response.access_token);
     return response;
+  }
+
+  async me() {
+    return this.request<any>(`/auth/me`, {
+      method: 'GET',
+    });
   }
 
   async register(userData: {
@@ -98,6 +219,13 @@ class ApiClient {
     lastName: string;
     phone?: string;
     role?: string;
+    company_name?: string;
+    tax_id?: string;
+    trade_registry_number?: string;
+    billing_address?: string;
+    billing_city?: string;
+    billing_state?: string;
+    billing_postal_code?: string;
   }) {
     const response = await this.request<{
       access_token: string;
@@ -107,7 +235,6 @@ class ApiClient {
       body: JSON.stringify(userData),
     });
 
-    this.setToken(response.access_token);
     return response;
   }
 
@@ -123,6 +250,214 @@ class ApiClient {
     return this.request<any>(`/test/result/${id}`);
   }
 
+  async createEarlyAccessApplication(payload: {
+    user_type: 'client' | 'provider';
+    email: string;
+    language?: string;
+    contact_name?: string;
+    company_name?: string;
+    hiring_needs?: string;
+    typical_project_budget?: number;
+    hire_frequency?: string;
+    lost_money?: boolean;
+    escrow_help?: boolean;
+    full_name?: string;
+    country?: string;
+    primary_skill?: string;
+    years_experience?: number;
+    has_clients?: boolean;
+    unpaid_work?: boolean;
+    wants_escrow?: boolean;
+    profile_note?: string;
+  }) {
+    return this.request<{
+      email_exists: boolean;
+      application?: {
+        id: number;
+        user_type: 'client' | 'provider';
+        full_name: string | null;
+        contact_name: string | null;
+        company_name: string | null;
+        email: string;
+        country: string | null;
+        primary_skill: string | null;
+        years_experience: number | null;
+        has_clients: boolean | null;
+        unpaid_work: boolean | null;
+        wants_escrow: boolean | null;
+        hiring_needs: string | null;
+        typical_project_budget: number | null;
+        hire_frequency: string | null;
+        lost_money: boolean | null;
+        escrow_help: boolean | null;
+        score: number;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/early-access', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async verifyEarlyAccessApplication(payload: { code: string; language?: 'en' | 'ro' }) {
+    return this.request<{
+      verified: boolean;
+      expired?: boolean;
+      message?: string;
+      application?: {
+        id: number;
+        user_type: 'client' | 'provider';
+        email: string;
+        email_verification: boolean;
+        email_verification_expired: boolean;
+      };
+    }>('/early-access/verify', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async resendEarlyAccessVerification(payload: {
+    application_id: string;
+    language?: 'en' | 'ro';
+  }) {
+    return this.request<{
+      resent: boolean;
+      verified?: boolean;
+      message?: string;
+      application?: {
+        id: number;
+        user_type: 'client' | 'provider';
+        email: string;
+        application_id: string;
+        email_verification: boolean;
+      };
+    }>('/early-access/resend', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async subscribeToNewsletter(payload: {
+    email: string;
+    user_type: 'client' | 'provider';
+    name?: string;
+    company?: string;
+    language?: 'ro' | 'en';
+  }) {
+    return this.request<{
+      success: boolean,
+      data: {
+        id: number;
+        email: string;
+        name: string | null;
+        user_type: 'client' | 'provider';
+        company: string | null;
+        subscribed_at: string;
+        unsubscribed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+    }>('/newsletter/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async unsubscribeFromNewsletter(token: string) {
+    return this.request<{ unsubscribed: boolean }>('/newsletter/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async getNewsletterTemplates() {
+    return this.request<{ templates: string[] }>('/newsletter/templates');
+  }
+
+  async getNewsletterTemplateContent(template: string) {
+    return this.request<{ template: string; content: string }>(`/newsletter/templates/${template}`);
+  }
+
+  async sendNewsletter(payload: {
+    template: string;
+    subject: string;
+    data?: Record<string, string>;
+    user_type?: 'client' | 'provider';
+    recipients?: string[];
+    language?: 'ro' | 'en';
+  }) {
+    return this.request<{ sent: number }>('/newsletter/send', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getNewsletterSubscribers(params?: { per_page?: number; only_active?: boolean }) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      if (typeof value === 'boolean') {
+        searchParams.append(key, value ? 'true' : 'false');
+      } else {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/newsletter?${query}` : '/newsletter';
+
+    return this.request<{
+      data: Array<{
+        id: number;
+        email: string;
+        name: string | null;
+        user_type: 'client' | 'provider';
+        company: string | null;
+        language: 'ro' | 'en';
+        unsubscribe_token: string;
+        subscribed_at: string;
+        unsubscribed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+      pagination?: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+      };
+    }>(endpoint);
+  }
+
+  // Early access endpoints
+  async getEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
+    const searchParams = new URLSearchParams();
+
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/early-access/grouped?${query}` : '/early-access/grouped';
+
+    return this.request<{
+      providers: any[];
+      clients: any[];
+      pagination?: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+      };
+    }>(endpoint);
+  }
+
   // Services endpoints
   async getServices(params?: {
     search?: string;
@@ -135,6 +470,7 @@ class ApiClient {
     sortBy?: string;
     page?: number;
     limit?: number;
+    language?: string;
   }) {
     const searchParams = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => {
@@ -147,10 +483,14 @@ class ApiClient {
       }
     });
 
-    return this.request<any>(`/services`, {
-        method: 'POST',
-        body: JSON.stringify(params),
-    });
+    const query = searchParams.toString();
+    const endpoint = query ? `/services?${query}` : '/services';
+
+    return this.request<any>(endpoint);
+  }
+
+  async getPopularServices() {
+    return this.request<any>(`/services/popular`);
   }
 
   // Servicii disponibile pentru prestatori să se înscrie
@@ -268,6 +608,71 @@ class ApiClient {
     });
   }
 
+  // Legal clauses endpoints
+  async getAdminLegalClauses(params?: {
+    search?: string;
+    category?: string;
+    identifier?: string;
+    sort_by?: 'identifier' | 'category' | 'created_at' | 'updated_at';
+    sort_dir?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+    lang?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (params.search) searchParams.append('search', params.search);
+      if (params.category) searchParams.append('category', params.category);
+      if (params.identifier) searchParams.append('identifier', params.identifier);
+      if (params.sort_by) searchParams.append('sort_by', params.sort_by);
+      if (params.sort_dir) searchParams.append('sort_dir', params.sort_dir);
+      if (params.per_page) searchParams.append('per_page', params.per_page.toString());
+      if (params.page) searchParams.append('page', params.page.toString());
+      if (params.lang) searchParams.append('lang', params.lang);
+    }
+    const qs = searchParams.toString();
+    return this.request<any>(`/admin/legal/clauses${qs ? `?${qs}` : ''}`);
+  }
+
+  async getAdminLegalClause(clauseId: string | number, language?: string) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}?lang=${language ?? 'ro'}`);
+  }
+
+  async getAdminLegalClauseCategory() {
+    return this.request<any>(`/admin/legal/clauses/category`);
+  }
+
+  async createAdminLegalClause(payload: {
+    identifier: string;
+    category: string;
+    content: LegalClauseContent;
+  }) {
+    return this.request<any>('/admin/legal/clauses', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateAdminLegalClause(
+    clauseId: string | number,
+    payload: {
+      identifier?: string;
+      category?: string;
+      content?: LegalClauseContent;
+    }
+  ) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteAdminLegalClause(clauseId: string | number) {
+    return this.request<any>(`/admin/legal/clauses/${clauseId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Users endpoints
   async getUsers(params?: any) {
     const searchParams = new URLSearchParams();
@@ -310,22 +715,30 @@ class ApiClient {
   async allowUserPermission(userId: number, permissionSlug: string) {
     return this.request<any>(`/admin/access/${userId}/allow-permission`, {
       method: 'POST',
-      body: JSON.stringify({permission: permissionSlug}),
+      body: JSON.stringify({ permission: permissionSlug }),
     });
   }
 
   async denyUserPermission(userId: number, permissionSlug: string) {
     return this.request<any>(`/admin/access/${userId}/deny-permission`, {
       method: 'POST',
-      body: JSON.stringify({permission: permissionSlug}),
+      body: JSON.stringify({ permission: permissionSlug }),
     });
+  }
+
+  async removeUserPermission(userId: number, slug: string) {
+    return this.request<any>(`/admin/access/${userId}/permissions`, {
+      method: 'DELETE',
+      body: JSON.stringify({ permission: slug }),
+    });
+
   }
 
   async getRole(roleId: number) {
     return this.request<any>(`/admin/access/${roleId}`);
   }
 
-  async updateRole(roleId: number, data: any){
+  async updateRole(roleId: number, data: any) {
     return this.request<any>(`/admin/access/${roleId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -350,7 +763,7 @@ class ApiClient {
     return this.request<any>(`/admin/users/${userId}`)
   }
 
-  async updateUser(userId: number, userData: any){
+  async updateUser(userId: number, userData: any) {
     return this.request<any>(`/admin/users/${userId}`, {
       method: 'PATCH',
       body: JSON.stringify({ userData }),
@@ -516,9 +929,8 @@ class ApiClient {
     return this.request<any>('/admin/tests', {
       method: 'POST',
       headers: {
-      'Content-Type': 'application/json',
-    ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-    },
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(testData),
     });
   }
@@ -555,7 +967,6 @@ class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify(testData),
     });
@@ -622,7 +1033,6 @@ class ApiClient {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -634,9 +1044,70 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
+  }
+
+  async updateUserCompanyDetails(userCompanyDetails: any) {
+    return this.request<any>(`/users/update/company`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userCompanyDetails),
+    })
+  }
+
+  async getCompanyManagers(companyId: string | number | undefined) {
+    const searchParams = new URLSearchParams();
+    if (companyId) {
+      searchParams.append('company_id', companyId.toString());
+    }
+    return this.request<any>(`/users/company/editors?${searchParams.toString()}`);
+  }
+
+  async searchUserForCompany(search: string) {
+    const searchParams = new URLSearchParams();
+    if (search) {
+      searchParams.append('search', search);
+    }
+
+    return this.request<any>(`/users/company/search/users?${searchParams.toString()}`);
+  }
+
+  async getCompanyMembers(companyId: string | number | undefined) {
+    const searchParams = new URLSearchParams();
+    if (companyId) {
+      searchParams.append('company_id', companyId.toString());
+    }
+
+    return this.request<any>(`/users/company/members?${searchParams.toString()}`);
+  }
+
+  async updateCompanyEditorsOrOwnership(
+    companyId: string | number | undefined,
+    members: string[] | null | undefined,
+    owner: string | null | undefined,
+  ) {
+    const payload: Record<string, unknown> = {
+      company_id: companyId,
+    };
+
+    if (members !== null && members !== undefined) {
+      payload.editor_emails = members;
+    }
+
+    if (owner) {
+      payload.transfer_owner_email = owner;
+    }
+
+    return this.request<any>(`/users/company/access`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
   }
 
   async uploadAvatar(file: File) {
@@ -647,7 +1118,6 @@ class ApiClient {
       method: 'POST',
       body: formData,
       headers: {
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
   }
@@ -703,12 +1173,45 @@ class ApiClient {
     return this.request<any>(`/projects/slug/${slug}`);
   }
 
+  async getPublicProjects(params?: {
+    page?: number;
+    search?: string;
+    category?: string;
+    technologies?: string[];
+    budget_min?: number;
+    budget_max?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (params.page !== undefined && params.page !== null) {
+        searchParams.append('page', params.page.toString());
+      }
+      if (params.search) {
+        searchParams.append('search', params.search);
+      }
+      if (params.category) {
+        searchParams.append('category', params.category);
+      }
+      if (params.technologies && params.technologies.length > 0) {
+        params.technologies.forEach((tech) => searchParams.append('technologies', tech));
+      }
+      if (params.budget_min !== undefined && params.budget_min !== null) {
+        searchParams.append('budget_min', params.budget_min.toString());
+      }
+      if (params.budget_max !== undefined && params.budget_max !== null) {
+        searchParams.append('budget_max', params.budget_max.toString());
+      }
+    }
+
+    const query = searchParams.toString();
+    return this.request<any>(`/projects${query ? `?${query}` : ''}`);
+  }
+
   async getProviderProjectRequests() {
     return this.request<any>('/projects/requests', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -716,15 +1219,30 @@ class ApiClient {
   async respondToProjectRequest(projectId: string, response: {
     response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
     proposedBudget?: number;
-  }) {
-    return this.request<any>(`/projects/${projectId}/respond`, {
+  }, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects/${projectId}/respond${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(response),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
+  }
+
+  async markMilestoneAsComplete(projectId: number, milestone: number, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects/${projectId}/markMilestone${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      body: JSON.stringify({ milestone: milestone }),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
   }
 
   async getClientProjectRequests() {
@@ -732,28 +1250,72 @@ class ApiClient {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
+  }
+
+  async githubInitiate() {
+    return this.request<any>(`/auth/github/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+  }
+
+  async connectGithub() {
+    return this.request<any>('/auth/github/redirect', {
+      method: 'GET',
+      headers: {
+      }
+    })
+  }
+
+  async createGithubRepo(projectId: string | number, target: string) {
+    return this.request<any>(`/projects/${projectId}/create-repo`, {
+      method: 'POST',
+      body: JSON.stringify({ target: target }),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
   }
 
   async respondToBudgetProposal(projectId: string, providerId: string, response: {
     response: 'ACCEPTED' | 'REJECTED';
-  }) {
-    return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response`, {
+  }, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(response),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
 
-  async createProject(projectData: any) {
-    return this.request<any>('/projects', {
+  async generateProjectContract(projectId: string, clientId: string, providerId: string) {
+    return this.request<any>(`/contract/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ project_id: projectId, client_id: clientId, provider_id: providerId }),
+    });
+  }
+
+  async createProject(projectData: CreateProjectPayload, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/projects${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(projectData),
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
   }
 
@@ -779,7 +1341,7 @@ class ApiClient {
   }
 
   async getSuggestedProviders(
-      services: { service: string; level: string }[]
+    services: { service: string; level: string }[]
   ) {
 
     return this.request<any>(`/providers/suggestions`, {
@@ -787,7 +1349,6 @@ class ApiClient {
       body: JSON.stringify({ services }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
@@ -796,58 +1357,49 @@ class ApiClient {
     return this.request<any>('/technologies');
   }
 
+  async getTechnologiesByCategory(categoryId: string) {
+    return this.request<any>(`/services/category/${categoryId}`);
+  }
+
   async generateProjectInformation(projectData: any) {
-    return this.request<any>('/projects/generate-information-by-ai', {
+    return this.request<GenerateProjectInformationResponse>('/projects/generate-information-by-ai', {
       method: 'POST',
       body: JSON.stringify(projectData),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
     });
   }
 
   async updateLastActive() {
     return this.request<any>('/users/active', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        }
-    });
-  }
-
-  async handleStripeOnboarding(email: string) {
-    return this.request<any>('/stripe/onboard-link', {
       method: 'POST',
-      body: JSON.stringify({email: email}),
+      body: JSON.stringify({}),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      }
+      },
     });
   }
 
-  async getStripeAccountStatus() {
-    return this.request<any>('/stripe/account-status', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      }
-    });
-  }
+
 
   // Notifications endpoints
   async getNotifications(params?: {
     unreadOnly?: boolean;
+    unread?: boolean;
     type?: string;
     page?: number;
     limit?: number;
     cursor?: string; // <-- NOU, pt. cursor-based pagination
+    language?: string;
   }) {
     const sp = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
+    const normalizedParams: Record<string, unknown> = { ...(params || {}) };
+    if (normalizedParams.unread === undefined && normalizedParams.unreadOnly !== undefined) {
+      normalizedParams.unread = normalizedParams.unreadOnly;
+      delete normalizedParams.unreadOnly;
+    }
+    Object.entries(normalizedParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         sp.append(key, String(value));
       }
@@ -866,7 +1418,6 @@ class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({
         subscription: subscription.toJSON(),
@@ -880,15 +1431,12 @@ class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       }
     });
   }
 
   async markAllNotificationsAsRead() {
-    return this.request<any>('/notifications/read-all', {
-      method: 'PATCH'
-    });
+    return this.request<any>('/notifications/read-all');
   }
 
   async deleteNotification(notificationId: string) {
@@ -911,27 +1459,94 @@ class ApiClient {
     });
   }
 
-  async getPaymentLink(project_id: string) {
-    return this.request<any>(`/stripe/payment/${project_id}`);
-  }
-
-  async getPaymentSession(project_id: string) {
-    return this.request<any>(`/stripe/session/payment/${project_id}`);
-  }
-
-  async setPaymentIntent(project_id: string, pi: string) {
-    return this.request<any>(`/stripe/payment-intent/${project_id}`, {
+  async rapydOnboarding(language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/onboard${qs ? `?${qs}` : ''}`, {
       method: 'POST',
-      body: JSON.stringify({ payment_intent: pi }),
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       },
+    })
+  }
+
+  async rapydCheckoutSession(projectId: string | number, currency: string, countryCode: string, milestoneId?: string, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId ? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ currency: currency, country: countryCode })
+    })
+  }
+
+  async rapydReleasePayment(projectId: string | number, milestoneId?: string, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/escrow/release${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ project_id: projectId, milestone_id: milestoneId }),
     });
   }
 
-  async finishProject(project_id: string) {
-    return this.request<any>(`/stripe/capture/payment/${project_id}`);
+  async rapydGetWalletBalance(language?: string) {
+    const qs = language ? `?language=${encodeURIComponent(language)}` : '';
+    return this.request<any>(`/rapyd/balance${qs}`);
+  }
+
+  async rapydCreatePayoutBank(amount: number | string, currency?: string | null, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/rapyd/payout/bank${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount,
+        ...(currency ? { currency } : {}),
+      })
+    });
+  }
+
+  async getCurrencies(search: string | null) {
+    const searchParams = new URLSearchParams();
+
+    if (search) {
+      searchParams.set('search', search);
+    }
+    return this.request<any>(`/users/currencies?${searchParams.toString()}`);
+  }
+
+  async updateUserLanguage(language: string) {
+    return this.request<any>(`/users/language`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ lang: language }),
+    });
+  }
+
+
+
+  async updateOneSignalToken(token: string) {
+    return this.request<any>(`/user/update-push-token`, {
+      method: 'POST',
+      body: JSON.stringify({ push_token: token }),
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
   }
 
   // Chat endpoints
@@ -944,8 +1559,11 @@ class ApiClient {
     type: 'PROJECT' | 'PROVIDER_ONLY' | 'DIRECT';
     projectId?: string;
     participantIds: string[];
-  }) {
-    return this.request<any>('/chat/groups', {
+  }, language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/chat/groups${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(groupData),
     });
@@ -955,10 +1573,16 @@ class ApiClient {
     return this.request<any>(`/chat/groups/${groupId}/messages?page=${page}&limit=${limit}`);
   }
 
-  async sendChatMessage(groupId: string, content: string, attachments?: any[]) {
-    return this.request<any>(`/chat/groups/${groupId}/messages`, {
+  async sendChatMessage(groupId: string, content: string, attachments?: any[], language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<any>(`/chat/groups/${groupId}/messages${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify({ content, attachments }),
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
   }
 
@@ -1034,7 +1658,6 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
   }
@@ -1052,6 +1675,38 @@ class ApiClient {
     });
   }
 
+
+  // Dashboard endpoints
+  async getDashboardStats() {
+    return this.request<DashboardStatsResponse>('/dashboard/stats');
+  }
+
+  async getRecentActivities(page: number = 1) {
+    return this.request<ActivityFeedResponse>(`/activities?page=${page}`);
+  }
+
+  async getActivities(page: number = 1) {
+    return this.request<ActivityPageResponse>(`/activities?page=${page}`);
+  }
+
+  async getRecentActivitiesQuick() {
+    return this.request<RecentActivityQuick[]>('/activities/recent');
+  }
+
+  // Audit Logs
+  async fetchAuditLogs(filters: AuditLogFilters) {
+    const searchParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/admin/audit-logs?${query}` : '/admin/audit-logs';
+
+    return this.request<AuditLogResponse>(endpoint);
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

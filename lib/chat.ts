@@ -1,5 +1,8 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
+import { FetchError, http } from '@/lib/fetch-client';
+import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -74,7 +77,7 @@ export class ChatService {
         return ChatService.instance;
     }
 
-    connect(userId: string, token: string) {
+    connect(userId: string, _token?: string) {
         if (this.echo) {
             const pusher = (this.echo as any)?.connector?.pusher;
             const state = pusher?.connection?.state;
@@ -83,18 +86,37 @@ export class ChatService {
             }
         }
 
+        disablePusherUnloadListener(Pusher);
         (window as any).Pusher = Pusher;
 
         this.echo = new Echo({
             broadcaster: 'pusher',
             key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
             cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-            authEndpoint: `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
-            auth: {
-                headers: {
-                    Authorization: `Bearer ${token}`,
+            authEndpoint: `/api/broadcasting/auth`,
+            authorizer: (channel: any) => ({
+                authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
+                    ensureCsrfCookie()
+                        .then(() => {
+                            const xsrfToken = getXsrfToken();
+                            return http.post(
+                                '/api/broadcasting/auth',
+                                {
+                                    socket_id: socketId,
+                                    channel_name: channel.name,
+                                },
+                                {
+                                    skipAuthHandling: true,
+                                    ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
+                                }
+                            );
+                        })
+                        .then((response) => callback(null, response))
+                        .catch((error) =>
+                            callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
+                        );
                 },
-            },
+            }),
             forceTLS: true,
             enableStats: false,
         });
@@ -162,53 +184,34 @@ export class ChatService {
         }
     }
 
-    async sendMessageViaApi(groupId: string, content: string, attachments?: any[]) {
+    async sendMessageViaApi(groupId: string, content: string, attachments?: any[], language?: string) {
         const censoredContent = this.censorMessage(content);
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/messages`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-            },
-            body: JSON.stringify({ content: censoredContent, attachments }),
-        });
+        const response = await http.post<any>(
+            `/chat/groups/${groupId}/messages`,
+            { content: censoredContent, attachments },
+            language ? { params: { language } } : undefined
+        );
 
-        const data = await res.json();
-        return data.message;
+        return response?.message;
     }
 
     async uploadAttachment(groupId: string | number, file: File, text = '') {
-        const token = localStorage.getItem('auth_token');
         const fd = new FormData();
         fd.append('file', file);
         if (text) fd.append('message', text);
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/attachments`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: fd,
-        });
-
-        if (!res.ok) {
-            let msg = 'Upload failed';
-            try { const j = await res.json(); msg = j.message || msg; } catch {}
-            throw new Error(msg);
+        try {
+            const response = await http.post<any>(`/chat/groups/${groupId}/attachments`, fd);
+            return response?.message; // attachment.status = "scanning"
+        } catch (error) {
+            if (error instanceof FetchError) {
+                const payload = error.data as Record<string, unknown> | null;
+                const msg = (payload?.message as string | undefined) || 'Upload failed';
+                throw new Error(msg);
+            }
+            throw error;
         }
-
-        const data = await res.json();
-        return data.message; // are attachment.status = "scanning"
     }
-
-    // sendTypingEvent(groupId: string, isTyping: boolean) {
-    //     fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/groups/${groupId}/typing`, {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-    //         },
-    //         body: JSON.stringify({ isTyping }),
-    //     });
-    // }
 
     on(event: string, callback: Function) {
         if (!this.listeners[event]) this.listeners[event] = [];

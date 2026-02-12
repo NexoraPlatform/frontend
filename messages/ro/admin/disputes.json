@@ -1,0 +1,10 @@
+{
+  "disputes": {
+    "manage_title": "Gestionare Dispute",
+    "manage_subtitle": "Rezolvă disputele între utilizatori",
+    "list_title": "Lista Dispute",
+    "list_description": "Toate disputele și reclamațiile platformei",
+    "empty_title": "Nu există dispute active",
+    "empty_description": "Toate disputele au fost rezolvate cu succes"
+  }
+}

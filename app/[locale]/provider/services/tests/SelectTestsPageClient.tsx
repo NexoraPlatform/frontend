@@ -1,13 +1,16 @@
 'use client';
 
 import parseJson from "parse-json";
+import Cal, { getCalApi } from "@calcom/embed-react";
 
 export const dynamic = 'force-dynamic';
 
-import {useState, useEffect, useCallback} from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +42,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import {AnimatePresence, motion} from "framer-motion";
+import { hasRole } from '@/lib/access';
+import { AnimatePresence, motion } from "framer-motion";
 
 interface TestData {
     serviceId: string;
@@ -82,7 +86,7 @@ type ExplanationQuestion = {
 };
 
 export default function SelectTestsPageClient() {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [testData, setTestData] = useState<TestData[]>([]);
     const [availableTests, setAvailableTests] = useState<any[]>([]);
     const [currentTest, setCurrentTest] = useState<any>(null);
@@ -109,15 +113,24 @@ export default function SelectTestsPageClient() {
             setKey((k) => k + 1);
         }, 3000);
 
+        (async function () {
+            const cal = await getCalApi({ apiKey: process.env.NEXT_PUBLIC_CAL_API_KEY } as any);
+            cal("ui", { "styles": { "branding": { "brandColor": "#000000" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+        })();
+
         return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (userLoading) return;
+
+        if (!user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (!hasRole(user, ['provider'])) {
             router.push('/dashboard');
+            return;
         }
 
         const dataParam = searchParams.get('data');
@@ -134,7 +147,7 @@ export default function SelectTestsPageClient() {
         } else {
             router.push('/provider/services/select');
         }
-    }, [user, loading, router, searchParams]);
+    }, [user, userLoading, router, searchParams]);
 
     const handleSubmitTest = useCallback(async () => {
         setLoadingResults(true);
@@ -163,7 +176,7 @@ export default function SelectTestsPageClient() {
         } finally {
             setLoadingResults(false);
         }
-    }, [answers, currentTest.test.id, currentTest.test.timeLimit, testData, testStartTime]);
+    }, [answers, currentTest, testData, testStartTime]);
 
     // Timer pentru test
     useEffect(() => {
@@ -298,7 +311,7 @@ export default function SelectTestsPageClient() {
 
         // @ts-ignore
         return (
-            <Card className="border-2">
+            <Card className="glass-card border-emerald-100/60">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
@@ -371,8 +384,8 @@ export default function SelectTestsPageClient() {
                                 <div>
                                     <Label className="text-sm font-medium mb-2 block">Template:</Label>
                                     <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto">
-                    {question.codeTemplate}
-                  </pre>
+                                        {question.codeTemplate}
+                                    </pre>
                                 </div>
                             )}
 
@@ -438,11 +451,12 @@ export default function SelectTestsPageClient() {
 
     if (loadingResults) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-white">
+            <div className="flex items-center justify-center min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
                 <div className="flex flex-col items-center justify-center p-4">
-                    <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                    <Loader2 className="w-10 h-10 text-[var(--emerald-green)] animate-spin mb-4" />
 
-                    <p className="text-lg text-gray-700 font-medium h-8">
+                    <p className="text-lg text-slate-700 dark:text-slate-200 font-medium h-8">
                         Se asteapta{" "}
                         <AnimatePresence mode="wait">
                             <motion.span
@@ -451,7 +465,7 @@ export default function SelectTestsPageClient() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 4 }}
                                 transition={{ duration: 0.4 }}
-                                className="font-bold text-blue-600 inline-block"
+                                className="font-bold text-[var(--emerald-green)] inline-block"
                             >
                                 rezultatul
                             </motion.span>
@@ -463,14 +477,14 @@ export default function SelectTestsPageClient() {
         );
     }
 
-    if (loading || loadingTests) {
+    if (loading || userLoading || loadingTests) {
 
         return (
-            <div className="flex items-center justify-center min-h-screen bg-white">
+            <div className="flex items-center justify-center min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
                 <div className="flex flex-col items-center justify-center p-4">
-                    <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-
-                    <p className="text-lg text-gray-700 font-medium h-8">
+                    <Loader2 className="w-10 h-10 text-[var(--emerald-green)] animate-spin mb-4" />
+                    <p className="text-lg text-slate-700 dark:text-slate-200 font-medium h-8">
                         Se generează{" "}
                         <AnimatePresence mode="wait">
                             <motion.span
@@ -479,7 +493,7 @@ export default function SelectTestsPageClient() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 4 }}
                                 transition={{ duration: 0.4 }}
-                                className="font-bold text-blue-600 inline-block"
+                                className="font-bold text-[var(--emerald-green)] inline-block"
                             >
                                 {showQuestions ? "întrebările" : "testul"}
                             </motion.span>
@@ -491,23 +505,25 @@ export default function SelectTestsPageClient() {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+    if (!user || !hasRole(user, ['provider'])) {
         return null;
     }
 
     // Afișare rezultat test
     if (testCompleted && testResult) {
         return (
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
                 <Header />
 
                 <div className="container mx-auto px-4 py-8">
                     <div className="max-w-4xl mx-auto">
-                        <Card className={`border-2 ${testResult.passed ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                        <Card
+                            className={`glass-card border-2 ${testResult.passed ? 'border-emerald-200/80 bg-emerald-50/70' : 'border-red-200/80 bg-red-50/70'}`}
+                        >
                             <CardHeader className="text-center">
-                                <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${
-                                    testResult.passed ? 'bg-green-500' : 'bg-red-500'
-                                }`}>
+                                <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${testResult.passed ? 'bg-green-500' : 'bg-red-500'
+                                    }`}>
                                     {testResult.passed ? (
                                         <Trophy className="w-10 h-10 text-white" />
                                     ) : (
@@ -565,6 +581,22 @@ export default function SelectTestsPageClient() {
                                     </Button>
                                 </div>
 
+                                {/* Calendar Scheduling */}
+                                <div className="mt-8 border-t border-border/50 pt-8">
+                                    <h3 className="text-xl font-semibold mb-4 text-center">Programează Interviul Video</h3>
+                                    <p className="text-center text-muted-foreground mb-6">
+                                        Pentru a finaliza procesul de verificare, te rugăm să alegi o dată pentru interviu.
+                                    </p>
+                                    <div className="w-full h-[600px] overflow-hidden rounded-xl border border-border/50 bg-background/50">
+                                        <Cal
+                                            namespace="verificare-identitate"
+                                            calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&notes=Test Passed: ${currentTest.test.title}&service_id=${currentTest.serviceInfo.serviceId}`}
+                                            style={{ width: "100%", height: "100%", overflow: "scroll" }}
+                                            config={{ layout: 'month_view' }}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Explicații răspunsuri */}
                                 {showExplanations && (
                                     <div className="mt-8 space-y-6">
@@ -573,7 +605,10 @@ export default function SelectTestsPageClient() {
                                             const userAnswer = answers.find(a => a.questionId === question.questionId);
 
                                             return (
-                                                <Card key={question.questionId} className={`border ${question.isCorrect ? 'border-green-200' : 'border-red-200'}`}>
+                                                <Card
+                                                    key={question.questionId}
+                                                    className={`glass-card border ${question.isCorrect ? 'border-emerald-200/80' : 'border-red-200/80'}`}
+                                                >
                                                     <CardHeader>
                                                         <div className="flex items-center space-x-2">
                                                             <Badge className={question.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
@@ -627,7 +662,8 @@ export default function SelectTestsPageClient() {
         const hasAnswer = answers.some(a => a.questionId === currentQuestion.id);
 
         return (
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+                <TrustoraThemeStyles />
                 <Header />
 
                 <div className="container mx-auto px-4 py-8">
@@ -639,13 +675,14 @@ export default function SelectTestsPageClient() {
                                 <p className="text-muted-foreground">{currentTest.serviceInfo.serviceName}</p>
                             </div>
                             <div className="flex items-center space-x-4">
-                                <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-                                    timeRemaining < 300 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                                }`}>
+                                <div
+                                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${timeRemaining < 300 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                                        }`}
+                                >
                                     <Timer className="w-4 h-4" />
                                     <span className="font-mono font-bold">
-                    {formatTime(timeRemaining)}
-                  </span>
+                                        {formatTime(timeRemaining)}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -677,7 +714,7 @@ export default function SelectTestsPageClient() {
                             {currentQuestionIndex === currentTest.test.questions.length - 1 ? (
                                 <Button
                                     onClick={handleSubmitTest}
-                                    className="px-8"
+                                    className="btn-primary px-8"
                                     disabled={!hasAnswer}
                                 >
                                     <Send className="w-4 h-4 mr-2" />
@@ -703,7 +740,8 @@ export default function SelectTestsPageClient() {
 
     // Lista testelor disponibile
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
             <Header />
 
             <div className="container mx-auto px-4 py-8">
@@ -730,7 +768,7 @@ export default function SelectTestsPageClient() {
                 {/* Lista testelor */}
                 <div className="space-y-6">
                     {availableTests.map((test, index) => (
-                        <Card key={index} className="border-2">
+                        <Card key={index} className="glass-card border-emerald-100/60">
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -739,7 +777,7 @@ export default function SelectTestsPageClient() {
                                             {test.serviceInfo.serviceName} - Nivel {test.serviceInfo.level}
                                         </CardDescription>
                                     </div>
-                                    <Badge className="bg-blue-100 text-blue-800">
+                                    <Badge className="bg-emerald-100 text-emerald-800">
                                         {test.serviceInfo.category}
                                     </Badge>
                                 </div>
@@ -750,24 +788,24 @@ export default function SelectTestsPageClient() {
 
                                 <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                     <div className="flex items-center space-x-2 text-sm">
-                                        <BookOpen className="w-4 h-4 text-blue-500" />
+                                        <BookOpen className="w-4 h-4 text-[var(--emerald-green)]" />
                                         <span>{test.test.totalQuestions || test.test.questions.length} întrebări</span>
                                     </div>
                                     <div className="flex items-center space-x-2 text-sm">
-                                        <Clock className="w-4 h-4 text-orange-500" />
+                                        <Clock className="w-4 h-4 text-amber-500" />
                                         <span>{test.test.timeLimit} minute</span>
                                     </div>
                                     <div className="flex items-center space-x-2 text-sm">
-                                        <Target className="w-4 h-4 text-green-500" />
+                                        <Target className="w-4 h-4 text-[var(--emerald-green)]" />
                                         <span>Nota de trecere: {test.test.passingScore}%</span>
                                     </div>
                                     <div className="flex items-center space-x-2 text-sm">
-                                        <Award className="w-4 h-4 text-purple-500" />
+                                        <Award className="w-4 h-4 text-emerald-500" />
                                         <span>Certificare</span>
                                     </div>
                                 </div>
 
-                                <Button onClick={() => startTest(test)}>
+                                <Button className="btn-primary" onClick={() => startTest(test)}>
                                     <PlayCircle className="w-4 h-4 mr-2" />
                                     Începe Testul
                                 </Button>

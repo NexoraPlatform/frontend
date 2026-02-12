@@ -1,0 +1,25 @@
+{
+  "search_placeholder": "Caută servicii, tehnologii sau experți... (ex: dezvoltare React, logo design, SEO)",
+  "search_placeholder_aria_label": "Caută servicii IT, tehnologii sau experți",
+  "search_now": "Caută Acum",
+  "search_now_aria_label": "Începe căutarea de servicii IT",
+  "popular": "Populare",
+  "search_services_for": "Caută servicii pentru",
+  "search_bar": {
+    "placeholder": "Caută servicii, experți sau categorii...",
+    "search_button": "Caută",
+    "loading_suggestions": "Se încarcă sugestii...",
+    "suggestions_title": "Sugestii",
+    "recent_searches_title": "Căutări recente",
+    "clear_recent_searches": "Șterge tot",
+    "trending_title": "Căutări populare",
+    "no_suggestions": "Nu am găsit sugestii pentru \"{query}\"",
+    "trending_defaults": {
+      "web_development": "Dezvoltare website",
+      "logo_design": "Design logo",
+      "seo": "SEO",
+      "mobile_app": "Aplicație mobilă",
+      "digital_marketing": "Marketing digital"
+    }
+  }
+}

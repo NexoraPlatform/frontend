@@ -89,13 +89,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: hsl(var(--nexora-blue));
+    background: hsl(var(--Trustora-blue));
     border-radius: 4px;
 }
 
 /* Selection styling */
 ::selection {
-    background: hsl(var(--nexora-blue) / 0.3);
+    background: hsl(var(--Trustora-blue) / 0.3);
 }
 
 /* Form styles */
@@ -112,7 +112,7 @@
 .form-input:focus {
     outline: 2px solid transparent;
     outline-offset: 2px;
-    border-color: hsl(var(--nexora-blue));
+    border-color: hsl(var(--Trustora-blue));
 }
 
 /* Button variants */
@@ -155,7 +155,7 @@
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
-    .nexora-gradient {
-        background: hsl(var(--nexora-blue));
+    .Trustora-gradient {
+        background: hsl(var(--Trustora-blue));
     }
 }

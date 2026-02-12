@@ -1,5 +1,9 @@
+'use client';
+
 import {useState, useEffect, useCallback, useRef} from 'react';
 import { apiClient } from '../lib/api';
+import { useCurrency } from '@/hooks/useCurrency';
+import { FetchError } from '@/lib/fetch-client';
 
 function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
@@ -7,11 +11,13 @@ function stableStringify(obj: any) {
 
 export function useApi<T>(
     apiCall: () => Promise<T>,
-    dependencies: any[] = []
+    dependencies: any[] = [],
+    enabled: boolean = true
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currency } = useCurrency();
 
   const fetchData = useCallback(async () => {
     try {
@@ -20,7 +26,16 @@ export function useApi<T>(
       const result = await apiCall();
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof FetchError) {
+        const payload = err.data as Record<string, unknown> | null;
+        const message =
+          (payload?.message as string | undefined) ||
+          (payload?.error as string | undefined) ||
+          err.message;
+        setError(message);
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -28,13 +43,17 @@ export function useApi<T>(
 
   // eliminăm deps duplicate cu stable stringify
   const lastDeps = useRef<string>("");
-  const depsString = stableStringify(dependencies);
+  const depsString = stableStringify([...dependencies, currency]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     if (depsString === lastDeps.current) return; // nu a schimbat efectiv deps
     lastDeps.current = depsString;
     fetchData();
-  }, [depsString, fetchData]);
+  }, [depsString, fetchData, enabled]);
 
   return { data, loading, error, refetch: fetchData };
 }
@@ -81,6 +100,10 @@ export function useProfile() {
 
 export function useTestExamDetails() {
   return useApi(() => apiClient.getTestExamsDetails(), []);
+}
+
+export function useEarlyAccessGrouped(params?: { page?: number; per_page?: number }) {
+  return useApi(() => apiClient.getEarlyAccessGrouped(params), [JSON.stringify(params)]);
 }
 
 export function useAdminStats() {
@@ -137,8 +160,8 @@ export function useProviderProfileById(providerId: string) {
   return useApi(() => apiClient.getProviderProfileById(providerId), [providerId]);
 }
 
-export function useProviderProfile() {
-  return useApi(() => apiClient.getProviderProfile(), []);
+export function useProviderProfile(enabled: boolean = true) {
+  return useApi(() => apiClient.getProviderProfile(), [], enabled);
 }
 
 export function useGetProviderProfileByUrl(url: string) {
@@ -173,4 +196,3 @@ export function useProject(id: string) {
 export function useTechnologies() {
   return useApi(() => apiClient.getTechnologies(), []);
 }
-

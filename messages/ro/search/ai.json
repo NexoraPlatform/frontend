@@ -1,0 +1,58 @@
+{
+  "ai": {
+    "aria_label": "Căutare inteligentă AI",
+    "badge": "Căutare AI",
+    "title": "Căutare AI în funcție de context",
+    "subtitle": "Caută servicii, proiecte și prestatori în namespace-ul AI potrivit.",
+    "brief_label": "Descrie brief-ul tău",
+    "brief_hint": "Folosește propoziții complete cu scope, constrângeri, stack și buget pentru potriviri mai bune.",
+    "submit": "Caută",
+    "char_count": "{count} caractere",
+    "strength": {
+      "label": "Forța căutării",
+      "weak": "Scăzută",
+      "medium": "Medie",
+      "strong": "Ridicată"
+    },
+    "initial_state": "Descrie ce ai nevoie și rulează o căutare AI.",
+    "results_meta": "{count} rezultate pentru \"{query}\" în {namespace}.",
+    "match_score": "Potrivire {score}%",
+    "broadening_title": "Extindem căutarea...",
+    "broadening_description": "Am găsit puține rezultate, așa că extindem similaritatea semantică și intențiile conexe.",
+    "generic_error": "Nu am putut rula căutarea AI acum.",
+    "error_title": "Căutarea a eșuat",
+    "empty_title": "Nu există rezultate",
+    "empty_description": "Încearcă o formulare diferită sau schimbă namespace-ul.",
+    "fallback": {
+      "projects_to_services": "Nu au fost găsite proiecte. Caută servicii cu același prompt"
+    },
+    "service": {
+      "featured": "Recomandat",
+      "providers": "{count} prestatori",
+      "provider_avatar_alt": "Avatar prestator"
+    },
+    "namespaces": {
+      "placeholder": "Alege namespace",
+      "services": "Servicii",
+      "projects": "Proiecte",
+      "providers": "Prestatori",
+      "provider_profiles": "Profiluri Prestatori"
+    },
+    "services": {
+      "placeholder": "Descrie serviciul de care ai nevoie...",
+      "context": "Caută experți și oferte de servicii"
+    },
+    "projects": {
+      "placeholder": "Descrie cerințele proiectului tău...",
+      "context": "Găsește proiecte și brief-uri similare"
+    },
+    "providers": {
+      "placeholder": "Descrie profilul prestatorului dorit...",
+      "context": "Caută prestatori care se potrivesc cerințelor tale"
+    },
+    "provider_profiles": {
+      "placeholder": "Descrie profilul prestatorului dorit...",
+      "context": "Caută în vectorii detaliați ai profilurilor de prestatori"
+    }
+  }
+}

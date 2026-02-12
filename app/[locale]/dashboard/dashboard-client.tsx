@@ -1,7 +1,9 @@
 "use client";
 
-import {useState, useEffect, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -13,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  User,
   Briefcase,
   DollarSign,
   Star,
@@ -35,28 +36,63 @@ import {
   BarChart3,
   Zap,
   Award,
-  Shield,
-  Globe,
   Loader2,
   ChevronLeft,
   ChevronRight,
   Edit,
-  X
+  X, Euro, Currency
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
-import { apiClient } from '@/lib/api';
+import { apiClient, DashboardStatsResponse } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
-import Link from 'next/link';
-import {SiStripe} from "react-icons/si";
-import {Can} from "@/components/Can";
+import { Link } from '@/lib/navigation';
+import { Can } from "@/components/Can";
+import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
+import SettingsComponent from "@/components/dashboard/SettingsComponent";
+
+const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
+
+interface WalletData {
+  id: string;
+  currency: string;
+  balance: number | null;
+  received_balance: number | null;
+  on_hold_balance: number | null;
+}
 
 export default function DashboardClient() {
-  const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
+  const t = useTranslations();
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [projectsError, setProjectsError] = useState('');
+  const roleSlugs = useMemo(() => {
+    const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
+    const fromRoles = (rolesList ?? []).map((role: any) => role?.slug).filter(Boolean);
+    const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user?.role_slugs : []) ?? [];
+    const fromSingleRole = user?.role ? [user.role] : [];
+    return Array.from(
+      new Set(
+        [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
+          .filter(Boolean)
+          .map((slug) => String(slug).toLowerCase())
+      )
+    );
+  }, [user?.roles, user?.role_slugs, user?.role]);
+
+  const isProvider = roleSlugs.includes('provider');
+  const isClient = roleSlugs.includes('client');
+  const hasRoleInfo = roleSlugs.length > 0;
+  const availableTabs = useMemo(() => {
+    if (hasRoleInfo && !isProvider) {
+      return BASE_TABS;
+    }
+    return [...BASE_TABS, 'finance'];
+  }, [hasRoleInfo, isProvider]);
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,20 +103,244 @@ export default function DashboardClient() {
   const [totalPages, setTotalPages] = useState(1);
   const projectsPerPage = 6;
   const router = useRouter();
+  const locale = useLocale();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [wallets, setWallets] = useState<WalletData[]>([]);
+  const [balance, setBalance] = useState<WalletData | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const balanceRequestId = useRef(0);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const selectedWalletIdRef = useRef<string | null>(null);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferLoading, setTransferLoading] = useState(false);
+
+  const parseBalanceAmount = useCallback((value: unknown) => {
+    if (value === null || value === undefined) return null;
+    const parsed = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, []);
+
+  const formatBalanceAmount = useCallback((value: number | null | undefined, currency?: string) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return '--';
+    if (!currency) {
+      return new Intl.NumberFormat(locale).format(value);
+    }
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
+    } catch (error) {
+      return `${new Intl.NumberFormat(locale).format(value)} ${currency}`;
+    }
+  }, [locale]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      console.log('Auth loading:', loading, 'User:', user);
-      router.push('/auth/signin');
+    selectedWalletIdRef.current = selectedWalletId;
+  }, [selectedWalletId]);
+
+  const fetchBalance = useCallback(async () => {
+    if (!isProvider || !user?.rapyd_wallet_id) {
+      balanceRequestId.current += 1;
+      setWallets([]);
+      setBalance(null);
+      setSelectedWalletId(null);
+      setBalanceError(null);
+      setBalanceLoading(false);
+      return;
     }
-  }, [user, loading, router]);
+
+    const requestId = ++balanceRequestId.current;
+    setBalanceLoading(true);
+    setBalanceError(null);
+    try {
+      const response = await apiClient.rapydGetWalletBalance(locale);
+
+      if (balanceRequestId.current !== requestId) return;
+
+      const rawData = response?.data ?? response;
+      const rawWallets = Array.isArray(rawData) ? rawData : rawData ? [rawData] : [];
+      const normalizedWallets = rawWallets
+        .map((wallet: any) => ({
+          id: String(wallet.id ?? ''),
+          currency: String(wallet.currency ?? wallet.alias ?? ''),
+          balance: parseBalanceAmount(wallet.balance),
+          received_balance: parseBalanceAmount(wallet.received_balance),
+          on_hold_balance: parseBalanceAmount(wallet.on_hold_balance),
+        }))
+        .filter((wallet: WalletData) => wallet.id && wallet.currency);
+
+      if (normalizedWallets.length === 0) {
+        setWallets([]);
+        setBalance(null);
+        setSelectedWalletId(null);
+        setBalanceError(t('dashboard.hero.balance.error'));
+        return;
+      }
+
+      setWallets(normalizedWallets);
+
+      const preferredId = selectedWalletIdRef.current;
+      const nextWallet =
+        (preferredId && normalizedWallets.find((wallet) => wallet.id === preferredId)) ||
+        normalizedWallets[0] ||
+        null;
+
+      setSelectedWalletId(nextWallet?.id ?? null);
+      setBalance(nextWallet);
+    } catch (err: any) {
+      if (balanceRequestId.current !== requestId) return;
+      const message = err?.message ?? t('dashboard.hero.balance.error');
+      setBalance(null);
+      setBalanceError(message);
+      toast.error(t('dashboard.errors.generic', { message }));
+    } finally {
+      if (balanceRequestId.current === requestId) {
+        setBalanceLoading(false);
+      }
+    }
+  }, [isProvider, locale, parseBalanceAmount, t, user?.rapyd_wallet_id]);
+
+  useEffect(() => {
+    if (!isProvider || !user?.rapyd_wallet_id) return;
+    fetchBalance();
+  }, [fetchBalance, isProvider, user?.rapyd_wallet_id]);
+
+  const updateTabQuery = useCallback((value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', value);
+    }
+    const query = params.toString();
+    const basePath = pathname || '/dashboard';
+    router.replace(query ? `${basePath}?${query}` : basePath, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (activeTab !== 'finance' || !isProvider || !user?.rapyd_wallet_id) return;
+    fetchBalance();
+  }, [activeTab, fetchBalance, isProvider, user?.rapyd_wallet_id]);
+
+  useEffect(() => {
+    if (userLoading || !user) return;
+    const nextTab = tabParam && availableTabs.includes(tabParam)
+      ? tabParam
+      : availableTabs[0] ?? 'overview';
+    setActiveTab(nextTab);
+    if (tabParam && !availableTabs.includes(tabParam)) {
+      updateTabQuery(nextTab);
+    }
+  }, [tabParam, availableTabs, updateTabQuery, userLoading, user]);
+
+  useEffect(() => {
+    if (userLoading) return;
+
+    if (!user) {
+      const currentPath = pathname || '/dashboard';
+      const callbackPath = currentPath.startsWith(`/${locale}`)
+        ? currentPath
+        : `/${locale}${currentPath.startsWith('/') ? currentPath : `/${currentPath}`}`;
+      const query = searchParamsString;
+      const callbackUrl = query ? `${callbackPath}?${query}` : callbackPath;
+      router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    }
+  }, [locale, pathname, router, searchParamsString, user, userLoading]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    updateTabQuery(value);
+  };
+
+  const handleWalletChange = (walletId: string) => {
+    setSelectedWalletId(walletId);
+    const wallet = wallets.find((item) => item.id === walletId) ?? null;
+    setBalance(wallet);
+    setTransferAmount('');
+    setTransferError(null);
+  };
+
+  const normalizeAmountInput = (value: string) => value.replace(',', '.');
+
+  const handleTransferAmountChange = (value: string) => {
+    if (value === '') {
+      setTransferAmount('');
+      setTransferError(null);
+      return;
+    }
+
+    const normalized = normalizeAmountInput(value);
+    const parsed = Number(normalized);
+    const availableBalance = balance?.balance ?? 0;
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setTransferAmount(value);
+      setTransferError(t('dashboard.finance.invalid_amount'));
+      return;
+    }
+
+    if (parsed > availableBalance) {
+      setTransferAmount(availableBalance.toString());
+      setTransferError(t('dashboard.finance.insufficient_balance'));
+      return;
+    }
+
+    setTransferAmount(value);
+    setTransferError(null);
+  };
+
+  const handleTransfer = async () => {
+    const availableBalance = balance?.balance ?? 0;
+    const normalized = normalizeAmountInput(transferAmount);
+    const amount = Number(normalized);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTransferError(t('dashboard.finance.invalid_amount'));
+      return;
+    }
+
+    if (amount > availableBalance) {
+      setTransferError(t('dashboard.finance.insufficient_balance'));
+      return;
+    }
+
+    const formattedAmount = balance?.currency
+      ? formatBalanceAmount(amount, balance.currency)
+      : amount.toString();
+
+    const confirmed = window.confirm(
+      t('dashboard.finance.confirm_transfer', { amount: formattedAmount })
+    );
+    if (!confirmed) return;
+
+    setTransferLoading(true);
+    try {
+      await apiClient.rapydCreatePayoutBank(amount, balance?.currency, locale);
+      toast.success(t('dashboard.finance.transfer_success'));
+      setTransferAmount('');
+      setTransferError(null);
+      fetchBalance();
+    } catch (error: any) {
+      toast.error(
+        t('dashboard.finance.transfer_error', {
+          message: error?.message ?? 'Unknown error',
+        })
+      );
+    } finally {
+      setTransferLoading(false);
+    }
+  };
 
   const loadProjects = useCallback(async () => {
     setLoadingProjects(true);
     setProjectsError('');
     try {
       let response;
-      if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
+      if (isProvider) {
         response = await apiClient.getProviderProjectRequests();
       } else {
         response = await apiClient.getClientProjectRequests();
@@ -90,15 +350,15 @@ export default function DashboardClient() {
       // Apply search filter
       if (searchTerm) {
         filteredProjects = filteredProjects.filter((project: any) =>
-            project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            project.description.toLowerCase().includes(searchTerm.toLowerCase())
+          project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          project.description.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
 
       // Apply status filter
       if (statusFilter !== 'all') {
         filteredProjects = filteredProjects.filter((project: any) => {
-            if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
+          if (isProvider) {
             return project.status === statusFilter;
           } else {
             return project.status === statusFilter;
@@ -115,8 +375,8 @@ export default function DashboardClient() {
             bValue = b.title.toLowerCase();
             break;
           case 'budget':
-            aValue = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? a.budget : a.budget;
-            bValue = user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? b.budget : b.budget;
+            aValue = isProvider ? a.budget : a.budget;
+            bValue = isProvider ? b.budget : b.budget;
             break;
           case 'oldest':
             aValue = new Date(a.created_at).getTime();
@@ -137,54 +397,160 @@ export default function DashboardClient() {
 
       // Calculate pagination
       const total = filteredProjects.length;
-      setTotalPages(Math.ceil(total / projectsPerPage));
+      const nextTotalPages = Math.ceil(total / projectsPerPage);
+      setTotalPages(nextTotalPages);
+
+      const clampedPage = nextTotalPages > 0 ? Math.min(currentPage, nextTotalPages) : 1;
+      if (clampedPage !== currentPage) {
+        setCurrentPage(clampedPage);
+      }
 
       // Apply pagination
-      const startIndex = (currentPage - 1) * projectsPerPage;
+      const startIndex = (clampedPage - 1) * projectsPerPage;
       const paginatedProjects = filteredProjects.slice(startIndex, startIndex + projectsPerPage);
 
       setProjects(paginatedProjects);
     } catch (error: any) {
-      setProjectsError('Nu s-au putut încărca proiectele: ' + error.message);
+      setProjectsError(t('dashboard.errors.projects_load_failed', { message: error.message }));
     } finally {
       setLoadingProjects(false);
     }
-  }, [currentPage, searchTerm, sortBy, sortOrder, statusFilter, user?.roles]);
+  }, [currentPage, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
+
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const response = await apiClient.getDashboardStats();
+      setStats(response);
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (user && activeTab === 'projects') {
-      loadProjects();
+    if (!user?.id || !isProvider) return;
+    const echo = getEcho();
+    if (!echo) return;
+    const channel = echo.private(`App.Models.User.${user.id}`);
+    const handler = (notification: {
+      type?: string;
+      data?: { type?: string; projectId?: string | number; payload?: { projectId?: string | number } };
+      projectId?: string | number;
+      payload?: { projectId?: string | number };
+    }) => {
+      const declaredType = String(
+        notification?.data?.type ??
+        notification?.type ??
+        ''
+      ).toLowerCase();
+      const projectId =
+        notification?.data?.projectId ??
+        notification?.projectId ??
+        notification?.data?.payload?.projectId ??
+        notification?.payload?.projectId;
+      const isProjectEvent =
+        declaredType.startsWith('project.') ||
+        declaredType.startsWith('budget.');
+      const isRapydEvent = declaredType.startsWith('rapyd.');
+
+      if (isRapydEvent) {
+        void fetchBalance();
+      }
+
+      const shouldRefetchProjects =
+        activeTab === 'projects' &&
+        (isProjectEvent || (isRapydEvent && Boolean(projectId)));
+
+      if (!shouldRefetchProjects) return;
+      void loadProjects();
+    };
+    channel.notification(handler);
+
+    return () => {
+      channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+    };
+  }, [user?.id, isProvider, activeTab, loadProjects, fetchBalance]);
+
+  useEffect(() => {
+    if (user && activeTab === 'overview') {
+      loadStats();
     }
-  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage, loadProjects]);
+  }, [user, activeTab, loadStats]);
+
+
+  useEffect(() => {
+    if (!user || activeTab !== 'projects') return;
+    if (isClient && !isProvider) return;
+    loadProjects();
+  }, [user, activeTab, searchTerm, statusFilter, sortBy, sortOrder, currentPage, loadProjects, isClient, isProvider]);
+
+  useEffect(() => {
+    if (activeTab !== 'projects') return;
+    if (typeof window === 'undefined') return;
+
+    const handleFocus = () => {
+      loadProjects();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadProjects();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [activeTab, loadProjects]);
 
   const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
     try {
-      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget });
+      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget }, locale);
       let message = '';
-      if (response === 'ACCEPTED') message = 'Proiect acceptat';
-      else if (response === 'REJECTED') message = 'Proiect respins';
-      else if (response === 'NEW_PROPOSE') message = 'Propunere de buget trimisă';
+      if (response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
+      else if (response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
+      else if (response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
       toast.success(message);
-      loadProjects();
+      await loadProjects();
     } catch (error: any) {
-      toast.error('Eroare: ' + error.message);
+      toast.error(t('dashboard.errors.generic', { message: error.message }));
     }
   };
 
-  const getStripeOnboardingUrl = async () => {
+
+
+  const getRapydOnboardingUrl = async () => {
     try {
       if (!user) return;
-      const response = await apiClient.handleStripeOnboarding(user.email);
+      const response = await apiClient.rapydOnboarding(locale);
 
-      if (!response || !response.url) {
-        console.error('No URL returned from Stripe onboarding');
+      const walletId = response?.wallet_id ?? response?.data?.wallet_id;
+      const contactId =
+        response?.rapyd_contact_id ??
+        response?.contact_id ??
+        response?.data?.rapyd_contact_id ??
+        response?.data?.contact_id;
+
+      if (!response || !walletId) {
+        console.error('No wallet id returned from Rapyd onboarding');
         return null;
       }
 
-      window.location.href = response.url;
+      await updateUser({
+        rapyd_wallet_id: walletId,
+        ...(contactId ? { rapyd_contact_id: contactId } : {}),
+      });
+      refreshUser().catch(() => { });
 
+      // window.location.href = response.url;
     } catch (error) {
-      console.error('Error fetching Stripe onboarding URL:', error);
+      console.error('Error fetching Rapyd onboarding URL:', error);
       return null;
     }
   }
@@ -233,173 +599,328 @@ export default function DashboardClient() {
     const visiblePages = getVisiblePages();
 
     return (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t">
-          <div className="text-sm text-muted-foreground">
-            Afișând {Math.min((currentPage - 1) * projectsPerPage + 1, projects.length)} - {Math.min(currentPage * projectsPerPage, projects.length)} din {projects.length} proiecte
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Anterior
-            </Button>
-
-            {visiblePages.map((page, index) => (
-                <Button
-                    key={index}
-                    variant={page === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                    disabled={page === '...'}
-                    className="w-10"
-                >
-                  {page}
-                </Button>
-            ))}
-
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-            >
-              Următor
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-[#1E2A3D]">
+        <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+          {t('dashboard.pagination.showing', {
+            start: Math.min((currentPage - 1) * projectsPerPage + 1, projects.length),
+            end: Math.min(currentPage * projectsPerPage, projects.length),
+            total: projects.length,
+          })}
         </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {t('dashboard.pagination.previous')}
+          </Button>
+
+          {visiblePages.map((page, index) => (
+            <Button
+              key={index}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => typeof page === 'number' && setCurrentPage(page)}
+              disabled={page === '...'}
+              className="w-10"
+            >
+              {page}
+            </Button>
+          ))}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            {t('dashboard.pagination.next')}
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
     );
   };
 
   const getClientStatusOptions = () => [
-    { value: 'all', label: 'Toate Statusurile' },
-    { value: 'PENDING_RESPONSES', label: 'Așteaptă Răspunsuri' },
-    { value: 'IN_PROGRESS', label: 'În Progres' },
-    { value: 'COMPLETED', label: 'Finalizate' },
-    { value: 'CANCELLED', label: 'Anulate' }
+    { value: 'all', label: t('dashboard.filters.status.all') },
+    { value: 'PENDING_RESPONSES', label: t('dashboard.filters.status.pending_responses') },
+    { value: 'IN_PROGRESS', label: t('dashboard.filters.status.in_progress') },
+    { value: 'COMPLETED', label: t('dashboard.filters.status.completed') },
+    { value: 'CANCELLED', label: t('dashboard.filters.status.cancelled') }
   ];
 
   const getProviderStatusOptions = () => [
-    { value: 'all', label: 'Toate Statusurile' },
-    { value: 'PENDING', label: 'În Așteptare' },
-    { value: 'ACCEPTED', label: 'Acceptate' },
-    { value: 'REJECTED', label: 'Respinse' },
-    { value: 'BUDGET_PROPOSED', label: 'Buget Propus' }
+    { value: 'all', label: t('dashboard.filters.status.all') },
+    { value: 'PENDING', label: t('dashboard.filters.status.pending') },
+    { value: 'ACCEPTED', label: t('dashboard.filters.status.accepted') },
+    { value: 'REJECTED', label: t('dashboard.filters.status.rejected') },
+    { value: 'BUDGET_PROPOSED', label: t('dashboard.filters.status.budget_proposed') }
   ];
 
   const getSortOptions = () => [
-    { value: 'newest', label: 'Cele Mai Noi' },
-    { value: 'oldest', label: 'Cele Mai Vechi' },
-    { value: 'budget', label: 'Buget' },
-    { value: 'title', label: 'Titlu' }
+    { value: 'newest', label: t('dashboard.filters.sort.newest') },
+    { value: 'oldest', label: t('dashboard.filters.sort.oldest') },
+    { value: 'budget', label: t('dashboard.filters.sort.budget') },
+    { value: 'title', label: t('dashboard.filters.sort.title') }
   ];
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Se încarcă dashboard-ul...</p>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>{t('dashboard.loading.dashboard')}</p>
         </div>
+      </div>
     );
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>{t('dashboard.loading.dashboard')}</p>
+        </div>
+      </div>
+    );
   }
 
-  // Mock data for overview stats
+  // Data for overview stats
   const getOverviewStats = () => {
-      if (user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')) {
+    if (isProvider) {
+      const providerStats = stats?.role === 'provider' ? stats.stats : null;
       return [
-        { title: 'Proiecte Active', value: '3', change: '+2 această lună', icon: Briefcase, color: 'text-blue-600' },
-        { title: 'Venituri Luna', value: '4,500 RON', change: '+15% față de luna trecută', icon: DollarSign, color: 'text-green-600' },
-        { title: 'Rating Mediu', value: '4.8', change: '+0.2 această lună', icon: Star, color: 'text-yellow-600' },
-        { title: 'Cereri Noi', value: '7', change: '+3 astăzi', icon: Bell, color: 'text-purple-600' }
+        {
+          title: t('dashboard.overview.provider.active_projects.title'),
+          value: providerStats?.active_projects.value ?? t('dashboard.overview.provider.active_projects.value'),
+          change: providerStats ?
+            `${providerStats.active_projects.change > 0 ? '+' : ''}${providerStats.active_projects.change} ${providerStats.active_projects.change_type}`
+            : t('dashboard.overview.provider.active_projects.change'),
+          icon: Briefcase,
+          color: 'text-blue-600'
+        },
+        {
+          title: t('dashboard.overview.provider.monthly_revenue.title'),
+          value: providerStats
+            ? `${providerStats.monthly_revenue.value} ${providerStats.monthly_revenue.currency}`
+            : t('dashboard.overview.provider.monthly_revenue.value'),
+          change: providerStats
+            ? `${providerStats.monthly_revenue.change_percentage}%`
+            : t('dashboard.overview.provider.monthly_revenue.change'),
+          icon: DollarSign,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.provider.average_rating.title'),
+          value: providerStats?.average_rating.value ?? t('dashboard.overview.provider.average_rating.value'),
+          change: providerStats ?
+            `${providerStats.average_rating.change > 0 ? '+' : ''}${providerStats.average_rating.change}`
+            : t('dashboard.overview.provider.average_rating.change'),
+          icon: Star,
+          color: 'text-yellow-600'
+        },
+        {
+          title: t('dashboard.overview.provider.new_requests.title'),
+          value: providerStats?.new_requests.value ?? t('dashboard.overview.provider.new_requests.value'),
+          change: providerStats ?
+            `${providerStats.new_requests.change > 0 ? '+' : ''}${providerStats.new_requests.change}`
+            : t('dashboard.overview.provider.new_requests.change'),
+          icon: Bell,
+          color: 'text-purple-600'
+        }
       ];
     } else {
+      const clientStats = stats?.role === 'client' ? stats.stats : null;
       return [
-        { title: 'Proiecte Postate', value: '5', change: '+2 această lună', icon: FileText, color: 'text-blue-600' },
-        { title: 'Buget Cheltuit', value: '12,000 RON', change: '+25% această lună', icon: DollarSign, color: 'text-green-600' },
-        { title: 'Proiecte Finalizate', value: '3', change: '100% rata de succes', icon: CheckCircle, color: 'text-green-600' },
-        { title: 'Prestatori Activi', value: '8', change: '+2 noi colaboratori', icon: Users, color: 'text-purple-600' }
+        {
+          title: t('dashboard.overview.client.projects_posted.title'),
+          value: clientStats?.projects_posted.value ?? t('dashboard.overview.client.projects_posted.value'),
+          change: clientStats ?
+            `${clientStats.projects_posted.change > 0 ? '+' : ''}${clientStats.projects_posted.change}`
+            : t('dashboard.overview.client.projects_posted.change'),
+          icon: FileText,
+          color: 'text-blue-600'
+        },
+        {
+          title: t('dashboard.overview.client.budget_spent.title'),
+          value: clientStats
+            ? `${clientStats.budget_spent.value} ${clientStats.budget_spent.currency}`
+            : t('dashboard.overview.client.budget_spent.value'),
+          change: clientStats
+            ? `${clientStats.budget_spent.change_percentage}%`
+            : t('dashboard.overview.client.budget_spent.change'),
+          icon: DollarSign,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.client.projects_completed.title'),
+          value: clientStats?.projects_completed.value ?? t('dashboard.overview.client.projects_completed.value'),
+          change: clientStats ?
+            `${clientStats.projects_completed.change > 0 ? '+' : ''}${clientStats.projects_completed.change}`
+            : t('dashboard.overview.client.projects_completed.change'),
+          icon: CheckCircle,
+          color: 'text-green-600'
+        },
+        {
+          title: t('dashboard.overview.client.active_providers.title'),
+          value: clientStats?.active_providers.value ?? t('dashboard.overview.client.active_providers.value'),
+          change: clientStats ?
+            `${clientStats.active_providers.change > 0 ? '+' : ''}${clientStats.active_providers.change}`
+            : t('dashboard.overview.client.active_providers.change'),
+          icon: Users,
+          color: 'text-purple-600'
+        }
       ];
     }
   };
 
   const overviewStats = getOverviewStats();
+  // const hasOnHoldBalance = balance?.on_hold_balance !== null && balance?.on_hold_balance !== undefined;
+  // const hasReceivedBalance = balance?.received_balance !== null && balance?.received_balance !== undefined;
 
   return (
-      <div className="min-h-screen bg-background">
-        <Header />
+    <div className="min-h-screen bg-white dark:bg-[#070C14]">
+      <Header />
 
-        <div className="container mx-auto px-4 py-8">
+      <section className="pt-28 pb-10 px-6 hero-gradient">
+        <div className="max-w-6xl mx-auto">
           {/* Welcome Header */}
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+            <div>
+              <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                <span className="text-[#1BC47D]">●</span> {t('dashboard.hero.badge')}
+              </Badge>
+              <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                {t('dashboard.hero.welcome', { name: user.firstName })}
+              </h1>
+              <p className="text-slate-500 dark:text-[#A3ADC2]">
+                {isProvider
+                  ? t('dashboard.hero.subtitle.provider')
+                  : t('dashboard.hero.subtitle.client')
+                }
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
+                <AvatarImage src={user.avatar ?? undefined} />
+                <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
+                  {user.firstName[0]}{user.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
               <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  Bun venit, {user.firstName}! 👋
-                </h1>
-                <p className="text-muted-foreground">
-                  {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                      ? 'Gestionează-ți serviciile și proiectele active'
-                      : 'Urmărește-ți proiectele și găsește experții potriviți'
-                  }
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-16 h-16">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="text-lg">
-                    {user.firstName[0]}{user.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-semibold">{user.firstName} {user.lastName}</div>
-                  <Badge className={user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Prestator' : 'Client'}
+                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
+                <div className="flex items-center flex-row space-x-2">
+                  <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
+                    {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
                   </Badge>
-                  <Button variant="outline" size="sm" className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                          onClick={getStripeOnboardingUrl}
-                  >
-                    <SiStripe className="w-4 h-4 mr-2 text-current" />
-                    {user.stripe_account_id ? 'Modifica Detalii Cont Stripe' : 'Conecteaza Cont Stripe'}
-                  </Button>
+                  {isProvider && user.rapyd_wallet_id ? (
+                    <>
+                      {balanceLoading ? (
+                        <Badge className="bg-slate-50 text-[#0B1C2D] border border-slate-100">
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          {t('dashboard.hero.balance.loading')}
+                        </Badge>
+                      ) : balanceError ? (
+                        <Badge className="bg-red-50 text-[#0B1C2D] border border-red-100" title={balanceError}>
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {t('dashboard.hero.balance.error')}
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
+                            <div className="flex flex-col px-2">
+                              <div className="flex flex-row items-center space-x-2">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                {t('dashboard.hero.balance.available')}:
+                              </div>
+                              {wallets.map((item) => (
+                                <div key={item.id} className="flex flex-row items-center space-x-2">
+                                  {item.currency === "EUR" ? (
+                                    <Euro className="w-3 h-3" />
+                                  ) : item.currency === "USD" ? (
+                                    <DollarSign className="w-3 h-3" />
+                                  ) : (
+                                    <Currency className="w-3 h-3" />
+                                  )}
+                                  {formatBalanceAmount(item.balance, item.currency)}
+                                </div>
+                              ))}
+                            </div>
+                          </Badge>
 
+                          {/*{hasOnHoldBalance && (*/}
+                          {/*  <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>*/}
+                          {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
+                          {/*    {t('dashboard.hero.balance.on_hold')}: {formatBalanceAmount(balance?.on_hold_balance, balance?.currency)}*/}
+                          {/*  </Badge>*/}
+                          {/*)}*/}
+                          {/*{hasReceivedBalance && (*/}
+                          {/*  <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>*/}
+                          {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
+                          {/*    {t('dashboard.hero.balance.received')}: {formatBalanceAmount(balance?.received_balance, balance?.currency)}*/}
+                          {/*  </Badge>*/}
+                          {/*)}*/}
+                        </div>
+                      )}
+                    </>
+                  ) : !user.rapyd_wallet_id ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ms-2 bg-emerald-600 !text-white hover:bg-emerald-700 hover:!text-white border-transparent"
+                      onClick={getRapydOnboardingUrl}
+                    >
+
+                      {t('dashboard.hero.rapyd.connect')}
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
+      <section className="px-6 pb-20">
+        <div className="max-w-6xl mx-auto">
           {/* Dashboard Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview" className="flex items-center">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+            <TabsList className={`grid w-full grid-cols-2 sm:grid-cols-3 ${isProvider ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]`}>
+              <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Prezentare</span>
+                <span>{t('dashboard.tabs.overview')}</span>
               </TabsTrigger>
-              <TabsTrigger value="projects" className="flex items-center">
+              <TabsTrigger
+                value="projects"
+                className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+              >
                 <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Proiecte</span>
+                <span>{t('dashboard.tabs.projects')}</span>
               </TabsTrigger>
-              <TabsTrigger value="services" className="flex items-center">
+
+              <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Target className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Servicii</span>
+                <span>{t('dashboard.tabs.services')}</span>
               </TabsTrigger>
-              <TabsTrigger value="messages" className="flex items-center">
+              <TabsTrigger value="messages" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <MessageSquare className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Mesaje</span>
+                <span>{t('dashboard.tabs.messages')}</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center">
+              {isProvider && (
+                <TabsTrigger value="finance" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
+                  <DollarSign className="hidden sm:block w-4 h-4 pe-1" />
+                  <span>{t('dashboard.tabs.finance')}</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
                 <Settings className="hidden sm:block w-4 h-4 pe-1" />
-                <span>Setări</span>
+                <span>{t('dashboard.tabs.settings')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -408,160 +929,160 @@ export default function DashboardClient() {
               {/* Stats Cards */}
               <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {overviewStats.map((stat, index) => (
-                    <Card key={index} className="border-2 hover:shadow-lg transition-all duration-300">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground mb-1">
-                              {stat.title}
-                            </p>
-                            <p className="text-2xl font-bold">{stat.value}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {stat.change}
-                            </p>
-                          </div>
-                          <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${stat.color}`}>
-                            <stat.icon className="w-6 h-6" />
-                          </div>
+                  <Card key={index} className="glass-card shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500 mb-1 dark:text-[#A3ADC2]">
+                            {stat.title}
+                          </p>
+                          <p className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">{stat.value}</p>
+                          <p className="text-xs text-slate-400 mt-1 dark:text-[#6B7285]">
+                            {stat.change}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className={`w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center ${stat.color}`}>
+                          <stat.icon className="w-6 h-6" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
 
               {/* Quick Actions */}
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Zap className="w-5 h-5" />
-                    <span>Acțiuni Rapide</span>
+                    <span>{t('dashboard.quick_actions.title')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                        ? 'Acțiuni frecvente pentru gestionarea activității tale'
-                        : 'Începe un proiect nou sau gestionează proiectele existente'
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                    {isProvider
+                      ? t('dashboard.quick_actions.description.provider')
+                      : t('dashboard.quick_actions.description.client')
                     }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? (
-                        <>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/provider/services/select">
-                              <Plus className="w-6 h-6" />
-                              <span>Adaugă Servicii</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/provider/profile">
-                              <Edit className="w-6 h-6" />
-                              <span>Editează Profil</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/tests">
-                              <Award className="w-6 h-6" />
-                              <span>Susține Teste</span>
-                            </Link>
-                          </Button>
-                        </>
+                    {isProvider ? (
+                      <>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/provider/services/select">
+                            <Plus className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.add_services')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/provider/profile">
+                            <Edit className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.edit_profile')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/tests">
+                            <Award className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.provider.take_tests')}</span>
+                          </Link>
+                        </Button>
+                      </>
                     ) : (
-                        <>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/projects/new">
-                              <Plus className="w-6 h-6" />
-                              <span>Proiect Nou</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/services">
-                              <Search className="w-6 h-6" />
-                              <span>Caută Servicii</span>
-                            </Link>
-                          </Button>
-                          <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                            <Link href="/projects">
-                              <Eye className="w-6 h-6" />
-                              <span>Explorează Proiecte</span>
-                            </Link>
-                          </Button>
-                        </>
+                      <>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/projects/new">
+                            <Plus className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.new_project')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/services">
+                            <Search className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.search_services')}</span>
+                          </Link>
+                        </Button>
+                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
+                          <Link href="/projects">
+                            <Eye className="w-6 h-6" />
+                            <span>{t('dashboard.quick_actions.client.explore_projects')}</span>
+                          </Link>
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Recent Activity */}
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Clock className="w-5 h-5" />
-                    <span>Activitate Recentă</span>
+                    <span>{t('dashboard.activity.title')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? (
-                        <>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Proiect finalizat cu succes</p>
-                              <p className="text-xs text-muted-foreground">Website E-commerce • Acum 2 ore</p>
-                            </div>
+                    {isProvider ? (
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Bell className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Cerere nouă de proiect</p>
-                              <p className="text-xs text-muted-foreground">Aplicație Mobile • Acum 5 ore</p>
-                            </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.completed_project.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.completed_project.meta')}</p>
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                              <Star className="w-4 h-4 text-yellow-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Recenzie nouă primită</p>
-                              <p className="text-xs text-muted-foreground">5 stele de la Maria P. • Ieri</p>
-                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Bell className="w-4 h-4 text-blue-600" />
                           </div>
-                        </>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_request.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_request.meta')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                            <Star className="w-4 h-4 text-yellow-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_review.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_review.meta')}</p>
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                        <>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Prestator a acceptat proiectul</p>
-                              <p className="text-xs text-muted-foreground">Website React • Acum 1 oră</p>
-                            </div>
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <DollarSign className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Propunere de buget primită</p>
-                              <p className="text-xs text-muted-foreground">3,200 RON pentru Logo Design • Acum 3 ore</p>
-                            </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.project_accepted.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.project_accepted.meta')}</p>
                           </div>
-                          <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                              <Plus className="w-4 h-4 text-purple-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">Proiect nou postat</p>
-                              <p className="text-xs text-muted-foreground">Aplicație Mobile • Ieri</p>
-                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-blue-600" />
                           </div>
-                        </>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.budget_proposal.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.budget_proposal.meta')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{t('dashboard.activity.client.new_project.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.new_project.meta')}</p>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -570,198 +1091,208 @@ export default function DashboardClient() {
 
             {/* Projects Tab */}
             <TabsContent value="projects" className="space-y-6">
-              {/* Filters and Search */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    {/* Search Bar */}
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                        <Input
-                            placeholder="Caută proiecte după titlu sau descriere..."
-                            value={searchTerm}
-                            onChange={(e) => {
-                              setSearchTerm(e.target.value);
-                              setCurrentPage(1);
-                            }}
-                            className="pl-10"
-                        />
-                      </div>
-                    </div>
+              {isClient && !isProvider ? (
+                activeTab === 'projects' ? <ClientProjectRequests withLayout={false} /> : null
+              ) : (
+                <>
+                  {/* Filters and Search */}
+                  <Card className="glass-card">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row gap-4">
+                        {/* Search Bar */}
+                        <div className="flex-1">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <Input
+                              placeholder={t('dashboard.filters.search_placeholder')}
+                              value={searchTerm}
+                              onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="pl-10 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
+                            />
+                          </div>
+                        </div>
 
-                    {/* Status Filter */}
-                    <Select value={statusFilter} onValueChange={(value) => {
-                      setStatusFilter(value);
-                      setCurrentPage(1);
-                    }}>
-                      <SelectTrigger className="w-full lg:w-64">
-                        <Filter className="w-4 h-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Sort Options */}
-                    <div className="flex space-x-2">
-                      <Select value={sortBy} onValueChange={(value) => {
-                        setSortBy(value);
-                        setCurrentPage(1);
-                      }}>
-                        <SelectTrigger className="w-full lg:w-48">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getSortOptions().map(option => (
+                        {/* Status Filter */}
+                        <Select value={statusFilter} onValueChange={(value) => {
+                          setStatusFilter(value);
+                          setCurrentPage(1);
+                        }}>
+                          <SelectTrigger className="w-full lg:w-64 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                            <Filter className="w-4 h-4 mr-2" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(isProvider ? getProviderStatusOptions() : getClientStatusOptions()).map(option => (
                               <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                               </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-                      <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={toggleSortOrder}
-                          className="flex-shrink-0"
-                      >
-                        {sortOrder === 'asc' ? (
-                            <ArrowUp className="w-4 h-4" />
-                        ) : (
-                            <ArrowDown className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                        {/* Sort Options */}
+                        <div className="flex space-x-2">
+                          <Select value={sortBy} onValueChange={(value) => {
+                            setSortBy(value);
+                            setCurrentPage(1);
+                          }}>
+                            <SelectTrigger className="w-full lg:w-48 bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getSortOptions().map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
 
-                  {/* Active Filters */}
-                  {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
-                      <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
-                        <span className="text-sm font-medium text-muted-foreground">Filtre active:</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={toggleSortOrder}
+                            className="flex-shrink-0 border-slate-200 dark:border-[#1E2A3D]"
+                          >
+                            {sortOrder === 'asc' ? (
+                              <ArrowUp className="w-4 h-4" />
+                            ) : (
+                              <ArrowDown className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
 
-                        {searchTerm && (
+                      {/* Active Filters */}
+                      {(searchTerm || statusFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc') && (
+                        <div className="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2A3D]">
+                          <span className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">{t('dashboard.filters.active')}</span>
+
+                          {searchTerm && (
                             <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>Căutare: {searchTerm}</span>
+                              <span>{t('dashboard.filters.search_label', { term: searchTerm })}</span>
                               <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-red-500">
                                 <X className="w-3 h-3" />
                               </button>
                             </Badge>
-                        )}
+                          )}
 
-                        {statusFilter !== 'all' && (
+                          {statusFilter !== 'all' && (
                             <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>Status: {(user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label}</span>
+                              <span>{t('dashboard.filters.status_label', { status: (isProvider ? getProviderStatusOptions() : getClientStatusOptions()).find(o => o.value === statusFilter)?.label ?? '' })}</span>
                               <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500">
                                 <X className="w-3 h-3" />
                               </button>
                             </Badge>
-                        )}
+                          )}
 
-                        {(sortBy !== 'newest' || sortOrder !== 'desc') && (
+                          {(sortBy !== 'newest' || sortOrder !== 'desc') && (
                             <Badge variant="secondary" className="flex items-center space-x-1">
-                              <span>Sortare: {getSortOptions().find(o => o.value === sortBy)?.label} ({sortOrder === 'asc' ? 'Crescător' : 'Descrescător'})</span>
+                              <span>{t('dashboard.filters.sort_label', {
+                                label: getSortOptions().find(o => o.value === sortBy)?.label ?? '',
+                                order: sortOrder === 'asc' ? t('dashboard.filters.sort_order.asc') : t('dashboard.filters.sort_order.desc'),
+                              })}</span>
                               <button onClick={() => { setSortBy('newest'); setSortOrder('desc'); }} className="ml-1 hover:text-red-500">
                                 <X className="w-3 h-3" />
                               </button>
                             </Badge>
-                        )}
+                          )}
 
-                        <Button variant="outline" size="sm" onClick={resetFilters}>
-                          Resetează Toate
-                        </Button>
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Projects Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Cereri de Proiecte' : 'Proiectele Mele'}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {loadingProjects ? 'Se încarcă...' : `${projects.length} proiecte găsite`}
-                  </p>
-                </div>
-
-                {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
-                    <Button asChild>
-                      <Link href="/projects/new">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Proiect Nou
-                      </Link>
-                    </Button>
-                )}
-              </div>
-
-              {/* Projects List */}
-              {loadingProjects ? (
-                  <div className="flex justify-center items-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
-              ) : projectsError ? (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{projectsError}</AlertDescription>
-                  </Alert>
-              ) : projects.length === 0 ? (
-                  <Card>
-                    <CardContent className="text-center py-20">
-                      <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold mb-2">
-                        {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Nu ai cereri de proiecte' : 'Nu ai proiecte create'}
-                      </h3>
-                      <p className="text-muted-foreground mb-6">
-                        {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                            ? 'Când clienții vor crea proiecte și te vor selecta, le vei vedea aici'
-                            : 'Creează primul tău proiect pentru a începe colaborarea cu prestatorii'
-                        }
-                      </p>
-                        <Can {...({ superuser: true } || { roles: ['client'] })}>
-                          <Button asChild>
-                            <Link href="/projects/new">
-                              <Plus className="w-4 h-4 mr-2" />
-                              Creează Primul Proiect
-                            </Link>
+                          <Button variant="outline" size="sm" onClick={resetFilters} className="border-slate-200 dark:border-[#1E2A3D]">
+                            {t('dashboard.filters.reset_all')}
                           </Button>
-                      </Can>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
-              ) : (
-                  <div className="space-y-6">
-                    {projects.map((project) => (
-                        <ProjectRequestCard
-                            key={project.id}
-                            project={project}
-                            onResponse={handleProjectResponse}
-                        />
-                    ))}
 
-                    {renderPagination()}
+                  {/* Projects Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client')}
+                      </h2>
+                      <p className="text-slate-500 dark:text-[#A3ADC2]">
+                        {loadingProjects ? t('dashboard.loading.projects') : t('dashboard.projects.found', { count: projects.length })}
+                      </p>
+                    </div>
+
+                    {isClient && (
+                      <Button asChild className="btn-primary">
+                        <Link href="/projects/new">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('dashboard.projects.new_project')}
+                        </Link>
+                      </Button>
+                    )}
                   </div>
+
+                  {/* Projects List */}
+                  {loadingProjects ? (
+                    <div className="flex justify-center items-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                    </div>
+                  ) : projectsError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{projectsError}</AlertDescription>
+                    </Alert>
+                  ) : projects.length === 0 ? (
+                    <Card className="glass-card">
+                      <CardContent className="text-center py-20">
+                        <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold mb-2">
+                          {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
+                        </h3>
+                        <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
+                          {isProvider
+                            ? t('dashboard.projects.empty.description.provider')
+                            : t('dashboard.projects.empty.description.client')
+                          }
+                        </p>
+                        <Can roles={['client']}>
+                          <Button asChild className="btn-primary">
+                            <Link href="/projects/new">
+                              <Plus className="w-4 h-4 mr-2" />
+                              {t('dashboard.projects.empty.cta')}
+                            </Link>
+                          </Button>
+                        </Can>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-6">
+                      {projects.map((project) => (
+                        <ProjectRequestCard
+                          key={project.id}
+                          project={project}
+                          onResponse={handleProjectResponse}
+                          onRefresh={loadProjects}
+                        />
+                      ))}
+
+                      {renderPagination()}
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
 
             {/* Services Tab */}
             <TabsContent value="services" className="space-y-6">
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Target className="w-5 h-5" />
-                    <span>{user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Serviciile Mele' : 'Servicii Favorite'}</span>
+                    <span>{isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                        ? 'Gestionează serviciile pe care le oferi'
-                        : 'Serviciile pe care le urmărești'
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                    {isProvider
+                      ? t('dashboard.services.description.provider')
+                      : t('dashboard.services.description.client')
                     }
                   </CardDescription>
                 </CardHeader>
@@ -769,21 +1300,21 @@ export default function DashboardClient() {
                   <div className="text-center py-12">
                     <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? 'Nu oferi încă servicii' : 'Nu ai servicii favorite'}
+                      {isProvider ? t('dashboard.services.empty.title.provider') : t('dashboard.services.empty.title.client')}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider')
-                          ? 'Adaugă servicii pentru a începe să primești comenzi'
-                          : 'Salvează serviciile care te interesează pentru acces rapid'
+                      {isProvider
+                        ? t('dashboard.services.empty.description.provider')
+                        : t('dashboard.services.empty.description.client')
                       }
                     </p>
-                    {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') && (
-                        <Button asChild>
-                          <Link href="/provider/services/select">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adaugă Primul Serviciu
-                          </Link>
-                        </Button>
+                    {isProvider && (
+                      <Button asChild>
+                        <Link href="/provider/services/select">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('dashboard.services.empty.cta')}
+                        </Link>
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -792,144 +1323,148 @@ export default function DashboardClient() {
 
             {/* Messages Tab */}
             <TabsContent value="messages" className="space-y-6">
-              <Card>
+              <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <MessageSquare className="w-5 h-5" />
-                    <span>Mesaje</span>
+                    <span>{t('dashboard.messages.title')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    Conversațiile tale cu clienții și prestatorii
+                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                    {t('dashboard.messages.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-12">
                     <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Nu ai mesaje</h3>
-                    <p className="text-muted-foreground">
-                      Conversațiile tale vor apărea aici
-                    </p>
+                    <h3 className="text-lg font-medium mb-2">{t('dashboard.messages.empty.title')}</h3>
+                    <p className="text-muted-foreground">{t('dashboard.messages.empty.description')}</p>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Settings Tab */}
-            <TabsContent value="settings" className="space-y-6">
-              <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Profile Settings */}
-                <Card>
+            {/* Finance Tab */}
+            {isProvider && (
+              <TabsContent value="finance" className="space-y-6">
+                <Card className="glass-card">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
-                      <User className="w-5 h-5" />
-                      <span>Setări Profil</span>
+                      <DollarSign className="w-5 h-5" />
+                      <span>{t('dashboard.finance.title')}</span>
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>
-                          {user.firstName[0]}{user.lastName[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="font-medium">{user.firstName} {user.lastName}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'provider') ? '/provider/profile' : '/settings/profile'}>
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editează
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Notification Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Bell className="w-5 h-5" />
-                      <span>Setări Notificări</span>
-                    </CardTitle>
+                    <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
+                      {t('dashboard.finance.wallet_balance')}: {formatBalanceAmount(balance?.balance, balance?.currency)}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">Email Notifications</div>
-                          <div className="text-sm text-muted-foreground">
-                            Primește notificări prin email
-                          </div>
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
+                        <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                          {t('dashboard.finance.wallet_balance')}
                         </div>
-                        <input type="checkbox" defaultChecked className="rounded" />
+                        {balanceLoading ? (
+                          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 dark:text-[#A3ADC2]">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('dashboard.hero.balance.loading')}
+                          </div>
+                        ) : balanceError ? (
+                          <div className="mt-3 text-sm text-red-500">{balanceError}</div>
+                        ) : (
+                          wallets.map((item) => (
+                            <div key={item.id} className="mt-3 text-2xl font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {formatBalanceAmount(item.balance, item.currency)}
+                            </div>
+                          ))
+                        )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">Push Notifications</div>
-                          <div className="text-sm text-muted-foreground">
-                            Notificări în browser
+
+                      <div className="space-y-3">
+                        {wallets.length > 1 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                              {t('dashboard.finance.wallet_currency')}
+                            </div>
+                            <Select
+                              value={balance?.id ?? ''}
+                              onValueChange={handleWalletChange}
+                              disabled={balanceLoading || wallets.length === 0}
+                            >
+                              <SelectTrigger className="w-full bg-white/70 border-slate-200 focus:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]">
+                                <SelectValue placeholder={t('dashboard.finance.select_wallet')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {wallets.map((wallet) => (
+                                  <SelectItem key={wallet.id} value={wallet.id}>
+                                    {wallet.currency} • {formatBalanceAmount(wallet.balance, wallet.currency)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
+                        )}
+                        <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
+                          {t('dashboard.finance.transfer_amount')}
                         </div>
-                        <input type="checkbox" defaultChecked className="rounded" />
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            value={transferAmount}
+                            onChange={(e) => handleTransferAmountChange(e.target.value)}
+                            placeholder="0.00"
+                            className="pr-16 bg-white/70 border-slate-200 focus-visible:ring-[#1BC47D]/40 dark:bg-[#0B1220] dark:border-[#1E2A3D]"
+                            disabled={balanceLoading || balance?.balance == null}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-1/2 h-8 -translate-y-1/2 px-2 text-xs font-semibold"
+                            onClick={() => {
+                              const maxValue = balance?.balance ?? 0;
+                              setTransferAmount(maxValue ? maxValue.toString() : '0');
+                              setTransferError(null);
+                            }}
+                            disabled={balanceLoading || balance?.balance == null}
+                          >
+                            {t('dashboard.finance.max')}
+                          </Button>
+                        </div>
+                        {transferError && (
+                          <p className="text-xs text-red-500">{transferError}</p>
+                        )}
+                        <Button
+                          variant="default"
+                          className="w-full bg-[#1BC47D] hover:bg-[#159c63]"
+                          onClick={handleTransfer}
+                          disabled={
+                            transferLoading ||
+                            balanceLoading ||
+                            balance?.balance == null ||
+                            !transferAmount ||
+                            Number(normalizeAmountInput(transferAmount)) <= 0 ||
+                            Number(normalizeAmountInput(transferAmount)) > (balance?.balance ?? 0)
+                          }
+                        >
+                          {transferLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {t('dashboard.finance.transfer')}
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+            )}
 
-                {/* Account Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Shield className="w-5 h-5" />
-                      <span>Securitate Cont</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Schimbă Parola
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Shield className="w-4 h-4 mr-2" />
-                      Autentificare cu 2 Factori
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <Globe className="w-4 h-4 mr-2" />
-                      Preferințe Limbă
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Billing (for clients) */}
-                {user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'client') && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <DollarSign className="w-5 h-5" />
-                          <span>Facturare</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <Button variant="outline" className="w-full justify-start">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          Metode de Plată
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Istoric Facturi
-                        </Button>
-                      </CardContent>
-                    </Card>
-                )}
-              </div>
-            </TabsContent>
+            {/* Settings Tab */}
+            <SettingsComponent />
           </Tabs>
         </div>
+      </section>
 
-        <Footer />
-      </div>
+      <Footer />
+    </div>
   );
 }

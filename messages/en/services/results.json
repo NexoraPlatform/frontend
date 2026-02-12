@@ -1,0 +1,11 @@
+{
+  "results": {
+    "no_services": "No services found matching your filters",
+    "recommended": "Recommended",
+    "standard": "Standard",
+    "more_label": "+{count} more",
+    "providers_more_label": "+{count} more",
+    "providers_available": "{count} providers available",
+    "no_providers": "No providers yet"
+  }
+}

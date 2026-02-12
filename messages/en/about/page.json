@@ -1,0 +1,124 @@
+{
+  "hero": {
+    "badge": "🚀 About Trustora",
+    "title": "Building the digital future of",
+    "highlight": "Romania",
+    "description": "Trustora is the Romanian platform that connects entrepreneurs with top IT experts. Our mission is to democratize access to high-quality IT services and support the growth of the local tech ecosystem.",
+    "primary_cta": "Explore services",
+    "secondary_cta": "Join the team"
+  },
+  "stats": {
+    "items": [
+      { "label": "Verified Experts" },
+      { "label": "Projects Delivered" },
+      { "label": "Satisfaction Rate" },
+      { "label": "Cities Covered" }
+    ]
+  },
+  "mission": {
+    "kicker": "Our mission",
+    "title": "We remove the barriers between vision and execution",
+    "description": "We believe every idea deserves to become reality. That’s why we built Trustora — a platform that removes the barriers between vision and execution by connecting entrepreneurs with the right IT experts.",
+    "points": [
+      {
+        "title": "Accessibility",
+        "description": "High-quality IT services at fair prices for businesses of all sizes."
+      },
+      {
+        "title": "Transparency",
+        "description": "Clear process, transparent pricing, and open communication."
+      },
+      {
+        "title": "Excellence",
+        "description": "High standards of quality and guaranteed satisfaction."
+      }
+    ]
+  },
+  "vision": {
+    "kicker": "Vision 2030",
+    "title": "Become the reference platform",
+    "description": "for IT services in Eastern Europe, focused on trust, transparency, and sustainable collaboration."
+  },
+  "values": {
+    "kicker": "Our values",
+    "title": "Principles that build trust",
+    "description": "The principles that guide everything we do and help us build trusted relationships with clients and partners.",
+    "items": [
+      {
+        "title": "Trust & Security",
+        "description": "All transactions are secured, and providers are verified so you can collaborate with confidence."
+      },
+      {
+        "title": "Exceptional Quality",
+        "description": "We work only with experts with proven experience and outstanding client feedback."
+      },
+      {
+        "title": "Efficiency & Speed",
+        "description": "Our platform is optimized to match you quickly with the right experts for your project."
+      },
+      {
+        "title": "Dedicated Support",
+        "description": "Our team is available 24/7 to help you throughout the collaboration."
+      }
+    ]
+  },
+  "timeline": {
+    "title": "Our story",
+    "description": "From a simple idea to the trusted platform for thousands of Romanian entrepreneurs.",
+    "items": [
+      {
+        "title": "Trustora founded",
+        "description": "We launched the platform with the vision of connecting Romanian IT talent to global opportunities."
+      },
+      {
+        "title": "First million in transactions",
+        "description": "We reached the first million in processed transactions, confirming market demand."
+      },
+      {
+        "title": "National expansion",
+        "description": "We expanded services to all major cities in Romania, reaching over 500 verified experts."
+      },
+      {
+        "title": "International recognition",
+        "description": "We were recognized as the most innovative IT services platform in Eastern Europe."
+      },
+      {
+        "title": "The digital future",
+        "description": "We continue to innovate with AI and automation to improve the user experience."
+      }
+    ]
+  },
+  "team": {
+    "kicker": "The Trustora team",
+    "title": "People who power digital transformation",
+    "description": "The passionate people making Romania’s digital transformation possible.",
+    "items": [
+      {
+        "name": "Alexandru Popescu",
+        "role": "CEO & Co-Founder",
+        "description": "Entrepreneur with 10+ years in tech, passionate about innovation and growing Romania’s IT ecosystem."
+      },
+      {
+        "name": "Maria Ionescu",
+        "role": "CTO & Co-Founder",
+        "description": "Software development expert focused on scalable system architecture and user experience."
+      },
+      {
+        "name": "Andrei Radu",
+        "role": "Head of Operations",
+        "description": "Operations and management specialist focused on process optimization and customer satisfaction."
+      },
+      {
+        "name": "Diana Stoica",
+        "role": "Head of Marketing",
+        "description": "Digital marketing and growth expert with experience building successful tech brands."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Join the Trustora community",
+    "description": "Whether you’re an entrepreneur looking for the right expert or an IT specialist growing your career, Trustora is where visions become reality.",
+    "primary_cta": "Find experts",
+    "secondary_cta": "Become a provider"
+  }
+}

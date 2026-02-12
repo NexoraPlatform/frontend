@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { hasRole } from '@/lib/access';
 
 type ClientProps = {
     serviceId?: string; // vine din searchParams
 };
 
 export default function NewProviderServiceClient({ serviceId }: ClientProps) {
-    const { user, loading } = useAuth();
+    const { user, loading, userLoading } = useAuth();
     const [service, setService] = useState<any>(null);
     const [formData, setFormData] = useState({
         pricingType: 'FIXED',
@@ -55,14 +56,14 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
     // Guard de autentificare/rol + încărcare serviciu
     useEffect(() => {
-        if (loading) return;
+        if (userLoading) return;
 
         if (!user) {
             router.push('/auth/signin');
             return;
         }
 
-        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (!hasRole(user, ['provider'])) {
             router.push('/dashboard');
             return;
         }
@@ -77,7 +78,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                 }
             })();
         }
-    }, [loading, user, router, serviceId]);
+    }, [userLoading, user, router, serviceId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -117,7 +118,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         }
     };
 
-    if (loading) {
+    if (loading || userLoading) {
         return (
             <div className="min-h-[40vh] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
@@ -125,7 +126,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) return null;
+    if (!user || !hasRole(user, ['provider'])) return null;
 
     return (
         <>
@@ -148,16 +149,16 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
             )}
 
             {service && (
-                <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                <Card className="mb-6 glass-card border-emerald-100/60 bg-white/80 dark:bg-white/5">
                     <CardContent className="p-6">
                         <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-[var(--emerald-green)] rounded-xl flex items-center justify-center">
                                 <Package className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">{service.title}</h3>
-                                <p className="text-blue-800 dark:text-blue-200 text-sm mb-2">{service.description}</p>
-                                <Badge className="bg-blue-600 text-white">{service.category?.name}</Badge>
+                                <h3 className="font-semibold text-[var(--midnight-blue)] dark:text-white mb-2">{service.title}</h3>
+                                <p className="text-slate-600 dark:text-slate-300 text-sm mb-2">{service.description}</p>
+                                <Badge className="bg-[var(--emerald-green)] text-white">{service.category?.name}</Badge>
                             </div>
                         </div>
                     </CardContent>
@@ -166,7 +167,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
             <form onSubmit={handleSubmit} className="max-w-4xl space-y-8">
                 {/* Pricing */}
-                <Card>
+                <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
                             <DollarSign className="w-5 h-5" />
@@ -197,7 +198,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                         <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="basePrice">Preț de Bază (RON) *</Label>
+                                <Label htmlFor="basePrice">Preț de Bază *</Label>
                                 <Input
                                     id="basePrice"
                                     type="number"
@@ -210,7 +211,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                             {formData.pricingType === 'HOURLY' && (
                                 <div>
-                                    <Label htmlFor="hourlyRate">Tarif pe Oră (RON)</Label>
+                                    <Label htmlFor="hourlyRate">Tarif pe Oră</Label>
                                     <Input
                                         id="hourlyRate"
                                         type="number"
@@ -223,7 +224,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                             {formData.pricingType === 'DAILY' && (
                                 <div>
-                                    <Label htmlFor="dailyRate">Tarif pe Zi (RON)</Label>
+                                    <Label htmlFor="dailyRate">Tarif pe Zi</Label>
                                     <Input
                                         id="dailyRate"
                                         type="number"
@@ -237,7 +238,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                             {formData.pricingType === 'CUSTOM' && (
                                 <>
                                     <div>
-                                        <Label htmlFor="minBudget">Buget Minim (RON)</Label>
+                                        <Label htmlFor="minBudget">Buget Minim</Label>
                                         <Input
                                             id="minBudget"
                                             type="number"
@@ -247,7 +248,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="maxBudget">Buget Maxim (RON)</Label>
+                                        <Label htmlFor="maxBudget">Buget Maxim</Label>
                                         <Input
                                             id="maxBudget"
                                             type="number"
@@ -274,7 +275,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                 </Card>
 
                 {/* Delivery & Terms */}
-                <Card>
+                <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
                             <Clock className="w-5 h-5" />
@@ -339,7 +340,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
 
                 {/* Submit */}
                 <div className="flex space-x-4">
-                    <Button type="submit" disabled={submitting} className="flex-1" onClick={handleSubmit}>
+                    <Button type="submit" disabled={submitting} className="btn-primary flex-1" onClick={handleSubmit}>
                         {submitting ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

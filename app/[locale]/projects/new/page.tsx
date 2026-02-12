@@ -1,7 +1,9 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { usePathname, useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import {
     Plus,
     X,
@@ -37,36 +40,30 @@ import {
     Eye,
     ArrowRight,
     ArrowLeft,
-    EuroIcon,
     Filter,
     ChevronDown,
-    BadgeAlert
+    BadgeAlert, GithubIcon
 } from 'lucide-react';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
-import {useGetServicesGroupedByCategory, useMainCategories} from '@/hooks/use-api';
-import TitleIcon from '@mui/icons-material/Title';
-import DescriptionIcon from '@mui/icons-material/Description';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
+import { useGetServicesGroupedByCategory, useMainCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
-import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
+import { formatDeadline } from '@/lib/projects';
+import { hasRole } from '@/lib/access';
+import type { Locale } from '@/types/locale';
+import {
+    AI_BRIEF_DRAFT_STORAGE_KEY,
+    normalizeProjectDeadlineValue,
+    type AiBriefFormDraft
+} from '@/types/ai';
+import { PriceDisplay } from '@/components/PriceDisplay';
+import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
+import GithubConnect from "@/components/GithubConnect";
+import BriefCopilot from '@/components/projects/BriefCopilot';
 
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
-
-import 'dayjs/locale/ro';
-import 'dayjs/locale/en';
-
-function setDayjsLocale(locale: string) {
-    const supported = ['ro', 'en'];
-    if (supported.includes(locale)) {
-        dayjs.locale(locale);
-    } else {
-        dayjs.locale('ro');
-    }
+function getDateFnsLocale(locale: string) {
+    return locale === 'ro' ? ro : enUS;
 }
 
 type ServiceItem = {
@@ -74,6 +71,7 @@ type ServiceItem = {
     name: string;
     slug?: string;
     category_id: string;
+    require_repo: boolean;
 };
 
 type GroupedServices = Record<
@@ -110,16 +108,10 @@ interface SuggestedProvider {
 }
 
 
-const aiLoadingMessages = [
-    "Se analizează informațiile...",
-    "Se generează informațiile...",
-    "Se verifică datele...",
-    "Finalizare..."
-];
-
 type TechnologySelected = {
     id: string;
     name: string
+    require_repo?: boolean;
 }
 
 type RecommendedProvider = {
@@ -130,6 +122,8 @@ type RecommendedProvider = {
     estimated_cost: number;
 }
 
+type BudgetType = 'FIXED' | 'HOURLY';
+
 type FormData = {
     title: string;
     description: string;
@@ -137,13 +131,15 @@ type FormData = {
     serviceId: string;
     technologies: TechnologySelected[];
     budget: string;
-    budgetType: string;
+    budgetType: BudgetType;
     deadline: string;
     visibility: string;
     attachments: File[];
     additionalInfo: string;
     recommendedProviders: RecommendedProvider[];
     notes: string;
+    paymentPlan: string;
+    githubRepoTarget: 'platform' | 'provider' | 'client' | 'without';
 };
 
 
@@ -153,8 +149,9 @@ type SelectedProvider = {
 };
 
 export default function NewProjectPage() {
-    setDayjsLocale('ro');
-    const { user, loading } = useAuth();
+    const locale = useLocale() as Locale;
+    const t = useTranslations();
+    const { user, loading, userLoading, refreshUser } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [formData, setFormData] = useState<FormData>({
         title: '',
@@ -170,29 +167,18 @@ export default function NewProjectPage() {
         additionalInfo: '',
         recommendedProviders: [],
         notes: '',
+        paymentPlan: '',
+        githubRepoTarget: 'without',
     });
-    const [generatedAiOutput, setGeneratedAiOutput] = useState({
-        title: "",
-        description: "",
-        technologies: [],
-        estimated_budget: 0,
-        budget_type: "",
-        notes: "",
-        deadline: "",
-        additional_services: [],
-        team_structure: []
-    });
-    const [aiLoading, setAiLoading] = useState(false);
 
     const [skipValidation, setSkipValidation] = useState(false);
     const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
     const [selectedProviders, setSelectedProviders] = useState<SelectedProvider[]>([]);
-    const [providerBudgets, setProviderBudgets] = useState<{[key: string]: number}>({});
+    const [providerBudgets, setProviderBudgets] = useState<{ [key: string]: number }>({});
     const [loadingProviders, setLoadingProviders] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [newTechnology, setNewTechnology] = useState('');
-    const [index] = useState(0);
     const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [providerSearchTerm, setProviderSearchTerm] = useState('');
@@ -201,26 +187,166 @@ export default function NewProjectPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [providersPerPage] = useState(6); // 6 providers per page for better layout
     const [availableServices, setAvailableServices] = useState<any[]>([]);
+    const [providerMilestones, setProviderMilestones] = useState<Record<string, { title: string; amount: string }[]>>({});
+    const [aiSuggestedMilestones, setAiSuggestedMilestones] = useState<{ provider_role?: string; milestones: { title: string; amount: number }[] }[]>([]);
+
+    const isLongProject = useMemo(() => (
+        ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
+    ), [formData.deadline]);
+
+    const buildProviderMilestonesFromAi = useCallback(() => {
+        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
+            return {};
+        }
+
+        const providerMap = new Map(
+            selectedProviders.map((provider) => [
+                provider.id,
+                {
+                    ...provider,
+                    profile: suggestedProviders.find((p) => p.id === provider.id),
+                }
+            ])
+        );
+
+        const scoreProviderForRole = (providerId: string, role?: string) => {
+            const provider = providerMap.get(providerId);
+            if (!provider) {
+                return 0;
+            }
+            const baseScore = provider.matchScore ?? 0;
+            if (!role) {
+                return baseScore;
+            }
+            const roleLower = role.toLowerCase();
+            const skills = provider.profile?.skills ?? [];
+            const hasRoleMatch = skills.some((skill) => (
+                skill.toLowerCase().includes(roleLower) || roleLower.includes(skill.toLowerCase())
+            ));
+            return baseScore + (hasRoleMatch ? 50 : 0);
+        };
+
+        const sortedProviders = (role?: string) => {
+            return [...selectedProviders]
+                .sort((a, b) => scoreProviderForRole(b.id, role) - scoreProviderForRole(a.id, role));
+        };
+
+        const milestonesByProvider: Record<string, { title: string; amount: string }[]> = {};
+
+        aiSuggestedMilestones.forEach((group) => {
+            const providersByScore = sortedProviders(group.provider_role);
+            if (providersByScore.length === 0) {
+                return;
+            }
+            group.milestones.forEach((milestone, index) => {
+                const provider = providersByScore[index % providersByScore.length];
+                if (!milestonesByProvider[provider.id]) {
+                    milestonesByProvider[provider.id] = [];
+                }
+                milestonesByProvider[provider.id].push({
+                    title: milestone.title,
+                    amount: String(milestone.amount),
+                });
+            });
+        });
+
+        return milestonesByProvider;
+    }, [aiSuggestedMilestones, selectedProviders, suggestedProviders]);
+
+    useEffect(() => {
+        if (!isLongProject && Object.keys(providerMilestones).length > 0) {
+            setProviderMilestones({});
+            setAiSuggestedMilestones([]);
+        }
+    }, [isLongProject, providerMilestones]);
+
+    useEffect(() => {
+        if (aiSuggestedMilestones.length === 0) {
+            return;
+        }
+        const hasAnyMilestones = Object.values(providerMilestones).some((milestones) => milestones.length > 0);
+        if (hasAnyMilestones || selectedProviders.length === 0) {
+            return;
+        }
+        setProviderMilestones(buildProviderMilestonesFromAi());
+    }, [aiSuggestedMilestones, buildProviderMilestonesFromAi, providerMilestones, selectedProviders]);
+
+    useEffect(() => {
+        if (!isLongProject) {
+            return;
+        }
+
+        const milestoneBudgets = Object.fromEntries(
+            Object.entries(providerMilestones).map(([providerId, milestones]) => [
+                providerId,
+                milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0),
+            ])
+        );
+
+        setProviderBudgets(prevBudgets => ({
+            ...prevBudgets,
+            ...milestoneBudgets,
+        }));
+    }, [isLongProject, providerMilestones]);
 
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const githubRefreshHandled = useRef(false);
+    const copilotDraftHandled = useRef(false);
     const { data: categoriesData } = useMainCategories();
     const { data: servicesData } = useGetServicesGroupedByCategory();
 
-    const skillLevels = [
-        { value: 'JUNIOR', label: 'Junior', color: 'bg-green-100 text-green-800', icon: '🌱' },
-        { value: 'MEDIU', label: 'Mediu', color: 'bg-blue-100 text-blue-800', icon: '⚡' },
-        { value: 'SENIOR', label: 'Senior', color: 'bg-purple-100 text-purple-800', icon: '🚀' },
-        { value: 'EXPERT', label: 'Expert', color: 'bg-orange-100 text-orange-800', icon: '👑' }
-    ];
+    const normalizeTechnologyName = useCallback((name: string) => name.trim().toLowerCase(), []);
+
+    useEffect(() => {
+        if (githubRefreshHandled.current || loading || userLoading || !user) {
+            return;
+        }
+
+        const githubParamKeys = ['github', 'github_status', 'github_connected'];
+        const hasGithubParam = githubParamKeys.some((key) => searchParams.has(key));
+        if (!hasGithubParam) {
+            return;
+        }
+
+        const rawValue =
+            searchParams.get('github') ??
+            searchParams.get('github_status') ??
+            searchParams.get('github_connected');
+        const normalizedValue = rawValue?.toLowerCase() ?? '';
+        const shouldRefresh =
+            !rawValue ||
+            ['success', 'connected', 'true', '1'].includes(normalizedValue);
+
+        if (!shouldRefresh) {
+            return;
+        }
+
+        githubRefreshHandled.current = true;
+        void (async () => {
+            try {
+                await refreshUser();
+            } finally {
+                router.replace(pathname);
+            }
+        })();
+    }, [loading, userLoading, user, refreshUser, router, pathname, searchParams]);
+
+    const skillLevels = useMemo(() => ([
+        { value: 'JUNIOR', label: t('projects.new.skills.junior'), color: 'bg-green-100 text-green-800', icon: '🌱' },
+        { value: 'MEDIU', label: t('projects.new.skills.medium'), color: 'bg-blue-100 text-blue-800', icon: '⚡' },
+        { value: 'SENIOR', label: t('projects.new.skills.senior'), color: 'bg-purple-100 text-purple-800', icon: '🚀' },
+        { value: 'EXPERT', label: t('projects.new.skills.expert'), color: 'bg-orange-100 text-orange-800', icon: '👑' }
+    ]), [t]);
 
     const markedNamesSet = useMemo(() => {
         const names = [
-            ...formData.technologies.map(t => t.name),
-            ...generatedAiOutput.technologies.map((t: any) => t.name),
-        ].filter(Boolean);
+            ...formData.technologies.map(t => normalizeTechnologyName(t.name)),
+        ].filter(name => name.length > 0);
 
         return new Set(names);
-    }, [formData.technologies, generatedAiOutput.technologies]);
+    }, [formData.technologies, normalizeTechnologyName]);
 
     const filteredProviders = suggestedProviders.filter(provider => {
         const searchMatch = !providerSearchTerm ||
@@ -261,26 +387,66 @@ export default function NewProjectPage() {
     const validate = () => {
         const newErrors: { [key: string]: string } = {};
         if (!formData.title.trim()) {
-            newErrors.title = 'Titlul este obligatoriu';
+            newErrors.title = t('projects.new.errors.title_required');
         }
         if (!formData.description.trim()) {
-            newErrors.lastName = 'Descrierea este obligatoriu';
+            newErrors.lastName = t('projects.new.errors.description_required');
         }
         // if (!formData.visibility.trim()) {
         //     newErrors.visibility = 'Tipul proiect este obligatoriu';
         // }
         if (String(formData.budget).trim() === '') {
-            newErrors.budget = 'Bugetul este obligatoriu';
+            newErrors.budget = t('projects.new.errors.budget_required');
         }
         if (!formData.budgetType.trim()) {
-            newErrors.budgetType = 'Tipul de buget este obligatoriu';
+            newErrors.budgetType = t('projects.new.errors.budget_type_required');
         }
         if (!formData.deadline.trim()) {
-            newErrors.deadline = 'Durata proiect este obligatoriu';
+            newErrors.deadline = t('projects.new.errors.deadline_required');
         }
 
         if (formData.technologies.length === 0) {
-            newErrors.technologies = 'Selecteaza minim o tehnologie';
+            newErrors.technologies = t('projects.new.errors.technologies_required');
+        }
+
+        if (isLongProject && selectedProviders.length > 0) {
+            const hasMissingMilestones = selectedProviders.some((provider) => (
+                !providerMilestones[provider.id] || providerMilestones[provider.id].length === 0
+            ));
+            if (hasMissingMilestones) {
+                newErrors.milestones = t('projects.new.errors.milestones_required');
+            } else {
+                const hasInvalidMilestone = selectedProviders.some((provider) => (
+                    (providerMilestones[provider.id] ?? []).some(
+                        (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
+                    )
+                ));
+                if (hasInvalidMilestone) {
+                    newErrors.milestones = t('projects.new.errors.milestones_incomplete');
+                }
+            }
+
+            if (String(formData.budget).trim() !== '') {
+                const milestoneTotal = getMilestoneTotal();
+                if (milestoneTotal !== Number(formData.budget)) {
+                    newErrors.milestoneTotal = t('projects.new.errors.milestone_total');
+                }
+            }
+
+            const hasBudgetMismatch = selectedProviders.some((provider) => {
+                const allocated = Number(providerBudgets[provider.id] ?? 0);
+                if (allocated === 0) {
+                    return false;
+                }
+                const providerTotal = (providerMilestones[provider.id] ?? []).reduce(
+                    (sum, milestone) => sum + Number(milestone.amount || 0),
+                    0
+                );
+                return providerTotal !== allocated;
+            });
+            if (hasBudgetMismatch) {
+                newErrors.milestoneBudget = t('projects.new.errors.milestone_budget');
+            }
         }
 
         // alte validări...
@@ -300,7 +466,7 @@ export default function NewProjectPage() {
     useEffect(() => {
         const loadAvailableServices = async () => {
             try {
-                const response = await apiClient.getAllServices();
+                const response = await apiClient.getServices();
                 setAvailableServices(response.services || []);
             } catch (error) {
                 console.error('Failed to load services:', error);
@@ -310,18 +476,34 @@ export default function NewProjectPage() {
     }, []);
 
     useEffect(() => {
+        if (userLoading) {
+            return;
+        }
         if (!loading && !user) {
             router.push('/auth/signin');
+            return;
         }
-        if (user && user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+        if (!user) {
+            return;
+        }
+
+        const hasRoleData = (user?.roles?.length ?? 0) > 0 || Boolean(user?.role);
+        const hasClientRole = hasRole(user, ['client']) || user?.role?.toLowerCase?.() === 'client';
+        if (hasRoleData && !hasClientRole) {
             router.push('/dashboard');
         }
-
-
-    }, [user, loading, router]);
+    }, [user, loading, router, userLoading]);
 
     const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
-        if (formData.recommendedProviders.length > 0) {
+        if (formData.technologies.length > 0) {
+            return formData.technologies.map(p => ({
+                service: p.name,
+                level: '',
+                role: '',
+                count: 1,
+                estimated_cost: 0,
+            }));
+        } else {
             return formData.recommendedProviders.map(p => ({
                 service: p.service,
                 level: p.level || '',
@@ -335,7 +517,7 @@ export default function NewProjectPage() {
             service: t.name,
             level: '',
         }));
-    }, [formData.recommendedProviders, formData.technologies]);
+    }, [formData]);
 
     const loadSuggestedProviders = useCallback(async () => {
         setLoadingProviders(true);
@@ -357,7 +539,7 @@ export default function NewProjectPage() {
                         reviewCount: user.reviewCount ?? 0,
                         completedProjects: user.completedProjects ?? 0,
                         responseTime: user.responseTime ?? '—',
-                        location: user.location ?? 'România',
+                        location: user.location ?? t('projects.new.providers.location_fallback'),
                         isVerified: Boolean(user.isVerified),
                         level: user.level ?? '—',
                         skills,
@@ -380,11 +562,11 @@ export default function NewProjectPage() {
             setSuggestedProviders(providers);
             setFoundSuggestedProvider(apiData.found);
         } catch (error: any) {
-            setError('Nu s-au putut încărca prestatorii sugerați');
+            setError(t('projects.new.errors.providers_load'));
         } finally {
             setLoadingProviders(false);
         }
-    }, [buildProviderMatchPayload]);
+    }, [buildProviderMatchPayload, t]);
 
     useEffect(() => {
         if (formData.serviceId && formData.technologies.length > 0) {
@@ -394,42 +576,28 @@ export default function NewProjectPage() {
         }
     }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
 
-    const formatDeadline = (value: string): string => {
-        const map: Record<string, string> = {
-            '1day': '1 zi',
-            '1week': 'O săptămână',
-            '2weeks': '2 săptămâni',
-            '3weeks': '3 săptămâni',
-            '1month': '1 lună',
-            '3months': '3 luni',
-            '6months': '6 luni',
-            '1year': '1 an',
-            '1plusyear': '1+ ani',
-        };
-
-        return map[value] || value;
-    };
-
-    const handleTechnologyToggle = (techName: string, techId: string) => {
+    const handleTechnologyToggle = (techName: string, techId: string, requireRepo: boolean) => {
         setFormData(prev => {
-            const exists = prev.technologies.some(t => t.name === techName && t.id === techId);
+            const normalizedTech = normalizeTechnologyName(techName);
+            const exists = prev.technologies.some(t => normalizeTechnologyName(t.name) === normalizedTech);
 
             return {
                 ...prev,
                 technologies: exists
-                    ? prev.technologies.filter(t => !(t.name === techName && t.id === techId))
-                    : [...prev.technologies, { id: techId, name: techName }]
+                    ? prev.technologies.filter(t => normalizeTechnologyName(t.name) !== normalizedTech)
+                    : [...prev.technologies, { id: techId, name: techName, require_repo: requireRepo }]
             };
         });
     };
 
     const addCustomTechnology = () => {
-        if (newTechnology.trim() && !formData.technologies.some(t => t.name === newTechnology.trim())) {
+        const trimmed = newTechnology.trim();
+        if (trimmed && !formData.technologies.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(trimmed))) {
             setFormData(prev => ({
                 ...prev,
                 technologies: [
                     ...prev.technologies,
-                    { id: newTechnology.trim(), name: newTechnology.trim() }
+                    resolveTechnology(trimmed)
                 ]
             }));
             setNewTechnology('');
@@ -450,6 +618,10 @@ export default function NewProjectPage() {
                 // Removing provider - remove their budget
                 setProviderBudgets(prevBudgets => {
                     const { [providerId]: removed, ...rest } = prevBudgets;
+                    return rest;
+                });
+                setProviderMilestones(prevMilestones => {
+                    const { [providerId]: removed, ...rest } = prevMilestones;
                     return rest;
                 });
                 return prev.filter(p => p.id !== providerId);
@@ -477,7 +649,7 @@ export default function NewProjectPage() {
         if (selectedProviders.length === 0) return;
 
         const equalBudget = Math.floor(Number(formData.budget) / selectedProviders.length);
-        const newBudgets: {[key: string]: number} = {};
+        const newBudgets: { [key: string]: number } = {};
         selectedProviders.forEach(provider => {
             newBudgets[provider.id] = equalBudget;
         });
@@ -492,24 +664,80 @@ export default function NewProjectPage() {
         return Number(formData.budget) - getTotalAllocatedBudget();
     };
 
-    const getLastActiveText = (lastActiveAt: string): string => {
-        const time = dayjs.utc(lastActiveAt);
-        return `${time.fromNow()}`;
+    const getMilestoneTotal = () => {
+        return Object.values(providerMilestones).flat().reduce(
+            (sum, milestone) => sum + Number(milestone.amount || 0),
+            0
+        );
+    };
+
+    const addProviderMilestone = (providerId: string) => {
+        setProviderMilestones(prev => ({
+            ...prev,
+            [providerId]: [...(prev[providerId] ?? []), { title: '', amount: '' }],
+        }));
+    };
+
+    const updateProviderMilestoneField = (
+        providerId: string,
+        index: number,
+        field: 'title' | 'amount',
+        value: string
+    ) => {
+        setProviderMilestones(prev => ({
+            ...prev,
+            [providerId]: (prev[providerId] ?? []).map((milestone, i) => (
+                i === index ? { ...milestone, [field]: value } : milestone
+            )),
+        }));
+    };
+
+    const removeProviderMilestone = (providerId: string, index: number) => {
+        setProviderMilestones(prev => ({
+            ...prev,
+            [providerId]: (prev[providerId] ?? []).filter((_, i) => i !== index),
+        }));
+    };
+
+    const applyAiMilestonesToProviders = () => {
+        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
+            return;
+        }
+        setProviderMilestones(buildProviderMilestonesFromAi());
+    };
+
+    const getLastActiveText = (lastActiveAt?: string | null): string => {
+        if (!lastActiveAt) {
+            return t('projects.new.availability.unknown');
+        }
+
+        const time = parseISO(lastActiveAt);
+        if (!isValid(time)) {
+            return t('projects.new.availability.unknown');
+        }
+
+        const currentLocale = getDateFnsLocale(locale);
+        return formatDistanceToNow(time, { addSuffix: true, locale: currentLocale });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         setSkipValidation(false);
         e.preventDefault();
 
+        if (!validate()) {
+            setError(t('projects.new.errors.complete_required'));
+            return;
+        }
+
         if (selectedProviders.length === 0) {
-            setError('Selectează cel puțin un prestator pentru a trimite proiectul');
+            setError(t('projects.new.errors.select_provider'));
             return;
         }
 
         // Validate budget allocation
         const totalAllocated = getTotalAllocatedBudget();
         if (Math.abs(totalAllocated - Number(formData.budget)) > 1) {
-            setError('Bugetul total alocat trebuie să fie egal cu bugetul proiectului');
+            setError(t('projects.new.errors.budget_allocation'));
             return;
         }
 
@@ -517,22 +745,42 @@ export default function NewProjectPage() {
         setError('');
 
         try {
+            const milestonesPayload = isLongProject
+                ? selectedProviders.map((provider) => ({
+                    providerId: Number(provider.id),
+                    milestones: (providerMilestones[provider.id] ?? []).map((milestone) => ({
+                        title: milestone.title.trim(),
+                        amount: Number(milestone.amount),
+                    })),
+                }))
+                : [];
+
             const projectData = {
                 ...formData,
+                budget: Number(formData.budget),
                 selectedProviders,
                 providerBudgets,
-                clientId: user?.id
+                clientId: user?.id,
+                githubRepoConnected: !!user?.github_token,
+                paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
+                milestoneCount: isLongProject
+                    ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
+                    : 0,
+                milestones: milestonesPayload,
             };
 
-            const createdProject = await apiClient.createProject(projectData);
+            const createdProject = await apiClient.createProject(projectData, locale);
 
             // Send notifications to selected providers
             if (selectedProviders.length > 0) {
                 try {
                     await apiClient.sendNotification({
                         userIds: selectedProviders.map(p => p.id),
-                        title: '🚀 Proiect Nou Disponibil!',
-                        message: `Un client caută servicii pentru: ${formData.title}. Buget: ${formData.budget} RON`,
+                        title: t('projects.new.notifications.new_project_title'),
+                        message: t('projects.new.notifications.new_project_message', {
+                            title: formData.title,
+                            budget: formData.budget,
+                        }),
                         type: 'PROJECT_ADDED',
                         data: {
                             projectId: createdProject.id,
@@ -554,7 +802,7 @@ export default function NewProjectPage() {
 
             router.push('/dashboard?tab=projects&success=project-created');
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare la crearea proiectului');
+            setError(error.message || t('projects.new.errors.create_project'));
         } finally {
             setSubmitting(false);
         }
@@ -562,9 +810,9 @@ export default function NewProjectPage() {
 
     const getBudgetTypeLabel = (type: string) => {
         switch (type) {
-            case 'FIXED': return 'Preț Fix per Proiect';
-            case 'HOURLY': return 'Tarif pe Oră';
-            case 'MILESTONE': return 'Plată per Milestone';
+            case 'FIXED': return t('projects.new.budget_types.fixed');
+            case 'HOURLY': return t('projects.new.budget_types.hourly');
+            case 'MILESTONE': return t('projects.new.budget_types.milestone');
             default: return type;
         }
     };
@@ -572,13 +820,13 @@ export default function NewProjectPage() {
     const getAvailabilityStatus = (status: string) => {
         switch (status) {
             case 'AVAILABLE':
-                return { color: 'bg-green-100 text-green-800', label: 'Disponibil', icon: CheckCircle };
+                return { color: 'bg-green-100 text-green-800', label: t('projects.new.availability.available'), icon: CheckCircle };
             case 'BUYS':
-                return { color: 'bg-yellow-100 text-yellow-800', label: 'Ocupat', icon: Clock };
+                return { color: 'bg-yellow-100 text-yellow-800', label: t('projects.new.availability.busy'), icon: Clock };
             case 'UNAVAILABLE':
-                return { color: 'bg-red-100 text-red-800', label: 'Indisponibil', icon: AlertCircle };
+                return { color: 'bg-red-100 text-red-800', label: t('projects.new.availability.unavailable'), icon: AlertCircle };
             default:
-                return { color: 'bg-gray-100 text-gray-800', label: 'Necunoscut', icon: AlertCircle };
+                return { color: 'bg-gray-100 text-gray-800', label: t('projects.new.availability.unknown'), icon: AlertCircle };
         }
     };
 
@@ -609,79 +857,190 @@ export default function NewProjectPage() {
 
     const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
 
-    const generateDescription = async () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!formData.title.trim()) {
-            newErrors.title = 'Titlul este obligatoriu';
-        }
-        if (!formData.description.trim()) {
-            newErrors.description = 'Descrierea este obligatoriu';
+    const serviceNameLookup = useMemo(() => {
+        const lookup = new Map<string, ServiceItem>();
+
+        Object.values(groupedServices).forEach((childCategories) => {
+            Object.values(childCategories).forEach((services) => {
+                services.forEach((service) => {
+                    lookup.set(normalizeTechnologyName(service.name), service);
+                });
+            });
+        });
+
+        return lookup;
+    }, [groupedServices, normalizeTechnologyName]);
+
+    const resolveTechnology = useCallback((techName: string): TechnologySelected => {
+        const normalizedName = normalizeTechnologyName(techName);
+        const matchedService = serviceNameLookup.get(normalizedName);
+
+        if (matchedService) {
+            return {
+                id: matchedService.id,
+                name: matchedService.name,
+                require_repo: matchedService.require_repo,
+            };
         }
 
-        setErrors(newErrors);
+        return { id: techName, name: techName };
+    }, [normalizeTechnologyName, serviceNameLookup]);
 
-        if (Object.keys(newErrors).length !== 0) return;
+    const handleCopilotApply = useCallback((draft: AiBriefFormDraft) => {
+        const incomingTechnologies = Array.isArray(draft.technologies)
+            ? draft.technologies
+                .map((entry) => String(entry).trim())
+                .filter(Boolean)
+            : [];
+        const parsedBudgetType = String(draft.budgetType ?? '').toUpperCase();
+        const normalizedBudgetType: BudgetType =
+            parsedBudgetType === 'HOURLY'
+                ? 'HOURLY'
+                : 'FIXED';
+        const normalizedTeam = Array.isArray(draft.team_structure)
+            ? draft.team_structure
+                .map((member) => ({
+                    role: String(member.role ?? '').trim(),
+                    level: String(member.level ?? '').trim(),
+                    service: String(member.service ?? '').trim(),
+                    count: Number(member.count ?? 0),
+                    estimated_cost: Number(member.estimated_cost ?? 0),
+                }))
+                .filter((member) => member.role || member.service)
+                .map((member) => ({
+                    role: member.role || member.service,
+                    level: member.level,
+                    service: member.service || member.role,
+                    count: Number.isFinite(member.count) && member.count > 0 ? member.count : 1,
+                    estimated_cost:
+                        Number.isFinite(member.estimated_cost) && member.estimated_cost > 0
+                            ? member.estimated_cost
+                            : 0,
+                }))
+            : [];
+        const normalizedMilestones = Array.isArray(draft.milestones)
+            ? draft.milestones
+                .map((milestone) => ({
+                    title: String(milestone.title ?? '').trim(),
+                    amount: Number(milestone.amount ?? 0),
+                }))
+                .filter(
+                    (milestone) =>
+                        milestone.title.length > 0 &&
+                        Number.isFinite(milestone.amount) &&
+                        milestone.amount > 0
+                )
+            : [];
+        const normalizedDeadline = normalizeProjectDeadlineValue(
+            String(draft.deadline ?? draft.durationLabel ?? '')
+        );
 
         setSkipValidation(true);
-        setAiLoading(true);
+        setFormData((prev) => {
+            const existingNames = new Set(
+                prev.technologies.map((tech) => normalizeTechnologyName(tech.name))
+            );
+            const mergedTechnologies = [
+                ...prev.technologies,
+                ...incomingTechnologies
+                    .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
+                    .map((techName) => resolveTechnology(techName)),
+            ];
+
+            return {
+                ...prev,
+                title: String(draft.title ?? '').trim() || prev.title,
+                description: String(draft.description ?? '').trim() || prev.description,
+                budget: String(draft.budget ?? '').trim() || prev.budget,
+                budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
+                deadline: normalizedDeadline || prev.deadline,
+                technologies: mergedTechnologies,
+                recommendedProviders:
+                    normalizedTeam.length > 0
+                        ? normalizedTeam
+                        : prev.recommendedProviders,
+            };
+        });
+
+        if (normalizedMilestones.length > 0) {
+            setAiSuggestedMilestones([{ milestones: normalizedMilestones }]);
+        }
+    }, [normalizeTechnologyName, resolveTechnology]);
+
+    useEffect(() => {
+        if (copilotDraftHandled.current || typeof window === 'undefined') {
+            return;
+        }
+
+        const rawDraft = window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+        copilotDraftHandled.current = true;
+
+        if (!rawDraft) {
+            return;
+        }
 
         try {
-            const generatedOutput = await apiClient.generateProjectInformation(formData);
-            setGeneratedAiOutput(generatedOutput);
-            setFormData(prev => ({
-                ...prev,
-                note: generatedOutput.notes || '',
-                recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
-                    role: member.role,
-                    level: member.level,
-                    service: member.service,
-                    estimated_cost: member.estimated_cost
-                })),
-            }));
-        } catch (e: any) {
-            console.error ('Error generating AI output:', e);
+            const parsedDraft = JSON.parse(rawDraft) as Partial<AiBriefFormDraft>;
+            const incomingTechnologies = Array.isArray(parsedDraft.technologies)
+                ? parsedDraft.technologies
+                    .map((entry) => String(entry).trim())
+                    .filter(Boolean)
+                : [];
+            const parsedBudgetType = String(parsedDraft.budgetType ?? '').toUpperCase();
+            const normalizedBudgetType: BudgetType =
+                parsedBudgetType === 'HOURLY'
+                    ? 'HOURLY'
+                    : 'FIXED';
+            const normalizedDeadline = normalizeProjectDeadlineValue(
+                String(parsedDraft.deadline ?? parsedDraft.durationLabel ?? '')
+            );
+
+            setFormData((prev) => {
+                const existingNames = new Set(
+                    prev.technologies.map((tech) => normalizeTechnologyName(tech.name))
+                );
+                const mergedTechnologies = [
+                    ...prev.technologies,
+                    ...incomingTechnologies
+                        .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
+                        .map((techName) => resolveTechnology(techName)),
+                ];
+
+                return {
+                    ...prev,
+                    title: String(parsedDraft.title ?? '').trim() || prev.title,
+                    description: String(parsedDraft.description ?? '').trim() || prev.description,
+                    budget: String(parsedDraft.budget ?? '').trim() || prev.budget,
+                    budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
+                    deadline: normalizedDeadline || prev.deadline,
+                    technologies: mergedTechnologies,
+                };
+            });
+        } catch (error) {
+            console.error('Failed to parse AI brief draft:', error);
         } finally {
-            setAiLoading(false);
+            window.sessionStorage.removeItem(AI_BRIEF_DRAFT_STORAGE_KEY);
         }
-    }
+    }, [normalizeTechnologyName, resolveTechnology]);
 
-    const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
-        setSkipValidation(true);
-        setFormData(prev => ({
-            ...prev,
-            [field]: generatedText,
-        }));
-    }
+    const hasRequireRepo = (data: any): boolean => {
+        if (Array.isArray(data)) {
+            return data.some(item => hasRequireRepo(item));
+        }
 
-    const handleUseGeneratedTechnologies = (technologies: string[]) => {
-        setFormData(prev => {
-            const existing = prev.technologies;
+        if (typeof data === 'object' && data !== null) {
+            if (data.require_repo === true) {
+                return true;
+            }
 
-            const newTechs = technologies
-                .filter((techName) => !existing.some(t => t.name.toLowerCase() === techName.toLowerCase()))
-                .map((techName) => ({ id: techName, name: techName }));
+            return Object.values(data).some(value => hasRequireRepo(value));
+        }
 
-            return {
-                ...prev,
-                technologies: [...existing, ...newTechs]
-            };
-        });
+        return false;
     };
 
-    const handleUseGeneratedSuggestedTechnologies = (technologies: string[]) => {
-        setFormData(prev => {
-            const existing = prev.technologies;
 
-            const newTechs = technologies
-                .filter((techName) => !existing.some(t => t.name.toLowerCase() === techName.toLowerCase()))
-                .map((techName) => ({ id: techName, name: techName }));
-
-            return {
-                ...prev,
-                technologies: [...existing, ...newTechs]
-            };
-        });
-    };
+    const existsRequireRepo = hasRequireRepo(formData.technologies);
 
     // const handleUpdateServicesByCategory = async (categoryId: string) => {
     //     const childrensAndServices = await apiClient.getServicesGroupedByCategory(categoryId);
@@ -711,1206 +1070,1339 @@ export default function NewProjectPage() {
         );
     }
 
-    if (aiLoading) {
-        return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-                <svg
-                    className="animate-spin h-12 w-12 text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <circle
-                        className="opacity-25"
-                        cx="12" cy="12" r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                    />
-                    <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                </svg>
-                <p className="text-lg font-medium text-gray-700">{aiLoadingMessages[index]}</p>
-            </div>
-
-        );
-    }
-
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
+    if (!user || !hasRole(user, ['client'])) {
         return null;
     }
 
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+            <TrustoraThemeStyles />
             <Header />
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Adaugă Proiect Nou</h1>
-                    <p className="text-muted-foreground">
-                        Descrie proiectul tău și primește oferte de la cei mai buni prestatori
-                    </p>
-                </div>
+            <main className="pt-24">
+                <section className="px-6 pb-10 hero-gradient">
+                    <div className="max-w-5xl mx-auto text-center">
+                        <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
+                            <span className="text-[#1BC47D]">●</span> {t('projects.new.hero.badge')}
+                        </Badge>
+                        <h1 className="text-3xl lg:text-4xl font-bold mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {t('projects.new.hero.title')}
+                        </h1>
+                        <p className="text-base text-slate-600 max-w-3xl mx-auto dark:text-[#A3ADC2]">
+                            {t('projects.new.hero.description')}
+                        </p>
+                    </div>
+                </section>
 
-                {error && (
-                    <Alert variant="destructive" className="mb-6">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
+                <section className="py-12 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
+                    <div className="max-w-6xl mx-auto">
+                        {error && (
+                            <Alert variant="destructive" className="mb-6">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="details">Detalii Proiect</TabsTrigger>
-                            <TabsTrigger value="providers" disabled={!formData.serviceId || formData.technologies.length === 0}>
-                                Prestatori Sugerați
-                            </TabsTrigger>
-                            <TabsTrigger value="review" disabled={selectedProviders.length === 0}>
-                                Revizuire & Trimitere
-                            </TabsTrigger>
-                        </TabsList>
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <TabsList className="grid w-full grid-cols-3 rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                    <TabsTrigger
+                                        value="details"
+                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
+                                    >
+                                        {t('projects.new.tabs.details')}
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="providers"
+                                        disabled={!formData.serviceId || formData.technologies.length === 0}
+                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
+                                    >
+                                        {t('projects.new.tabs.providers')}
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="review"
+                                        disabled={selectedProviders.length === 0}
+                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
+                                    >
+                                        {t('projects.new.tabs.review')}
+                                    </TabsTrigger>
+                                </TabsList>
 
-                        {/* Detalii Proiect */}
-                        <TabsContent value="details" className="space-y-6">
-                            <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
-                                <div>
-                                    <Card className="mb-6">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <FileText className="w-5 h-5" />
-                                                <span>Informații Generale</span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div>
-                                                <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">Titlu Proiect <span className="text-red-500">*</span></Label>
-                                                <Input
-                                                    id="title"
-                                                    className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.title}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                    placeholder="ex: Website modern pentru afacerea mea"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">Descriere Detaliată <span className="text-red-500">*</span></Label>
-                                                <Textarea
-                                                    id="description"
-                                                    className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.description}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                                    placeholder="Descrie în detaliu ce vrei să realizezi, care sunt obiectivele și așteptările tale..."
-                                                    rows={5}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label htmlFor="requirements">Cerințe Specifice</Label>
-                                                <Textarea
-                                                    id="requirements"
-                                                    value={formData.requirements}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                                                    placeholder="Cerințe tehnice, funcționalități specifice, integrări necesare..."
-                                                    rows={3}
-                                                />
-                                            </div>
-
-                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/*<div>*/}
-                                                {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
-                                                {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
-                                                {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
-                                                {/*    }}>*/}
-                                                {/*        <SelectTrigger>*/}
-                                                {/*            <SelectValue placeholder="Selectează categoria" />*/}
-                                                {/*        </SelectTrigger>*/}
-                                                {/*        <SelectContent>*/}
-                                                {/*            {(categoriesData || []).map((category: any) => (*/}
-                                                {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
-                                                {/*                    {category.name}*/}
-                                                {/*                </SelectItem>*/}
-                                                {/*            ))}*/}
-                                                {/*        </SelectContent>*/}
-                                                {/*    </Select>*/}
-                                                {/*</div>*/}
-
-                                                {/*<div>*/}
-                                                {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
-                                                {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
-                                                {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
-                                                {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
-                                                {/*        </SelectTrigger>*/}
-                                                {/*        <SelectContent>*/}
-                                                {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
-                                                {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
-                                                {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
-                                                {/*        </SelectContent>*/}
-                                                {/*    </Select>*/}
-                                                {/*</div>*/}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card className="mb-6">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <Code className="w-5 h-5" />
-                                                <span className={errors.technologies ? "text-red-500" : ""}>Servicii și Tehnologii</span>
-                                            </CardTitle>
-                                            <CardDescription>
-                                                Selectează serviciile necesare pentru proiectul tău
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {formData.technologies.length > 0 && (
-                                                <div>
-                                                    <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>Servicii Selectate ({formData.technologies.length})</Label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {formData.technologies.map((tech) => (
-                                                            <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
-                                                                <span>{tech.name}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeTechnology(tech)}
-                                                                    className="ml-1 hover:text-red-300"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        ))}
+                                {/* Detalii Proiect */}
+                                <TabsContent value="details" className="space-y-6">
+                                    <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
+                                        <div>
+                                            <Card className="mb-6 glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <FileText className="w-5 h-5" />
+                                                        <span>{t('projects.new.sections.general_info')}</span>
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    <div>
+                                                        <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">
+                                                            {t('projects.new.fields.title')} <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            id="title"
+                                                            className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
+                                                            value={formData.title}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                                            placeholder={t('projects.new.fields.title_placeholder')}
+                                                            required
+                                                        />
                                                     </div>
-                                                </div>
-                                            )}
 
-                                            {/* Adaugă tehnologie personalizată */}
-                                            <div>
-                                                <Label className={errors.technologies ? "text-red-500" : ""}>Adaugă Tehnologie Personalizată</Label>
-                                                <div className="flex space-x-2 mt-2">
-                                                    <Input
-                                                        value={newTechnology}
-                                                        className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
-                                                        onChange={(e) => setNewTechnology(e.target.value)}
-                                                        placeholder="ex: GraphQL, Redis, etc."
-                                                        onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
-                                                    />
-                                                    <Button type="button" onClick={addCustomTechnology} variant="outline">
-                                                        <Plus className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
+                                                    <div>
+                                                        <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">
+                                                            {t('projects.new.fields.description')} <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Textarea
+                                                            id="description"
+                                                            className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
+                                                            value={formData.description}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                                            placeholder={t('projects.new.fields.description_placeholder')}
+                                                            rows={5}
+                                                            required
+                                                        />
+                                                    </div>
 
-                                            {/* Tehnologii disponibile grupate */}
-                                            <div className="space-y-6">
-                                                {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
-                                                    <div key={parentCategory}>
-                                                        {/* Categoria părinte - text mai mare */}
-                                                        <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
+                                                    <div>
+                                                        <Label htmlFor="requirements">{t('projects.new.fields.requirements')}</Label>
+                                                        <Textarea
+                                                            id="requirements"
+                                                            value={formData.requirements}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+                                                            placeholder={t('projects.new.fields.requirements_placeholder')}
+                                                            rows={3}
+                                                        />
+                                                    </div>
 
-                                                        {/* Categorii copil */}
-                                                        {Object.entries(childCategories).map(([childCategory, services]) => (
-                                                            <div key={childCategory} className="mb-6">
-                                                                {/* Categoria copil */}
-                                                                <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
+                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {/*<div>*/}
+                                                        {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
+                                                        {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
+                                                        {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
+                                                        {/*    }}>*/}
+                                                        {/*        <SelectTrigger>*/}
+                                                        {/*            <SelectValue placeholder="Selectează categoria" />*/}
+                                                        {/*        </SelectTrigger>*/}
+                                                        {/*        <SelectContent>*/}
+                                                        {/*            {(categoriesData || []).map((category: any) => (*/}
+                                                        {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
+                                                        {/*                    {category.name}*/}
+                                                        {/*                </SelectItem>*/}
+                                                        {/*            ))}*/}
+                                                        {/*        </SelectContent>*/}
+                                                        {/*    </Select>*/}
+                                                        {/*</div>*/}
 
-                                                                {/* Lista serviciilor */}
-                                                                <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
-                                                                    {services.map((service) => (
-                                                                        <div key={service.id} className="flex items-center space-x-2">
-                                                                            <Checkbox
-                                                                                id={service.id}
-                                                                                // checked={formData.technologies.some(t => t.id === service.id)}
-                                                                                checked={markedNamesSet.has(service.name)}
-                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id)}
-                                                                            />
-                                                                            <Label htmlFor={service.id} className="text-sm cursor-pointer">
-                                                                                {service.name}
-                                                                            </Label>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                                        {/*<div>*/}
+                                                        {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
+                                                        {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
+                                                        {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
+                                                        {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
+                                                        {/*        </SelectTrigger>*/}
+                                                        {/*        <SelectContent>*/}
+                                                        {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
+                                                        {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
+                                                        {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
+                                                        {/*        </SelectContent>*/}
+                                                        {/*    </Select>*/}
+                                                        {/*</div>*/}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            <Card className="mb-6 glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <Code className="w-5 h-5" />
+                                                        <span className={errors.technologies ? "text-red-500" : ""}>
+                                                            {t('projects.new.technologies.title')}
+                                                        </span>
+                                                    </CardTitle>
+                                                    <CardDescription>
+                                                        {t('projects.new.technologies.description')}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    {formData.technologies.length > 0 && (
+                                                        <div>
+                                                            <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>
+                                                                {t('projects.new.technologies.selected', { count: formData.technologies.length })}
+                                                            </Label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {formData.technologies.map((tech) => (
+                                                                    <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
+                                                                        <span>{tech.name}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeTechnology(tech)}
+                                                                            className="ml-1 hover:text-red-300"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </Badge>
+                                                                ))}
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <DollarSign className="w-5 h-5" />
-                                                <span>Buget și Timeline</span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div>
-                                                <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>Tip Buget <span className="text-red-500">*</span></Label>
-                                                <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.budgetType} onValueChange={(value) => setFormData(prev => ({ ...prev, budgetType: value }))}>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="FIXED" id="fixed" />
-                                                        <Label htmlFor="fixed">Preț Fix per Proiect</Label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="HOURLY" id="hourly" />
-                                                        <Label htmlFor="hourly">Tarif pe Oră</Label>
-                                                    </div>
-                                                </RadioGroup>
-                                            </div>
-
-                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
-                                                        Buget {formData.budgetType === 'HOURLY' ? '(RON/oră)' : '(RON)'} <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Input
-                                                        id="budget"
-                                                        className={errors.buget ? "text-red-500" : ""}
-                                                        type="number"
-                                                        value={formData.budget}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                                        placeholder={formData.budgetType === 'HOURLY' ? '50' : '2500'}
-                                                        required={!skipValidation}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">Durata proiect <span className="text-red-500">*</span></Label>
-                                                    <Select
-                                                        value={formData.deadline}
-                                                        onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
-                                                    >
-                                                        <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
-                                                            <SelectValue placeholder="Selectează termenul limită" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="1day">1 zi</SelectItem>
-                                                            <SelectItem value="1week">1 saptamana</SelectItem>
-                                                            <SelectItem value="2weeks">2 saptamani</SelectItem>
-                                                            <SelectItem value="3weeks">3 saptamani</SelectItem>
-                                                            <SelectItem value="1month">1 luna</SelectItem>
-                                                            <SelectItem value="3months">3 luni</SelectItem>
-                                                            <SelectItem value="6months">6 luni</SelectItem>
-                                                            <SelectItem value="1year">1 an</SelectItem>
-                                                            <SelectItem value="1plusyear">1+ ani</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                                <div>
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <AutoAwesomeIcon className="w-5 h-5" />
-                                                <span>Genereaza cu AI</span>
-                                            </CardTitle>
-                                            <CardDescription className="flex items-center space-x-2">
-                                                Bazat pe cerintele scrise in descriere + restul informatiilor genereaza o descriere mai detaliată, sugereaza tehnologiile si/sau serviciile pentru proiect + buget recomandat.
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {generatedAiOutput.title.trim() && (
-                                                <h2 className="font-bold">Informatii sugerate:</h2>
-                                            )}
-                                            {generatedAiOutput?.title.trim() && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black font-bold">Titlu: </span> {generatedAiOutput?.title}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
-                                                        <TitleIcon />
-                                                        Foloseste titlu
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.description.trim() && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black font-bold">Descriere: </span> {generatedAiOutput?.description}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
-                                                        <DescriptionIcon />
-                                                        Foloseste descrierea
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.technologies.length > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black font-bold">Tehnologii sugerate: </span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.technologies.map((tech, index) => (
-                                                                <li key={index}>{tech}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
-                                                        <AddCircleIcon />
-                                                        Foloseste Tehnologii
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.additional_services.length > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black font-bold">Servicii aditionale sugerate: </span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.additional_services.map((tech, index) => (
-                                                                <li key={index}>{tech}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
-                                                        <AddCircleIcon />
-                                                        Adauga Servicii Aditionale
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.team_structure.length > 0 && (
-                                                <div>
-                                                    <span className="text-sm text-black font-bold">Structura echipa: </span>
-                                                    {generatedAiOutput?.team_structure.map((team: {role: string, level: string, count: number, estimated_cost: number}, index) => (
-                                                        <div key={index}>
-                                                            <span className="text-sm text-black font-bold">Rol:</span> {team.role} - {team.count} {team.count === 1 ? 'persoana': 'persoane'} - Nivel {team.level}  - {team.estimated_cost} RON estimat
                                                         </div>
-                                                    ))}
+                                                    )}
 
-                                                </div>
-                                            )}
-
-                                            {generatedAiOutput.deadline.trim() && (
-                                                <>
+                                                    {/* Adaugă tehnologie personalizată */}
                                                     <div>
-                                                        <span className="text-sm text-black font-bold">Durata proiect: </span> {formatDeadline(generatedAiOutput?.deadline)}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
-                                                        <AccessTimeFilledIcon />
-                                                        Foloseste durata recomandata
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.estimated_budget !== 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black font-bold">Buget total estimat: </span> {generatedAiOutput?.estimated_budget} {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => {
-                                                           handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
-                                                           handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
-                                                       }}>
-                                                        <EuroIcon />
-                                                        Foloseste Bugetul
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.notes.trim() && (
-                                                <div>
-                                                    <span className="text-sm text-black font-bold">Nota: </span> {generatedAiOutput.notes}
-                                                </div>
-                                            )}
-
-                                            <div className="col-span-2">
-                                                <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
-                                                    <AutoAwesomeIcon className="w-4 h-4 me-2" />
-                                                    Imbunătățește Descrierea cu AI
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                            <div className="flex justify-end">
-                                <Button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!validate()) return;
-                                        setActiveTab('providers');
-                                        loadSuggestedProviders();
-                                    }}
-                                    disabled={formData.technologies.length === 0}
-                                    className="px-8"
-                                >
-                                    Continuă la Prestatori
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </TabsContent>
-
-                        {/* Prestatori Sugerați */}
-                        <TabsContent value="providers" className="space-y-6">
-                            <Card id="suggested-providers">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Users className="w-5 h-5" />
-                                        <span>Prestatori Sugerați</span>
-                                        <Badge variant="outline">
-                                            {filteredProviders.length} găsiți • Pagina {currentPage} din {totalPages}
-                                        </Badge>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Prestatori care se potrivesc cu cerințele proiectului tău<br />
-                                        <span className="text-red-500 font-bold">{!foundSuggestedProvider ? 'Nu avem sugestii de prestatori dar puteti folosi urmatorii prestatori' : ''}</span>
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {loadingProviders ? (
-                                        <div className="flex items-center justify-center py-12">
-                                            <div className="text-center">
-                                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                                                <p className="text-muted-foreground">Căutăm cei mai potriviți prestatori...</p>
-                                            </div>
-                                        </div>
-                                    ) : suggestedProviders.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium mb-2">Nu am găsit prestatori</h3>
-                                            <p className="text-muted-foreground">
-                                                Încearcă să modifici serviciul sau tehnologiile selectate
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {/* Search and Filter Bar */}
-                                            <div className="mb-6 space-y-4">
-                                                <div className="flex flex-col md:flex-row gap-4">
-                                                    {/* Search Bar */}
-                                                    <div className="flex-1">
-                                                        <div className="relative">
-                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                                        <Label className={errors.technologies ? "text-red-500" : ""}>
+                                                            {t('projects.new.technologies.add_custom')}
+                                                        </Label>
+                                                        <div className="flex space-x-2 mt-2">
                                                             <Input
-                                                                placeholder="Caută prestatori după nume, locație sau skills..."
-                                                                value={providerSearchTerm}
-                                                                onChange={(e) => setProviderSearchTerm(e.target.value)}
-                                                                className="pl-10"
+                                                                value={newTechnology}
+                                                                className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
+                                                                onChange={(e) => setNewTechnology(e.target.value)}
+                                                                placeholder={t('projects.new.technologies.add_custom_placeholder')}
+                                                                onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
                                                             />
+                                                            <Button type="button" onClick={addCustomTechnology} variant="outline">
+                                                                <Plus className="w-4 h-4" />
+                                                            </Button>
                                                         </div>
                                                     </div>
 
-                                                    {/* Service Filter Dropdown */}
-                                                    <div className="md:w-64">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" className="w-full justify-between">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <Filter className="w-4 h-4" />
-                                                                        <span>
-                                                                            {selectedServiceFilters.length === 0
-                                                                                ? 'Filtrează servicii'
-                                                                                : `${selectedServiceFilters.length} servicii`
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-                                                                    <ChevronDown className="w-4 h-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                                <div className="p-2 max-h-80 overflow-y-auto">
-                                                                    <div className="text-sm font-medium mb-2">Filtrează după servicii:</div>
-                                                                    {availableServices.map((service) => (
-                                                                        <div key={service.id} className="flex items-center space-x-2 py-1">
-                                                                            <Checkbox
-                                                                                id={`service-${service.id}`}
-                                                                                checked={selectedServiceFilters.includes(service.id)}
-                                                                                onCheckedChange={(checked) => {
-                                                                                    if (checked) {
-                                                                                        setSelectedServiceFilters(prev => [...prev, service.id]);
-                                                                                    } else {
-                                                                                        setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                            <label
-                                                                                htmlFor={`service-${service.id}`}
-                                                                                className="text-sm cursor-pointer flex-1"
-                                                                            >
-                                                                                {service.name}
-                                                                            </label>
-                                                                        </div>
-                                                                    ))}
-                                                                    {availableServices.length === 0 && (
-                                                                        <div className="text-sm text-muted-foreground py-2">
-                                                                            Nu există servicii disponibile
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {selectedServiceFilters.length > 0 && (
-                                                                    <div className="border-t p-2">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setSelectedServiceFilters([])}
-                                                                            className="w-full text-xs"
-                                                                        >
-                                                                            <X className="w-3 h-3 mr-1" />
-                                                                            Resetează filtrele
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
+                                                    {/* Tehnologii disponibile grupate */}
+                                                    <div className="space-y-6">
+                                                        {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
+                                                            <div key={parentCategory}>
+                                                                {/* Categoria părinte - text mai mare */}
+                                                                <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
 
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="outline" className="min-w-40">
-                                                                <Target className="w-4 h-4 mr-2" />
-                                                                {skillLevelFilter.length > 0 ? `${skillLevelFilter.length} niveluri` : 'Nivel Skill'}
-                                                                <ChevronDown className="w-4 h-4 ml-2" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                            <div className="p-2">
-                                                                <div className="text-sm font-medium mb-2">Selectează nivelurile:</div>
-                                                                {skillLevels.map(level => (
-                                                                    <div key={level.value} className="flex items-center space-x-2 py-1">
-                                                                        <Checkbox
-                                                                            id={`skill-${level.value}`}
-                                                                            checked={skillLevelFilter.includes(level.value)}
-                                                                            onCheckedChange={(checked) =>
-                                                                                handleSkillLevelFilterChange(level.value, checked as boolean)
-                                                                            }
-                                                                        />
-                                                                        <label
-                                                                            htmlFor={`skill-${level.value}`}
-                                                                            className="flex items-center space-x-2 cursor-pointer flex-1"
-                                                                        >
-                                                                            <span>{level.icon}</span>
-                                                                            <span className="text-sm">{level.label}</span>
-                                                                        </label>
+                                                                {/* Categorii copil */}
+                                                                {Object.entries(childCategories).map(([childCategory, services]) => (
+                                                                    <div key={childCategory} className="mb-6">
+                                                                        {/* Categoria copil */}
+                                                                        <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
+
+                                                                        {/* Lista serviciilor */}
+                                                                        <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
+                                                                            {services.map((service) => (
+                                                                                <div key={service.id} className="flex items-center space-x-2">
+                                                                                    <Checkbox
+                                                                                        id={service.id}
+                                                                                        // checked={formData.technologies.some(t => t.id === service.id)}
+                                                                                        checked={markedNamesSet.has(normalizeTechnologyName(service.name))}
+                                                                                        onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
+                                                                                    />
+                                                                                    <Label htmlFor={service.id} className="text-sm cursor-pointer">
+                                                                                        {service.name}
+                                                                                    </Label>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 ))}
-                                                                {skillLevelFilter.length > 0 && (
-                                                                    <div className="pt-2 mt-2 border-t">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setSkillLevelFilter([])}
-                                                                            className="w-full text-xs"
-                                                                        >
-                                                                            Resetează Nivelurile
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                </CardContent>
+                                            </Card>
+
+                                            {existsRequireRepo && (
+                                                <Card className="mb-6 glass-card shadow-sm">
+                                                    <CardHeader>
+                                                        <CardTitle className="flex items-center space-x-2">
+                                                            <GithubIcon className="w-5 h-5" />
+                                                            {t('projects.new.github.title')}
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            {t('projects.new.github.description')}
+                                                        </CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent className="space-y-6">
+                                                        <div className="space-y-6">
+                                                            <Label>
+                                                                {t('projects.new.github.connect_label')}
+                                                                <span className="block text-xs text-muted-foreground">
+                                                                    {t('projects.new.github.connect_description')}
+                                                                </span>
+                                                            </Label>
+                                                            <GithubConnect isConnected={!!user?.github_token} />
+                                                        </div>
+
+                                                        <div className="p-4 border rounded-lg bg-card">
+                                                            <h3 className="font-semibold mb-4">{t('projects.new.github.repository_title')}</h3>
+                                                            <RadioGroup
+                                                                value={formData.githubRepoTarget}
+                                                                onValueChange={(value) =>
+                                                                    setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
+                                                                }
+                                                                className="mb-4"
+                                                            >
+                                                                <div className="flex items-center space-x-2">
+                                                                    <RadioGroupItem value="platform" id="github-platform" />
+                                                                    <Label htmlFor="github-platform">
+                                                                        {t('projects.new.github.platform_repo')}
+                                                                        {/*<span className="block text-xs text-muted-foreground">*/}
+                                                                        {/*    Noi deținem repo-ul, tu ești colaborator.*/}
+                                                                        {/*</span>*/}
+                                                                    </Label>
+                                                                </div>
+                                                                <div className="flex items-center space-x-2 mt-2">
+                                                                    <RadioGroupItem
+                                                                        value="provider"
+                                                                        id="github-provider"
+                                                                        disabled={!user?.github_token}
+                                                                    />
+                                                                    <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                        {t('projects.new.github.provider_repo')}
+                                                                        {!user?.github_token && (
+                                                                            <span className="block text-xs text-red-500">
+                                                                                {t('projects.new.github.connect_first')}
+                                                                            </span>
+                                                                        )}
+                                                                    </Label>
+                                                                </div>
+                                                                <div className="flex items-center space-x-2 mt-2">
+                                                                    <RadioGroupItem
+                                                                        value="client"
+                                                                        id="github-client"
+                                                                        disabled={!user?.github_token}
+                                                                    />
+                                                                    <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
+                                                                        {t('projects.new.github.client_repo')}
+                                                                        {!user?.github_token && (
+                                                                            <span className="block text-xs text-red-500">
+                                                                                {t('projects.new.github.connect_first')}
+                                                                            </span>
+                                                                        )}
+                                                                    </Label>
+                                                                </div>
+                                                            </RadioGroup>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
+                                            <Card className="glass-card shadow-sm">
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center space-x-2">
+                                                        <DollarSign className="w-5 h-5" />
+                                                        <span>{t('projects.new.budget.title')}</span>
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-6">
+                                                    <div>
+                                                        <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>
+                                                            {t('projects.new.budget.type_label')} <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
+                                                            value={formData.budgetType}
+                                                            onValueChange={(value) => {
+                                                                const normalizedBudgetType: BudgetType = value === 'HOURLY' ? 'HOURLY' : 'FIXED';
+                                                                setFormData(prev => ({ ...prev, budgetType: normalizedBudgetType }));
+                                                            }}>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="FIXED" id="fixed" />
+                                                                <Label htmlFor="fixed">{t('projects.new.budget.fixed_label')}</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="HOURLY" id="hourly" />
+                                                                <Label htmlFor="hourly">{t('projects.new.budget.hourly_label')}</Label>
+                                                            </div>
+                                                        </RadioGroup>
+                                                    </div>
+
+                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
+                                                                {t('projects.new.budget.amount_label', {
+                                                                    suffix: formData.budgetType === 'HOURLY'
+                                                                        ? t('projects.new.budget.hourly_suffix')
+                                                                        : t('projects.new.budget.fixed_suffix'),
+                                                                })}{' '}
+                                                                <span className="text-red-500">*</span>
+                                                            </Label>
+                                                            <Input
+                                                                id="budget"
+                                                                className={errors.buget ? "text-red-500" : ""}
+                                                                type="number"
+                                                                value={formData.budget}
+                                                                onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
+                                                                placeholder={formData.budgetType === 'HOURLY'
+                                                                    ? t('projects.new.budget.hourly_placeholder')
+                                                                    : t('projects.new.budget.fixed_placeholder')}
+                                                                required={!skipValidation}
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">
+                                                                {t('projects.new.deadline.label')} <span className="text-red-500">*</span>
+                                                            </Label>
+                                                            <Select
+                                                                value={formData.deadline}
+                                                                onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
+                                                            >
+                                                                <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
+                                                                    <SelectValue placeholder={t('projects.new.deadline.placeholder')} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="1day">{t('projects.new.deadline.options.one_day')}</SelectItem>
+                                                                    <SelectItem value="1week">{t('projects.new.deadline.options.one_week')}</SelectItem>
+                                                                    <SelectItem value="2weeks">{t('projects.new.deadline.options.two_weeks')}</SelectItem>
+                                                                    <SelectItem value="3weeks">{t('projects.new.deadline.options.three_weeks')}</SelectItem>
+                                                                    <SelectItem value="1month">{t('projects.new.deadline.options.one_month')}</SelectItem>
+                                                                    <SelectItem value="3months">{t('projects.new.deadline.options.three_months')}</SelectItem>
+                                                                    <SelectItem value="6months">{t('projects.new.deadline.options.six_months')}</SelectItem>
+                                                                    <SelectItem value="1year">{t('projects.new.deadline.options.one_year')}</SelectItem>
+                                                                    <SelectItem value="1plusyear">{t('projects.new.deadline.options.one_plus_year')}</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
+
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                        <div>
+                                            <BriefCopilot
+                                                locale={locale}
+                                                onApply={handleCopilotApply}
+                                                className="glass-card shadow-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!validate()) return;
+                                                setActiveTab('providers');
+                                                loadSuggestedProviders();
+                                            }}
+                                            disabled={formData.technologies.length === 0}
+                                            className="px-8"
+                                        >
+                                            {t('projects.new.actions.continue_to_providers')}
+                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Prestatori Sugerați */}
+                                <TabsContent value="providers" className="space-y-6">
+                                    <Card id="suggested-providers" className="glass-card shadow-sm">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <Users className="w-5 h-5" />
+                                                <span>{t('projects.new.providers.title')}</span>
+                                                <Badge variant="outline">
+                                                    {t('projects.new.providers.count', {
+                                                        count: filteredProviders.length,
+                                                        currentPage,
+                                                        totalPages,
+                                                    })}
+                                                </Badge>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t('projects.new.providers.subtitle')}<br />
+                                                <span className="text-red-500 font-bold">
+                                                    {!foundSuggestedProvider ? t('projects.new.providers.no_suggestions') : ''}
+                                                </span>
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {loadingProviders ? (
+                                                <div className="flex items-center justify-center py-12">
+                                                    <div className="text-center">
+                                                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                                                        <p className="text-muted-foreground">{t('projects.new.providers.loading')}</p>
+                                                    </div>
+                                                </div>
+                                            ) : suggestedProviders.length === 0 ? (
+                                                <div className="text-center py-12">
+                                                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                                    <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.empty_title')}</h3>
+                                                    <p className="text-muted-foreground">
+                                                        {t('projects.new.providers.empty_description')}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {/* Search and Filter Bar */}
+                                                    <div className="mb-6 space-y-4">
+                                                        <div className="flex flex-col md:flex-row gap-4">
+                                                            {/* Search Bar */}
+                                                            <div className="flex-1">
+                                                                <div className="relative">
+                                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                                                    <Input
+                                                                        placeholder={t('projects.new.providers.search_placeholder')}
+                                                                        value={providerSearchTerm}
+                                                                        onChange={(e) => setProviderSearchTerm(e.target.value)}
+                                                                        className="pl-10"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Service Filter Dropdown */}
+                                                            <div className="md:w-64">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="outline" className="w-full justify-between">
+                                                                            <div className="flex items-center space-x-2">
+                                                                                <Filter className="w-4 h-4" />
+                                                                                <span>
+                                                                                    {selectedServiceFilters.length === 0
+                                                                                        ? t('projects.new.providers.filters.services')
+                                                                                        : t('projects.new.providers.filters.services_count', { count: selectedServiceFilters.length })
+                                                                                    }
+                                                                                </span>
+                                                                            </div>
+                                                                            <ChevronDown className="w-4 h-4" />
                                                                         </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
+                                                                        <div className="p-2 max-h-80 overflow-y-auto">
+                                                                            <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.services_label')}</div>
+                                                                            {availableServices.map((service) => (
+                                                                                <div key={service.id} className="flex items-center space-x-2 py-1">
+                                                                                    <Checkbox
+                                                                                        id={`service-${service.id}`}
+                                                                                        checked={selectedServiceFilters.includes(service.id)}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            if (checked) {
+                                                                                                setSelectedServiceFilters(prev => [...prev, service.id]);
+                                                                                            } else {
+                                                                                                setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                    <label
+                                                                                        htmlFor={`service-${service.id}`}
+                                                                                        className="text-sm cursor-pointer flex-1"
+                                                                                    >
+                                                                                        {service.name}
+                                                                                    </label>
+                                                                                </div>
+                                                                            ))}
+                                                                            {availableServices.length === 0 && (
+                                                                                <div className="text-sm text-muted-foreground py-2">
+                                                                                    {t('projects.new.providers.filters.no_services')}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        {selectedServiceFilters.length > 0 && (
+                                                                            <div className="border-t p-2">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => setSelectedServiceFilters([])}
+                                                                                    className="w-full text-xs"
+                                                                                >
+                                                                                    <X className="w-3 h-3 mr-1" />
+                                                                                    {t('projects.new.providers.filters.reset')}
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
+
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="outline" className="min-w-40">
+                                                                        <Target className="w-4 h-4 mr-2" />
+                                                                        {skillLevelFilter.length > 0
+                                                                            ? t('projects.new.providers.filters.levels_count', { count: skillLevelFilter.length })
+                                                                            : t('projects.new.providers.filters.levels')}
+                                                                        <ChevronDown className="w-4 h-4 ml-2" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
+                                                                    <div className="p-2">
+                                                                        <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.levels_label')}</div>
+                                                                        {skillLevels.map(level => (
+                                                                            <div key={level.value} className="flex items-center space-x-2 py-1">
+                                                                                <Checkbox
+                                                                                    id={`skill-${level.value}`}
+                                                                                    checked={skillLevelFilter.includes(level.value)}
+                                                                                    onCheckedChange={(checked) =>
+                                                                                        handleSkillLevelFilterChange(level.value, checked as boolean)
+                                                                                    }
+                                                                                />
+                                                                                <label
+                                                                                    htmlFor={`skill-${level.value}`}
+                                                                                    className="flex items-center space-x-2 cursor-pointer flex-1"
+                                                                                >
+                                                                                    <span>{level.icon}</span>
+                                                                                    <span className="text-sm">{level.label}</span>
+                                                                                </label>
+                                                                            </div>
+                                                                        ))}
+                                                                        {skillLevelFilter.length > 0 && (
+                                                                            <div className="pt-2 mt-2 border-t">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => setSkillLevelFilter([])}
+                                                                                    className="w-full text-xs"
+                                                                                >
+                                                                                    {t('projects.new.providers.filters.reset_levels')}
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+
+                                                        {/* Active Filters Display */}
+                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="text-sm text-muted-foreground">{t('projects.new.providers.filters.active')}</span>
+
+                                                                {providerSearchTerm && (
+                                                                    <Badge variant="secondary" className="flex items-center space-x-1">
+                                                                        <Search className="w-3 h-3" />
+                                                                        <span>&#34;{providerSearchTerm}&#34;</span>
+                                                                        <button
+                                                                            onClick={() => setProviderSearchTerm('')}
+                                                                            className="ml-1 hover:text-red-500"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </Badge>
+                                                                )}
+
+                                                                {selectedServiceFilters.map(serviceId => {
+                                                                    const service = availableServices.find(s => s.id === serviceId);
+                                                                    return service ? (
+                                                                        <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
+                                                                            <span>{service.name}</span>
+                                                                            <button
+                                                                                onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
+                                                                                className="ml-1 hover:text-red-500"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </button>
+                                                                        </Badge>
+                                                                    ) : null;
+                                                                })}
+
+                                                                {skillLevelFilter.map(level => {
+                                                                    const levelInfo = skillLevels.find(l => l.value === level);
+                                                                    return (
+                                                                        <Badge key={level} variant="secondary" className="flex items-center space-x-1">
+                                                                            <span>{levelInfo?.icon}</span>
+                                                                            <span>{levelInfo?.label}</span>
+                                                                            <button
+                                                                                onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
+                                                                                className="ml-1 hover:text-red-500"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </button>
+                                                                        </Badge>
+                                                                    );
+                                                                })}
+
+                                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            setProviderSearchTerm('');
+                                                                            setSelectedServiceFilters([]);
+                                                                            setSkillLevelFilter([]);
+                                                                        }}
+                                                                        className="text-xs h-6"
+                                                                    >
+                                                                        {t('projects.new.providers.filters.reset_all')}
+                                                                    </Button>
                                                                 )}
                                                             </div>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-
-                                                {/* Active Filters Display */}
-                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="text-sm text-muted-foreground">Filtre active:</span>
-
-                                                        {providerSearchTerm && (
-                                                            <Badge variant="secondary" className="flex items-center space-x-1">
-                                                                <Search className="w-3 h-3" />
-                                                                <span>&#34;{providerSearchTerm}&#34;</span>
-                                                                <button
-                                                                    onClick={() => setProviderSearchTerm('')}
-                                                                    className="ml-1 hover:text-red-500"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </Badge>
                                                         )}
+                                                    </div>
 
-                                                        {selectedServiceFilters.map(serviceId => {
-                                                            const service = availableServices.find(s => s.id === serviceId);
-                                                            return service ? (
-                                                                <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
-                                                                    <span>{service.name}</span>
-                                                                    <button
-                                                                        onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
-                                                                        className="ml-1 hover:text-red-500"
-                                                                    >
-                                                                        <X className="w-3 h-3" />
-                                                                    </button>
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
-
-                                                        {skillLevelFilter.map(level => {
-                                                            const levelInfo = skillLevels.find(l => l.value === level);
-                                                            return (
-                                                                <Badge key={level} variant="secondary" className="flex items-center space-x-1">
-                                                                    <span>{levelInfo?.icon}</span>
-                                                                    <span>{levelInfo?.label}</span>
-                                                                    <button
-                                                                        onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
-                                                                        className="ml-1 hover:text-red-500"
-                                                                    >
-                                                                        <X className="w-3 h-3" />
-                                                                    </button>
-                                                                </Badge>
-                                                            );
-                                                        })}
-
-                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
+                                                    {currentProviders.length === 0 ? (
+                                                        <div className="text-center py-8">
+                                                            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                                            <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.none_title')}</h3>
+                                                            <p className="text-muted-foreground mb-4">
+                                                                {filteredProviders.length === 0
+                                                                    ? t('projects.new.providers.none_description')
+                                                                    : t('projects.new.providers.none_page')
+                                                                }
+                                                            </p>
                                                             <Button
-                                                                variant="ghost"
-                                                                size="sm"
+                                                                variant="outline"
                                                                 onClick={() => {
                                                                     setProviderSearchTerm('');
                                                                     setSelectedServiceFilters([]);
                                                                     setSkillLevelFilter([]);
+                                                                    setCurrentPage(1);
                                                                 }}
-                                                                className="text-xs h-6"
                                                             >
-                                                                Resetează toate
+                                                                {t('projects.new.providers.filters.reset_filters')}
                                                             </Button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {currentProviders.length === 0 ? (
-                                                <div className="text-center py-8">
-                                                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">Nu s-au găsit prestatori</h3>
-                                                    <p className="text-muted-foreground mb-4">
-                                                        {filteredProviders.length === 0
-                                                            ? "Încearcă să modifici filtrele sau să selectezi alte tehnologii"
-                                                            : "Nu există prestatori pe această pagină. Încearcă o altă pagină."
-                                                        }
-                                                    </p>
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setProviderSearchTerm('');
-                                                            setSelectedServiceFilters([]);
-                                                            setSkillLevelFilter([]);
-                                                            setCurrentPage(1);
-                                                        }}
-                                                    >
-                                                        Resetează Filtrele
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                                        {currentProviders.map((provider) => {
-                                                            const passedReasons = provider.matchReasons.filter(reason => reason.passed);
-                                                            const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
-                                                            return (
-                                                                <Card
-                                                                    key={provider.id}
-                                                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                                        selectedProviders.some(p => p.id === provider.id)
-                                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                                            : 'border-gray-200 hover:border-blue-300'
-                                                                    }`}
-                                                                    onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
-                                                                >
-                                                                    <CardContent className="p-6">
-                                                                        <div className="flex items-start justify-between">
-                                                                            <div className="flex items-start space-x-4 flex-1">
-                                                                                <div className="relative">
-                                                                                    <Avatar className="w-16 h-16">
-                                                                                        <AvatarImage src={provider.avatar} />
-                                                                                        <AvatarFallback>
-                                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                                        </AvatarFallback>
-                                                                                    </Avatar>
-                                                                                    {provider.isVerified && (
-                                                                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                            <CheckCircle className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                                                                {currentProviders.map((provider) => {
+                                                                    const passedReasons = provider.matchReasons.filter(reason => reason.passed);
+                                                                    const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
+                                                                    const availabilityStatus = getAvailabilityStatus(provider.availability);
+                                                                    return (
+                                                                        <Card
+                                                                            key={provider.id}
+                                                                            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedProviders.some(p => p.id === provider.id)
+                                                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
+                                                                                : 'border-gray-200 hover:border-blue-300'
+                                                                                }`}
+                                                                            onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
+                                                                        >
+                                                                            <CardContent className="p-6">
+                                                                                <div className="flex flex-col items-start justify-between">
+                                                                                    <div className="flex flex-row items-start space-x-4 flex-1">
+                                                                                        <div className="relative">
+                                                                                            <Avatar className="w-16 h-16">
+                                                                                                <AvatarImage src={provider.avatar} />
+                                                                                                <AvatarFallback>
+                                                                                                    {provider.firstName[0]}{provider.lastName[0]}
+                                                                                                </AvatarFallback>
+                                                                                            </Avatar>
+                                                                                            {provider.isVerified && (
+                                                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                                    <CheckCircle className="w-4 h-4 text-white" />
+                                                                                                </div>
+                                                                                            )}
                                                                                         </div>
-                                                                                    )}
-                                                                                </div>
 
-                                                                                <div className="flex-1">
-                                                                                    <div className="flex items-center space-x-2 mb-2">
-                                                                                        <h3 className="text-lg font-semibold">
-                                                                                            {provider.firstName} {provider.lastName}
-                                                                                        </h3>
-                                                                                        {provider.isVerified && (
-                                                                                            <CheckCircle className="w-4 h-4 text-green-500" />
-                                                                                        )}
-                                                                                        <Badge className={
-                                                                                            skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                            'bg-blue-100 text-blue-800'
-                                                                                        }>
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
-                                                                                        </Badge>
-                                                                                    </div>
-                                                                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                        <Badge className="bg-green-100 text-green-800">
-                                                                                            {provider.matchScore}% potrivire
-                                                                                        </Badge>
-                                                                                        {provider.isVerified && (
-                                                                                            <Badge className="bg-blue-100 text-blue-800">
-                                                                                                Verificat
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                                            <span className="font-medium">{provider.rating}</span>
-                                                                                            <span>({provider.reviewCount} recenzii)</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <MapPin className="w-4 h-4" />
-                                                                                            <span>{provider.location}</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <Clock className="w-4 h-4" />
-                                                                                            <span>Răspuns în {provider.responseTime} {provider.responseTime === "1" ? 'oră' : 'ore'}</span>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <div className="flex flex-wrap gap-1 mb-3">
-                                                                                        {provider.skills.map((skill, index) =>
-                                                                                            index < 4 ? (
-                                                                                                <Badge key={skill} variant="outline" className="text-xs">
-                                                                                                    {skill}
+                                                                                        <div className="flex-1">
+                                                                                            <div className="flex items-center space-x-2 mb-2">
+                                                                                                <h3 className="text-lg font-semibold">
+                                                                                                    {provider.firstName} {provider.lastName}
+                                                                                                </h3>
+                                                                                                {provider.isVerified && (
+                                                                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                                                                )}
+                                                                                                <Badge className={
+                                                                                                    skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                                    'bg-blue-100 text-blue-800'
+                                                                                                }>
+                                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
                                                                                                 </Badge>
-                                                                                            ) : null
-                                                                                        )}
-                                                                                        {provider.skills.length > 4 && (
-                                                                                            <Badge variant="outline" className="text-xs">
-                                                                                                +{provider.skills.length - 4}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
 
-                                                                                    <div className="space-y-1">
-                                                                                        {/*<div className="text-sm font-medium text-green-600">*/}
-                                                                                        {/*    De ce este potrivit:*/}
-                                                                                        {/*</div>*/}
-                                                                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                                                            {/* Coloana 1: Passed */}
-                                                                                            <div>
-                                                                                                <h4 className="text-sm font-medium text-green-600 mb-2">De ce este potrivit:</h4>
-                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                    {passedReasons.map((reason, index) => (
-                                                                                                        <li key={`passed-${index}`} className="flex items-center space-x-2">
-                                                                                                            <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                                            <span className="text-green-600">{reason.message}</span>
-                                                                                                        </li>
-                                                                                                    ))}
-                                                                                                </ul>
+                                                                                                <Badge className={`${availabilityStatus.color}`}>
+                                                                                                    {
+                                                                                                        (() => {
+                                                                                                            const Icon = availabilityStatus.icon;
+                                                                                                            return <Icon className="mr-1 w-4 h-4" />;
+                                                                                                        })()
+                                                                                                    }
+                                                                                                    {availabilityStatus.label}
+                                                                                                </Badge>
+
+                                                                                            </div>
+                                                                                            <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+                                                                                                <Badge className="bg-green-100 text-green-800">
+                                                                                                    {t('projects.new.providers.match_score', { score: provider.matchScore })}
+                                                                                                </Badge>
+                                                                                                {provider.isVerified && (
+                                                                                                    <Badge className="bg-blue-100 text-blue-800">
+                                                                                                        {t('projects.new.providers.verified')}
+                                                                                                    </Badge>
+                                                                                                )}
                                                                                             </div>
 
-                                                                                            {/* Coloana 2: Nepotriviri */}
-                                                                                            <div>
-                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                    {failedReasons.map((reason, index) => (
-                                                                                                        <li key={`failed-${index}`} className="flex items-center space-x-2">
-                                                                                                            <BadgeAlert className="w-3 h-3 text-red-500" />
-                                                                                                            <span className="text-red-600">{reason.message}</span>
-                                                                                                        </li>
-                                                                                                    ))}
-                                                                                                </ul>
+                                                                                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                                                                                                <div className="flex items-center space-x-1">
+                                                                                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                                                                    <span className="font-medium">{provider.rating}</span>
+                                                                                                    <span>({t('projects.new.providers.reviews', { count: provider.reviewCount })})</span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center space-x-1">
+                                                                                                    <MapPin className="w-4 h-4" />
+                                                                                                    <span>{provider.location}</span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center space-x-1">
+                                                                                                    <Clock className="w-4 h-4" />
+                                                                                                    <span>
+                                                                                                        {t('projects.new.providers.response_time', {
+                                                                                                            time: provider.responseTime,
+                                                                                                            unit: provider.responseTime === "1"
+                                                                                                                ? t('projects.new.providers.hour_singular')
+                                                                                                                : t('projects.new.providers.hour_plural'),
+                                                                                                        })}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                                                                {provider.skills.map((skill, index) =>
+                                                                                                    index < 4 ? (
+                                                                                                        <Badge key={skill} variant="outline" className="text-xs">
+                                                                                                            {skill}
+                                                                                                        </Badge>
+                                                                                                    ) : null
+                                                                                                )}
+                                                                                                {provider.skills.length > 4 && (
+                                                                                                    <Badge variant="outline" className="text-xs">
+                                                                                                        +{provider.skills.length - 4}
+                                                                                                    </Badge>
+                                                                                                )}
+                                                                                            </div>
+
+                                                                                            <div className="space-y-1">
+                                                                                                {/*<div className="text-sm font-medium text-green-600">*/}
+                                                                                                {/*    De ce este potrivit:*/}
+                                                                                                {/*</div>*/}
+                                                                                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                                                                    {/* Coloana 1: Passed */}
+                                                                                                    <div>
+                                                                                                        <h4 className="text-sm font-medium text-green-600 mb-2">{t('projects.new.providers.why_fit')}</h4>
+                                                                                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                            {passedReasons.map((reason, index) => (
+                                                                                                                <li key={`passed-${index}`} className="flex items-center space-x-2">
+                                                                                                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                                                                    <span className="text-green-600">{reason.message}</span>
+                                                                                                                </li>
+                                                                                                            ))}
+                                                                                                        </ul>
+                                                                                                    </div>
+
+                                                                                                    {/* Coloana 2: Nepotriviri */}
+                                                                                                    <div>
+                                                                                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                                                                                            {failedReasons.map((reason, index) => (
+                                                                                                                <li key={`failed-${index}`} className="flex items-center space-x-2">
+                                                                                                                    <BadgeAlert className="w-3 h-3 text-red-500" />
+                                                                                                                    <span className="text-red-600">{reason.message}</span>
+                                                                                                                </li>
+                                                                                                            ))}
+                                                                                                        </ul>
+                                                                                                    </div>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            </div>
 
-                                                                            <div className="text-right space-y-2">
-                                                                                {/*<div className="text-sm text-muted-foreground">*/}
-                                                                                {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                                {/*</div>*/}
-                                                                                {/*<div className="text-sm">*/}
-                                                                                {/*    <div className="flex items-center space-x-1 justify-end">*/}
-                                                                                {/*        <Calendar className="w-3 h-3" />*/}
-                                                                                {/*        <span>{provider.deliveryTime} zile</span>*/}
-                                                                                {/*    </div>*/}
-                                                                                {/*</div>*/}
+                                                                                    <div className="text-right space-y-2">
+                                                                                        {/*<div className="text-sm text-muted-foreground">*/}
+                                                                                        {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
+                                                                                        {/*</div>*/}
+                                                                                        {/*<div className="text-sm">*/}
+                                                                                        {/*    <div className="flex items-center space-x-1 justify-end">*/}
+                                                                                        {/*        <Calendar className="w-3 h-3" />*/}
+                                                                                        {/*        <span>{provider.deliveryTime} zile</span>*/}
+                                                                                        {/*    </div>*/}
+                                                                                        {/*</div>*/}
 
-                                                                                <div className={`flex items-center justify-end space-x-2 mb-3`}>
-                                                                                    <Badge className={`${getAvailabilityStatus(provider.availability).color}`}>
-                                                                                        {
-                                                                                            (() => {
-                                                                                                const Icon = getAvailabilityStatus(provider.availability).icon;
-                                                                                                return <Icon className="mr-1 w-4 h-4" />;
-                                                                                            })()
-                                                                                        }
-                                                                                        {provider.availability}
-                                                                                    </Badge>
+                                                                                        <div className="text-xs text-muted-foreground">
+                                                                                            {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
+                                                                                        </div>
 
-                                                                                </div>
-                                                                                <div className="text-xs text-muted-foreground">
-                                                                                    Activ {getLastActiveText(provider.lastActive)}
-                                                                                </div>
+                                                                                        <div className="flex space-x-2 mt-4">
+                                                                                            <a href={`/provider/${provider.profileUrl}`} target="_blank"
+                                                                                                className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                                                                                            >
+                                                                                                <Eye className="w-3 h-3 mr-1" />
+                                                                                                {t('projects.new.providers.profile')}
+                                                                                            </a>
+                                                                                            {/*<a*/}
+                                                                                            {/*    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"*/}
+                                                                                            {/*>*/}
+                                                                                            {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
+                                                                                            {/*    {t('projects.new.providers.message')}*/}
+                                                                                            {/*</a>*/}
+                                                                                        </div>
 
-                                                                                <div className="flex space-x-2 mt-4">
-                                                                                    <a href={`/provider/${provider.profileUrl}`} target="_blank"
-                                                                                       className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                    >
-                                                                                        <Eye className="w-3 h-3 mr-1" />
-                                                                                        Profil
-                                                                                    </a>
-                                                                                    <a
-                                                                                        className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                    >
-                                                                                        <MessageSquare className="w-3 h-3 mr-1" />
-                                                                                        Mesaj
-                                                                                    </a>
+                                                                                    </div>
                                                                                 </div>
 
-                                                                            </div>
-                                                                        </div>
-
-                                                                    </CardContent>
-                                                                </Card>
-                                                            );})}
-                                                    </div>
-
-                                                    {/* Pagination */}
-                                                    {totalPages > 1 && (
-                                                        <div className="flex items-center justify-between pt-6 border-t">
-                                                            <div className="text-sm text-muted-foreground">
-                                                                Afișând {indexOfFirstProvider + 1}-{Math.min(indexOfLastProvider, filteredProviders.length)} din {filteredProviders.length} prestatori
+                                                                            </CardContent>
+                                                                        </Card>
+                                                                    );
+                                                                })}
                                                             </div>
 
+                                                            {/* Pagination */}
+                                                            {totalPages > 1 && (
+                                                                <div className="flex items-center justify-between pt-6 border-t">
+                                                                    <div className="text-sm text-muted-foreground">
+                                                                        {t('projects.new.providers.pagination', {
+                                                                            start: indexOfFirstProvider + 1,
+                                                                            end: Math.min(indexOfLastProvider, filteredProviders.length),
+                                                                            total: filteredProviders.length,
+                                                                        })}
+                                                                    </div>
+
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handlePageChange(currentPage - 1)}
+                                                                            disabled={currentPage === 1}
+                                                                            className="flex items-center space-x-1"
+                                                                        >
+                                                                            <ArrowLeft className="w-4 h-4" />
+                                                                            <span>{t('projects.new.pagination.previous')}</span>
+                                                                        </Button>
+
+                                                                        <div className="flex items-center space-x-1">
+                                                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                                                                // Show first page, last page, current page, and pages around current
+                                                                                const showPage = page === 1 ||
+                                                                                    page === totalPages ||
+                                                                                    Math.abs(page - currentPage) <= 1;
+
+                                                                                if (!showPage && page === 2 && currentPage > 4) {
+                                                                                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                                                                                }
+
+                                                                                if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
+                                                                                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                                                                                }
+
+                                                                                if (!showPage) return null;
+
+                                                                                return (
+                                                                                    <Button
+                                                                                        key={page}
+                                                                                        variant={currentPage === page ? "default" : "outline"}
+                                                                                        size="sm"
+                                                                                        onClick={() => handlePageChange(page)}
+                                                                                        className="w-8 h-8 p-0"
+                                                                                    >
+                                                                                        {page}
+                                                                                    </Button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handlePageChange(currentPage + 1)}
+                                                                            disabled={currentPage === totalPages}
+                                                                            className="flex items-center space-x-1"
+                                                                        >
+                                                                            <span>{t('projects.new.pagination.next')}</span>
+                                                                            <ArrowRight className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {selectedProviders.length > 0 && (
+                                                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                                                    <div className="flex items-center space-x-2 mb-2">
+                                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                                        <span className="font-medium text-green-800 dark:text-green-200">
+                                                            {t('projects.new.providers.selected_count', {
+                                                                count: selectedProviders.length,
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-green-700 dark:text-green-300">
+                                                        {t('projects.new.providers.selected_message')}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <div className="flex justify-between">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setActiveTab('details')}
+                                        >
+                                            {t('projects.new.actions.back_to_details')}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() => setActiveTab('review')}
+                                            disabled={selectedProviders.length === 0}
+                                            className="btn-primary px-8"
+                                        >
+                                            {t('projects.new.actions.review_final')}
+                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+
+                                {/* Revizuire și Trimitere */}
+                                <TabsContent value="review" className="space-y-6">
+                                    <Card className="glass-card shadow-sm">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center space-x-2">
+                                                <Target className="w-5 h-5" />
+                                                <span>{t('projects.new.review.title')}</span>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {t('projects.new.review.subtitle')}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            {/* Rezumat proiect */}
+                                            <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
+
+                                                            {/*<div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData*/}
+                                                            {/*    ?.flatMap((c: any) => [c, ...(c.children || [])]) */}
+                                                            {/*    .find((c: any) => String(c.id) === String(formData.serviceId)) // Căutăm ID-ul (convertit la string)*/}
+                                                            {/*    ?.name}</div>*/}
+                                                            <div>
+                                                                <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
+                                                                <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
+                                                            </div>
+                                                            <div>
+                                                                <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
+                                                                <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? 150 : Number(formData.budget ?? 0) * 0.10} />
+                                                            </div>
+                                                            <div>
+                                                                <strong>{t('projects.new.review.labels.total')}</strong>{' '}
+                                                                <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? Number(formData.budget ?? 0) + 150 : Number(formData.budget ?? 0) * 1.10} />
+                                                            </div>
+                                                            {formData.deadline && (
+                                                                <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
+                                                            )}
+                                                            {/*<div>*/}
+                                                            {/*    <strong>Tip proiect:</strong>*/}
+                                                            {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
+                                                            {/*        {formData.visibility}*/}
+                                                            {/*    </Badge>*/}
+                                                            {/*</div>*/}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">{t('projects.new.review.technologies_title', { count: formData.technologies.length })}</h4>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {formData.technologies.map((tech) => (
+                                                                <Badge key={tech.id} variant="outline" className="text-xs">
+                                                                    {tech.name}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <h3 className="text-lg font-semibold">{t('projects.new.review.selected_providers_title', { count: selectedProviders.length })}</h3>
                                                             <div className="flex items-center space-x-2">
                                                                 <Button
+                                                                    type="button"
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    onClick={() => handlePageChange(currentPage - 1)}
-                                                                    disabled={currentPage === 1}
-                                                                    className="flex items-center space-x-1"
+                                                                    onClick={redistributeBudget}
+                                                                    disabled={selectedProviders.length === 0}
                                                                 >
-                                                                    <ArrowLeft className="w-4 h-4" />
-                                                                    <span>Anterior</span>
+                                                                    <DollarSign className="w-4 h-4 mr-1" />
+                                                                    {t('projects.new.review.split_evenly')}
                                                                 </Button>
+                                                            </div>
+                                                        </div>
 
-                                                                <div className="flex items-center space-x-1">
-                                                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                                                                        // Show first page, last page, current page, and pages around current
-                                                                        const showPage = page === 1 ||
-                                                                            page === totalPages ||
-                                                                            Math.abs(page - currentPage) <= 1;
+                                                        {/* Budget Summary */}
+                                                        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                                                            <CardContent className="p-4">
+                                                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                                                    <div>
+                                                                        <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
+                                                                        <div className="text-lg font-bold text-blue-600">
+                                                                            <PriceDisplay value={Number(formData.budget)} />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
+                                                                        <div className="text-lg font-bold text-green-600">
+                                                                            <PriceDisplay value={getTotalAllocatedBudget()} />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
+                                                                        <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                                                            <PriceDisplay value={getRemainingBudget()} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {getRemainingBudget() !== 0 && (
+                                                                    <Alert className="mt-3 border-orange-200 bg-orange-50">
+                                                                        <AlertCircle className="h-4 w-4" />
+                                                                        <AlertDescription className="text-orange-800">
+                                                                            {getRemainingBudget() > 0
+                                                                                ? (
+                                                                                    <>
+                                                                                        {t('projects.new.review.budget_remaining_positive')}{' '}
+                                                                                        <PriceDisplay value={getRemainingBudget()} />
+                                                                                    </>
+                                                                                )
+                                                                                : (
+                                                                                    <>
+                                                                                        {t('projects.new.review.budget_remaining_negative')}{' '}
+                                                                                        <PriceDisplay value={Math.abs(getRemainingBudget())} />
+                                                                                    </>
+                                                                                )
+                                                                            }
+                                                                        </AlertDescription>
+                                                                    </Alert>
+                                                                )}
+                                                            </CardContent>
+                                                        </Card>
 
-                                                                        if (!showPage && page === 2 && currentPage > 4) {
-                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                        }
-
-                                                                        if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
-                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                        }
-
-                                                                        if (!showPage) return null;
+                                                        {isLongProject && (
+                                                            <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
+                                                                <CardHeader>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div>
+                                                                            <CardTitle className="text-base">{t('projects.new.review.milestones.title')}</CardTitle>
+                                                                            <CardDescription>
+                                                                                {t('projects.new.review.milestones.description')}
+                                                                            </CardDescription>
+                                                                        </div>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={applyAiMilestonesToProviders}
+                                                                            disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
+                                                                        >
+                                                                            <AutoAwesomeIcon className="w-4 h-4 mr-2" />
+                                                                            {t('projects.new.review.milestones.apply_ai')}
+                                                                        </Button>
+                                                                    </div>
+                                                                </CardHeader>
+                                                                <CardContent className="space-y-4">
+                                                                    {selectedProviders.map((selectedProvider) => {
+                                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                                        const milestones = providerMilestones[selectedProvider.id] ?? [];
 
                                                                         return (
-                                                                            <Button
-                                                                                key={page}
-                                                                                variant={currentPage === page ? "default" : "outline"}
-                                                                                size="sm"
-                                                                                onClick={() => handlePageChange(page)}
-                                                                                className="w-8 h-8 p-0"
-                                                                            >
-                                                                                {page}
-                                                                            </Button>
+                                                                            <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="font-medium">
+                                                                                        {provider ? `${provider.firstName} ${provider.lastName}` : t('projects.new.review.milestones.provider_fallback', { id: selectedProvider.id })}
+                                                                                    </div>
+                                                                                    <Button
+                                                                                        type="button"
+                                                                                        variant="outline"
+                                                                                        size="sm"
+                                                                                        onClick={() => addProviderMilestone(selectedProvider.id)}
+                                                                                    >
+                                                                                        <Plus className="w-4 h-4 mr-2" />
+                                                                                        {t('projects.new.review.milestones.add')}
+                                                                                    </Button>
+                                                                                </div>
+                                                                                {milestones.length === 0 ? (
+                                                                                    <div className="text-sm text-muted-foreground">
+                                                                                        {t('projects.new.review.milestones.empty')}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="space-y-3">
+                                                                                        {milestones.map((milestone, index) => (
+                                                                                            <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
+                                                                                                <div>
+                                                                                                    <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>{t('projects.new.review.milestones.name_label')}</Label>
+                                                                                                    <Input
+                                                                                                        id={`provider-${selectedProvider.id}-milestone-title-${index}`}
+                                                                                                        value={milestone.title}
+                                                                                                        onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
+                                                                                                        placeholder={t('projects.new.review.milestones.name_placeholder')}
+                                                                                                    />
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label')}</Label>
+                                                                                                    <Input
+                                                                                                        id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
+                                                                                                        type="number"
+                                                                                                        min="0"
+                                                                                                        value={milestone.amount}
+                                                                                                        onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
+                                                                                                        placeholder={t('projects.new.review.milestones.budget_placeholder')}
+                                                                                                    />
+                                                                                                </div>
+                                                                                                <Button
+                                                                                                    type="button"
+                                                                                                    variant="ghost"
+                                                                                                    size="icon"
+                                                                                                    onClick={() => removeProviderMilestone(selectedProvider.id, index)}
+                                                                                                    aria-label={t('projects.new.review.milestones.delete_aria')}
+                                                                                                >
+                                                                                                    <X className="w-4 h-4" />
+                                                                                                </Button>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="text-sm text-muted-foreground">
+                                                                                    {t('projects.new.review.milestones.total_provider')}{' '}
+                                                                                    <PriceDisplay value={milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0)} />
+                                                                                </div>
+                                                                            </div>
                                                                         );
                                                                     })}
-                                                                </div>
 
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handlePageChange(currentPage + 1)}
-                                                                    disabled={currentPage === totalPages}
-                                                                    className="flex items-center space-x-1"
-                                                                >
-                                                                    <span>Următor</span>
-                                                                    <ArrowRight className="w-4 h-4" />
-                                                                </Button>
-                                                            </div>
+                                                                    {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
+                                                                        <div className="text-sm text-red-500">
+                                                                            {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="text-sm text-muted-foreground">
+                                                                        {t('projects.new.review.milestones.summary_total')}{' '}
+                                                                        <PriceDisplay value={getMilestoneTotal()} />{' '}
+                                                                        •{' '}
+                                                                        {t('projects.new.review.milestones.summary_difference')}{' '}
+                                                                        <PriceDisplay value={Number(formData.budget || 0) - getMilestoneTotal()} />
+                                                                    </div>
+                                                                </CardContent>
+                                                            </Card>
+                                                        )}
+
+                                                        <div className="space-y-3">
+                                                            {selectedProviders.map(selectedProvider => {
+                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
+                                                                if (!provider) return null;
+
+                                                                return (
+                                                                    <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                                                                        <div className="flex items-center space-x-3">
+                                                                            <Avatar className="w-10 h-10">
+                                                                                <AvatarImage src={provider.avatar} />
+                                                                                <AvatarFallback className="text-xs">
+                                                                                    {provider.firstName[0]}{provider.lastName[0]}
+                                                                                </AvatarFallback>
+                                                                            </Avatar>
+                                                                            <div className="flex-1">
+                                                                                <div className="font-medium text-sm">
+                                                                                    {provider.firstName} {provider.lastName}
+                                                                                    <Badge className={
+                                                                                        skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
+                                                                                        'bg-blue-100 text-blue-800'
+                                                                                    }>
+                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
+                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
+                                                                                    </Badge>
+                                                                                </div>
+                                                                                <div className="text-xs text-muted-foreground">
+                                                                                    {t('projects.new.review.match_score', { score: provider.matchScore })}
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-1 mb-3">
+                                                                                    {provider.skills.map((skill, index) =>
+                                                                                        index < 4 ? (
+                                                                                            <Badge key={skill} variant="outline" className="text-xs">
+                                                                                                {skill}
+                                                                                            </Badge>
+                                                                                        ) : null
+                                                                                    )}
+                                                                                    {provider.skills.length > 4 && (
+                                                                                        <Badge variant="outline" className="text-xs">
+                                                                                            +{provider.skills.length - 4}
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="mt-3 flex items-center justify-between">
+                                                                            <div className="flex items-center space-x-3">
+                                                                                <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
+                                                                                    {t('projects.new.review.allocated_budget_label')}
+                                                                                </Label>
+                                                                                <div className="flex items-center space-x-2">
+                                                                                    <Input
+                                                                                        id={`budget-${selectedProvider.id}`}
+                                                                                        type="number"
+                                                                                        value={providerBudgets[selectedProvider.id] || 0}
+                                                                                        onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
+                                                                                        className="w-32"
+                                                                                        min="0"
+                                                                                        max={Number(formData.budget)}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
+                                                                            >
+                                                                                <X className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {selectedProviders.length > 0 && (
-                                        <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                                <span className="font-medium text-green-800 dark:text-green-200">
-                          {selectedProviders.length} prestatori selectați
-                        </span>
-                                            </div>
-                                            <p className="text-sm text-green-700 dark:text-green-300">
-                                                Proiectul va fi trimis către prestatorii selectați și vei primi oferte în curând.
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setActiveTab('details')}
-                                >
-                                    Înapoi la Detalii
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={() => setActiveTab('review')}
-                                    disabled={selectedProviders.length === 0}
-                                    className="px-8"
-                                >
-                                    Revizuire Finală
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </TabsContent>
-
-                        {/* Revizuire și Trimitere */}
-                        <TabsContent value="review" className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Target className="w-5 h-5" />
-                                        <span>Revizuire Proiect</span>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Verifică toate detaliile înainte de a trimite proiectul
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Rezumat proiect */}
-                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <h4 className="font-semibold mb-2">Detalii Proiect</h4>
-                                                <div className="space-y-2 text-sm">
-                                                    <div><strong>Titlu:</strong> {formData.title}</div>
-                                                    <div><strong>Categorie:</strong> {categoriesData?.find((c: { id: string; name: string }) => c.id === formData.serviceId)?.name}</div>
-                                                    <div><strong>Buget:</strong> {formData.budget} RON ({getBudgetTypeLabel(formData.budgetType)})</div>
-                                                    {formData.deadline && (
-                                                        <div><strong>Deadline:</strong> {formatDeadline(formData.deadline)}</div>
-                                                    )}
-                                                    {/*<div>*/}
-                                                    {/*    <strong>Tip proiect:</strong>*/}
-                                                    {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
-                                                    {/*        {formData.visibility}*/}
-                                                    {/*    </Badge>*/}
-                                                    {/*</div>*/}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <h4 className="font-semibold mb-2">Tehnologii ({formData.technologies.length})</h4>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {formData.technologies.map((tech) => (
-                                                        <Badge key={tech.id} variant="outline" className="text-xs">
-                                                            {tech.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-semibold">Prestatori Selectați ({selectedProviders.length})</h3>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={redistributeBudget}
-                                                            disabled={selectedProviders.length === 0}
-                                                        >
-                                                            <DollarSign className="w-4 h-4 mr-1" />
-                                                            Împarte Egal
-                                                        </Button>
                                                     </div>
                                                 </div>
+                                            </div>
 
-                                                {/* Budget Summary */}
-                                                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-                                                    <CardContent className="p-4">
-                                                        <div className="grid grid-cols-3 gap-4 text-sm">
-                                                            <div>
-                                                                <div className="font-medium text-blue-900 dark:text-blue-100">Buget Total</div>
-                                                                <div className="text-lg font-bold text-blue-600">{Number(formData.budget).toLocaleString()} RON</div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-green-900 dark:text-green-100">Alocat</div>
-                                                                <div className="text-lg font-bold text-green-600">{getTotalAllocatedBudget().toLocaleString()} RON</div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-orange-900 dark:text-orange-100">Rămas</div>
-                                                                <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                                                    {getRemainingBudget().toLocaleString()} RON
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        {getRemainingBudget() !== 0 && (
-                                                            <Alert className="mt-3 border-orange-200 bg-orange-50">
-                                                                <AlertCircle className="h-4 w-4" />
-                                                                <AlertDescription className="text-orange-800">
-                                                                    {getRemainingBudget() > 0
-                                                                        ? `Mai ai ${getRemainingBudget().toLocaleString()} RON de alocat`
-                                                                        : `Ai depășit bugetul cu ${Math.abs(getRemainingBudget()).toLocaleString()} RON`
-                                                                    }
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
-
-                                                <div className="space-y-3">
-                                                    {selectedProviders.map(selectedProvider => {
-                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                        if (!provider) return null;
-
-                                                        return (
-                                                            <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <Avatar className="w-10 h-10">
-                                                                        <AvatarImage src={provider.avatar} />
-                                                                        <AvatarFallback className="text-xs">
-                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <div className="flex-1">
-                                                                        <div className="font-medium text-sm">
-                                                                            {provider.firstName} {provider.lastName}
-                                                                            <Badge className={
-                                                                                skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                'bg-blue-100 text-blue-800'
-                                                                            }>
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || 'Mediu'}
-                                                                            </Badge>
-                                                                        </div>
-                                                                        <div className="text-xs text-muted-foreground">
-                                                                            • {provider.matchScore}% potrivire
-                                                                        </div>
-                                                                        <div className="flex flex-wrap gap-1 mb-3">
-                                                                            {provider.skills.map((skill, index) =>
-                                                                                index < 4 ? (
-                                                                                    <Badge key={skill} variant="outline" className="text-xs">
-                                                                                        {skill}
-                                                                                    </Badge>
-                                                                                ) : null
-                                                                            )}
-                                                                            {provider.skills.length > 4 && (
-                                                                                <Badge variant="outline" className="text-xs">
-                                                                                    +{provider.skills.length - 4}
-                                                                                </Badge>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-3 flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-3">
-                                                                        <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
-                                                                            Buget alocat:
-                                                                        </Label>
-                                                                        <div className="flex items-center space-x-2">
-                                                                            <Input
-                                                                                id={`budget-${selectedProvider.id}`}
-                                                                                type="number"
-                                                                                value={providerBudgets[selectedProvider.id] || 0}
-                                                                                onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
-                                                                                className="w-32"
-                                                                                min="0"
-                                                                                max={Number(formData.budget)}
-                                                                            />
-                                                                            <span className="text-sm text-muted-foreground">RON</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
-                                                                    >
-                                                                        <X className="w-4 h-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                            <div>
+                                                <h4 className="font-semibold mb-2">{t('projects.new.review.description_title')}</h4>
+                                                <div className="bg-muted p-4 rounded-lg text-sm">
+                                                    {formData.description}
                                                 </div>
                                             </div>
-                                        </div>
+
+                                            {formData.requirements && (
+                                                <div>
+                                                    <h4 className="font-semibold mb-2">{t('projects.new.review.requirements_title')}</h4>
+                                                    <div className="bg-muted p-4 rounded-lg text-sm">
+                                                        {formData.requirements}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <div className="flex justify-between">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setActiveTab('providers')}
+                                        >
+                                            {t('projects.new.actions.back_to_providers')}
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={submitting || getRemainingBudget() !== 0}
+                                            className="btn-primary px-8"
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    {t('projects.new.actions.submitting')}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Zap className="w-4 h-4 mr-2" />
+                                                    {t('projects.new.actions.submit_project')}
+                                                </>
+                                            )}
+                                        </Button>
                                     </div>
-
-                                    <div>
-                                        <h4 className="font-semibold mb-2">Descriere</h4>
-                                        <div className="bg-muted p-4 rounded-lg text-sm">
-                                            {formData.description}
-                                        </div>
-                                    </div>
-
-                                    {formData.requirements && (
-                                        <div>
-                                            <h4 className="font-semibold mb-2">Cerințe Specifice</h4>
-                                            <div className="bg-muted p-4 rounded-lg text-sm">
-                                                {formData.requirements}
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setActiveTab('providers')}
-                                >
-                                    Înapoi la Prestatori
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={submitting || getRemainingBudget() !== 0}
-                                    className="px-8"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Se trimite...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Zap className="w-4 h-4 mr-2" />
-                                            Trimite Proiectul
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                </form>
-            </div>
+                                </TabsContent>
+                            </Tabs>
+                        </form>
+                    </div>
+                </section>
+            </main>
 
             <Footer />
         </div>

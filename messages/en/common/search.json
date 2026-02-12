@@ -1,0 +1,25 @@
+{
+  "search_placeholder": "Search for services, technologies, or experts... (e.g., React development, logo design, SEO)",
+  "search_placeholder_aria_label": "Search for IT services, technologies, or experts",
+  "search_now": "Search Now",
+  "search_now_aria_label": "Start searching for IT services",
+  "popular": "Popular",
+  "search_services_for": "Search services for",
+  "search_bar": {
+    "placeholder": "Search for services, experts, or categories...",
+    "search_button": "Search",
+    "loading_suggestions": "Loading suggestions...",
+    "suggestions_title": "Suggestions",
+    "recent_searches_title": "Recent searches",
+    "clear_recent_searches": "Clear all",
+    "trending_title": "Popular searches",
+    "no_suggestions": "We couldn't find suggestions for \"{query}\"",
+    "trending_defaults": {
+      "web_development": "Website development",
+      "logo_design": "Logo design",
+      "seo": "SEO",
+      "mobile_app": "Mobile app",
+      "digital_marketing": "Digital marketing"
+    }
+  }
+}

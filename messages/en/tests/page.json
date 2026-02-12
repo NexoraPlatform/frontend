@@ -1,0 +1,76 @@
+{
+    "dashboard": {
+        "title": "Competency Tests",
+        "subtitle": "Demonstrate your expertise and get certified to offer services on the platform. Each test validates your knowledge in that domain.",
+        "loading": "Loading...",
+        "provider_only": "Only providers can access competency tests.",
+        "progress": {
+            "title": "Your Progress",
+            "completed": "You completed {completed} of {total} available tests"
+        },
+        "in_progress": {
+            "title": "Test in progress...",
+            "description": "The test for {category} is in progress.",
+            "cancel": "Cancel"
+        },
+        "categories": {
+            "difficulty": "Difficulty",
+            "duration": "{minutes} minutes",
+            "questions": "{count} questions",
+            "passing_score": "Passing score: {score}%",
+            "certification": "Certification",
+            "start_button": "Start Test",
+            "locked": "Locked",
+            "completed": "Test successfully completed",
+            "certificate": "Certificate Obtained",
+            "requires_previous": "Requires previous certifications"
+        },
+        "info": {
+            "title": "How testing works?",
+            "items": {
+                "mandatory": "Tests are mandatory to offer services in respective categories",
+                "content": "Each test contains practical and theoretical questions",
+                "pass_score": "Passing score varies based on category difficulty",
+                "validity": "Certifications are valid for 2 years and can be renewed",
+                "retake": "You can retake the test after 30 days if you don't pass"
+            }
+        }
+    },
+    "schedule": {
+        "loading": "Loading...",
+        "welcome": "Welcome, {name}!",
+        "description": "Schedule a 1:1 call with a Trustora operator"
+    },
+    "metadata": {
+        "web_development": {
+            "name": "Web Development",
+            "description": "HTML, CSS, JavaScript, React, Vue, Angular, Node.js"
+        },
+        "mobile_development": {
+            "name": "Mobile Development",
+            "description": "React Native, Flutter, iOS, Android, Kotlin, Swift"
+        },
+        "ui_ux_design": {
+            "name": "UI/UX Design",
+            "description": "Figma, Adobe XD, Sketch, Design Principles, UX Research"
+        },
+        "digital_marketing": {
+            "name": "Digital Marketing",
+            "description": "SEO, SEM, Social Media, Google Analytics, Facebook Ads"
+        },
+        "database_admin": {
+            "name": "Database Administration",
+            "description": "MySQL, PostgreSQL, MongoDB, Redis, Optimization"
+        },
+        "cybersecurity": {
+            "name": "Cybersecurity",
+            "description": "Penetration Testing, OWASP, Cryptography, Network Security"
+        },
+        "difficulty": {
+            "beginner": "Beginner",
+            "intermediate": "Intermediate",
+            "advanced": "Advanced",
+            "expert": "Expert"
+        }
+    }
+}

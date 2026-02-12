@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import {AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus, Verified} from 'lucide-react';
+import { Link } from '@/lib/navigation';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, UserPlus, Verified } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,20 +14,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import apiClient from '@/lib/api';
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTranslations } from 'next-intl';
 
 type PermissionState = {
     [slug: string]: { id: number; name: string; allowed: boolean };
 };
 
 export default function AdminCard({
-                                      formData,
-                                      setFormDataAction,
-                                      permissions,
-                                      submitAction,      // <- submit comes from parent
-                                      loading = false,   // <- UI state from parent
-                                      error = '',
-                                  }: {
+    formData,
+    setFormDataAction,
+    permissions,
+    submitAction,      // <- submit comes from parent
+    loading = false,   // <- UI state from parent
+    error = '',
+}: {
     formData: any;
     setFormDataAction: React.Dispatch<React.SetStateAction<any>>;
     permissions: any[];
@@ -40,12 +41,30 @@ export default function AdminCard({
     const [permissionModalOpen, setPermissionModalOpen] = useState(false);
     const [selectedPermissions, setSelectedPermissions] = useState<PermissionState>({});
     const hasInitializedPermissions = useRef(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [imageSrc, setImageSrc] = useState<string | null>(null);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
-    const [showCrop, setShowCrop] = useState(false);
-    const [crop, setCrop] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(1);
+    const t = useTranslations();
+    const editAdminSubtitle = t('admin.users.edit.admin.subtitle');
+    const adminInfoTitle = t('admin.users.edit.admin.info_title');
+    const adminInfoDescription = t('admin.users.edit.admin.info_description');
+    const firstNameLabel = t('admin.users.edit.admin.first_name_label');
+    const lastNameLabel = t('admin.users.edit.admin.last_name_label');
+    const emailLabel = t('admin.users.edit.admin.email_label');
+    const roleLabel = t('admin.users.edit.admin.role_label');
+    const phoneLabel = t('admin.users.edit.admin.phone_label');
+    const roleClient = t('admin.users.roles.CLIENT');
+    const roleProvider = t('admin.users.roles.PROVIDER');
+    const roleAdmin = t('admin.users.roles.ADMIN');
+    const changePassword = t('admin.users.edit.admin.change_password');
+    const passwordOptional = t('admin.users.edit.admin.password_optional');
+    const passwordLabel = t('admin.users.edit.admin.password_label');
+    const confirmPasswordLabel = t('admin.users.edit.admin.confirm_password_label');
+    const savingLabel = t('admin.users.edit.admin.saving');
+    const saveAdminLabel = t('admin.users.edit.admin.save_admin');
+    const permissionsLabel = t('admin.users.edit.admin.permissions');
+    const editPermissionsLabel = t('admin.users.edit.admin.edit_permissions');
+    const selectPermissionsLabel = t('admin.users.edit.admin.select_permissions');
+    const noPermissionsSelected = t('admin.users.edit.admin.no_permission_selected');
+    const allowLabel = t('admin.users.edit.admin.allow');
+    const denyLabel = t('admin.users.edit.admin.deny');
 
     useEffect(() => {
         if (hasInitializedPermissions.current) return;
@@ -133,6 +152,7 @@ export default function AdminCard({
             setFormDataAction((prev: any) => ({ ...prev, user_permissions: prevSelected }));
         }
     };
+    //user?.roles?.some((r: any) => r.slug?.toLowerCase() === 'admin')
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -145,9 +165,9 @@ export default function AdminCard({
                 </Link>
                 <div>
                     <h1 className="text-3xl font-bold">
-                        Modifica Adminul {formData.firstName} {formData.lastName}
+                        {t('admin.users.edit.admin.title', { name: `${formData.firstName} ${formData.lastName}` })}
                     </h1>
-                    <p className="text-muted-foreground">Modifica contul pentru un administrator existent</p>
+                    <p className="text-muted-foreground">{editAdminSubtitle}</p>
                 </div>
             </div>
 
@@ -175,9 +195,9 @@ export default function AdminCard({
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <UserPlus className="w-5 h-5" />
-                                    <span>Informații Admin</span>
+                                    <span>{adminInfoTitle}</span>
                                 </CardTitle>
-                                <CardDescription>Completează toate câmpurile pentru a crea contul</CardDescription>
+                                <CardDescription>{adminInfoDescription}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {error && (
@@ -189,9 +209,7 @@ export default function AdminCard({
 
                                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                                     <div>
-                                        <Label htmlFor="firstName">
-                                            Prenume <span className="text-red-500">*</span>
-                                        </Label>
+                                        <Label htmlFor="firstName">{firstNameLabel}</Label>
                                         <Input
                                             id="firstName"
                                             value={formData.firstName}
@@ -202,9 +220,7 @@ export default function AdminCard({
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="lastName">
-                                            Nume <span className="text-red-500">*</span>
-                                        </Label>
+                                        <Label htmlFor="lastName">{lastNameLabel}</Label>
                                         <Input
                                             id="lastName"
                                             value={formData.lastName}
@@ -217,9 +233,7 @@ export default function AdminCard({
                                 </div>
 
                                 <div className="mb-2">
-                                    <Label htmlFor="email">
-                                        Email <span className="text-red-500">*</span>
-                                    </Label>
+                                    <Label htmlFor="email">{emailLabel}</Label>
                                     <Input
                                         id="email"
                                         type="email"
@@ -231,9 +245,7 @@ export default function AdminCard({
 
                                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                                     <div>
-                                        <Label htmlFor="role">
-                                            Rol <span className="text-red-500">*</span>
-                                        </Label>
+                                        <Label htmlFor="role">{roleLabel}</Label>
                                         <Select
                                             value={formData.role}
                                             onValueChange={(value) => setFormDataAction((prev: any) => ({ ...prev, role: value }))}
@@ -242,16 +254,14 @@ export default function AdminCard({
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="CLIENT">Client</SelectItem>
-                                                <SelectItem value="PROVIDER">Prestator</SelectItem>
-                                                <SelectItem value="ADMIN">Administrator</SelectItem>
+                                                <SelectItem value="CLIENT">{roleClient}</SelectItem>
+                                                <SelectItem value="PROVIDER">{roleProvider}</SelectItem>
+                                                <SelectItem value="ADMIN">{roleAdmin}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div>
-                                        <Label htmlFor="phone">
-                                            Telefon <span className="text-red-500">*</span>
-                                        </Label>
+                                        <Label htmlFor="phone">{phoneLabel}</Label>
                                         <Input
                                             id="phone"
                                             value={formData.phone}
@@ -268,17 +278,17 @@ export default function AdminCard({
                                                 <AccordionTrigger className="w-full">
                                                     <CardTitle className="flex items-center space-x-2">
                                                         <Eye className="w-5 h-5" />
-                                                        <span>Modifică Parola</span>
+                                                        <span>{changePassword}</span>
                                                     </CardTitle>
                                                 </AccordionTrigger>
                                                 <CardDescription className="mt-1">
-                                                    Lasă câmpurile goale pentru a nu modifica parola
+                                                    {passwordOptional}
                                                 </CardDescription>
                                             </CardHeader>
                                             <AccordionContent>
                                                 <CardContent className="space-y-4">
                                                     <div className="relative">
-                                                        <Label htmlFor="password">Parola</Label>
+                                                        <Label htmlFor="password">{passwordLabel}</Label>
                                                         <Input
                                                             id="password"
                                                             type={showPassword ? 'text' : 'password'}
@@ -298,7 +308,7 @@ export default function AdminCard({
                                                         </button>
                                                     </div>
                                                     <div className="relative">
-                                                        <Label htmlFor="confirm_password">Confirmă Parola</Label>
+                                                        <Label htmlFor="confirm_password">{confirmPasswordLabel}</Label>
                                                         <Input
                                                             id="confirm_password"
                                                             type={showConfirmPassword ? 'text' : 'password'}
@@ -335,12 +345,12 @@ export default function AdminCard({
                                         {loading ? (
                                             <>
                                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                Se modifică...
+                                                {savingLabel}
                                             </>
                                         ) : (
                                             <>
                                                 <UserPlus className="w-4 h-4 mr-2" />
-                                                Salvează Administrator
+                                                {saveAdminLabel}
                                             </>
                                         )}
                                     </Button>
@@ -353,17 +363,17 @@ export default function AdminCard({
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Icon icon="mdi:identification-card-outline" className="w-5 h-5" />
-                                    <span>Permisiuni</span>
+                                    <span>{permissionsLabel}</span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Dialog open={permissionModalOpen} onOpenChange={setPermissionModalOpen}>
                                     <DialogTrigger asChild>
-                                        <Button variant="outline">Editează Permisiunile</Button>
+                                        <Button variant="outline">{editPermissionsLabel}</Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-2xl">
                                         <DialogHeader>
-                                            <DialogTitle>Selectează Permisiunile</DialogTitle>
+                                            <DialogTitle>{selectPermissionsLabel}</DialogTitle>
                                         </DialogHeader>
                                         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                                             {permissions.map((group: any) => (
@@ -382,9 +392,9 @@ export default function AdminCard({
                                                                 </label>
                                                                 {selectedPermissions[perm.slug] && (
                                                                     <div className="flex items-center gap-2">
-                                    <span className="text-sm text-muted-foreground">
-                                      {selectedPermissions[perm.slug].allowed ? 'Allow' : 'Deny'}
-                                    </span>
+                                                                        <span className="text-sm text-muted-foreground">
+                                                                            {selectedPermissions[perm.slug].allowed ? allowLabel : denyLabel}
+                                                                        </span>
                                                                         <Switch
                                                                             checked={selectedPermissions[perm.slug].allowed}
                                                                             onCheckedChange={() => toggleAllowDeny(perm.slug)}
@@ -403,18 +413,17 @@ export default function AdminCard({
                                 {/* Preview Selected Permissions */}
                                 <div className="space-y-2">
                                     {Object.entries(formData.user_permissions || {}).length === 0 ? (
-                                        <p className="text-muted-foreground text-sm">Nicio permisiune selectată.</p>
+                                        <p className="text-muted-foreground text-sm">{noPermissionsSelected}</p>
                                     ) : (
                                         Object.entries(formData.user_permissions || {}).map(([slug, value]: any) => (
                                             <div key={slug} className="flex items-center justify-between border p-2 rounded-md bg-muted/50">
                                                 <span className="text-sm font-medium">{value.name}</span>
                                                 <span
-                                                    className={`text-xs px-2 py-0.5 rounded-full ${
-                                                        value.allowed ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-                                                    }`}
+                                                    className={`text-xs px-2 py-0.5 rounded-full ${value.allowed ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                                                        }`}
                                                 >
-                          {value.allowed ? 'Allow' : 'Deny'}
-                        </span>
+                                                    {value.allowed ? allowLabel : denyLabel}
+                                                </span>
                                             </div>
                                         ))
                                     )}

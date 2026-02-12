@@ -1,0 +1,102 @@
+{
+  "tests": {
+    "manage_title": "Gestionare Teste",
+    "manage_subtitle": "Administrează testele de competență pentru servicii",
+    "add_test": "Adaugă Test",
+    "search_placeholder": "Caută teste după titlu, descriere sau serviciu...",
+    "level_filter_placeholder": "Filtru nivel",
+    "status_filter_placeholder": "Filtru status",
+    "levels": {
+      "all": "Toate nivelurile",
+      "JUNIOR": "Junior",
+      "MEDIU": "Mediu",
+      "SENIOR": "Senior",
+      "EXPERT": "Expert"
+    },
+    "statuses": {
+      "all": "Toate statusurile",
+      "ACTIVE": "Activ",
+      "INACTIVE": "Inactiv",
+      "DRAFT": "Draft"
+    },
+    "list_title": "Lista Teste",
+    "list_description": "{count} teste găsite",
+    "question_count": "{count} întrebări",
+    "minute_suffix": "minute",
+    "passing_score": "Nota de trecere: {score}%",
+    "category_prefix": "Categorie: ",
+    "created_prefix": "Creat: ",
+    "results_count": "{count} rezultate",
+    "points_template": "{count} puncte",
+    "question_types": {
+      "SINGLE_CHOICE": "Alegere Unică",
+      "MULTIPLE_CHOICE": "Alegere Multiplă",
+      "CODE_WRITING": "Scriere Cod",
+      "TEXT_INPUT": "Răspuns Text"
+    },
+    "view_details": "Vezi Detalii",
+    "deactivate": "Dezactivează",
+    "activate": "Activează",
+    "delete": "Șterge",
+    "confirm_delete": "Ești sigur că vrei să ștergi acest test?",
+    "error_prefix": "Eroare: ",
+    "no_tests_title": "Nu s-au găsit teste",
+    "no_tests_description": "Încearcă să modifici filtrele sau termenii de căutare",
+    "add_first_test": "Adaugă Primul Test",
+    "detail": {
+      "test_details": "Detalii Test",
+      "general_info": "Informații Generale",
+      "service_label": "Serviciu:",
+      "category_label": "Categorie:",
+      "level_label": "Nivel:",
+      "status_label": "Status:",
+      "created_label": "Creat la:",
+      "test_config": "Configurație Test",
+      "time_limit_label": "Timp Limită:",
+      "passing_score_label": "Nota de Trecere:",
+      "questions_label": "Număr Întrebări:",
+      "total_points_label": "Punctaj Total:",
+      "description": "Descriere",
+      "questions_section": "Întrebări ({count})",
+      "question_label": "Întrebarea {number}",
+      "code_template": "Template Cod:",
+      "expected_output": "Output Așteptat:",
+      "test_cases": "Test Cases:",
+      "input_label": "Input:",
+      "expected_output_label": "Output așteptat:",
+      "explanation": "Explicație:",
+      "edit_test": "Editează Test",
+      "view_statistics": "Vezi Statistici",
+      "preview": "Previzualizare",
+      "delete_test": "Șterge Test",
+      "deactivate": "Dezactivează",
+      "activate": "Activează"
+    },
+    "statistics": {
+      "subtitle": "Analiză detaliată a performanței testului",
+      "title_suffix": "Statistici",
+      "user_label": "Utilizator",
+      "passed_label": "Test Trecut",
+      "passed_yes": "Da",
+      "passed_no": "Nu",
+      "score_label": "Scor",
+      "time_spent_label": "Timp petrecut",
+      "question_stats_title": "Statistici per Întrebare",
+      "question_stats_description": "Performanța candidaților pentru fiecare întrebare",
+      "question_label": "Întrebarea {number}",
+      "correct_answer": "Răspuns corect",
+      "user_answer": "Răspuns utilizator",
+      "answer_correct": "Corect",
+      "answer_incorrect": "Incorect",
+      "error_loading": "Nu s-au putut încărca datele"
+    },
+    "new": {
+      "title": "Adaugă Test Nou",
+      "subtitle": "Creează un test de competență"
+    },
+    "edit": {
+      "title": "Editează Test",
+      "subtitle": "Modifică un test de competență"
+    }
+  }
+}

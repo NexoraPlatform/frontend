@@ -1,0 +1,76 @@
+{
+    "dashboard": {
+        "title": "Teste de Competență",
+        "subtitle": "Demonstrează-ți expertiza și obține certificări pentru a oferi servicii pe platformă. Fiecare test validează cunoștințele tale în domeniul respectiv.",
+        "loading": "Se încarcă...",
+        "provider_only": "Doar prestatorii pot accesa testele de competență.",
+        "progress": {
+            "title": "Progresul tău",
+            "completed": "Ai finalizat {completed} din {total} teste disponibile"
+        },
+        "in_progress": {
+            "title": "Test în progres...",
+            "description": "Testul pentru {category} este în desfășurare.",
+            "cancel": "Anulează"
+        },
+        "categories": {
+            "difficulty": "Dificultate",
+            "duration": "{minutes} minute",
+            "questions": "{count} întrebări",
+            "passing_score": "Nota de trecere: {score}%",
+            "certification": "Certificare",
+            "start_button": "Începe Testul",
+            "locked": "Blocat",
+            "completed": "Test finalizat cu succes",
+            "certificate": "Certificat Obținut",
+            "requires_previous": "Necesită certificări anterioare"
+        },
+        "info": {
+            "title": "Cum funcționează testarea?",
+            "items": {
+                "mandatory": "Testele sunt obligatorii pentru a oferi servicii în categoriile respective",
+                "content": "Fiecare test conține întrebări practice și teoretice",
+                "pass_score": "Nota de trecere variază în funcție de dificultatea categoriei",
+                "validity": "Certificările sunt valabile 2 ani și pot fi reînnoite",
+                "retake": "Poți relua testul după 30 de zile dacă nu treci prima dată"
+            }
+        }
+    },
+    "schedule": {
+        "loading": "Se încarcă...",
+        "welcome": "Bun venit, {name}!",
+        "description": "Programeaza-te pentru un call 1:1 cu un operator Trustora"
+    },
+    "metadata": {
+        "web_development": {
+            "name": "Dezvoltare Web",
+            "description": "HTML, CSS, JavaScript, React, Vue, Angular, Node.js"
+        },
+        "mobile_development": {
+            "name": "Dezvoltare Mobile",
+            "description": "React Native, Flutter, iOS, Android, Kotlin, Swift"
+        },
+        "ui_ux_design": {
+            "name": "Design UI/UX",
+            "description": "Figma, Adobe XD, Sketch, Principii de design, UX Research"
+        },
+        "digital_marketing": {
+            "name": "Marketing Digital",
+            "description": "SEO, SEM, Social Media, Google Analytics, Facebook Ads"
+        },
+        "database_admin": {
+            "name": "Administrare Baze de Date",
+            "description": "MySQL, PostgreSQL, MongoDB, Redis, Optimizare"
+        },
+        "cybersecurity": {
+            "name": "Securitate Cibernetică",
+            "description": "Penetration Testing, OWASP, Cryptografie, Network Security"
+        },
+        "difficulty": {
+            "beginner": "Începător",
+            "intermediate": "Intermediar",
+            "advanced": "Avansat",
+            "expert": "Expert"
+        }
+    }
+}

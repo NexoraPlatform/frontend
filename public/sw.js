@@ -1,6 +1,6 @@
 
     let notificationData = {
-        title: 'Nexora',
+        title: 'Trustora',
         body: 'Ai o notificare nouă',
         icon: '',
         badge: '/logo.webp',
@@ -17,8 +17,8 @@
         const title = data.title || 'Notificare';
         const options = {
             body: data.body || data.message || '',
-            icon: data.icon || '/logo-60.avif',
-            badge: data.badge || '/logo-60.avif',
+            icon: data.icon || '/trustora-logo2-60.avif',
+            badge: data.badge || '/trustora2-logo-60.avif',
             data: {
                 link: data.link || data.url || '/',
                 meta: data.meta || data.payload || {},

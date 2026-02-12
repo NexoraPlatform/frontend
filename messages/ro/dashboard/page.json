@@ -1,0 +1,354 @@
+{
+  "hero": {
+    "badge": "Trustora Dashboard",
+    "welcome": "Bun venit, {name}! 👋",
+    "subtitle": {
+      "provider": "Gestionează-ți serviciile și proiectele active",
+      "client": "Urmărește-ți proiectele și găsește experții potriviți"
+    },
+    "role": {
+      "provider": "Prestator",
+      "client": "Client"
+    },
+    "stripe": {
+      "manage": "Modifică detalii cont Stripe",
+      "connect": "Conectează cont Stripe"
+    },
+    "rapyd": {
+      "manage": "Modifică detalii cont Rapyd",
+      "connect": "Conectează cont Rapyd"
+    },
+    "balance": {
+      "available": "Disponibil",
+      "on_hold": "Blocat",
+      "received": "Încasat",
+      "loading": "Se încarcă soldul...",
+      "error": "Sold indisponibil"
+    }
+  },
+  "tabs": {
+    "overview": "Prezentare",
+    "projects": "Proiecte",
+    "services": "Servicii",
+    "messages": "Mesaje",
+    "finance": "Situație financiară",
+    "settings": "Setări"
+  },
+  "finance": {
+    "title": "Situație financiară",
+    "wallet_balance": "Sold portofel",
+    "wallet_currency": "Valuta portofelului",
+    "select_wallet": "Selectează portofelul",
+    "transfer_amount": "Sumă de transfer",
+    "max": "Max",
+    "transfer": "Transferă",
+    "confirm_transfer": "Ești sigur că vrei să transferi {amount}?",
+    "transfer_success": "Transfer inițiat cu succes.",
+    "transfer_error": "Transfer eșuat: {message}",
+    "insufficient_balance": "Suma depășește soldul disponibil.",
+    "invalid_amount": "Introdu o sumă validă."
+  },
+  "loading": {
+    "dashboard": "Se încarcă dashboard-ul...",
+    "projects": "Se încarcă...",
+    "page": "Se încarcă pagina..."
+  },
+  "errors": {
+    "projects_load_failed": "Nu s-au putut încărca proiectele: {message}",
+    "generic": "Eroare: {message}"
+  },
+  "notifications": {
+    "project_accepted": "Proiect acceptat",
+    "project_rejected": "Proiect respins",
+    "budget_proposed": "Propunere de buget trimisă"
+  },
+  "overview": {
+    "provider": {
+      "active_projects": {
+        "title": "Proiecte active",
+        "value": "3",
+        "change": "+2 această lună"
+      },
+      "monthly_revenue": {
+        "title": "Venituri lunare",
+        "value": "4,500",
+        "change": "+15% față de luna trecută"
+      },
+      "average_rating": {
+        "title": "Rating mediu",
+        "value": "4.8",
+        "change": "+0.2 această lună"
+      },
+      "new_requests": {
+        "title": "Cereri noi",
+        "value": "7",
+        "change": "+3 astăzi"
+      }
+    },
+    "client": {
+      "projects_posted": {
+        "title": "Proiecte postate",
+        "value": "5",
+        "change": "+2 această lună"
+      },
+      "budget_spent": {
+        "title": "Buget cheltuit",
+        "value": "12,000",
+        "change": "+25% această lună"
+      },
+      "projects_completed": {
+        "title": "Proiecte finalizate",
+        "value": "3",
+        "change": "Rată de succes 100%"
+      },
+      "active_providers": {
+        "title": "Prestatori activi",
+        "value": "8",
+        "change": "+2 colaboratori noi"
+      }
+    }
+  },
+  "quick_actions": {
+    "title": "Acțiuni rapide",
+    "description": {
+      "provider": "Acțiuni frecvente pentru gestionarea activității tale",
+      "client": "Începe un proiect nou sau gestionează proiectele existente"
+    },
+    "provider": {
+      "add_services": "Adaugă servicii",
+      "edit_profile": "Editează profil",
+      "take_tests": "Susține teste"
+    },
+    "client": {
+      "new_project": "Proiect nou",
+      "search_services": "Caută servicii",
+      "explore_projects": "Explorează proiecte"
+    }
+  },
+  "activity": {
+    "title": "Activitate recentă",
+    "provider": {
+      "completed_project": {
+        "title": "Proiect finalizat cu succes",
+        "meta": "Website E-commerce • Acum 2 ore"
+      },
+      "new_request": {
+        "title": "Cerere nouă de proiect",
+        "meta": "Aplicație mobile • Acum 5 ore"
+      },
+      "new_review": {
+        "title": "Recenzie nouă primită",
+        "meta": "5 stele de la Maria P. • Ieri"
+      }
+    },
+    "client": {
+      "project_accepted": {
+        "title": "Prestatorul a acceptat proiectul",
+        "meta": "Website React • Acum 1 oră"
+      },
+      "budget_proposal": {
+        "title": "Propunere de buget primită",
+        "meta": "3,200 pentru Logo Design • Acum 3 ore"
+      },
+      "new_project": {
+        "title": "Proiect nou postat",
+        "meta": "Aplicație mobile • Ieri"
+      }
+    }
+  },
+  "filters": {
+    "search_placeholder": "Caută proiecte după titlu sau descriere...",
+    "active": "Filtre active:",
+    "search_label": "Căutare: {term}",
+    "status_label": "Status: {status}",
+    "sort_label": "Sortare: {label} ({order})",
+    "sort_order": {
+      "asc": "Crescător",
+      "desc": "Descrescător"
+    },
+    "reset_all": "Resetează toate",
+    "status": {
+      "all": "Toate statusurile",
+      "pending_responses": "Așteaptă răspunsuri",
+      "in_progress": "În progres",
+      "completed": "Finalizate",
+      "cancelled": "Anulate",
+      "pending": "În așteptare",
+      "accepted": "Acceptate",
+      "rejected": "Respinse",
+      "budget_proposed": "Buget propus"
+    },
+    "sort": {
+      "newest": "Cele mai noi",
+      "oldest": "Cele mai vechi",
+      "budget": "Buget",
+      "title": "Titlu"
+    }
+  },
+  "pagination": {
+    "showing": "Afișând {start} - {end} din {total} proiecte",
+    "previous": "Anterior",
+    "next": "Următor"
+  },
+  "projects": {
+    "title": {
+      "provider": "Cereri de proiecte",
+      "client": "Proiectele mele"
+    },
+    "found": "{count} proiecte găsite",
+    "new_project": "Proiect nou",
+    "empty": {
+      "title": {
+        "provider": "Nu ai cereri de proiecte",
+        "client": "Nu ai proiecte create"
+      },
+      "description": {
+        "provider": "Când clienții vor crea proiecte și te vor selecta, le vei vedea aici",
+        "client": "Creează primul tău proiect pentru a începe colaborarea cu prestatorii"
+      },
+      "cta": "Creează primul proiect"
+    }
+  },
+  "services": {
+    "title": {
+      "provider": "Serviciile mele",
+      "client": "Servicii favorite"
+    },
+    "description": {
+      "provider": "Gestionează serviciile pe care le oferi",
+      "client": "Serviciile pe care le urmărești"
+    },
+    "empty": {
+      "title": {
+        "provider": "Nu oferi încă servicii",
+        "client": "Nu ai servicii favorite"
+      },
+      "description": {
+        "provider": "Adaugă servicii pentru a începe să primești comenzi",
+        "client": "Salvează serviciile care te interesează pentru acces rapid"
+      },
+      "cta": "Adaugă primul serviciu"
+    }
+  },
+  "messages": {
+    "title": "Mesaje",
+    "description": "Conversațiile tale cu clienții și prestatorii",
+    "empty": {
+      "title": "Nu ai mesaje",
+      "description": "Conversațiile tale vor apărea aici"
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Setări profil",
+      "company_informations": "Informații Companie",
+      "company_informations_subtitle": "Setează informațiile juridice și bancare ale companiei",
+      "company_managers": "Manageri Companie",
+      "company_managers_subtitle": "Adaugă sau șterge manageri pentru companie",
+      "company_managers_list_label": "Manageri existenți",
+      "company_managers_add_label": "Adaugă manager",
+      "company_managers_search_placeholder": "Caută după nume sau email",
+      "company_managers_empty": "Nu există manageri adăugați",
+      "company_managers_no_results": "Nu am găsit utilizatori",
+      "company_managers_add_button": "Adaugă",
+      "company_managers_added": "Adăugat",
+      "company_managers_remove": "Șterge",
+      "company_managers_members_label": "Membrii companiei",
+      "company_managers_members_placeholder": "Caută membri după nume sau email",
+      "company_managers_members_empty": "Nu am găsit membri",
+      "company_managers_transfer_button": "Transferă ownership",
+      "company_managers_transfer_confirm": "Transferi ownership-ul companiei către {name}? Această acțiune nu poate fi anulată.",
+      "legal_name": "Nume Legal Companie",
+      "represented_by": "Reprezentat Legal De",
+      "contact_email": "Email Contact",
+      "id_type": "Tip Act",
+      "id_code": "Cod Identificare",
+      "currency": "Monedă",
+      "hq_address": "Adresa Sediu Social",
+      "street": "Strada și Număr",
+      "city": "Oraș / Sector",
+      "state": "Județ / Stat",
+      "zip": "Cod Poștal",
+      "country": "Țara",
+      "bank_info": "Informații Bancare",
+      "iban": "IBAN Cont",
+      "bank_name": "Nume Bancă",
+      "bic_swift": "Cod BIC / SWIFT",
+      "save": "Salvează",
+      "close": "Închide",
+      "success": "Informațiile companiei au fost salvate/create cu succes.",
+      "placeholders": {
+        "company": "ex: SC EXEMPLU SRL",
+        "represented_by": "ex: Ion Popescu",
+        "email": "contact@firma.ro",
+        "id_type": "CUI",
+        "id_code": "RO123456",
+        "currency": "Selectează moneda",
+        "address": "Str. Exemplului Nr. 1, Bl. A",
+        "city": "București",
+        "state": "București",
+        "zip": "010000",
+        "country": "RO",
+        "bank_name": "ING BANK",
+        "bic": "INGBROBU"
+      },
+      "errors": {
+        "invalid_zip": "Formatul codului poștal nu este valid pentru țara selectată."
+      }
+    },
+    "notifications": {
+      "title": "Setări notificări",
+      "email": {
+        "title": "Notificări email",
+        "description": "Primește notificări prin email"
+      },
+      "push": {
+        "title": "Notificări push",
+        "description": "Notificări în browser"
+      }
+    },
+    "security": {
+      "title": "Securitate cont",
+      "change_password": "Schimbă parola",
+      "two_factor": "Autentificare cu 2 factori",
+      "language_preferences": "Preferințe limbă"
+    },
+    "billing": {
+      "title": "Facturare",
+      "payment_methods": "Metode de plată",
+      "invoices": "Istoric facturi",
+      "bank_details": "Detalii bancare",
+      "bank_details_subtitle": "Setează detaliile bancare",
+      "bank_account": "Cont bancar",
+      "iban": "IBAN",
+      "company_address": "Adresă companie",
+      "save": "Salvează datele bancare"
+    }
+  },
+  "actions": {
+    "edit": "Editează"
+  },
+  "payments": {
+    "loading_session": "Se încarcă sesiunea de plată...",
+    "processing": "Se procesează...",
+    "pay": "Plătește",
+    "processing_error": "Eroare la plată: {message}",
+    "generic_error": "Eroare la procesarea plății",
+    "success_redirect": "Plata a fost efectuată cu succes! Redirecționare...",
+    "error_with_message": "Eroare la plată: {message}",
+    "title": "Finalizează plata",
+    "description": "Introdu detaliile cardului pentru a confirma plata în siguranță."
+  },
+  "stripe": {
+    "verifying": "Se verifică contul Stripe...",
+    "incomplete": {
+      "title": "Contul nu este încă verificat complet.",
+      "description": "Te rugăm să finalizezi toți pașii din onboarding Stripe.",
+      "cta": "Înapoi la dashboard"
+    },
+    "verified": {
+      "title": "Contul tău Stripe a fost verificat!",
+      "redirect": "Redirectare către dashboard..."
+    }
+  }
+}

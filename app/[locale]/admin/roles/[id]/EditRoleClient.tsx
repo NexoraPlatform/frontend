@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link } from '@/lib/navigation';
+import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, IdCardLanyard, Loader2 } from 'lucide-react';
 
@@ -18,7 +19,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 
 import apiClient from '@/lib/api';
-import {useAuth} from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context";
 
 type Role = {
     name: string;
@@ -44,6 +45,8 @@ type GroupPermissions = {
 };
 
 export default function EditRoleClient({ id }: { id: number }) {
+    const locale = useLocale();
+    const t = useTranslations();
     const [roleData, setRoleData] = useState<Role>({
         name: '',
         description: '',
@@ -59,6 +62,25 @@ export default function EditRoleClient({ id }: { id: number }) {
 
     const router = useRouter();
     const debounceRef = useRef<number | null>(null);
+
+    const title = t('admin.roles.edit_role.title');
+    const infoTitle = t('admin.roles.edit_role.info_title');
+    const infoDescription = t('admin.roles.edit_role.info_description');
+    const nameLabel = t('admin.roles.edit_role.name_label');
+    const namePlaceholder = t('admin.roles.edit_role.name_placeholder');
+    const descriptionLabel = t('admin.roles.edit_role.description_label');
+    const descriptionPlaceholder = t('admin.roles.edit_role.description_placeholder');
+    const sortOrderLabel = t('admin.roles.edit_role.sort_order_label');
+    const decreaseOrder = t('admin.roles.edit_role.decrease_order');
+    const increaseOrder = t('admin.roles.edit_role.increase_order');
+    const savingLabel = t('admin.roles.edit_role.saving');
+    const savedLabel = t('admin.roles.edit_role.saved');
+    const orderHint = t('admin.roles.edit_role.order_hint');
+    const editButtonLabel = t('admin.roles.edit_role.edit_button');
+    const editingLabel = t('admin.roles.edit_role.editing');
+    const cancelLabel = t('admin.roles.edit_role.cancel');
+    const cannotEditLabel = t('admin.roles.edit_role.cannot_edit');
+    const errorOccurred = t('admin.roles.error_occurred');
 
     // Load Role
     useEffect(() => {
@@ -89,7 +111,13 @@ export default function EditRoleClient({ id }: { id: number }) {
     }, []);
 
     if (!user?.is_superuser && roleData?.name === 'User') {
-        return <div className="text-red-500">Nu poți edita acest rol.</div>;
+        return (
+            <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+                <div className="rounded-2xl border border-border/60 bg-card/80 p-6 text-sm text-red-500 shadow-sm dark:border-slate-800/70 dark:bg-slate-900/70">
+                    {cannotEditLabel}
+                </div>
+            </div>
+        );
     }
 
     // Debounced live update pentru sort order
@@ -135,42 +163,55 @@ export default function EditRoleClient({ id }: { id: number }) {
             });
             router.push('/admin/roles');
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare');
+            setError(error.message || errorOccurred);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="flex items-center space-x-4 mb-8">
-                <Link href="/admin/roles">
-                    <Button variant="outline" size="icon">
-                        <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-bold">Editează Rol</h1>
-                    <p className="text-muted-foreground">Modifică rolul {roleData.name || 'necunoscut'}.</p>
+        <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+            <div className="relative mb-10 overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 shadow-[0_20px_80px_-60px_rgba(15,23,42,0.4)] backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/60 dark:shadow-[0_20px_80px_-40px_rgba(15,23,42,0.9)] sm:p-8">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_rgba(15,23,42,0)_60%)]" />
+                <div className="relative flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <Link href="/admin/roles">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10 rounded-full border border-border/60 bg-white/80 text-slate-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/10 hover:text-sky-700 dark:border-slate-800/70 dark:bg-slate-950/70 dark:text-slate-100 dark:hover:border-sky-500/50 dark:hover:bg-sky-500/10 dark:hover:text-sky-200"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            Trustora Admin
+                        </span>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">{title}</h1>
+                        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+                            {t('admin.roles.edit_role.subtitle', { name: roleData.name || '' })}
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <div className="w-full">
-                <Card>
+                <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
                             <IdCardLanyard className="w-5 h-5" />
-                            <span>Informații Rol</span>
+                            <span>{infoTitle}</span>
                         </CardTitle>
-                        <CardDescription>Configurează numele, descrierea, ordinea și permisiunile rolului.</CardDescription>
+                        <CardDescription>{infoDescription}</CardDescription>
                     </CardHeader>
 
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Name */}
                             <div>
-                                <Label htmlFor="name" className={`${error && 'text-red-500'}`}>Nume Rol *</Label>
+                                <Label htmlFor="name" className={`${error && 'text-red-500'}`}>{nameLabel}</Label>
                                 <Input
                                     id="name"
                                     value={roleData.name}
@@ -178,14 +219,14 @@ export default function EditRoleClient({ id }: { id: number }) {
                                         setRoleData((prev) => ({ ...prev, name: e.target.value }));
                                         setError('');
                                     }}
-                                    placeholder="ex: Administrator"
+                                    placeholder={namePlaceholder}
                                     className={`${error && 'border-red-500'}`}
                                 />
                             </div>
 
                             {/* Description */}
                             <div>
-                                <Label htmlFor="description" className={`${error && 'text-red-500'}`}>Descriere Rol *</Label>
+                                <Label htmlFor="description" className={`${error && 'text-red-500'}`}>{descriptionLabel}</Label>
                                 <Input
                                     id="description"
                                     value={roleData.description}
@@ -193,23 +234,23 @@ export default function EditRoleClient({ id }: { id: number }) {
                                         setRoleData((prev) => ({ ...prev, description: e.target.value }));
                                         setError('');
                                     }}
-                                    placeholder="ex: Poate administra utilizatori și setări"
+                                    placeholder={descriptionPlaceholder}
                                     className={`${error && 'border-red-500'}`}
                                 />
                             </div>
 
                             {/* Sort Order (live) */}
                             <div>
-                                <Label htmlFor="sortOrder">Ordine rol (live)</Label>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center rounded-md border px-2">
+                                <Label htmlFor="sortOrder">{sortOrderLabel}</Label>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="flex items-center rounded-md border border-border/60 bg-background/70 px-2 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/60">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8"
                                             onClick={() => changeSortOrder(roleData.sortOrder - 1)}
-                                            aria-label="Scade ordinea"
+                                            aria-label={decreaseOrder}
                                         >
                                             <ChevronDown className="h-4 w-4" />
                                         </Button>
@@ -229,7 +270,7 @@ export default function EditRoleClient({ id }: { id: number }) {
                                             size="icon"
                                             className="h-8 w-8"
                                             onClick={() => changeSortOrder(roleData.sortOrder + 1)}
-                                            aria-label="Crește ordinea"
+                                            aria-label={increaseOrder}
                                         >
                                             <ChevronUp className="h-4 w-4" />
                                         </Button>
@@ -237,15 +278,15 @@ export default function EditRoleClient({ id }: { id: number }) {
 
                                     {savingOrder ? (
                                         <span className="inline-flex items-center text-xs text-muted-foreground">
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      Se salvează…
-                    </span>
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                            {savingLabel}
+                                        </span>
                                     ) : orderSavedAt ? (
-                                        <span className="text-xs text-emerald-600">Salvat</span>
+                                        <span className="text-xs text-emerald-600 dark:text-emerald-400">{savedLabel}</span>
                                     ) : null}
                                 </div>
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                    Modificările de ordine se salvează automat.
+                                    {orderHint}
                                 </p>
                             </div>
 
@@ -255,7 +296,11 @@ export default function EditRoleClient({ id }: { id: number }) {
                                     className={`grid xs:grid-cols-1 ${permissionGroups.length > 1 ? 'md:grid-cols-4' : 'md:grid-cols-1'} gap-4 items-start`}
                                 >
                                     {permissionGroups.map((group) => (
-                                        <AccordionItem key={group.id} value={group.slug} className="border rounded-md p-2 self-start">
+                                        <AccordionItem
+                                            key={group.id}
+                                            value={group.slug}
+                                            className="self-start rounded-2xl border border-border/60 bg-background/70 p-2 shadow-sm dark:border-slate-800/70 dark:bg-slate-950/60"
+                                        >
                                             <AccordionTrigger className="text-md font-semibold">
                                                 {group.name}
                                             </AccordionTrigger>
@@ -297,23 +342,23 @@ export default function EditRoleClient({ id }: { id: number }) {
                             </Accordion>
 
                             {/* Actions */}
-                            <div className="flex space-x-4 pt-6">
+                            <div className="flex flex-wrap gap-4 pt-6">
                                 <Button type="submit" disabled={loading} className="flex-1">
                                     {loading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Se editează…
+                                            {editingLabel}
                                         </>
                                     ) : (
                                         <>
                                             <IdCardLanyard className="w-4 h-4 mr-2" />
-                                            Editează Rolul
+                                            {editButtonLabel}
                                         </>
                                     )}
                                 </Button>
                                 <Link href="/admin/roles">
                                     <Button type="button" variant="outline">
-                                        Anulează
+                                        {cancelLabel}
                                     </Button>
                                 </Link>
                             </div>

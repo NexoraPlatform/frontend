@@ -1,0 +1,10 @@
+{
+  "disputes": {
+    "manage_title": "Manage Disputes",
+    "manage_subtitle": "Resolve user disputes",
+    "list_title": "Disputes List",
+    "list_description": "All platform disputes and claims",
+    "empty_title": "No active disputes",
+    "empty_description": "All disputes have been successfully resolved"
+  }
+}

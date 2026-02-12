@@ -1,0 +1,16 @@
+{
+  "messaging": {
+    "clients_badge": "FOR CLIENTS",
+    "clients_title": "“I pay only when I receive the delivery.”",
+    "clients_body": "Your money is protected through escrow. No payment leaves the platform without your explicit confirmation of the work quality.",
+    "clients_benefit_one": "Zero financial loss risk",
+    "clients_benefit_two": "Video pre-verified professionals",
+    "clients_link": "Start hiring safely →",
+    "pros_badge": "FOR PROFESSIONALS",
+    "pros_title": "“Funds are locked before I start.”",
+    "pros_body": "No more working on promises. Payment for each milestone is already locked in the system before you write the first line of code.",
+    "pros_benefit_one": "100% payment guarantee",
+    "pros_benefit_two": "Disputes resolved through technical arbitration",
+    "pros_link": "Join the infrastructure →"
+  }
+}

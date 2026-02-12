@@ -1,7 +1,8 @@
 "use client";
 
 import {useState, useEffect, useRef, useCallback} from 'react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/lib/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,12 @@ import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Form } from '@/components/ui/form';
+import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
+import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
 type Languages = {
     id: number;
@@ -54,13 +61,14 @@ type Languages = {
 }
 
 export default function ProviderProfileEditPage() {
-    const { user, loading } = useAuth();
+    const t = useTranslations();
+    const { user, loading, userLoading } = useAuth();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
     const router = useRouter();
-    const { data: providerProfile, loading: profileLoading } = useProviderProfile();
+    const { data: providerProfile, loading: profileLoading } = useProviderProfile(!userLoading && Boolean(user));
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -68,6 +76,18 @@ export default function ProviderProfileEditPage() {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const { data: languages } = useGetLanguages();
+    const billingForm = useForm<BillingDetailsFormValues>({
+        resolver: zodResolver(billingDetailsSchema),
+        defaultValues: {
+            company_name: '',
+            tax_id: '',
+            trade_registry_number: '',
+            billing_address: '',
+            billing_city: '',
+            billing_state: '',
+            billing_postal_code: '',
+        },
+    });
 
     const [profileData, setProfileData] = useState({
         // Basic Info
@@ -312,6 +332,15 @@ export default function ProviderProfileEditPage() {
                 }))
 
             }));
+            billingForm.reset({
+                company_name: providerProfile.company_name || '',
+                tax_id: providerProfile.tax_id || '',
+                trade_registry_number: providerProfile.trade_registry_number || '',
+                billing_address: providerProfile.billing_address || '',
+                billing_city: providerProfile.billing_city || '',
+                billing_state: providerProfile.billing_state || '',
+                billing_postal_code: providerProfile.billing_postal_code || '',
+            });
 
             // profileData.languages.map((language => {
             //     setProfileData(prev => ({
@@ -326,16 +355,22 @@ export default function ProviderProfileEditPage() {
         } catch (error: any) {
             setError('Nu s-au putut încărca datele profilului');
         }
-    }, [providerProfile]);
+    }, [providerProfile, billingForm]);
 
     useEffect(() => {
-        if (!loading && !user && !profileLoading) {
-            router.push('/auth/signin');
+        if (userLoading || profileLoading) {
+            return;
         }
-        if (user && providerProfile) {
+
+        if (!user) {
+            router.push('/auth/signin');
+            return;
+        }
+
+        if (providerProfile) {
             loadProfileData();
         }
-    }, [user, loading, router, profileLoading, providerProfile, loadProfileData]);
+    }, [user, userLoading, router, profileLoading, providerProfile, loadProfileData]);
 
     function readFile(file: File): Promise<string | ArrayBuffer | null> {
         return new Promise((resolve) => {
@@ -389,8 +424,18 @@ export default function ProviderProfileEditPage() {
         setSuccess('');
 
         try {
+            const billingValid = await billingForm.trigger();
+            if (!billingValid) {
+                setError('Completează câmpurile de facturare obligatorii.');
+                setSaving(false);
+                return;
+            }
+            const billingValues = billingForm.getValues();
             // Save profile data
-            await apiClient.updateProviderProfile(profileData);
+            await apiClient.updateProviderProfile({
+                ...profileData,
+                ...billingValues,
+            });
             setSuccess('Profilul a fost actualizat cu succes!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (error: any) {
@@ -509,9 +554,9 @@ export default function ProviderProfileEditPage() {
         }));
     };
 
-    if (loading) {
+    if (loading || userLoading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
             </div>
         );
@@ -529,7 +574,8 @@ export default function ProviderProfileEditPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
+            <TrustoraThemeStyles />
             <Header />
 
             <div className="container mx-auto px-4 py-8">
@@ -542,11 +588,11 @@ export default function ProviderProfileEditPage() {
                         </p>
                     </div>
                     <div className="flex space-x-3">
-                        <Button variant="outline" onClick={() => router.push(`/provider/${user.id}`)}>
+                        <Button variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>
                             <Eye className="w-4 h-4 mr-2" />
                             Previzualizare
                         </Button>
-                        <Button onClick={handleSave} disabled={saving}>
+                        <Button className="btn-primary" onClick={handleSave} disabled={saving}>
                             {saving ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -578,7 +624,7 @@ export default function ProviderProfileEditPage() {
 
                 {/* Profile Edit Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-6 glass-card p-1">
                         <TabsTrigger value="basic">Informații de Bază</TabsTrigger>
                         <TabsTrigger value="availability">Disponibilitate</TabsTrigger>
                         <TabsTrigger value="languages">Limbi & Certificări</TabsTrigger>
@@ -589,7 +635,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Basic Information */}
                     <TabsContent value="basic" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <User className="w-5 h-5" />
@@ -639,7 +685,7 @@ export default function ProviderProfileEditPage() {
                                                 />
                                             )}
                                         </div>
-                                        <Button onClick={handleUpload} className="mt-4 w-full">
+                                        <Button onClick={handleUpload} className="btn-primary mt-4 w-full">
                                             Salvează imaginea
                                         </Button>
                                     </DialogContent>
@@ -733,10 +779,27 @@ export default function ProviderProfileEditPage() {
                                             id="location"
                                             value={profileData.location}
                                             onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                                            placeholder="București, România"
+                                            placeholder="Mamaia Sat, Navodari, România, 905700"
                                         />
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Briefcase className="w-5 h-5" />
+                                    <span>{t('common.billing.section_title')}</span>
+                                </CardTitle>
+                                <CardDescription>
+                                    {t('common.billing.section_description')}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Form {...billingForm}>
+                                    <BillingDetailsForm showTitle={false} />
+                                </Form>
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -744,7 +807,7 @@ export default function ProviderProfileEditPage() {
                     {/* Availability */}
                     <TabsContent value="availability" className="space-y-6">
                         <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Clock className="w-5 h-5" />
@@ -835,7 +898,7 @@ export default function ProviderProfileEditPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Calendar className="w-5 h-5" />
@@ -905,7 +968,7 @@ export default function ProviderProfileEditPage() {
                     <TabsContent value="languages" className="space-y-6">
                         <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Languages */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Languages className="w-5 h-5" />
@@ -1022,7 +1085,7 @@ export default function ProviderProfileEditPage() {
                             {/*</Card>*/}
 
                             {/* Certifications */}
-                            <Card>
+                            <Card className="glass-card">
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Award className="w-5 h-5" />
@@ -1078,7 +1141,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Experience */}
                     <TabsContent value="experience" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Briefcase className="w-5 h-5" />
@@ -1146,7 +1209,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Education */}
                     <TabsContent value="education" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <GraduationCap className="w-5 h-5" />
@@ -1213,7 +1276,7 @@ export default function ProviderProfileEditPage() {
 
                     {/* Portfolio */}
                     <TabsContent value="portfolio" className="space-y-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
                                     <Target className="w-5 h-5" />

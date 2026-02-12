@@ -1,0 +1,11 @@
+{
+  "results": {
+    "no_services": "Nu s-au găsit servicii care să corespundă filtrelor",
+    "recommended": "Recomandat",
+    "standard": "Standard",
+    "more_label": "+{count} mai multe",
+    "providers_more_label": "+{count} mai mulți",
+    "providers_available": "{count} prestatori disponibili",
+    "no_providers": "Niciun prestator încă"
+  }
+}
