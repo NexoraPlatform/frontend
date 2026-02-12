@@ -12,8 +12,9 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ProviderConnectCard from '@/components/ProviderConnectCard';
 import type { OAuthProvider } from '@/types/auth';
+import { buildOAuthRedirectUrl, resolveBackendUrl } from '@/lib/backend-url';
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
+const BACKEND_URL = resolveBackendUrl();
 
 const OAUTH_PROVIDERS: Array<{
     key: OAuthProvider;
@@ -98,11 +99,12 @@ export default function IntegrationsPage() {
     }, [user?.connected_accounts, user?.github_token]);
 
     const handleConnect = (provider: OAuthProvider) => {
-        if (!API_BASE_URL) {
-            toast.error('NEXT_PUBLIC_API_URL is not configured');
+        const redirectUrl = buildOAuthRedirectUrl(provider);
+        if (!redirectUrl) {
+            toast.error('NEXT_PUBLIC_BACKEND_URL is not configured');
             return;
         }
-        window.location.href = `${API_BASE_URL}/auth/${provider}/redirect`;
+        window.location.href = redirectUrl;
     };
 
     if (loading || userLoading) {
@@ -149,10 +151,10 @@ export default function IntegrationsPage() {
 
                 <section className="bg-[#F5F7FA] px-6 py-12 dark:bg-[#0B1220]">
                     <div className="mx-auto max-w-6xl space-y-6">
-                        {!API_BASE_URL ? (
+                        {!BACKEND_URL ? (
                             <Alert variant="destructive">
                                 <AlertDescription>
-                                    NEXT_PUBLIC_API_URL is missing. OAuth redirect links cannot be generated.
+                                    NEXT_PUBLIC_BACKEND_URL (or NEXT_PUBLIC_API_URL fallback) is missing. OAuth redirect links cannot be generated.
                                 </AlertDescription>
                             </Alert>
                         ) : null}

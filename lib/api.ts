@@ -507,6 +507,10 @@ export class ApiClient {
     return this.request<any>(`/services/${id}`);
   }
 
+  async getDeliveryProviders() {
+    return this.request<any>('/general/delivery-providers');
+  }
+
   async createService(serviceData: any) {
     return this.request<any>('/admin/services', {
       method: 'POST',

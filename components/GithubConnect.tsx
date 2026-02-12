@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Github } from "lucide-react";
 import { toast } from 'sonner';
-
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
+import { buildOAuthRedirectUrl } from '@/lib/backend-url';
 
 export default function GithubConnect({ isConnected }: { isConnected: boolean }) {
     const [loading, setLoading] = useState(false);
@@ -12,12 +11,13 @@ export default function GithubConnect({ isConnected }: { isConnected: boolean })
     const handleConnect = async () => {
         setLoading(true);
         try {
-            if (!API_BASE_URL) {
-                toast.error('NEXT_PUBLIC_API_URL is not configured');
+            const redirectUrl = buildOAuthRedirectUrl('github');
+            if (!redirectUrl) {
+                toast.error('NEXT_PUBLIC_BACKEND_URL is not configured');
                 setLoading(false);
                 return;
             }
-            window.location.href = `${API_BASE_URL}/auth/github/redirect`;
+            window.location.href = redirectUrl;
         } catch (error) {
             console.error("Failed to init GitHub auth", error);
             setLoading(false);

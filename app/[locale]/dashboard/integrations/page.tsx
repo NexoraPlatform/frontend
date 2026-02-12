@@ -10,6 +10,7 @@ import IntegrationCard from '@/components/integrations/IntegrationCard';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
+import { buildOAuthRedirectUrl, resolveBackendUrl } from '@/lib/backend-url';
 import { useRouter } from '@/lib/navigation';
 import type { ConnectedAccount, IntegrationProvider } from '@/types/integration';
 
@@ -19,18 +20,6 @@ const providerLabel: Record<IntegrationProvider, string> = {
   github: 'GitHub',
   google: 'Google',
   figma: 'Figma',
-};
-
-const resolveBackendUrl = () => {
-  const explicitBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
-  if (explicitBackendUrl) {
-    return explicitBackendUrl.replace(/\/+$/, '');
-  }
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (!apiUrl) return '';
-
-  return apiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
 };
 
 export default function DashboardIntegrationsPage() {
@@ -84,15 +73,6 @@ export default function DashboardIntegrationsPage() {
 
     return index;
   }, [user?.connected_accounts]);
-
-  const handleConnect = (provider: IntegrationProvider) => {
-    if (!backendUrl) {
-      toast.error('Backend URL is not configured');
-      return;
-    }
-
-    window.location.href = `${backendUrl}/auth/${provider}/redirect`;
-  };
 
   const handleDisconnect = (provider: IntegrationProvider) => {
     toast.info(`Disconnect for ${providerLabel[provider]} will be available soon.`);
@@ -164,7 +144,7 @@ export default function DashboardIntegrationsPage() {
                     provider={provider}
                     isConnected={Boolean(accountDetails)}
                     accountDetails={accountDetails}
-                    onConnect={() => handleConnect(provider)}
+                    connectHref={buildOAuthRedirectUrl(provider)}
                     onDisconnect={() => handleDisconnect(provider)}
                   />
                 );

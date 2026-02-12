@@ -17,7 +17,7 @@ type IntegrationCardProps = {
   provider: IntegrationProvider;
   isConnected: boolean;
   accountDetails: ConnectedAccount | null;
-  onConnect: () => void;
+  connectHref: string;
   onDisconnect: () => void;
 };
 
@@ -50,7 +50,7 @@ export default function IntegrationCard({
   provider,
   isConnected,
   accountDetails,
-  onConnect,
+  connectHref,
   onDisconnect,
 }: IntegrationCardProps) {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -71,14 +71,7 @@ export default function IntegrationCard({
 
   const handleConnect = async () => {
     setIsConnecting(true);
-    try {
-      await new Promise((resolve) => window.setTimeout(resolve, 120));
-      onConnect();
-    } finally {
-      window.setTimeout(() => {
-        setIsConnecting(false);
-      }, 1000);
-    }
+    await new Promise((resolve) => window.setTimeout(resolve, 120));
   };
 
   return (
@@ -127,16 +120,22 @@ export default function IntegrationCard({
           <Button variant="outline" onClick={onDisconnect}>
             Manage
           </Button>
+        ) : !connectHref ? (
+          <Button disabled>
+            Connect {providerLabel[provider]}
+          </Button>
         ) : (
-          <Button onClick={handleConnect} disabled={isConnecting}>
-            {isConnecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Redirecting...
-              </>
-            ) : (
-              `Connect ${providerLabel[provider]}`
-            )}
+          <Button asChild onClick={handleConnect} disabled={isConnecting}>
+            <a href={connectHref}>
+              {isConnecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Redirecting...
+                </>
+              ) : (
+                `Connect ${providerLabel[provider]}`
+              )}
+            </a>
           </Button>
         )}
       </CardContent>
