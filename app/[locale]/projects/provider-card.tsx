@@ -2,7 +2,7 @@
 
 import {Card, CardContent} from "@/components/ui/card";
 import {MapPin, Star} from "lucide-react";
-import ProviderService from "./[id]/provider-service";
+import ProviderServiceBadge from "./provider-service-badge";
 import { useRouter } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -51,7 +51,6 @@ export default function ProviderCard({ provider, avatarPriority = false }: Provi
                                         {provider.firstName} {provider.lastName}
                                     </div>
                                     <div className="flex items-center space-x-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
-
                                         <div className="flex items-center space-x-1">
                                             <MapPin className="w-3 h-3" />
                                             <span>{provider.location || t('projects.provider_card.location_fallback')}</span>
@@ -59,7 +58,7 @@ export default function ProviderCard({ provider, avatarPriority = false }: Provi
                                     </div>
                                     <div className="flex items-center space-x-3 text-sm text-slate-500 dark:text-[#A3ADC2]">
                                         {provider.services?.length > 0 && provider.services.map((service: any, index: number) => (
-                                            <ProviderService service={ service} key={index} />
+                                            <ProviderServiceBadge service={ service} key={index} />
                                         ))}
                                     </div>
                                 </div>
