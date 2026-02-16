@@ -369,14 +369,23 @@ export default function DashboardClient() {
       // Apply sorting
       filteredProjects.sort((a: any, b: any) => {
         let aValue, bValue;
+        const budgetAmount = (project: any) => {
+          if (project?.budget && typeof project.budget === 'object') {
+            const amount = Number((project.budget as { amount?: unknown }).amount);
+            return Number.isFinite(amount) ? amount : 0;
+          }
+          const numeric = Number(project?.budget);
+          return Number.isFinite(numeric) ? numeric : 0;
+        };
+
         switch (sortBy) {
           case 'title':
             aValue = a.title.toLowerCase();
             bValue = b.title.toLowerCase();
             break;
           case 'budget':
-            aValue = isProvider ? a.budget : a.budget;
-            bValue = isProvider ? b.budget : b.budget;
+            aValue = budgetAmount(a);
+            bValue = budgetAmount(b);
             break;
           case 'oldest':
             aValue = new Date(a.created_at).getTime();

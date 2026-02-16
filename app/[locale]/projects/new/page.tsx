@@ -1,2410 +1,3473 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { usePathname, useRouter } from '@/lib/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { Header } from '@/components/header';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocale } from 'next-intl';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Figma,
+  FolderOpen,
+  Github,
+  Loader2,
+  Sparkles,
+  UploadCloud,
+  Wrench,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
 import { Footer } from '@/components/footer';
+import { Header } from '@/components/header';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
-import {
-    Plus,
-    X,
-    Search,
-    Star,
-    MapPin,
-    Clock,
-    DollarSign,
-    CheckCircle,
-    AlertCircle,
-    Loader2,
-    FileText,
-    Code,
-    Zap,
-    Target,
-    Users,
-    MessageSquare,
-    Eye,
-    ArrowRight,
-    ArrowLeft,
-    Filter,
-    ChevronDown,
-    BadgeAlert, GithubIcon
-} from 'lucide-react';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
-import { useGetServicesGroupedByCategory, useMainCategories } from '@/hooks/use-api';
-import { apiClient } from '@/lib/api';
-import { formatDeadline } from '@/lib/projects';
-import { hasRole } from '@/lib/access';
-import type { Locale } from '@/types/locale';
+import { useGetServicesGroupedByCategory } from '@/hooks/use-api';
+import { getEcho } from '@/lib/echo';
+import { Link, useRouter } from '@/lib/navigation';
+import { aiService, type AiRecommendServicesResponse, type RecommendedServiceCandidate } from '@/services/ai.service';
+import { projectsService } from '@/services/projects';
 import {
-    AI_BRIEF_DRAFT_STORAGE_KEY,
-    normalizeProjectDeadlineValue,
-    type AiBriefFormDraft
+  type AiAssistantMessage,
+  type AiBriefResponse,
+  type AiMilestoneItem,
+  type AiTeamStructureItem,
+  type AiBriefRecommendedProviders,
+  type AiBriefOtherProviders,
+  type AiBriefOtherProvidersByService,
+  type AiBriefProvider,
+  type AiBriefFormDraft,
+  AI_BRIEF_DRAFT_STORAGE_KEY,
 } from '@/types/ai';
-import { PriceDisplay } from '@/components/PriceDisplay';
-import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { enUS, ro } from 'date-fns/locale';
-import GithubConnect from "@/components/GithubConnect";
-import BriefCopilot from '@/components/projects/BriefCopilot';
+import type { Locale } from '@/types/locale';
+import type { DeliveryProvider } from '@/types/projects';
 
-function getDateFnsLocale(locale: string) {
-    return locale === 'ro' ? ro : enUS;
-}
+type WizardStep = 'intent' | 'recommendation' | 'briefing' | 'providers' | 'review';
 
-type ServiceItem = {
-    id: string;
-    name: string;
-    slug?: string;
-    category_id: string;
-    require_repo: boolean;
+type RecommendationResult = {
+  bundle_name?: string;
+  services: RecommendedServiceCandidate[];
 };
 
-type GroupedServices = Record<
-    string,
-    Record<string, ServiceItem[]>
->;
-
-type matchReasons = {
-    passed: boolean;
-    message: string;
-}
-
-interface SuggestedProvider {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatar?: string;
-    rating: number;
-    reviewCount: number;
-    completedProjects: number;
-    responseTime: string;
-    location: string;
-    isVerified: boolean;
-    profileUrl: string;
-    skills: string[];
-    basePrice: number;
-    pricingType: string;
-    deliveryTime: number;
-    matchScore: number;
-    matchReasons: matchReasons[];
-    availability: string;
-    lastActive: string;
-    level: string;
-}
-
-
-type TechnologySelected = {
-    id: string;
-    name: string
-    require_repo?: boolean;
-}
-
-type RecommendedProvider = {
-    role: string;
-    level: string;
-    service: string;
-    count: number;
-    estimated_cost: number;
-}
-
-type BudgetType = 'FIXED' | 'HOURLY';
-
-type FormData = {
-    title: string;
-    description: string;
-    requirements: string;
-    serviceId: string;
-    technologies: TechnologySelected[];
-    budget: string;
-    budgetType: BudgetType;
-    deadline: string;
-    visibility: string;
-    attachments: File[];
-    additionalInfo: string;
-    recommendedProviders: RecommendedProvider[];
-    notes: string;
-    paymentPlan: string;
-    githubRepoTarget: 'platform' | 'provider' | 'client' | 'without';
+type ServiceCatalogEntry = {
+  name?: string;
+  description?: string;
+  delivery_provider?: DeliveryProvider;
 };
 
+type RecommendedCard = RecommendedServiceCandidate & {
+  key: string;
+};
 
-type SelectedProvider = {
-    id: string;
-    matchScore: number;
+const PAYMENT_PLAN_OPTIONS = [
+  { value: 'FULL', label: 'Full Payment' },
+  { value: 'MILESTONE', label: 'Milestone' },
+  { value: 'MONTHLY', label: 'Monthly' },
+] as const;
+
+const WIZARD_STEPS: Array<{ id: WizardStep; label: string }> = [
+  { id: 'intent', label: 'Intenție' },
+  { id: 'recommendation', label: 'Recomandare' },
+  { id: 'briefing', label: 'Briefing' },
+  { id: 'providers', label: 'Prestatori' },
+  { id: 'review', label: 'Review & Create' },
+];
+
+const STEP_TRANSITIONS: Record<WizardStep, WizardStep[]> = {
+  intent: ['recommendation'],
+  recommendation: ['intent', 'briefing'],
+  briefing: ['recommendation', 'providers'],
+  providers: ['briefing', 'review'],
+  review: ['providers'],
+};
+
+const AI_BRIEF_GENERATED_EVENT_NAMES = [
+  '.AiBriefGenerated',
+  'AiBriefGenerated',
+  '.App\\Events\\AiBriefGenerated',
+  'App\\Events\\AiBriefGenerated',
+] as const;
+
+const AI_BRIEF_FAILED_EVENT_NAMES = [
+  '.AiBriefFailed',
+  'AiBriefFailed',
+  '.App\\Events\\AiBriefFailed',
+  'App\\Events\\AiBriefFailed',
+] as const;
+
+const toObject = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const toString = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+};
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const extractBriefResultId = (value: unknown): number | string | null => {
+  const root = toObject(value);
+  if (!root) {
+    return null;
+  }
+
+  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+  const sourceResponsePayload = toObject(source.response_payload);
+  const rootResponsePayload = toObject(root.response_payload);
+  const sourceDebug = toObject(source.debug);
+  const rootDebug = toObject(root.debug);
+  const sourceDebugResponsePayload = toObject(sourceDebug?.response_payload);
+  const rootDebugResponsePayload = toObject(rootDebug?.response_payload);
+  const candidate =
+    source.brief_result_id ??
+    root.brief_result_id ??
+    source.id ??
+    root.id ??
+    sourceResponsePayload?.brief_result_id ??
+    rootResponsePayload?.brief_result_id ??
+    sourceDebugResponsePayload?.brief_result_id ??
+    rootDebugResponsePayload?.brief_result_id;
+
+  if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+    return candidate;
+  }
+
+  if (typeof candidate === 'string' && candidate.trim()) {
+    return candidate.trim();
+  }
+
+  return null;
+};
+
+const normalizeDeliveryProvider = (value: unknown): DeliveryProvider => {
+  const normalized = toString(value).toLowerCase();
+
+  if (normalized === 'github') return 'github';
+  if (normalized === 'figma') return 'figma';
+  if (normalized === 'google_drive') return 'google_drive';
+  if (normalized === 'google_analytics') return 'google_analytics';
+
+  return 'manual_upload';
+};
+
+const getProviderLabel = (provider: DeliveryProvider) => {
+  if (provider === 'github') return 'GitHub';
+  if (provider === 'figma') return 'Figma';
+  if (provider === 'google_drive') return 'Google Drive';
+  if (provider === 'google_analytics') return 'Google Analytics';
+  return 'Manual Upload';
+};
+
+const getProviderIcon = (provider: DeliveryProvider) => {
+  if (provider === 'github') return <Github className="h-4 w-4" />;
+  if (provider === 'figma') return <Figma className="h-4 w-4" />;
+  if (provider === 'google_drive') return <FolderOpen className="h-4 w-4" />;
+  if (provider === 'google_analytics') return <BarChart3 className="h-4 w-4" />;
+  if (provider === 'manual_upload') return <UploadCloud className="h-4 w-4" />;
+  return <Wrench className="h-4 w-4" />;
+};
+
+const isAlternativeService = (service: RecommendedServiceCandidate | RecommendedCard) =>
+  Boolean((service as { is_alternative?: unknown }).is_alternative);
+
+const getServiceCategoryName = (service: RecommendedServiceCandidate | RecommendedCard) =>
+  toString((service as { category_name?: unknown }).category_name);
+
+const getServiceKey = (serviceName: unknown) => toString(serviceName).toLowerCase();
+
+const getProviderId = (provider: AiBriefProvider): number | null =>
+  toNumber((provider as { id?: unknown }).id);
+
+const getProviderDisplayName = (provider: AiBriefProvider) =>
+  toString((provider as { name?: unknown }).name) ||
+  `${toString(provider.firstName)} ${toString(provider.lastName)}`.trim() ||
+  (() => {
+    const providerId = getProviderId(provider);
+    return providerId !== null ? `Provider #${providerId}` : 'Provider';
+  })();
+
+const dedupeProviders = (providers: AiBriefProvider[]) => {
+  const unique = new Map<string, AiBriefProvider>();
+  providers.forEach((provider) => {
+    const providerId = getProviderId(provider);
+    const key = providerId !== null ? String(providerId) : getProviderDisplayName(provider);
+    if (!unique.has(key)) {
+      unique.set(key, provider);
+    }
+  });
+  return Array.from(unique.values());
+};
+
+const parseDurationToMonths = (value: unknown): number | null => {
+  const normalized = toString(value).toLowerCase().replace(/\s+/g, '');
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.includes('plusyear') || normalized.includes('over1year')) {
+    return 12;
+  }
+
+  const numericPattern = /(\d+(?:[.,]\d+)?)(day|days|week|weeks|month|months|year|years)/;
+  const match = normalized.match(numericPattern);
+  if (!match) {
+    return null;
+  }
+
+  const amount = Number(match[1].replace(',', '.'));
+  const unit = match[2];
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  if (unit.startsWith('day')) {
+    return amount / 30;
+  }
+
+  if (unit.startsWith('week')) {
+    return amount / 4;
+  }
+
+  if (unit.startsWith('year')) {
+    return amount * 12;
+  }
+
+  return amount;
+};
+
+const normalizeRecommendationResponse = (
+  payload: unknown,
+  serviceCatalogById?: Map<string, ServiceCatalogEntry>
+): RecommendationResult => {
+  const root = toObject(payload) ?? {};
+  const source = toObject(root.data) ?? root;
+  const bundle = toObject(source.bundle);
+  const recommendationType = toString(source.type).toLowerCase();
+
+  const bundleName =
+    toString(source.bundle_name) ||
+    toString(bundle?.name) ||
+    toString(source.name) ||
+    (recommendationType === 'bundle'
+      ? 'Recommended bundle'
+      : recommendationType === 'single'
+        ? 'Recommended service'
+        : '') ||
+    undefined;
+
+  const candidateLists: unknown[] = [
+    source.services,
+    bundle?.services,
+    source.recommended_services,
+    source.project_lines,
+    source.items,
+    root.services,
+  ];
+
+  let rawServices: unknown[] = [];
+  for (const entry of candidateLists) {
+    if (Array.isArray(entry) && entry.length > 0) {
+      rawServices = entry;
+      break;
+    }
+  }
+
+  if (
+    rawServices.length === 0 &&
+    (toString(source.service_name) ||
+      toString(source.name) ||
+      typeof source.service_id === 'string' ||
+      typeof source.service_id === 'number')
+  ) {
+    rawServices = [source];
+  }
+
+  const mapServiceEntries = (
+    entries: unknown[],
+    options?: {
+      isAlternative?: boolean;
+      fallbackCategoryId?: string | number;
+      fallbackCategoryName?: string;
+      fallbackReason?: string;
+    }
+  ): RecommendedServiceCandidate[] =>
+    entries
+      .map((entry) => {
+        const item = toObject(entry);
+        if (!item) {
+          return null;
+        }
+
+        const nestedService = toObject(item.service);
+        const serviceIdRaw = item.service_id ?? item.id ?? nestedService?.id;
+        const serviceId =
+          typeof serviceIdRaw === 'string' || typeof serviceIdRaw === 'number'
+            ? serviceIdRaw
+            : null;
+        const catalogData =
+          serviceId !== null ? serviceCatalogById?.get(String(serviceId)) : undefined;
+
+        const serviceName =
+          toString(item.service_name) ||
+          toString(item.name) ||
+          toString(item.title) ||
+          toString(nestedService?.name) ||
+          toString(catalogData?.name) ||
+          (serviceId !== null ? `Service #${serviceId}` : '');
+
+        if (!serviceName) {
+          return null;
+        }
+
+        const categoryId = item.category_id ?? options?.fallbackCategoryId;
+        const categoryName = toString(item.category_name) || toString(options?.fallbackCategoryName);
+        const description =
+          toString(item.description) ||
+          toString(item.reason) ||
+          toString(options?.fallbackReason) ||
+          toString(catalogData?.description);
+
+        return {
+          ...(serviceId !== null ? { service_id: serviceId } : {}),
+          service_name: serviceName,
+          delivery_provider: normalizeDeliveryProvider(
+            item.delivery_provider ??
+            item.provider ??
+            nestedService?.delivery_provider ??
+            catalogData?.delivery_provider
+          ),
+          ...(description ? { description } : {}),
+          ...((typeof categoryId === 'string' || typeof categoryId === 'number')
+            ? { category_id: categoryId }
+            : {}),
+          ...(categoryName ? { category_name: categoryName } : {}),
+          ...(options?.isAlternative ? { is_alternative: true } : {}),
+        } satisfies RecommendedServiceCandidate;
+      })
+      .filter((entry): entry is RecommendedServiceCandidate => entry !== null);
+
+  const recommendedServices = mapServiceEntries(rawServices);
+
+  const similarServicesByCategoryRaw = Array.isArray(source.similar_services_by_category)
+    ? source.similar_services_by_category
+    : [];
+
+  const alternativeServices = similarServicesByCategoryRaw.flatMap((categoryEntry) => {
+    const category = toObject(categoryEntry);
+    if (!category) {
+      return [];
+    }
+
+    const categoryServices = Array.isArray(category.services) ? category.services : [];
+    if (categoryServices.length === 0) {
+      return [];
+    }
+
+    const fallbackCategoryName = toString(category.category_name);
+    const fallbackReason = fallbackCategoryName
+      ? `Alternative service in ${fallbackCategoryName}.`
+      : 'Alternative service option.';
+
+    return mapServiceEntries(categoryServices, {
+      isAlternative: true,
+      fallbackCategoryId:
+        typeof category.category_id === 'string' || typeof category.category_id === 'number'
+          ? category.category_id
+          : undefined,
+      fallbackCategoryName,
+      fallbackReason,
+    });
+  });
+
+  const uniqueServices = new Map<string, RecommendedServiceCandidate>();
+  [...recommendedServices, ...alternativeServices].forEach((service) => {
+    const serviceId = service.service_id;
+    const categoryName = getServiceCategoryName(service).toLowerCase();
+    const key =
+      typeof serviceId === 'string' || typeof serviceId === 'number'
+        ? `service-id:${String(serviceId)}::${categoryName}`
+        : `${service.service_name.toLowerCase()}::${service.delivery_provider}::${categoryName}`;
+
+    if (!uniqueServices.has(key)) {
+      uniqueServices.set(key, service);
+    }
+  });
+
+  const services = Array.from(uniqueServices.values());
+
+  return {
+    ...(bundleName ? { bundle_name: bundleName } : {}),
+    services,
+  };
+};
+
+const normalizeQuestions = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (typeof entry === 'string') {
+        return entry.trim();
+      }
+      if (entry && typeof entry === 'object' && 'question' in entry) {
+        return toString((entry as { question?: unknown }).question);
+      }
+      return '';
+    })
+    .filter(Boolean);
+};
+
+const toJsonDebugString = (value: unknown): string => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+const normalizeBriefProjectLines = (
+  rawLines: unknown[],
+  fallbackDescription: string = ''
+): NonNullable<AiBriefResponse['final_brief']>['project_lines'] => {
+  return rawLines
+    .map((entry) => {
+      const line = toObject(entry);
+      if (!line) {
+        return null;
+      }
+
+      const serviceName =
+        toString(line.service_name) ||
+        toString(line.name) ||
+        toString(line.service) ||
+        toString(line.role);
+
+      if (!serviceName) {
+        return null;
+      }
+
+      const milestonesRaw = Array.isArray(line.milestones) ? line.milestones : [];
+      const milestones = milestonesRaw
+        .map((milestoneEntry) => {
+          const milestone = toObject(milestoneEntry);
+          if (!milestone) {
+            return null;
+          }
+
+          const milestoneTitle = toString(milestone.title);
+          if (!milestoneTitle) {
+            return null;
+          }
+
+          const milestoneDescription = toString(milestone.description);
+          const milestonePercentage = toNumber(milestone.percentage);
+
+          return {
+            title: milestoneTitle,
+            ...(milestoneDescription ? { description: milestoneDescription } : {}),
+            ...(milestonePercentage !== null ? { percentage: milestonePercentage } : {}),
+            amount: toNumber(milestone.amount) ?? 0,
+          };
+        })
+        .filter(
+          (item): item is { title: string; description?: string; percentage?: number; amount: number } =>
+            item !== null
+        );
+
+      return {
+        service_name: serviceName,
+        delivery_provider: normalizeDeliveryProvider(line.delivery_provider),
+        description: toString(line.description) || fallbackDescription,
+        budget_percentage:
+          toNumber(line.budget_percentage) ?? toNumber(line.percentage) ?? 0,
+        milestones,
+      };
+    })
+    .filter((line): line is NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] => line !== null);
+};
+
+const normalizeStringList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((item) => toString(item)).filter(Boolean);
+};
+
+const normalizeFlexibleStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => toString(item)).filter(Boolean);
+  }
+
+  const single = toString(value);
+  return single ? [single] : [];
+};
+
+const normalizeTeamStructure = (
+  value: unknown
+): AiTeamStructureItem[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const member = toObject(entry);
+      if (!member) {
+        return null;
+      }
+
+      const role = toString(member.role);
+      if (!role) {
+        return null;
+      }
+
+      const count = toNumber(member.count);
+      const estimatedCost = toNumber(member.estimated_cost);
+
+      return {
+        role,
+        ...(toString(member.service) ? { service: toString(member.service) } : {}),
+        ...(toString(member.level) ? { level: toString(member.level) } : {}),
+        ...(count !== null ? { count } : {}),
+        ...(estimatedCost !== null ? { estimated_cost: estimatedCost } : {}),
+      };
+    })
+    .filter((item): item is AiTeamStructureItem => item !== null);
+};
+
+const normalizeMilestoneList = (
+  value: unknown
+): AiMilestoneItem[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const milestone = toObject(entry);
+      if (!milestone) {
+        return null;
+      }
+
+      const title = toString(milestone.title);
+      if (!title) {
+        return null;
+      }
+
+      const percentage = toNumber(milestone.percentage);
+      const amount = toNumber(milestone.amount);
+
+      return {
+        title,
+        ...(toString(milestone.description) ? { description: toString(milestone.description) } : {}),
+        ...(percentage !== null ? { percentage } : {}),
+        ...(amount !== null ? { amount } : {}),
+      };
+    })
+    .filter((item): item is AiMilestoneItem => item !== null);
+};
+
+const normalizeProviderCandidate = (value: unknown): AiBriefProvider | null => {
+  const provider = toObject(value);
+  if (!provider) {
+    return null;
+  }
+
+  const id = toNumber(provider.id);
+  if (id === null) {
+    return null;
+  }
+
+  const firstName = toString(provider.firstName) || toString(provider.first_name);
+  const lastName = toString(provider.lastName) || toString(provider.last_name);
+  const name = toString(provider.name) || [firstName, lastName].filter(Boolean).join(' ');
+  const rating = toNumber(provider.rating);
+  const reviewCount = toNumber(provider.reviewCount ?? provider.review_count);
+  const matchScore = toNumber(provider.matchScore ?? provider.match_score);
+  const pineconeScore = toNumber(provider.pineconeScore ?? provider.pinecone_score);
+  const matchReasons = normalizeFlexibleStringList(provider.matchReasons ?? provider.match_reasons);
+
+  return {
+    ...provider,
+    id,
+    ...(firstName ? { firstName } : {}),
+    ...(lastName ? { lastName } : {}),
+    ...(name ? { name } : {}),
+    ...(toString(provider.avatar) ? { avatar: toString(provider.avatar) } : {}),
+    ...(rating !== null ? { rating } : {}),
+    ...(reviewCount !== null ? { reviewCount } : {}),
+    ...(matchScore !== null ? { matchScore } : {}),
+    ...(pineconeScore !== null ? { pineconeScore } : {}),
+    ...(matchReasons.length > 0 ? { matchReasons } : {}),
+  };
+};
+
+const normalizeRecommendedProviders = (value: unknown): AiBriefRecommendedProviders | undefined => {
+  const source = toObject(value);
+  if (!source) {
+    return undefined;
+  }
+
+  const normalizedEntries = Object.entries(source)
+    .map(([serviceName, providers]) => {
+      const normalizedService = toString(serviceName);
+      const providerList = Array.isArray(providers)
+        ? providers
+            .map((provider) => normalizeProviderCandidate(provider))
+            .filter((provider): provider is AiBriefProvider => provider !== null)
+        : [];
+
+      if (!normalizedService) {
+        return null;
+      }
+
+      return [normalizedService, providerList] as const;
+    })
+    .filter((entry): entry is readonly [string, AiBriefProvider[]] => entry !== null);
+
+  if (normalizedEntries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(normalizedEntries);
+};
+
+const normalizeOtherProvidersPage = (value: unknown): AiBriefOtherProviders => {
+  const source = toObject(value) ?? {};
+  const providers = Array.isArray(source.data)
+    ? source.data
+        .map((provider) => normalizeProviderCandidate(provider))
+        .filter((provider): provider is AiBriefProvider => provider !== null)
+    : [];
+
+  return {
+    ...source,
+    data: providers,
+    ...(toNumber(source.current_page) !== null ? { current_page: toNumber(source.current_page) as number } : {}),
+    ...(toNumber(source.per_page) !== null ? { per_page: toNumber(source.per_page) as number } : {}),
+    ...(toNumber(source.total) !== null ? { total: toNumber(source.total) as number } : {}),
+    ...(toNumber(source.last_page) !== null ? { last_page: toNumber(source.last_page) as number } : {}),
+    ...(toNumber(source.from) !== null ? { from: toNumber(source.from) as number } : {}),
+    ...(source.from === null ? { from: null } : {}),
+    ...(toNumber(source.to) !== null ? { to: toNumber(source.to) as number } : {}),
+    ...(source.to === null ? { to: null } : {}),
+    ...(toString(source.next_page_url) ? { next_page_url: toString(source.next_page_url) } : {}),
+    ...(source.next_page === null || source.next_page_url === null ? { next_page_url: null } : {}),
+    ...(toString(source.prev_page_url) ? { prev_page_url: toString(source.prev_page_url) } : {}),
+    ...(source.prev_page === null || source.prev_page_url === null ? { prev_page_url: null } : {}),
+  };
+};
+
+const normalizeOtherProvidersByService = (
+  value: unknown
+): AiBriefOtherProvidersByService | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const normalized = value
+    .map((entry) => {
+      const serviceGroup = toObject(entry);
+      if (!serviceGroup) {
+        return null;
+      }
+
+      const serviceName = toString(serviceGroup.service_name);
+      if (!serviceName) {
+        return null;
+      }
+
+      const serviceId = serviceGroup.service_id;
+      const providersPage = normalizeOtherProvidersPage(serviceGroup.providers);
+
+      return {
+        ...(typeof serviceId === 'string' || typeof serviceId === 'number'
+          ? { service_id: serviceId }
+          : {}),
+        service_name: serviceName,
+        providers: providersPage,
+      };
+    })
+    .filter(
+      (entry): entry is NonNullable<AiBriefOtherProvidersByService[number]> => entry !== null
+    );
+
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
+  const root = toObject(payload);
+  if (!root) {
+    return null;
+  }
+
+  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+
+  const statusRaw = toString(source.status ?? root.status).toUpperCase();
+  const status: AiBriefResponse['status'] =
+    statusRaw === 'FINAL' ? 'FINAL' : statusRaw === 'PROCESSING' ? 'PROCESSING' : 'CLARIFY';
+
+  const questions = normalizeQuestions(source.questions ?? root.questions);
+  const finalBriefText =
+    toString(source.final_brief_text) || toString(root.final_brief_text);
+  const modularBriefSource =
+    toObject(source.final_brief_modular) ?? toObject(root.final_brief_modular);
+  const standardBriefSource =
+    toObject(source.final_brief) ??
+    toObject(root.final_brief) ??
+    (status === 'FINAL' ? toObject(source) : null);
+  const finalBriefSource = modularBriefSource ?? standardBriefSource;
+
+  let final_brief: AiBriefResponse['final_brief'];
+  let final_brief_modular: AiBriefResponse['final_brief_modular'];
+  let final_brief_full: AiBriefResponse['final_brief_full'];
+
+  if (finalBriefSource) {
+    const title =
+      toString(modularBriefSource?.title) ||
+      toString(standardBriefSource?.title) ||
+      toString(finalBriefSource.title) ||
+      'AI Generated Brief';
+    const fallbackDescription =
+      toString(modularBriefSource?.description) ||
+      toString(standardBriefSource?.description) ||
+      '';
+
+    const modularProjectLinesRaw = modularBriefSource?.project_lines;
+    const standardProjectLinesRaw = standardBriefSource?.project_lines;
+    const modularProjectLines = Array.isArray(modularProjectLinesRaw)
+      ? normalizeBriefProjectLines(modularProjectLinesRaw, fallbackDescription)
+      : [];
+    const standardProjectLines = Array.isArray(standardProjectLinesRaw)
+      ? normalizeBriefProjectLines(standardProjectLinesRaw, fallbackDescription)
+      : [];
+    let project_lines = modularProjectLines.length > 0
+      ? modularProjectLines
+      : standardProjectLines.length > 0
+        ? standardProjectLines
+        : [];
+
+    if (project_lines.length === 0) {
+      const rawProjectLines = Array.isArray(finalBriefSource.project_lines)
+        ? finalBriefSource.project_lines
+        : [];
+      project_lines = normalizeBriefProjectLines(rawProjectLines, fallbackDescription);
+    }
+
+    const teamStructure = standardBriefSource?.team_structure;
+    if (project_lines.length === 0 && Array.isArray(teamStructure)) {
+      const fallbackTeamLines: Array<
+        NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] | null
+      > = teamStructure.map((teamMember) => {
+        const member = toObject(teamMember);
+        if (!member) {
+          return null;
+        }
+
+        const serviceName = toString(member.service) || toString(member.role);
+        if (!serviceName) {
+          return null;
+        }
+
+        return {
+          service_name: serviceName,
+          delivery_provider: 'manual_upload' as const,
+          description: toString(member.role) || fallbackDescription,
+          budget_percentage: 0,
+          milestones: [],
+        };
+      });
+
+      project_lines = fallbackTeamLines.filter(
+        (line): line is NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] =>
+          line !== null
+      );
+    }
+
+    const standardSpecificRequirements = normalizeStringList(standardBriefSource?.specific_requirements);
+    const standardTechnologies = normalizeStringList(standardBriefSource?.technologies);
+    const standardTeamStructure = normalizeTeamStructure(standardBriefSource?.team_structure);
+    const standardMilestones = normalizeMilestoneList(standardBriefSource?.milestones);
+    const modularSpecificRequirements = normalizeStringList(modularBriefSource?.specific_requirements);
+    const modularTechnologies = normalizeStringList(modularBriefSource?.technologies);
+    const modularTeamStructure = normalizeTeamStructure(modularBriefSource?.team_structure);
+    const modularMilestones = normalizeMilestoneList(modularBriefSource?.milestones);
+    const standardTechnicalRisks = normalizeFlexibleStringList(standardBriefSource?.technical_risks);
+    const standardComplexityEstimation = Object.fromEntries(
+      Object.entries(toObject(standardBriefSource?.complexity_estimation) ?? {})
+        .map(([key, value]) => [key, toNumber(value)])
+        .filter((entry): entry is [string, number] => entry[1] !== null)
+    );
+
+    if (project_lines.length > 0) {
+      final_brief = {
+        title: toString(standardBriefSource?.title) || title,
+        project_lines,
+        ...(toString(standardBriefSource?.description)
+          ? { description: toString(standardBriefSource?.description) }
+          : {}),
+        ...(standardTechnologies.length > 0 ? { technologies: standardTechnologies } : {}),
+        ...(toNumber(standardBriefSource?.budget) !== null
+          ? { budget: toNumber(standardBriefSource?.budget) as number }
+          : {}),
+        ...(toNumber(standardBriefSource?.budget_min) !== null
+          ? { budget_min: toNumber(standardBriefSource?.budget_min) as number }
+          : {}),
+        ...(toNumber(standardBriefSource?.budget_max) !== null
+          ? { budget_max: toNumber(standardBriefSource?.budget_max) as number }
+          : {}),
+        ...(standardSpecificRequirements.length > 0
+          ? { specific_requirements: standardSpecificRequirements }
+          : {}),
+        ...(toObject(standardBriefSource?.business_analysis)
+          ? {
+              business_analysis:
+                standardBriefSource?.business_analysis as NonNullable<
+                  AiBriefResponse['final_brief']
+                >['business_analysis'],
+            }
+          : {}),
+        ...(standardTechnicalRisks.length > 0
+          ? { technical_risks: standardTechnicalRisks }
+          : {}),
+        ...(Object.keys(standardComplexityEstimation).length > 0
+          ? { complexity_estimation: standardComplexityEstimation }
+          : {}),
+        ...(standardTeamStructure.length > 0 ? { team_structure: standardTeamStructure } : {}),
+        ...(standardMilestones.length > 0 ? { milestones: standardMilestones } : {}),
+        ...(toString(standardBriefSource?.duration)
+          ? { duration: toString(standardBriefSource?.duration) }
+          : {}),
+        ...(toString(standardBriefSource?.recommended_duration)
+          ? { recommended_duration: toString(standardBriefSource?.recommended_duration) }
+          : {}),
+        ...(toString(standardBriefSource?.project_duration)
+          ? { project_duration: toString(standardBriefSource?.project_duration) }
+          : {}),
+        ...(toString(standardBriefSource?.payment_plan)
+          ? { payment_plan: toString(standardBriefSource?.payment_plan) }
+          : {}),
+        ...(toString(standardBriefSource?.currency)
+          ? { currency: toString(standardBriefSource?.currency) }
+          : {}),
+      };
+
+      final_brief_modular = {
+        title,
+        project_lines: modularProjectLines.length > 0 ? modularProjectLines : project_lines,
+        ...(toString(modularBriefSource?.description)
+          ? { description: toString(modularBriefSource?.description) }
+          : {}),
+        ...(toString(modularBriefSource?.overview)
+          ? { overview: toString(modularBriefSource?.overview) }
+          : {}),
+        ...(toString(modularBriefSource?.client_goal)
+          ? { client_goal: toString(modularBriefSource?.client_goal) }
+          : {}),
+        ...(toString(modularBriefSource?.target_audience)
+          ? { target_audience: toString(modularBriefSource?.target_audience) }
+          : {}),
+        ...(modularTechnologies.length > 0 ? { technologies: modularTechnologies } : {}),
+        ...(toNumber(modularBriefSource?.budget) !== null
+          ? { budget: toNumber(modularBriefSource?.budget) as number }
+          : {}),
+        ...(toNumber(modularBriefSource?.budget_min) !== null
+          ? { budget_min: toNumber(modularBriefSource?.budget_min) as number }
+          : {}),
+        ...(toNumber(modularBriefSource?.budget_max) !== null
+          ? { budget_max: toNumber(modularBriefSource?.budget_max) as number }
+          : {}),
+        ...(modularSpecificRequirements.length > 0
+          ? { specific_requirements: modularSpecificRequirements }
+          : {}),
+        ...(modularTeamStructure.length > 0 ? { team_structure: modularTeamStructure } : {}),
+        ...(modularMilestones.length > 0 ? { milestones: modularMilestones } : {}),
+        ...(toString(modularBriefSource?.duration)
+          ? { duration: toString(modularBriefSource?.duration) }
+          : {}),
+        ...(toString(modularBriefSource?.recommended_duration)
+          ? { recommended_duration: toString(modularBriefSource?.recommended_duration) }
+          : {}),
+        ...(toString(modularBriefSource?.project_duration)
+          ? { project_duration: toString(modularBriefSource?.project_duration) }
+          : {}),
+        ...(toString(modularBriefSource?.payment_plan)
+          ? { payment_plan: toString(modularBriefSource?.payment_plan) }
+          : {}),
+        ...(toString(modularBriefSource?.currency)
+          ? { currency: toString(modularBriefSource?.currency) }
+          : {}),
+      };
+    }
+  }
+
+  const fullBriefSource =
+    toObject(source.final_brief_full) ?? toObject(root.final_brief_full);
+  if (fullBriefSource) {
+    const fullProjectLinesRaw = Array.isArray(fullBriefSource.project_lines)
+      ? fullBriefSource.project_lines
+      : [];
+    const fullProjectLines = normalizeBriefProjectLines(
+      fullProjectLinesRaw,
+      toString(fullBriefSource.description)
+    );
+    final_brief_full = {
+      ...(fullBriefSource as AiBriefResponse['final_brief_full']),
+      ...(fullProjectLines.length > 0 ? { project_lines: fullProjectLines } : {}),
+    };
+  }
+
+  const recommendedProviders = normalizeRecommendedProviders(
+    source.recommended_providers ?? root.recommended_providers
+  );
+  const otherProvidersByService = normalizeOtherProvidersByService(
+    source.other_providers_by_service ?? root.other_providers_by_service
+  );
+  const legacyOtherProviders = toObject(source.other_providers ?? root.other_providers)
+    ? normalizeOtherProvidersPage(source.other_providers ?? root.other_providers)
+    : undefined;
+  const payloadTruncated = Boolean(source.payload_truncated ?? root.payload_truncated);
+  const payloadTrimmedSections = normalizeStringList(
+    source.payload_trimmed_sections ?? root.payload_trimmed_sections
+  );
+  const briefResultId = extractBriefResultId(payload);
+
+  const normalized: AiBriefResponse = {
+    status,
+    ...(briefResultId !== null ? { brief_result_id: briefResultId } : {}),
+    ...(toString(source.channel ?? root.channel)
+      ? { channel: toString(source.channel ?? root.channel) }
+      : {}),
+    ...(questions.length > 0 ? { questions } : {}),
+    ...(final_brief ? { final_brief } : {}),
+    ...(final_brief_modular ? { final_brief_modular } : {}),
+    ...(final_brief_full ? { final_brief_full } : {}),
+    ...(finalBriefText ? { final_brief_text: finalBriefText } : {}),
+    ...(recommendedProviders ? { recommended_providers: recommendedProviders } : {}),
+    ...(legacyOtherProviders ? { other_providers: legacyOtherProviders } : {}),
+    ...(otherProvidersByService ? { other_providers_by_service: otherProvidersByService } : {}),
+    ...(payloadTruncated ? { payload_truncated: true } : {}),
+    ...(payloadTrimmedSections.length > 0 ? { payload_trimmed_sections: payloadTrimmedSections } : {}),
+  };
+
+  const hasUsefulPayload =
+    Boolean(final_brief) ||
+    Boolean(final_brief_modular) ||
+    Boolean(final_brief_full) ||
+    Boolean(finalBriefText) ||
+    questions.length > 0 ||
+    Boolean(recommendedProviders) ||
+    Boolean(legacyOtherProviders) ||
+    Boolean(otherProvidersByService) ||
+    payloadTruncated ||
+    payloadTrimmedSections.length > 0 ||
+    Boolean(statusRaw);
+  return hasUsefulPayload ? normalized : null;
+};
+
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  const payload = toObject(error);
+  if (payload) {
+    const message = toString(payload.message) || toString(payload.error);
+    if (message) {
+      return message;
+    }
+  }
+
+  return fallback;
+};
+
+const buildInitialConversation = (
+  intent: string,
+  selectedServices: RecommendedServiceCandidate[]
+): AiAssistantMessage[] => {
+  const serviceLines = selectedServices
+    .map(
+      (service, index) =>
+        `${index + 1}. ${service.service_name} (${getProviderLabel(service.delivery_provider)})`
+    )
+    .join('\n');
+
+  const content = [
+    `Client intent: ${intent}`,
+    serviceLines ? `Recommended services:\n${serviceLines}` : '',
+    'Generate a modular project brief grouped by project lines with milestone amounts and budget percentages.',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  return [{ role: 'user', content }];
+};
+
+const buildProjectTitle = (intent: string, aiTitle?: string): string => {
+  const normalizedAiTitle = toString(aiTitle);
+  if (normalizedAiTitle) {
+    return normalizedAiTitle;
+  }
+
+  const normalizedIntent = toString(intent);
+  if (!normalizedIntent) {
+    return 'Modular Project';
+  }
+
+  if (normalizedIntent.length <= 80) {
+    return normalizedIntent;
+  }
+
+  return `${normalizedIntent.slice(0, 77)}...`;
 };
 
 export default function NewProjectPage() {
-    const locale = useLocale() as Locale;
-    const t = useTranslations();
-    const { user, loading, userLoading, refreshUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('details');
-    const [formData, setFormData] = useState<FormData>({
-        title: '',
-        description: '',
-        requirements: '',
-        serviceId: '',
-        technologies: [],
-        budget: '',
-        budgetType: 'FIXED',
-        deadline: '',
-        visibility: 'PUBLIC',
-        attachments: [] as File[],
-        additionalInfo: '',
-        recommendedProviders: [],
-        notes: '',
-        paymentPlan: '',
-        githubRepoTarget: 'without',
+  const locale = useLocale() as Locale;
+  const router = useRouter();
+  const { user, loading, userLoading } = useAuth();
+  const { data: groupedServices } = useGetServicesGroupedByCategory();
+
+  const [step, setStep] = useState<WizardStep>('intent');
+  const [intent, setIntent] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const savedDraft = window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft) as AiBriefFormDraft;
+        // Optionally populate state from draft if needed immediately,
+        // or clear it if it's meant to be a one-time handoff.
+        // For now, we just ensure we can read it if we want to pre-fill specific fields.
+        // However, the prompt implies we should "handle" it.
+        // Let's assume we might want to set the brief result if it exists.
+
+        if (draft.recommended_providers) {
+          setRecommendedProviders(draft.recommended_providers);
+        }
+        if (draft.other_providers_by_service && Array.isArray(draft.other_providers_by_service)) {
+          setOtherProviders(draft.other_providers_by_service);
+        } else if (draft.other_providers && Array.isArray(draft.other_providers as unknown)) {
+          setOtherProviders(draft.other_providers as unknown as AiBriefOtherProvidersByService);
+        }
+        if (draft.selected_providers) {
+          setSelectedProviders(draft.selected_providers);
+        }
+
+        // We might also want to set other brief fields if they are empty
+        if (draft.title) {
+          // Logic to set title if this page had a title state, but it seems creatingProject payload uses it directly.
+          // Since this page manages the wizard state, we might need to map the draft to the wizard state
+          // OR just hold onto the draft data to use in payload creation.
+        }
+
+        // Clear storage after reading so it doesn't persist inappropriately
+        window.sessionStorage.removeItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to parse saved brief draft:', error);
+    }
+  }, []);
+
+  const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
+  const [selectedServiceIndexes, setSelectedServiceIndexes] = useState<number[]>([]);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
+
+  const [briefMessages, setBriefMessages] = useState<AiAssistantMessage[]>([]);
+  const [briefStatus, setBriefStatus] = useState<'IDLE' | AiBriefResponse['status']>('IDLE');
+  const [briefQuestions, setBriefQuestions] = useState<string[]>([]);
+  const [briefAnswer, setBriefAnswer] = useState('');
+  const [briefResult, setBriefResult] =
+    useState<NonNullable<AiBriefResponse['final_brief']> | null>(null);
+  const [briefSubscriptionError, setBriefSubscriptionError] = useState<string | null>(null);
+  const [briefModularDetails, setBriefModularDetails] =
+    useState<AiBriefResponse['final_brief_modular'] | null>(null);
+  const [briefFullDetails, setBriefFullDetails] =
+    useState<AiBriefResponse['final_brief_full'] | null>(null);
+  const [briefText, setBriefText] = useState('');
+  const [briefDebugResponseJson, setBriefDebugResponseJson] = useState('');
+  const [briefPayloadTruncated, setBriefPayloadTruncated] = useState(false);
+  const [briefPayloadTrimmedSections, setBriefPayloadTrimmedSections] = useState<string[]>([]);
+
+  const [recommendedProviders, setRecommendedProviders] =
+    useState<AiBriefRecommendedProviders | undefined>(undefined);
+  const [otherProviders, setOtherProviders] =
+    useState<AiBriefOtherProvidersByService | undefined>(undefined);
+  const [selectedProviders, setSelectedProviders] = useState<AiBriefProvider[]>([]);
+
+  const [totalBudget, setTotalBudget] = useState('');
+  const [editableDuration, setEditableDuration] = useState('');
+  const [editablePaymentPlan, setEditablePaymentPlan] = useState('');
+  const [creatingProject, setCreatingProject] = useState(false);
+
+  const briefRequestSentRef = useRef(false);
+  const briefSubscriptionRef = useRef<{
+    channelName: string;
+    channel: {
+      listen: (event: string, callback: (payload: unknown) => void) => void;
+      stopListening: (event: string) => void;
+    };
+    echo: ReturnType<typeof getEcho>;
+  } | null>(null);
+
+  const transitionTo = useCallback((nextStep: WizardStep) => {
+    setStep((currentStep) => {
+      if (STEP_TRANSITIONS[currentStep].includes(nextStep)) {
+        return nextStep;
+      }
+      return currentStep;
     });
+  }, []);
 
-    const [skipValidation, setSkipValidation] = useState(false);
-    const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
-    const [selectedProviders, setSelectedProviders] = useState<SelectedProvider[]>([]);
-    const [providerBudgets, setProviderBudgets] = useState<{ [key: string]: number }>({});
-    const [loadingProviders, setLoadingProviders] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState('');
-    const [newTechnology, setNewTechnology] = useState('');
-    const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [providerSearchTerm, setProviderSearchTerm] = useState('');
-    const [selectedServiceFilters, setSelectedServiceFilters] = useState<string[]>([]);
-    const [skillLevelFilter, setSkillLevelFilter] = useState<string[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [providersPerPage] = useState(6); // 6 providers per page for better layout
-    const [availableServices, setAvailableServices] = useState<any[]>([]);
-    const [providerMilestones, setProviderMilestones] = useState<Record<string, { title: string; amount: string }[]>>({});
-    const [aiSuggestedMilestones, setAiSuggestedMilestones] = useState<{ provider_role?: string; milestones: { title: string; amount: number }[] }[]>([]);
+  const serviceCatalogById = useMemo(() => {
+    const map = new Map<string, ServiceCatalogEntry>();
 
-    const isLongProject = useMemo(() => (
-        ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
-    ), [formData.deadline]);
+    const addService = (candidate: unknown) => {
+      const service = toObject(candidate);
+      if (!service) {
+        return;
+      }
 
-    const buildProviderMilestonesFromAi = useCallback(() => {
-        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
-            return {};
-        }
+      const serviceId = service.id;
+      if (typeof serviceId !== 'string' && typeof serviceId !== 'number') {
+        return;
+      }
 
-        const providerMap = new Map(
-            selectedProviders.map((provider) => [
-                provider.id,
-                {
-                    ...provider,
-                    profile: suggestedProviders.find((p) => p.id === provider.id),
-                }
-            ])
-        );
-
-        const scoreProviderForRole = (providerId: string, role?: string) => {
-            const provider = providerMap.get(providerId);
-            if (!provider) {
-                return 0;
-            }
-            const baseScore = provider.matchScore ?? 0;
-            if (!role) {
-                return baseScore;
-            }
-            const roleLower = role.toLowerCase();
-            const skills = provider.profile?.skills ?? [];
-            const hasRoleMatch = skills.some((skill) => (
-                skill.toLowerCase().includes(roleLower) || roleLower.includes(skill.toLowerCase())
-            ));
-            return baseScore + (hasRoleMatch ? 50 : 0);
-        };
-
-        const sortedProviders = (role?: string) => {
-            return [...selectedProviders]
-                .sort((a, b) => scoreProviderForRole(b.id, role) - scoreProviderForRole(a.id, role));
-        };
-
-        const milestonesByProvider: Record<string, { title: string; amount: string }[]> = {};
-
-        aiSuggestedMilestones.forEach((group) => {
-            const providersByScore = sortedProviders(group.provider_role);
-            if (providersByScore.length === 0) {
-                return;
-            }
-            group.milestones.forEach((milestone, index) => {
-                const provider = providersByScore[index % providersByScore.length];
-                if (!milestonesByProvider[provider.id]) {
-                    milestonesByProvider[provider.id] = [];
-                }
-                milestonesByProvider[provider.id].push({
-                    title: milestone.title,
-                    amount: String(milestone.amount),
-                });
-            });
-        });
-
-        return milestonesByProvider;
-    }, [aiSuggestedMilestones, selectedProviders, suggestedProviders]);
-
-    useEffect(() => {
-        if (!isLongProject && Object.keys(providerMilestones).length > 0) {
-            setProviderMilestones({});
-            setAiSuggestedMilestones([]);
-        }
-    }, [isLongProject, providerMilestones]);
-
-    useEffect(() => {
-        if (aiSuggestedMilestones.length === 0) {
-            return;
-        }
-        const hasAnyMilestones = Object.values(providerMilestones).some((milestones) => milestones.length > 0);
-        if (hasAnyMilestones || selectedProviders.length === 0) {
-            return;
-        }
-        setProviderMilestones(buildProviderMilestonesFromAi());
-    }, [aiSuggestedMilestones, buildProviderMilestonesFromAi, providerMilestones, selectedProviders]);
-
-    useEffect(() => {
-        if (!isLongProject) {
-            return;
-        }
-
-        const milestoneBudgets = Object.fromEntries(
-            Object.entries(providerMilestones).map(([providerId, milestones]) => [
-                providerId,
-                milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0),
-            ])
-        );
-
-        setProviderBudgets(prevBudgets => ({
-            ...prevBudgets,
-            ...milestoneBudgets,
-        }));
-    }, [isLongProject, providerMilestones]);
-
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const githubRefreshHandled = useRef(false);
-    const copilotDraftHandled = useRef(false);
-    const { data: categoriesData } = useMainCategories();
-    const { data: servicesData } = useGetServicesGroupedByCategory();
-
-    const normalizeTechnologyName = useCallback((name: string) => name.trim().toLowerCase(), []);
-
-    useEffect(() => {
-        if (githubRefreshHandled.current || loading || userLoading || !user) {
-            return;
-        }
-
-        const githubParamKeys = ['github', 'github_status', 'github_connected'];
-        const hasGithubParam = githubParamKeys.some((key) => searchParams.has(key));
-        if (!hasGithubParam) {
-            return;
-        }
-
-        const rawValue =
-            searchParams.get('github') ??
-            searchParams.get('github_status') ??
-            searchParams.get('github_connected');
-        const normalizedValue = rawValue?.toLowerCase() ?? '';
-        const shouldRefresh =
-            !rawValue ||
-            ['success', 'connected', 'true', '1'].includes(normalizedValue);
-
-        if (!shouldRefresh) {
-            return;
-        }
-
-        githubRefreshHandled.current = true;
-        void (async () => {
-            try {
-                await refreshUser();
-            } finally {
-                router.replace(pathname);
-            }
-        })();
-    }, [loading, userLoading, user, refreshUser, router, pathname, searchParams]);
-
-    const skillLevels = useMemo(() => ([
-        { value: 'JUNIOR', label: t('projects.new.skills.junior'), color: 'bg-green-100 text-green-800', icon: '🌱' },
-        { value: 'MEDIU', label: t('projects.new.skills.medium'), color: 'bg-blue-100 text-blue-800', icon: '⚡' },
-        { value: 'SENIOR', label: t('projects.new.skills.senior'), color: 'bg-purple-100 text-purple-800', icon: '🚀' },
-        { value: 'EXPERT', label: t('projects.new.skills.expert'), color: 'bg-orange-100 text-orange-800', icon: '👑' }
-    ]), [t]);
-
-    const markedNamesSet = useMemo(() => {
-        const names = [
-            ...formData.technologies.map(t => normalizeTechnologyName(t.name)),
-        ].filter(name => name.length > 0);
-
-        return new Set(names);
-    }, [formData.technologies, normalizeTechnologyName]);
-
-    const filteredProviders = suggestedProviders.filter(provider => {
-        const searchMatch = !providerSearchTerm ||
-            provider.firstName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
-            provider.lastName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
-            provider.location.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
-            provider.skills.some(skill => skill.toLowerCase().includes(providerSearchTerm.toLowerCase()));
-
-        const serviceMatch = selectedServiceFilters.length === 0;
-
-        // Apply skill level filter
-        const skillLevelMatch = skillLevelFilter.length === 0 ||
-            skillLevelFilter.includes(provider.level || 'MEDIU');
-
-        return searchMatch && serviceMatch && skillLevelMatch;
-    });
-
-    // Pagination logic
-    const indexOfLastProvider = currentPage * providersPerPage;
-    const indexOfFirstProvider = indexOfLastProvider - providersPerPage;
-    const currentProviders = filteredProviders.slice(indexOfFirstProvider, indexOfLastProvider);
-    const totalPages = Math.ceil(filteredProviders.length / providersPerPage);
-
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
-        // Scroll to providers section when changing page
-        const providersSection = document.getElementById('suggested-providers');
-        if (providersSection) {
-            providersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+      const existing = map.get(String(serviceId)) ?? {};
+      const rawProvider = service.delivery_provider ?? service.provider;
+      const hasRawProvider = typeof rawProvider === 'string' && rawProvider.trim().length > 0;
+      map.set(String(serviceId), {
+        name: toString(service.name) || existing.name,
+        description: toString(service.description) || existing.description,
+        delivery_provider: hasRawProvider
+          ? normalizeDeliveryProvider(rawProvider)
+          : existing.delivery_provider,
+      });
     };
 
-    // Reset to first page when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [providerSearchTerm, selectedServiceFilters, skillLevelFilter]);
+    const walk = (node: unknown) => {
+      if (Array.isArray(node)) {
+        node.forEach((entry) => walk(entry));
+        return;
+      }
 
-    const validate = () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!formData.title.trim()) {
-            newErrors.title = t('projects.new.errors.title_required');
-        }
-        if (!formData.description.trim()) {
-            newErrors.lastName = t('projects.new.errors.description_required');
-        }
-        // if (!formData.visibility.trim()) {
-        //     newErrors.visibility = 'Tipul proiect este obligatoriu';
-        // }
-        if (String(formData.budget).trim() === '') {
-            newErrors.budget = t('projects.new.errors.budget_required');
-        }
-        if (!formData.budgetType.trim()) {
-            newErrors.budgetType = t('projects.new.errors.budget_type_required');
-        }
-        if (!formData.deadline.trim()) {
-            newErrors.deadline = t('projects.new.errors.deadline_required');
-        }
+      const objectNode = toObject(node);
+      if (!objectNode) {
+        return;
+      }
 
-        if (formData.technologies.length === 0) {
-            newErrors.technologies = t('projects.new.errors.technologies_required');
-        }
+      if ('id' in objectNode && 'name' in objectNode) {
+        addService(objectNode);
+      }
 
-        if (isLongProject && selectedProviders.length > 0) {
-            const hasMissingMilestones = selectedProviders.some((provider) => (
-                !providerMilestones[provider.id] || providerMilestones[provider.id].length === 0
-            ));
-            if (hasMissingMilestones) {
-                newErrors.milestones = t('projects.new.errors.milestones_required');
-            } else {
-                const hasInvalidMilestone = selectedProviders.some((provider) => (
-                    (providerMilestones[provider.id] ?? []).some(
-                        (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
-                    )
-                ));
-                if (hasInvalidMilestone) {
-                    newErrors.milestones = t('projects.new.errors.milestones_incomplete');
-                }
-            }
-
-            if (String(formData.budget).trim() !== '') {
-                const milestoneTotal = getMilestoneTotal();
-                if (milestoneTotal !== Number(formData.budget)) {
-                    newErrors.milestoneTotal = t('projects.new.errors.milestone_total');
-                }
-            }
-
-            const hasBudgetMismatch = selectedProviders.some((provider) => {
-                const allocated = Number(providerBudgets[provider.id] ?? 0);
-                if (allocated === 0) {
-                    return false;
-                }
-                const providerTotal = (providerMilestones[provider.id] ?? []).reduce(
-                    (sum, milestone) => sum + Number(milestone.amount || 0),
-                    0
-                );
-                return providerTotal !== allocated;
-            });
-            if (hasBudgetMismatch) {
-                newErrors.milestoneBudget = t('projects.new.errors.milestone_budget');
-            }
-        }
-
-        // alte validări...
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+      Object.values(objectNode).forEach((value) => walk(value));
     };
 
-    const handleSkillLevelFilterChange = (level: string, checked: boolean) => {
-        setSkillLevelFilter(prev =>
-            checked
-                ? [...prev, level]
-                : prev.filter(l => l !== level)
-        );
-    };
+    walk(groupedServices);
 
-    // Load available services for filtering
-    useEffect(() => {
-        const loadAvailableServices = async () => {
-            try {
-                const response = await apiClient.getServices();
-                setAvailableServices(response.services || []);
-            } catch (error) {
-                console.error('Failed to load services:', error);
-            }
-        };
-        loadAvailableServices();
-    }, []);
+    return map;
+  }, [groupedServices]);
 
-    useEffect(() => {
-        if (userLoading) {
-            return;
-        }
-        if (!loading && !user) {
-            router.push('/auth/signin');
-            return;
-        }
-        if (!user) {
-            return;
-        }
-
-        const hasRoleData = (user?.roles?.length ?? 0) > 0 || Boolean(user?.role);
-        const hasClientRole = hasRole(user, ['client']) || user?.role?.toLowerCase?.() === 'client';
-        if (hasRoleData && !hasClientRole) {
-            router.push('/dashboard');
-        }
-    }, [user, loading, router, userLoading]);
-
-    const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
-        if (formData.technologies.length > 0) {
-            return formData.technologies.map(p => ({
-                service: p.name,
-                level: '',
-                role: '',
-                count: 1,
-                estimated_cost: 0,
-            }));
-        } else {
-            return formData.recommendedProviders.map(p => ({
-                service: p.service,
-                level: p.level || '',
-                role: p.role || '',
-                count: p.count || 1,
-                estimated_cost: p.estimated_cost || 0,
-            }));
-        }
-
-        return formData.technologies.map(t => ({
-            service: t.name,
-            level: '',
-        }));
-    }, [formData]);
-
-    const loadSuggestedProviders = useCallback(async () => {
-        setLoadingProviders(true);
-        try {
-            const payload = buildProviderMatchPayload();
-
-            const apiData = await apiClient.getSuggestedProviders(payload);
-            const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
-                return users.map(user => {
-                    const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
-
-                    return {
-                        id: String(user.id),
-                        firstName: user.firstName ?? '',
-                        lastName: user.lastName ?? '',
-                        avatar: user.avatar ?? '',
-                        profileUrl: user.profileUrl ?? '',
-                        rating: parseFloat(user.rating ?? '0'),
-                        reviewCount: user.reviewCount ?? 0,
-                        completedProjects: user.completedProjects ?? 0,
-                        responseTime: user.responseTime ?? '—',
-                        location: user.location ?? t('projects.new.providers.location_fallback'),
-                        isVerified: Boolean(user.isVerified),
-                        level: user.level ?? '—',
-                        skills,
-                        basePrice: user.basePrice ?? 0,
-                        pricingType: user.pricingType ?? 'FIXED',
-                        deliveryTime: user.deliveryTime ?? 14,
-                        matchScore: user.matchScore ?? 0,
-                        matchReasons: Array.isArray(user.matchReasons) ? user.matchReasons.filter(Boolean) : [],
-                        availability: user.availability ?? '—',
-                        lastActive: user.lastActive ?? '',
-                    };
-                });
-            };
-
-            const providers = mapToSuggestedProviders(apiData.providers);
-
-            // Simulăm un delay pentru loading
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            setSuggestedProviders(providers);
-            setFoundSuggestedProvider(apiData.found);
-        } catch (error: any) {
-            setError(t('projects.new.errors.providers_load'));
-        } finally {
-            setLoadingProviders(false);
-        }
-    }, [buildProviderMatchPayload, t]);
-
-    useEffect(() => {
-        if (formData.serviceId && formData.technologies.length > 0) {
-            loadSuggestedProviders();
-        } else {
-            setSuggestedProviders([]);
-        }
-    }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
-
-    const handleTechnologyToggle = (techName: string, techId: string, requireRepo: boolean) => {
-        setFormData(prev => {
-            const normalizedTech = normalizeTechnologyName(techName);
-            const exists = prev.technologies.some(t => normalizeTechnologyName(t.name) === normalizedTech);
-
-            return {
-                ...prev,
-                technologies: exists
-                    ? prev.technologies.filter(t => normalizeTechnologyName(t.name) !== normalizedTech)
-                    : [...prev.technologies, { id: techId, name: techName, require_repo: requireRepo }]
-            };
-        });
-    };
-
-    const addCustomTechnology = () => {
-        const trimmed = newTechnology.trim();
-        if (trimmed && !formData.technologies.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(trimmed))) {
-            setFormData(prev => ({
-                ...prev,
-                technologies: [
-                    ...prev.technologies,
-                    resolveTechnology(trimmed)
-                ]
-            }));
-            setNewTechnology('');
-        }
-    };
-
-    const removeTechnology = (tech: TechnologySelected) => {
-        setFormData(prev => ({
-            ...prev,
-            technologies: prev.technologies.filter(t => t.id !== tech.id)
-        }));
-    };
-
-    const handleProviderSelect = (providerId: string, matchScore: number) => {
-        setSelectedProviders(prev => {
-            const exists = prev.find(p => p.id === providerId);
-            if (exists) {
-                // Removing provider - remove their budget
-                setProviderBudgets(prevBudgets => {
-                    const { [providerId]: removed, ...rest } = prevBudgets;
-                    return rest;
-                });
-                setProviderMilestones(prevMilestones => {
-                    const { [providerId]: removed, ...rest } = prevMilestones;
-                    return rest;
-                });
-                return prev.filter(p => p.id !== providerId);
-            } else {
-
-                const newSelected = [...prev, { id: providerId, matchScore: matchScore }];
-                setProviderBudgets(prevBudgets => ({
-                    ...prevBudgets,
-                    [providerId]: 0
-                }));
-
-                return newSelected;
-            }
-        });
-    };
-
-    const handleBudgetChange = (providerId: string, budget: number) => {
-        setProviderBudgets(prev => ({
-            ...prev,
-            [providerId]: budget
-        }));
-    };
-
-    const redistributeBudget = () => {
-        if (selectedProviders.length === 0) return;
-
-        const equalBudget = Math.floor(Number(formData.budget) / selectedProviders.length);
-        const newBudgets: { [key: string]: number } = {};
-        selectedProviders.forEach(provider => {
-            newBudgets[provider.id] = equalBudget;
-        });
-        setProviderBudgets(newBudgets);
-    };
-
-    const getTotalAllocatedBudget = () => {
-        return Object.values(providerBudgets).reduce((sum, budget) => sum + (budget || 0), 0);
-    };
-
-    const getRemainingBudget = () => {
-        return Number(formData.budget) - getTotalAllocatedBudget();
-    };
-
-    const getMilestoneTotal = () => {
-        return Object.values(providerMilestones).flat().reduce(
-            (sum, milestone) => sum + Number(milestone.amount || 0),
-            0
-        );
-    };
-
-    const addProviderMilestone = (providerId: string) => {
-        setProviderMilestones(prev => ({
-            ...prev,
-            [providerId]: [...(prev[providerId] ?? []), { title: '', amount: '' }],
-        }));
-    };
-
-    const updateProviderMilestoneField = (
-        providerId: string,
-        index: number,
-        field: 'title' | 'amount',
-        value: string
-    ) => {
-        setProviderMilestones(prev => ({
-            ...prev,
-            [providerId]: (prev[providerId] ?? []).map((milestone, i) => (
-                i === index ? { ...milestone, [field]: value } : milestone
-            )),
-        }));
-    };
-
-    const removeProviderMilestone = (providerId: string, index: number) => {
-        setProviderMilestones(prev => ({
-            ...prev,
-            [providerId]: (prev[providerId] ?? []).filter((_, i) => i !== index),
-        }));
-    };
-
-    const applyAiMilestonesToProviders = () => {
-        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
-            return;
-        }
-        setProviderMilestones(buildProviderMilestonesFromAi());
-    };
-
-    const getLastActiveText = (lastActiveAt?: string | null): string => {
-        if (!lastActiveAt) {
-            return t('projects.new.availability.unknown');
-        }
-
-        const time = parseISO(lastActiveAt);
-        if (!isValid(time)) {
-            return t('projects.new.availability.unknown');
-        }
-
-        const currentLocale = getDateFnsLocale(locale);
-        return formatDistanceToNow(time, { addSuffix: true, locale: currentLocale });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        setSkipValidation(false);
-        e.preventDefault();
-
-        if (!validate()) {
-            setError(t('projects.new.errors.complete_required'));
-            return;
-        }
-
-        if (selectedProviders.length === 0) {
-            setError(t('projects.new.errors.select_provider'));
-            return;
-        }
-
-        // Validate budget allocation
-        const totalAllocated = getTotalAllocatedBudget();
-        if (Math.abs(totalAllocated - Number(formData.budget)) > 1) {
-            setError(t('projects.new.errors.budget_allocation'));
-            return;
-        }
-
-        setSubmitting(true);
-        setError('');
-
-        try {
-            const milestonesPayload = isLongProject
-                ? selectedProviders.map((provider) => ({
-                    providerId: Number(provider.id),
-                    milestones: (providerMilestones[provider.id] ?? []).map((milestone) => ({
-                        title: milestone.title.trim(),
-                        amount: Number(milestone.amount),
-                    })),
-                }))
-                : [];
-
-            const projectData = {
-                ...formData,
-                budget: Number(formData.budget),
-                selectedProviders,
-                providerBudgets,
-                clientId: user?.id,
-                githubRepoConnected: !!user?.github_token,
-                paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
-                milestoneCount: isLongProject
-                    ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
-                    : 0,
-                milestones: milestonesPayload,
-            };
-
-            const createdProject = await apiClient.createProject(projectData, locale);
-
-            // Send notifications to selected providers
-            if (selectedProviders.length > 0) {
-                try {
-                    await apiClient.sendNotification({
-                        userIds: selectedProviders.map(p => p.id),
-                        title: t('projects.new.notifications.new_project_title'),
-                        message: t('projects.new.notifications.new_project_message', {
-                            title: formData.title,
-                            budget: formData.budget,
-                        }),
-                        type: 'PROJECT_ADDED',
-                        data: {
-                            projectId: createdProject.id,
-                            projectTitle: formData.title,
-                            budget: formData.budget,
-                            budgetType: formData.budgetType,
-                            technologies: formData.technologies,
-                            clientName: user?.firstName + ' ' + user?.lastName
-                        }
-                    });
-                } catch (notificationError) {
-                    console.error('Failed to send notifications:', notificationError);
-                    // Don't fail the project creation if notifications fail
-                }
-            }
-
-            // Simulăm crearea proiectului
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            router.push('/dashboard?tab=projects&success=project-created');
-        } catch (error: any) {
-            setError(error.message || t('projects.new.errors.create_project'));
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const getBudgetTypeLabel = (type: string) => {
-        switch (type) {
-            case 'FIXED': return t('projects.new.budget_types.fixed');
-            case 'HOURLY': return t('projects.new.budget_types.hourly');
-            case 'MILESTONE': return t('projects.new.budget_types.milestone');
-            default: return type;
-        }
-    };
-
-    const getAvailabilityStatus = (status: string) => {
-        switch (status) {
-            case 'AVAILABLE':
-                return { color: 'bg-green-100 text-green-800', label: t('projects.new.availability.available'), icon: CheckCircle };
-            case 'BUYS':
-                return { color: 'bg-yellow-100 text-yellow-800', label: t('projects.new.availability.busy'), icon: Clock };
-            case 'UNAVAILABLE':
-                return { color: 'bg-red-100 text-red-800', label: t('projects.new.availability.unavailable'), icon: AlertCircle };
-            default:
-                return { color: 'bg-gray-100 text-gray-800', label: t('projects.new.availability.unknown'), icon: AlertCircle };
-        }
-    };
-
-
-    const groupServicesByParentAndChild = (
-        apiData: Record<string, Record<string, ServiceItem[]> | ServiceItem[]>
-    ): GroupedServices => {
-        const grouped: GroupedServices = {};
-
-        Object.entries(apiData).forEach(([parentCategory, childOrServices]) => {
-            if (Array.isArray(childOrServices)) {
-                // Nu există subcategorii, grupăm direct sub parent
-                grouped[parentCategory] = {
-                    [parentCategory]: childOrServices,
-                };
-            } else {
-                // Există subcategorii
-                grouped[parentCategory] = {};
-
-                Object.entries(childOrServices).forEach(([childCategory, services]) => {
-                    grouped[parentCategory][childCategory] = services;
-                });
-            }
-        });
-
-        return grouped;
-    };
-
-    const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
-
-    const serviceNameLookup = useMemo(() => {
-        const lookup = new Map<string, ServiceItem>();
-
-        Object.values(groupedServices).forEach((childCategories) => {
-            Object.values(childCategories).forEach((services) => {
-                services.forEach((service) => {
-                    lookup.set(normalizeTechnologyName(service.name), service);
-                });
-            });
-        });
-
-        return lookup;
-    }, [groupedServices, normalizeTechnologyName]);
-
-    const resolveTechnology = useCallback((techName: string): TechnologySelected => {
-        const normalizedName = normalizeTechnologyName(techName);
-        const matchedService = serviceNameLookup.get(normalizedName);
-
-        if (matchedService) {
-            return {
-                id: matchedService.id,
-                name: matchedService.name,
-                require_repo: matchedService.require_repo,
-            };
-        }
-
-        return { id: techName, name: techName };
-    }, [normalizeTechnologyName, serviceNameLookup]);
-
-    const handleCopilotApply = useCallback((draft: AiBriefFormDraft) => {
-        const incomingTechnologies = Array.isArray(draft.technologies)
-            ? draft.technologies
-                .map((entry) => String(entry).trim())
-                .filter(Boolean)
-            : [];
-        const parsedBudgetType = String(draft.budgetType ?? '').toUpperCase();
-        const normalizedBudgetType: BudgetType =
-            parsedBudgetType === 'HOURLY'
-                ? 'HOURLY'
-                : 'FIXED';
-        const normalizedTeam = Array.isArray(draft.team_structure)
-            ? draft.team_structure
-                .map((member) => ({
-                    role: String(member.role ?? '').trim(),
-                    level: String(member.level ?? '').trim(),
-                    service: String(member.service ?? '').trim(),
-                    count: Number(member.count ?? 0),
-                    estimated_cost: Number(member.estimated_cost ?? 0),
-                }))
-                .filter((member) => member.role || member.service)
-                .map((member) => ({
-                    role: member.role || member.service,
-                    level: member.level,
-                    service: member.service || member.role,
-                    count: Number.isFinite(member.count) && member.count > 0 ? member.count : 1,
-                    estimated_cost:
-                        Number.isFinite(member.estimated_cost) && member.estimated_cost > 0
-                            ? member.estimated_cost
-                            : 0,
-                }))
-            : [];
-        const normalizedMilestones = Array.isArray(draft.milestones)
-            ? draft.milestones
-                .map((milestone) => ({
-                    title: String(milestone.title ?? '').trim(),
-                    amount: Number(milestone.amount ?? 0),
-                }))
-                .filter(
-                    (milestone) =>
-                        milestone.title.length > 0 &&
-                        Number.isFinite(milestone.amount) &&
-                        milestone.amount > 0
-                )
-            : [];
-        const normalizedDeadline = normalizeProjectDeadlineValue(
-            String(draft.deadline ?? draft.durationLabel ?? '')
-        );
-
-        setSkipValidation(true);
-        setFormData((prev) => {
-            const existingNames = new Set(
-                prev.technologies.map((tech) => normalizeTechnologyName(tech.name))
-            );
-            const mergedTechnologies = [
-                ...prev.technologies,
-                ...incomingTechnologies
-                    .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
-                    .map((techName) => resolveTechnology(techName)),
-            ];
-
-            return {
-                ...prev,
-                title: String(draft.title ?? '').trim() || prev.title,
-                description: String(draft.description ?? '').trim() || prev.description,
-                budget: String(draft.budget ?? '').trim() || prev.budget,
-                budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
-                deadline: normalizedDeadline || prev.deadline,
-                technologies: mergedTechnologies,
-                recommendedProviders:
-                    normalizedTeam.length > 0
-                        ? normalizedTeam
-                        : prev.recommendedProviders,
-            };
-        });
-
-        if (normalizedMilestones.length > 0) {
-            setAiSuggestedMilestones([{ milestones: normalizedMilestones }]);
-        }
-    }, [normalizeTechnologyName, resolveTechnology]);
-
-    useEffect(() => {
-        if (copilotDraftHandled.current || typeof window === 'undefined') {
-            return;
-        }
-
-        const rawDraft = window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY);
-        copilotDraftHandled.current = true;
-
-        if (!rawDraft) {
-            return;
-        }
-
-        try {
-            const parsedDraft = JSON.parse(rawDraft) as Partial<AiBriefFormDraft>;
-            const incomingTechnologies = Array.isArray(parsedDraft.technologies)
-                ? parsedDraft.technologies
-                    .map((entry) => String(entry).trim())
-                    .filter(Boolean)
-                : [];
-            const parsedBudgetType = String(parsedDraft.budgetType ?? '').toUpperCase();
-            const normalizedBudgetType: BudgetType =
-                parsedBudgetType === 'HOURLY'
-                    ? 'HOURLY'
-                    : 'FIXED';
-            const normalizedDeadline = normalizeProjectDeadlineValue(
-                String(parsedDraft.deadline ?? parsedDraft.durationLabel ?? '')
-            );
-
-            setFormData((prev) => {
-                const existingNames = new Set(
-                    prev.technologies.map((tech) => normalizeTechnologyName(tech.name))
-                );
-                const mergedTechnologies = [
-                    ...prev.technologies,
-                    ...incomingTechnologies
-                        .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
-                        .map((techName) => resolveTechnology(techName)),
-                ];
-
-                return {
-                    ...prev,
-                    title: String(parsedDraft.title ?? '').trim() || prev.title,
-                    description: String(parsedDraft.description ?? '').trim() || prev.description,
-                    budget: String(parsedDraft.budget ?? '').trim() || prev.budget,
-                    budgetType: parsedBudgetType ? normalizedBudgetType : prev.budgetType,
-                    deadline: normalizedDeadline || prev.deadline,
-                    technologies: mergedTechnologies,
-                };
-            });
-        } catch (error) {
-            console.error('Failed to parse AI brief draft:', error);
-        } finally {
-            window.sessionStorage.removeItem(AI_BRIEF_DRAFT_STORAGE_KEY);
-        }
-    }, [normalizeTechnologyName, resolveTechnology]);
-
-    const hasRequireRepo = (data: any): boolean => {
-        if (Array.isArray(data)) {
-            return data.some(item => hasRequireRepo(item));
-        }
-
-        if (typeof data === 'object' && data !== null) {
-            if (data.require_repo === true) {
-                return true;
-            }
-
-            return Object.values(data).some(value => hasRequireRepo(value));
-        }
-
-        return false;
-    };
-
-
-    const existsRequireRepo = hasRequireRepo(formData.technologies);
-
-    // const handleUpdateServicesByCategory = async (categoryId: string) => {
-    //     const childrensAndServices = await apiClient.getServicesGroupedByCategory(categoryId);
-    //     const test = await apiClient.getServicesGroupedByCategory();
-    //
-    //     console.log(test);
-    //     const technologies: Technology[] = [];
-    //     Object.entries(childrensAndServices).forEach(([categoryName, services]) => {
-    //         (services as any[]).forEach((service) => {
-    //             technologies.push({
-    //                 id: String(service.id),
-    //                 name: service.name,
-    //                 category: categoryName,
-    //             });
-    //         });
-    //     });
-    //
-    //     setAvailableTechnologies(technologies);
-    //
-    // }
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin" />
-            </div>
-        );
+  const recommendationCards = useMemo<RecommendedCard[]>(() => {
+    if (!recommendation) {
+      return [];
     }
 
-    if (!user || !hasRole(user, ['client'])) {
+    return recommendation.services.map((service, index) => {
+      const serviceId = service.service_id;
+      const catalogData =
+        typeof serviceId === 'string' || typeof serviceId === 'number'
+          ? serviceCatalogById.get(String(serviceId))
+          : undefined;
+
+      return {
+        ...service,
+        description: service.description || catalogData?.description,
+        key: `${service.service_name}-${service.delivery_provider}-${index}`,
+      };
+    });
+  }, [recommendation, serviceCatalogById]);
+
+  const recommendationDisplayCards = useMemo(
+    () => recommendationCards.map((service, index) => ({ ...service, index })),
+    [recommendationCards]
+  );
+
+  const recommendedCards = useMemo(
+    () => recommendationDisplayCards.filter((service) => !isAlternativeService(service)),
+    [recommendationDisplayCards]
+  );
+
+  const alternativeCards = useMemo(
+    () => recommendationDisplayCards.filter((service) => isAlternativeService(service)),
+    [recommendationDisplayCards]
+  );
+
+  const selectedServices = useMemo(() => {
+    if (!recommendation) {
+      return [];
+    }
+
+    const indexes = new Set(selectedServiceIndexes);
+    return recommendation.services.filter((_service, index) => indexes.has(index));
+  }, [recommendation, selectedServiceIndexes]);
+
+  const stepIndex = useMemo(
+    () => WIZARD_STEPS.findIndex((wizardStep) => wizardStep.id === step),
+    [step]
+  );
+
+  const budgetValue = useMemo(() => {
+    const parsed = Number(totalBudget);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [totalBudget]);
+
+  const reviewLines = useMemo(() => {
+    if (!briefResult) {
+      return [];
+    }
+
+    return briefResult.project_lines.map((line) => {
+      const percentage = Number(line.budget_percentage || 0);
+      const budgetAllocation =
+        budgetValue > 0 && percentage > 0
+          ? Number(((budgetValue * percentage) / 100).toFixed(2))
+          : 0;
+
+      return {
+        ...line,
+        budget_allocation: budgetAllocation,
+      };
+    });
+  }, [briefResult, budgetValue]);
+
+  const briefingDisplay = useMemo(() => {
+    const duration =
+      briefResult?.recommended_duration ||
+      briefResult?.project_duration ||
+      briefResult?.duration ||
+      briefModularDetails?.recommended_duration ||
+      briefModularDetails?.project_duration ||
+      briefModularDetails?.duration ||
+      briefFullDetails?.recommended_duration ||
+      briefFullDetails?.project_duration ||
+      briefFullDetails?.duration ||
+      '';
+
+    const paymentPlan =
+      briefResult?.payment_plan ||
+      briefModularDetails?.payment_plan ||
+      briefFullDetails?.payment_plan ||
+      '';
+
+    const currency =
+      briefResult?.currency ||
+      briefModularDetails?.currency ||
+      briefFullDetails?.currency ||
+      '';
+
+    const description =
+      briefResult?.description ||
+      briefModularDetails?.description ||
+      briefFullDetails?.description ||
+      '';
+
+    const overview =
+      briefModularDetails?.overview ||
+      briefFullDetails?.overview ||
+      '';
+
+    const clientGoal =
+      briefModularDetails?.client_goal ||
+      briefFullDetails?.client_goal ||
+      '';
+
+    const targetAudience =
+      briefModularDetails?.target_audience ||
+      briefFullDetails?.target_audience ||
+      '';
+
+    const specificRequirements =
+      (briefResult?.specific_requirements && briefResult.specific_requirements.length > 0
+        ? briefResult.specific_requirements
+        : briefModularDetails?.specific_requirements &&
+            briefModularDetails.specific_requirements.length > 0
+          ? briefModularDetails.specific_requirements
+          : briefFullDetails?.specific_requirements) ?? [];
+
+    const technologies =
+      (briefResult?.technologies && briefResult.technologies.length > 0
+        ? briefResult.technologies
+        : briefModularDetails?.technologies && briefModularDetails.technologies.length > 0
+          ? briefModularDetails.technologies
+          : briefFullDetails?.technologies) ?? [];
+
+    const teamStructure =
+      (briefResult?.team_structure && briefResult.team_structure.length > 0
+        ? briefResult.team_structure
+        : briefModularDetails?.team_structure && briefModularDetails.team_structure.length > 0
+          ? briefModularDetails.team_structure
+          : briefFullDetails?.team_structure) ?? [];
+
+    const milestones =
+      (briefResult?.milestones && briefResult.milestones.length > 0
+        ? briefResult.milestones
+        : briefModularDetails?.milestones && briefModularDetails.milestones.length > 0
+          ? briefModularDetails.milestones
+          : briefFullDetails?.milestones) ?? [];
+
+    return {
+      title: briefResult?.title || briefModularDetails?.title || briefFullDetails?.title || '',
+      description,
+      overview,
+      clientGoal,
+      targetAudience,
+      budget: briefResult?.budget ?? briefModularDetails?.budget ?? briefFullDetails?.budget,
+      budgetMin: briefResult?.budget_min ?? briefModularDetails?.budget_min ?? briefFullDetails?.budget_min,
+      budgetMax: briefResult?.budget_max ?? briefModularDetails?.budget_max ?? briefFullDetails?.budget_max,
+      duration,
+      paymentPlan,
+      currency,
+      technologies,
+      specificRequirements,
+      teamStructure,
+      milestones,
+    };
+  }, [briefResult, briefModularDetails, briefFullDetails]);
+
+  useEffect(() => {
+    const nextDuration = toString(briefingDisplay.duration);
+    if (nextDuration) {
+      setEditableDuration(nextDuration);
+    }
+  }, [briefingDisplay.duration]);
+
+  useEffect(() => {
+    const nextPaymentPlan = toString(briefingDisplay.paymentPlan).toUpperCase();
+    if (nextPaymentPlan) {
+      setEditablePaymentPlan(nextPaymentPlan);
+    }
+  }, [briefingDisplay.paymentPlan]);
+
+  const effectiveDuration = useMemo(
+    () => toString(editableDuration) || toString(briefingDisplay.duration),
+    [editableDuration, briefingDisplay.duration]
+  );
+
+  const effectiveDurationMonths = useMemo(
+    () => parseDurationToMonths(effectiveDuration),
+    [effectiveDuration]
+  );
+
+  const requiresMilestonesByDuration = useMemo(
+    () => (effectiveDurationMonths !== null ? effectiveDurationMonths > 3 : false),
+    [effectiveDurationMonths]
+  );
+
+  const canEditPaymentPlanByDuration = useMemo(
+    () => !requiresMilestonesByDuration,
+    [requiresMilestonesByDuration]
+  );
+
+  const effectivePaymentPlan = useMemo(() => {
+    const normalizedInput = toString(editablePaymentPlan).toUpperCase();
+    const normalizedBrief = toString(briefingDisplay.paymentPlan).toUpperCase();
+
+    if (canEditPaymentPlanByDuration) {
+      return normalizedInput || normalizedBrief;
+    }
+
+    return normalizedBrief || normalizedInput || 'MILESTONE';
+  }, [editablePaymentPlan, briefingDisplay.paymentPlan, canEditPaymentPlanByDuration]);
+
+  const linesMissingMilestones = useMemo(
+    () =>
+      reviewLines
+        .filter((line) => !Array.isArray(line.milestones) || line.milestones.length === 0)
+        .map((line) => line.service_name),
+    [reviewLines]
+  );
+
+  const briefingProjectLines = useMemo(() => {
+    if (briefModularDetails?.project_lines && briefModularDetails.project_lines.length > 0) {
+      return briefModularDetails.project_lines;
+    }
+
+    if (briefResult?.project_lines && briefResult.project_lines.length > 0) {
+      return briefResult.project_lines;
+    }
+
+    if (briefFullDetails?.project_lines && briefFullDetails.project_lines.length > 0) {
+      return briefFullDetails.project_lines;
+    }
+
+    return [];
+  }, [briefModularDetails, briefResult, briefFullDetails]);
+
+  const fullBusinessAnalysis = useMemo(() => {
+    return briefFullDetails?.business_analysis ?? briefResult?.business_analysis;
+  }, [briefFullDetails, briefResult]);
+
+  const fullTargetUsers = useMemo(
+    () => normalizeFlexibleStringList(fullBusinessAnalysis?.target_users),
+    [fullBusinessAnalysis]
+  );
+
+  const fullFeatureBusinessValue = useMemo(
+    () => normalizeFlexibleStringList(fullBusinessAnalysis?.feature_business_value),
+    [fullBusinessAnalysis]
+  );
+
+  const fullTechnicalRisks = useMemo(
+    () => normalizeFlexibleStringList(briefFullDetails?.technical_risks ?? briefResult?.technical_risks),
+    [briefFullDetails, briefResult]
+  );
+
+  const fullTechStackItems = useMemo(() => {
+    const recommendedStack = briefFullDetails?.tech_stack?.recommended_stack;
+    return Array.isArray(recommendedStack) ? recommendedStack : [];
+  }, [briefFullDetails]);
+
+  const fullComplexityEstimationEntries = useMemo(
+    () => Object.entries(briefFullDetails?.complexity_estimation ?? briefResult?.complexity_estimation ?? {}),
+    [briefFullDetails, briefResult]
+  );
+
+  const fullComplexityEntries = useMemo(
+    () => Object.entries(briefFullDetails?.complexity ?? {}),
+    [briefFullDetails]
+  );
+
+  const fullTeamRecommendationEntries = useMemo(
+    () => Object.entries(briefFullDetails?.team_recommendation ?? {}),
+    [briefFullDetails]
+  );
+
+  const recommendedProviderEntries = useMemo(
+    () => Object.entries(recommendedProviders ?? {}),
+    [recommendedProviders]
+  );
+
+  const otherProvidersByServiceEntries = useMemo(
+    () => (Array.isArray(otherProviders) ? otherProviders : []),
+    [otherProviders]
+  );
+
+  const providerSelectionGroups = useMemo(() => {
+    const order: string[] = [];
+    const groups = new Map<
+      string,
+      {
+        service_name: string;
+        service_id?: string | number;
+        recommended: AiBriefProvider[];
+        others: AiBriefProvider[];
+      }
+    >();
+
+    const ensureGroup = (serviceName: unknown, serviceId?: unknown) => {
+      const normalizedServiceName = toString(serviceName);
+      if (!normalizedServiceName) {
         return null;
+      }
+
+      const serviceKey = getServiceKey(normalizedServiceName);
+      if (!serviceKey) {
+        return null;
+      }
+
+      if (!groups.has(serviceKey)) {
+        order.push(serviceKey);
+        groups.set(serviceKey, {
+          service_name: normalizedServiceName,
+          ...(typeof serviceId === 'string' || typeof serviceId === 'number'
+            ? { service_id: serviceId }
+            : {}),
+          recommended: [],
+          others: [],
+        });
+      }
+
+      return groups.get(serviceKey) ?? null;
+    };
+
+    briefingProjectLines.forEach((line) => {
+      ensureGroup(line.service_name);
+    });
+
+    recommendedProviderEntries.forEach(([serviceName, providers]) => {
+      const group = ensureGroup(serviceName);
+      if (!group || !Array.isArray(providers)) {
+        return;
+      }
+      group.recommended = dedupeProviders([...group.recommended, ...providers]);
+    });
+
+    otherProvidersByServiceEntries.forEach((entry) => {
+      const group = ensureGroup(entry.service_name, entry.service_id);
+      if (!group) {
+        return;
+      }
+
+      const providers = Array.isArray(entry.providers?.data)
+        ? entry.providers.data
+        : [];
+
+      group.others = dedupeProviders([...group.others, ...providers]);
+    });
+
+    return order
+      .map((serviceKey) => {
+        const group = groups.get(serviceKey);
+        if (!group) {
+          return null;
+        }
+
+        const recommendedIds = new Set(
+          group.recommended
+            .map((provider) => getProviderId(provider))
+            .filter((providerId): providerId is number => providerId !== null)
+        );
+
+        const filteredOthers = group.others.filter((provider) => {
+          const providerId = getProviderId(provider);
+          if (providerId === null) {
+            return true;
+          }
+          return !recommendedIds.has(providerId);
+        });
+
+        return {
+          ...group,
+          others: filteredOthers,
+        };
+      })
+      .filter(
+        (
+          group
+        ): group is {
+          service_name: string;
+          service_id?: string | number;
+          recommended: AiBriefProvider[];
+          others: AiBriefProvider[];
+        } => group !== null
+      );
+  }, [briefingProjectLines, recommendedProviderEntries, otherProvidersByServiceEntries]);
+
+  const isProviderSelected = useCallback(
+    (serviceName: string, provider: AiBriefProvider) => {
+      const providerId = getProviderId(provider);
+      if (providerId === null) {
+        return false;
+      }
+
+      const serviceKey = getServiceKey(serviceName);
+
+      return selectedProviders.some((entry) => {
+        const entryId = getProviderId(entry);
+        if (entryId === null || entryId !== providerId) {
+          return false;
+        }
+
+        const entryServiceKey = getServiceKey((entry as { service_name?: unknown }).service_name);
+        return entryServiceKey === serviceKey || !entryServiceKey;
+      });
+    },
+    [selectedProviders]
+  );
+
+  const selectedProvidersCountByService = useMemo(() => {
+    const counts = new Map<string, number>();
+    selectedProviders.forEach((provider) => {
+      const serviceKey = getServiceKey((provider as { service_name?: unknown }).service_name);
+      if (!serviceKey) {
+        return;
+      }
+      counts.set(serviceKey, (counts.get(serviceKey) ?? 0) + 1);
+    });
+    return counts;
+  }, [selectedProviders]);
+
+  const handleToggleProvider = useCallback((serviceName: string, provider: AiBriefProvider) => {
+    const providerId = getProviderId(provider);
+    if (providerId === null) {
+      return;
     }
 
-
-    return (
-        <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
-            <TrustoraThemeStyles />
-            <Header />
-
-            <main className="pt-24">
-                <section className="px-6 pb-10 hero-gradient">
-                    <div className="max-w-5xl mx-auto text-center">
-                        <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                            <span className="text-[#1BC47D]">●</span> {t('projects.new.hero.badge')}
-                        </Badge>
-                        <h1 className="text-3xl lg:text-4xl font-bold mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            {t('projects.new.hero.title')}
-                        </h1>
-                        <p className="text-base text-slate-600 max-w-3xl mx-auto dark:text-[#A3ADC2]">
-                            {t('projects.new.hero.description')}
-                        </p>
-                    </div>
-                </section>
-
-                <section className="py-12 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
-                    <div className="max-w-6xl mx-auto">
-                        {error && (
-                            <Alert variant="destructive" className="mb-6">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-8">
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                <TabsList className="grid w-full grid-cols-3 rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                                    <TabsTrigger
-                                        value="details"
-                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
-                                    >
-                                        {t('projects.new.tabs.details')}
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="providers"
-                                        disabled={!formData.serviceId || formData.technologies.length === 0}
-                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
-                                    >
-                                        {t('projects.new.tabs.providers')}
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="review"
-                                        disabled={selectedProviders.length === 0}
-                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
-                                    >
-                                        {t('projects.new.tabs.review')}
-                                    </TabsTrigger>
-                                </TabsList>
-
-                                {/* Detalii Proiect */}
-                                <TabsContent value="details" className="space-y-6">
-                                    <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
-                                        <div>
-                                            <Card className="mb-6 glass-card shadow-sm">
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center space-x-2">
-                                                        <FileText className="w-5 h-5" />
-                                                        <span>{t('projects.new.sections.general_info')}</span>
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="space-y-6">
-                                                    <div>
-                                                        <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">
-                                                            {t('projects.new.fields.title')} <span className="text-red-500">*</span>
-                                                        </Label>
-                                                        <Input
-                                                            id="title"
-                                                            className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.title}
-                                                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                            placeholder={t('projects.new.fields.title_placeholder')}
-                                                            required
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">
-                                                            {t('projects.new.fields.description')} <span className="text-red-500">*</span>
-                                                        </Label>
-                                                        <Textarea
-                                                            id="description"
-                                                            className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.description}
-                                                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                                            placeholder={t('projects.new.fields.description_placeholder')}
-                                                            rows={5}
-                                                            required
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <Label htmlFor="requirements">{t('projects.new.fields.requirements')}</Label>
-                                                        <Textarea
-                                                            id="requirements"
-                                                            value={formData.requirements}
-                                                            onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                                                            placeholder={t('projects.new.fields.requirements_placeholder')}
-                                                            rows={3}
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                        {/*<div>*/}
-                                                        {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
-                                                        {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
-                                                        {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
-                                                        {/*    }}>*/}
-                                                        {/*        <SelectTrigger>*/}
-                                                        {/*            <SelectValue placeholder="Selectează categoria" />*/}
-                                                        {/*        </SelectTrigger>*/}
-                                                        {/*        <SelectContent>*/}
-                                                        {/*            {(categoriesData || []).map((category: any) => (*/}
-                                                        {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
-                                                        {/*                    {category.name}*/}
-                                                        {/*                </SelectItem>*/}
-                                                        {/*            ))}*/}
-                                                        {/*        </SelectContent>*/}
-                                                        {/*    </Select>*/}
-                                                        {/*</div>*/}
-
-                                                        {/*<div>*/}
-                                                        {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
-                                                        {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
-                                                        {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
-                                                        {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
-                                                        {/*        </SelectTrigger>*/}
-                                                        {/*        <SelectContent>*/}
-                                                        {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
-                                                        {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
-                                                        {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
-                                                        {/*        </SelectContent>*/}
-                                                        {/*    </Select>*/}
-                                                        {/*</div>*/}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-
-                                            <Card className="mb-6 glass-card shadow-sm">
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center space-x-2">
-                                                        <Code className="w-5 h-5" />
-                                                        <span className={errors.technologies ? "text-red-500" : ""}>
-                                                            {t('projects.new.technologies.title')}
-                                                        </span>
-                                                    </CardTitle>
-                                                    <CardDescription>
-                                                        {t('projects.new.technologies.description')}
-                                                    </CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="space-y-6">
-                                                    {formData.technologies.length > 0 && (
-                                                        <div>
-                                                            <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>
-                                                                {t('projects.new.technologies.selected', { count: formData.technologies.length })}
-                                                            </Label>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {formData.technologies.map((tech) => (
-                                                                    <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
-                                                                        <span>{tech.name}</span>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => removeTechnology(tech)}
-                                                                            className="ml-1 hover:text-red-300"
-                                                                        >
-                                                                            <X className="w-3 h-3" />
-                                                                        </button>
-                                                                    </Badge>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Adaugă tehnologie personalizată */}
-                                                    <div>
-                                                        <Label className={errors.technologies ? "text-red-500" : ""}>
-                                                            {t('projects.new.technologies.add_custom')}
-                                                        </Label>
-                                                        <div className="flex space-x-2 mt-2">
-                                                            <Input
-                                                                value={newTechnology}
-                                                                className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
-                                                                onChange={(e) => setNewTechnology(e.target.value)}
-                                                                placeholder={t('projects.new.technologies.add_custom_placeholder')}
-                                                                onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
-                                                            />
-                                                            <Button type="button" onClick={addCustomTechnology} variant="outline">
-                                                                <Plus className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Tehnologii disponibile grupate */}
-                                                    <div className="space-y-6">
-                                                        {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
-                                                            <div key={parentCategory}>
-                                                                {/* Categoria părinte - text mai mare */}
-                                                                <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
-
-                                                                {/* Categorii copil */}
-                                                                {Object.entries(childCategories).map(([childCategory, services]) => (
-                                                                    <div key={childCategory} className="mb-6">
-                                                                        {/* Categoria copil */}
-                                                                        <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
-
-                                                                        {/* Lista serviciilor */}
-                                                                        <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
-                                                                            {services.map((service) => (
-                                                                                <div key={service.id} className="flex items-center space-x-2">
-                                                                                    <Checkbox
-                                                                                        id={service.id}
-                                                                                        // checked={formData.technologies.some(t => t.id === service.id)}
-                                                                                        checked={markedNamesSet.has(normalizeTechnologyName(service.name))}
-                                                                                        onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
-                                                                                    />
-                                                                                    <Label htmlFor={service.id} className="text-sm cursor-pointer">
-                                                                                        {service.name}
-                                                                                    </Label>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                </CardContent>
-                                            </Card>
-
-                                            {existsRequireRepo && (
-                                                <Card className="mb-6 glass-card shadow-sm">
-                                                    <CardHeader>
-                                                        <CardTitle className="flex items-center space-x-2">
-                                                            <GithubIcon className="w-5 h-5" />
-                                                            {t('projects.new.github.title')}
-                                                        </CardTitle>
-                                                        <CardDescription>
-                                                            {t('projects.new.github.description')}
-                                                        </CardDescription>
-                                                    </CardHeader>
-                                                    <CardContent className="space-y-6">
-                                                        <div className="space-y-6">
-                                                            <Label>
-                                                                {t('projects.new.github.connect_label')}
-                                                                <span className="block text-xs text-muted-foreground">
-                                                                    {t('projects.new.github.connect_description')}
-                                                                </span>
-                                                            </Label>
-                                                            <GithubConnect isConnected={!!user?.github_token} />
-                                                        </div>
-
-                                                        <div className="p-4 border rounded-lg bg-card">
-                                                            <h3 className="font-semibold mb-4">{t('projects.new.github.repository_title')}</h3>
-                                                            <RadioGroup
-                                                                value={formData.githubRepoTarget}
-                                                                onValueChange={(value) =>
-                                                                    setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
-                                                                }
-                                                                className="mb-4"
-                                                            >
-                                                                <div className="flex items-center space-x-2">
-                                                                    <RadioGroupItem value="platform" id="github-platform" />
-                                                                    <Label htmlFor="github-platform">
-                                                                        {t('projects.new.github.platform_repo')}
-                                                                        {/*<span className="block text-xs text-muted-foreground">*/}
-                                                                        {/*    Noi deținem repo-ul, tu ești colaborator.*/}
-                                                                        {/*</span>*/}
-                                                                    </Label>
-                                                                </div>
-                                                                <div className="flex items-center space-x-2 mt-2">
-                                                                    <RadioGroupItem
-                                                                        value="provider"
-                                                                        id="github-provider"
-                                                                        disabled={!user?.github_token}
-                                                                    />
-                                                                    <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                        {t('projects.new.github.provider_repo')}
-                                                                        {!user?.github_token && (
-                                                                            <span className="block text-xs text-red-500">
-                                                                                {t('projects.new.github.connect_first')}
-                                                                            </span>
-                                                                        )}
-                                                                    </Label>
-                                                                </div>
-                                                                <div className="flex items-center space-x-2 mt-2">
-                                                                    <RadioGroupItem
-                                                                        value="client"
-                                                                        id="github-client"
-                                                                        disabled={!user?.github_token}
-                                                                    />
-                                                                    <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                        {t('projects.new.github.client_repo')}
-                                                                        {!user?.github_token && (
-                                                                            <span className="block text-xs text-red-500">
-                                                                                {t('projects.new.github.connect_first')}
-                                                                            </span>
-                                                                        )}
-                                                                    </Label>
-                                                                </div>
-                                                            </RadioGroup>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            )}
-
-                                            <Card className="glass-card shadow-sm">
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center space-x-2">
-                                                        <DollarSign className="w-5 h-5" />
-                                                        <span>{t('projects.new.budget.title')}</span>
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="space-y-6">
-                                                    <div>
-                                                        <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>
-                                                            {t('projects.new.budget.type_label')} <span className="text-red-500">*</span>
-                                                        </Label>
-                                                        <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.budgetType}
-                                                            onValueChange={(value) => {
-                                                                const normalizedBudgetType: BudgetType = value === 'HOURLY' ? 'HOURLY' : 'FIXED';
-                                                                setFormData(prev => ({ ...prev, budgetType: normalizedBudgetType }));
-                                                            }}>
-                                                            <div className="flex items-center space-x-2">
-                                                                <RadioGroupItem value="FIXED" id="fixed" />
-                                                                <Label htmlFor="fixed">{t('projects.new.budget.fixed_label')}</Label>
-                                                            </div>
-                                                            <div className="flex items-center space-x-2">
-                                                                <RadioGroupItem value="HOURLY" id="hourly" />
-                                                                <Label htmlFor="hourly">{t('projects.new.budget.hourly_label')}</Label>
-                                                            </div>
-                                                        </RadioGroup>
-                                                    </div>
-
-                                                    <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
-                                                                {t('projects.new.budget.amount_label', {
-                                                                    suffix: formData.budgetType === 'HOURLY'
-                                                                        ? t('projects.new.budget.hourly_suffix')
-                                                                        : t('projects.new.budget.fixed_suffix'),
-                                                                })}{' '}
-                                                                <span className="text-red-500">*</span>
-                                                            </Label>
-                                                            <Input
-                                                                id="budget"
-                                                                className={errors.buget ? "text-red-500" : ""}
-                                                                type="number"
-                                                                value={formData.budget}
-                                                                onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                                                placeholder={formData.budgetType === 'HOURLY'
-                                                                    ? t('projects.new.budget.hourly_placeholder')
-                                                                    : t('projects.new.budget.fixed_placeholder')}
-                                                                required={!skipValidation}
-                                                            />
-                                                        </div>
-
-                                                        <div>
-                                                            <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">
-                                                                {t('projects.new.deadline.label')} <span className="text-red-500">*</span>
-                                                            </Label>
-                                                            <Select
-                                                                value={formData.deadline}
-                                                                onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
-                                                            >
-                                                                <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
-                                                                    <SelectValue placeholder={t('projects.new.deadline.placeholder')} />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="1day">{t('projects.new.deadline.options.one_day')}</SelectItem>
-                                                                    <SelectItem value="1week">{t('projects.new.deadline.options.one_week')}</SelectItem>
-                                                                    <SelectItem value="2weeks">{t('projects.new.deadline.options.two_weeks')}</SelectItem>
-                                                                    <SelectItem value="3weeks">{t('projects.new.deadline.options.three_weeks')}</SelectItem>
-                                                                    <SelectItem value="1month">{t('projects.new.deadline.options.one_month')}</SelectItem>
-                                                                    <SelectItem value="3months">{t('projects.new.deadline.options.three_months')}</SelectItem>
-                                                                    <SelectItem value="6months">{t('projects.new.deadline.options.six_months')}</SelectItem>
-                                                                    <SelectItem value="1year">{t('projects.new.deadline.options.one_year')}</SelectItem>
-                                                                    <SelectItem value="1plusyear">{t('projects.new.deadline.options.one_plus_year')}</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                    </div>
-
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                        <div>
-                                            <BriefCopilot
-                                                locale={locale}
-                                                onApply={handleCopilotApply}
-                                                className="glass-card shadow-sm"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-end">
-                                        <Button
-                                            type="button"
-                                            onClick={() => {
-                                                if (!validate()) return;
-                                                setActiveTab('providers');
-                                                loadSuggestedProviders();
-                                            }}
-                                            disabled={formData.technologies.length === 0}
-                                            className="px-8"
-                                        >
-                                            {t('projects.new.actions.continue_to_providers')}
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
-                                </TabsContent>
-
-                                {/* Prestatori Sugerați */}
-                                <TabsContent value="providers" className="space-y-6">
-                                    <Card id="suggested-providers" className="glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <Users className="w-5 h-5" />
-                                                <span>{t('projects.new.providers.title')}</span>
-                                                <Badge variant="outline">
-                                                    {t('projects.new.providers.count', {
-                                                        count: filteredProviders.length,
-                                                        currentPage,
-                                                        totalPages,
-                                                    })}
-                                                </Badge>
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t('projects.new.providers.subtitle')}<br />
-                                                <span className="text-red-500 font-bold">
-                                                    {!foundSuggestedProvider ? t('projects.new.providers.no_suggestions') : ''}
-                                                </span>
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            {loadingProviders ? (
-                                                <div className="flex items-center justify-center py-12">
-                                                    <div className="text-center">
-                                                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                                                        <p className="text-muted-foreground">{t('projects.new.providers.loading')}</p>
-                                                    </div>
-                                                </div>
-                                            ) : suggestedProviders.length === 0 ? (
-                                                <div className="text-center py-12">
-                                                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.empty_title')}</h3>
-                                                    <p className="text-muted-foreground">
-                                                        {t('projects.new.providers.empty_description')}
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-4">
-                                                    {/* Search and Filter Bar */}
-                                                    <div className="mb-6 space-y-4">
-                                                        <div className="flex flex-col md:flex-row gap-4">
-                                                            {/* Search Bar */}
-                                                            <div className="flex-1">
-                                                                <div className="relative">
-                                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                                                                    <Input
-                                                                        placeholder={t('projects.new.providers.search_placeholder')}
-                                                                        value={providerSearchTerm}
-                                                                        onChange={(e) => setProviderSearchTerm(e.target.value)}
-                                                                        className="pl-10"
-                                                                    />
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Service Filter Dropdown */}
-                                                            <div className="md:w-64">
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                        <Button variant="outline" className="w-full justify-between">
-                                                                            <div className="flex items-center space-x-2">
-                                                                                <Filter className="w-4 h-4" />
-                                                                                <span>
-                                                                                    {selectedServiceFilters.length === 0
-                                                                                        ? t('projects.new.providers.filters.services')
-                                                                                        : t('projects.new.providers.filters.services_count', { count: selectedServiceFilters.length })
-                                                                                    }
-                                                                                </span>
-                                                                            </div>
-                                                                            <ChevronDown className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                                        <div className="p-2 max-h-80 overflow-y-auto">
-                                                                            <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.services_label')}</div>
-                                                                            {availableServices.map((service) => (
-                                                                                <div key={service.id} className="flex items-center space-x-2 py-1">
-                                                                                    <Checkbox
-                                                                                        id={`service-${service.id}`}
-                                                                                        checked={selectedServiceFilters.includes(service.id)}
-                                                                                        onCheckedChange={(checked) => {
-                                                                                            if (checked) {
-                                                                                                setSelectedServiceFilters(prev => [...prev, service.id]);
-                                                                                            } else {
-                                                                                                setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                    <label
-                                                                                        htmlFor={`service-${service.id}`}
-                                                                                        className="text-sm cursor-pointer flex-1"
-                                                                                    >
-                                                                                        {service.name}
-                                                                                    </label>
-                                                                                </div>
-                                                                            ))}
-                                                                            {availableServices.length === 0 && (
-                                                                                <div className="text-sm text-muted-foreground py-2">
-                                                                                    {t('projects.new.providers.filters.no_services')}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                        {selectedServiceFilters.length > 0 && (
-                                                                            <div className="border-t p-2">
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    onClick={() => setSelectedServiceFilters([])}
-                                                                                    className="w-full text-xs"
-                                                                                >
-                                                                                    <X className="w-3 h-3 mr-1" />
-                                                                                    {t('projects.new.providers.filters.reset')}
-                                                                                </Button>
-                                                                            </div>
-                                                                        )}
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
-                                                            </div>
-
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button variant="outline" className="min-w-40">
-                                                                        <Target className="w-4 h-4 mr-2" />
-                                                                        {skillLevelFilter.length > 0
-                                                                            ? t('projects.new.providers.filters.levels_count', { count: skillLevelFilter.length })
-                                                                            : t('projects.new.providers.filters.levels')}
-                                                                        <ChevronDown className="w-4 h-4 ml-2" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                                    <div className="p-2">
-                                                                        <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.levels_label')}</div>
-                                                                        {skillLevels.map(level => (
-                                                                            <div key={level.value} className="flex items-center space-x-2 py-1">
-                                                                                <Checkbox
-                                                                                    id={`skill-${level.value}`}
-                                                                                    checked={skillLevelFilter.includes(level.value)}
-                                                                                    onCheckedChange={(checked) =>
-                                                                                        handleSkillLevelFilterChange(level.value, checked as boolean)
-                                                                                    }
-                                                                                />
-                                                                                <label
-                                                                                    htmlFor={`skill-${level.value}`}
-                                                                                    className="flex items-center space-x-2 cursor-pointer flex-1"
-                                                                                >
-                                                                                    <span>{level.icon}</span>
-                                                                                    <span className="text-sm">{level.label}</span>
-                                                                                </label>
-                                                                            </div>
-                                                                        ))}
-                                                                        {skillLevelFilter.length > 0 && (
-                                                                            <div className="pt-2 mt-2 border-t">
-                                                                                <Button
-                                                                                    variant="ghost"
-                                                                                    size="sm"
-                                                                                    onClick={() => setSkillLevelFilter([])}
-                                                                                    className="w-full text-xs"
-                                                                                >
-                                                                                    {t('projects.new.providers.filters.reset_levels')}
-                                                                                </Button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </div>
-
-                                                        {/* Active Filters Display */}
-                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                <span className="text-sm text-muted-foreground">{t('projects.new.providers.filters.active')}</span>
-
-                                                                {providerSearchTerm && (
-                                                                    <Badge variant="secondary" className="flex items-center space-x-1">
-                                                                        <Search className="w-3 h-3" />
-                                                                        <span>&#34;{providerSearchTerm}&#34;</span>
-                                                                        <button
-                                                                            onClick={() => setProviderSearchTerm('')}
-                                                                            className="ml-1 hover:text-red-500"
-                                                                        >
-                                                                            <X className="w-3 h-3" />
-                                                                        </button>
-                                                                    </Badge>
-                                                                )}
-
-                                                                {selectedServiceFilters.map(serviceId => {
-                                                                    const service = availableServices.find(s => s.id === serviceId);
-                                                                    return service ? (
-                                                                        <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
-                                                                            <span>{service.name}</span>
-                                                                            <button
-                                                                                onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
-                                                                                className="ml-1 hover:text-red-500"
-                                                                            >
-                                                                                <X className="w-3 h-3" />
-                                                                            </button>
-                                                                        </Badge>
-                                                                    ) : null;
-                                                                })}
-
-                                                                {skillLevelFilter.map(level => {
-                                                                    const levelInfo = skillLevels.find(l => l.value === level);
-                                                                    return (
-                                                                        <Badge key={level} variant="secondary" className="flex items-center space-x-1">
-                                                                            <span>{levelInfo?.icon}</span>
-                                                                            <span>{levelInfo?.label}</span>
-                                                                            <button
-                                                                                onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
-                                                                                className="ml-1 hover:text-red-500"
-                                                                            >
-                                                                                <X className="w-3 h-3" />
-                                                                            </button>
-                                                                        </Badge>
-                                                                    );
-                                                                })}
-
-                                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            setProviderSearchTerm('');
-                                                                            setSelectedServiceFilters([]);
-                                                                            setSkillLevelFilter([]);
-                                                                        }}
-                                                                        className="text-xs h-6"
-                                                                    >
-                                                                        {t('projects.new.providers.filters.reset_all')}
-                                                                    </Button>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {currentProviders.length === 0 ? (
-                                                        <div className="text-center py-8">
-                                                            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                                            <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.none_title')}</h3>
-                                                            <p className="text-muted-foreground mb-4">
-                                                                {filteredProviders.length === 0
-                                                                    ? t('projects.new.providers.none_description')
-                                                                    : t('projects.new.providers.none_page')
-                                                                }
-                                                            </p>
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={() => {
-                                                                    setProviderSearchTerm('');
-                                                                    setSelectedServiceFilters([]);
-                                                                    setSkillLevelFilter([]);
-                                                                    setCurrentPage(1);
-                                                                }}
-                                                            >
-                                                                {t('projects.new.providers.filters.reset_filters')}
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                                                {currentProviders.map((provider) => {
-                                                                    const passedReasons = provider.matchReasons.filter(reason => reason.passed);
-                                                                    const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
-                                                                    const availabilityStatus = getAvailabilityStatus(provider.availability);
-                                                                    return (
-                                                                        <Card
-                                                                            key={provider.id}
-                                                                            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedProviders.some(p => p.id === provider.id)
-                                                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                                                : 'border-gray-200 hover:border-blue-300'
-                                                                                }`}
-                                                                            onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
-                                                                        >
-                                                                            <CardContent className="p-6">
-                                                                                <div className="flex flex-col items-start justify-between">
-                                                                                    <div className="flex flex-row items-start space-x-4 flex-1">
-                                                                                        <div className="relative">
-                                                                                            <Avatar className="w-16 h-16">
-                                                                                                <AvatarImage src={provider.avatar} />
-                                                                                                <AvatarFallback>
-                                                                                                    {provider.firstName[0]}{provider.lastName[0]}
-                                                                                                </AvatarFallback>
-                                                                                            </Avatar>
-                                                                                            {provider.isVerified && (
-                                                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                                    <CheckCircle className="w-4 h-4 text-white" />
-                                                                                                </div>
-                                                                                            )}
-                                                                                        </div>
-
-                                                                                        <div className="flex-1">
-                                                                                            <div className="flex items-center space-x-2 mb-2">
-                                                                                                <h3 className="text-lg font-semibold">
-                                                                                                    {provider.firstName} {provider.lastName}
-                                                                                                </h3>
-                                                                                                {provider.isVerified && (
-                                                                                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                                                                                )}
-                                                                                                <Badge className={
-                                                                                                    skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                                    'bg-blue-100 text-blue-800'
-                                                                                                }>
-                                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                                    {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
-                                                                                                </Badge>
-
-                                                                                                <Badge className={`${availabilityStatus.color}`}>
-                                                                                                    {
-                                                                                                        (() => {
-                                                                                                            const Icon = availabilityStatus.icon;
-                                                                                                            return <Icon className="mr-1 w-4 h-4" />;
-                                                                                                        })()
-                                                                                                    }
-                                                                                                    {availabilityStatus.label}
-                                                                                                </Badge>
-
-                                                                                            </div>
-                                                                                            <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                                <Badge className="bg-green-100 text-green-800">
-                                                                                                    {t('projects.new.providers.match_score', { score: provider.matchScore })}
-                                                                                                </Badge>
-                                                                                                {provider.isVerified && (
-                                                                                                    <Badge className="bg-blue-100 text-blue-800">
-                                                                                                        {t('projects.new.providers.verified')}
-                                                                                                    </Badge>
-                                                                                                )}
-                                                                                            </div>
-
-                                                                                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                                                <div className="flex items-center space-x-1">
-                                                                                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                                                    <span className="font-medium">{provider.rating}</span>
-                                                                                                    <span>({t('projects.new.providers.reviews', { count: provider.reviewCount })})</span>
-                                                                                                </div>
-                                                                                                <div className="flex items-center space-x-1">
-                                                                                                    <MapPin className="w-4 h-4" />
-                                                                                                    <span>{provider.location}</span>
-                                                                                                </div>
-                                                                                                <div className="flex items-center space-x-1">
-                                                                                                    <Clock className="w-4 h-4" />
-                                                                                                    <span>
-                                                                                                        {t('projects.new.providers.response_time', {
-                                                                                                            time: provider.responseTime,
-                                                                                                            unit: provider.responseTime === "1"
-                                                                                                                ? t('projects.new.providers.hour_singular')
-                                                                                                                : t('projects.new.providers.hour_plural'),
-                                                                                                        })}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                            <div className="flex flex-wrap gap-1 mb-3">
-                                                                                                {provider.skills.map((skill, index) =>
-                                                                                                    index < 4 ? (
-                                                                                                        <Badge key={skill} variant="outline" className="text-xs">
-                                                                                                            {skill}
-                                                                                                        </Badge>
-                                                                                                    ) : null
-                                                                                                )}
-                                                                                                {provider.skills.length > 4 && (
-                                                                                                    <Badge variant="outline" className="text-xs">
-                                                                                                        +{provider.skills.length - 4}
-                                                                                                    </Badge>
-                                                                                                )}
-                                                                                            </div>
-
-                                                                                            <div className="space-y-1">
-                                                                                                {/*<div className="text-sm font-medium text-green-600">*/}
-                                                                                                {/*    De ce este potrivit:*/}
-                                                                                                {/*</div>*/}
-                                                                                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                                                                    {/* Coloana 1: Passed */}
-                                                                                                    <div>
-                                                                                                        <h4 className="text-sm font-medium text-green-600 mb-2">{t('projects.new.providers.why_fit')}</h4>
-                                                                                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                            {passedReasons.map((reason, index) => (
-                                                                                                                <li key={`passed-${index}`} className="flex items-center space-x-2">
-                                                                                                                    <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                                                    <span className="text-green-600">{reason.message}</span>
-                                                                                                                </li>
-                                                                                                            ))}
-                                                                                                        </ul>
-                                                                                                    </div>
-
-                                                                                                    {/* Coloana 2: Nepotriviri */}
-                                                                                                    <div>
-                                                                                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                            {failedReasons.map((reason, index) => (
-                                                                                                                <li key={`failed-${index}`} className="flex items-center space-x-2">
-                                                                                                                    <BadgeAlert className="w-3 h-3 text-red-500" />
-                                                                                                                    <span className="text-red-600">{reason.message}</span>
-                                                                                                                </li>
-                                                                                                            ))}
-                                                                                                        </ul>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <div className="text-right space-y-2">
-                                                                                        {/*<div className="text-sm text-muted-foreground">*/}
-                                                                                        {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                                        {/*</div>*/}
-                                                                                        {/*<div className="text-sm">*/}
-                                                                                        {/*    <div className="flex items-center space-x-1 justify-end">*/}
-                                                                                        {/*        <Calendar className="w-3 h-3" />*/}
-                                                                                        {/*        <span>{provider.deliveryTime} zile</span>*/}
-                                                                                        {/*    </div>*/}
-                                                                                        {/*</div>*/}
-
-                                                                                        <div className="text-xs text-muted-foreground">
-                                                                                            {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
-                                                                                        </div>
-
-                                                                                        <div className="flex space-x-2 mt-4">
-                                                                                            <a href={`/provider/${provider.profileUrl}`} target="_blank"
-                                                                                                className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                            >
-                                                                                                <Eye className="w-3 h-3 mr-1" />
-                                                                                                {t('projects.new.providers.profile')}
-                                                                                            </a>
-                                                                                            {/*<a*/}
-                                                                                            {/*    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"*/}
-                                                                                            {/*>*/}
-                                                                                            {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
-                                                                                            {/*    {t('projects.new.providers.message')}*/}
-                                                                                            {/*</a>*/}
-                                                                                        </div>
-
-                                                                                    </div>
-                                                                                </div>
-
-                                                                            </CardContent>
-                                                                        </Card>
-                                                                    );
-                                                                })}
-                                                            </div>
-
-                                                            {/* Pagination */}
-                                                            {totalPages > 1 && (
-                                                                <div className="flex items-center justify-between pt-6 border-t">
-                                                                    <div className="text-sm text-muted-foreground">
-                                                                        {t('projects.new.providers.pagination', {
-                                                                            start: indexOfFirstProvider + 1,
-                                                                            end: Math.min(indexOfLastProvider, filteredProviders.length),
-                                                                            total: filteredProviders.length,
-                                                                        })}
-                                                                    </div>
-
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => handlePageChange(currentPage - 1)}
-                                                                            disabled={currentPage === 1}
-                                                                            className="flex items-center space-x-1"
-                                                                        >
-                                                                            <ArrowLeft className="w-4 h-4" />
-                                                                            <span>{t('projects.new.pagination.previous')}</span>
-                                                                        </Button>
-
-                                                                        <div className="flex items-center space-x-1">
-                                                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                                                                                // Show first page, last page, current page, and pages around current
-                                                                                const showPage = page === 1 ||
-                                                                                    page === totalPages ||
-                                                                                    Math.abs(page - currentPage) <= 1;
-
-                                                                                if (!showPage && page === 2 && currentPage > 4) {
-                                                                                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                                }
-
-                                                                                if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
-                                                                                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                                }
-
-                                                                                if (!showPage) return null;
-
-                                                                                return (
-                                                                                    <Button
-                                                                                        key={page}
-                                                                                        variant={currentPage === page ? "default" : "outline"}
-                                                                                        size="sm"
-                                                                                        onClick={() => handlePageChange(page)}
-                                                                                        className="w-8 h-8 p-0"
-                                                                                    >
-                                                                                        {page}
-                                                                                    </Button>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => handlePageChange(currentPage + 1)}
-                                                                            disabled={currentPage === totalPages}
-                                                                            className="flex items-center space-x-1"
-                                                                        >
-                                                                            <span>{t('projects.new.pagination.next')}</span>
-                                                                            <ArrowRight className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {selectedProviders.length > 0 && (
-                                                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                                                    <div className="flex items-center space-x-2 mb-2">
-                                                        <CheckCircle className="w-5 h-5 text-green-600" />
-                                                        <span className="font-medium text-green-800 dark:text-green-200">
-                                                            {t('projects.new.providers.selected_count', {
-                                                                count: selectedProviders.length,
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-green-700 dark:text-green-300">
-                                                        {t('projects.new.providers.selected_message')}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-
-                                    <div className="flex justify-between">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setActiveTab('details')}
-                                        >
-                                            {t('projects.new.actions.back_to_details')}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            onClick={() => setActiveTab('review')}
-                                            disabled={selectedProviders.length === 0}
-                                            className="btn-primary px-8"
-                                        >
-                                            {t('projects.new.actions.review_final')}
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
-                                </TabsContent>
-
-                                {/* Revizuire și Trimitere */}
-                                <TabsContent value="review" className="space-y-6">
-                                    <Card className="glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <Target className="w-5 h-5" />
-                                                <span>{t('projects.new.review.title')}</span>
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t('projects.new.review.subtitle')}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {/* Rezumat proiect */}
-                                            <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
-                                                        <div className="space-y-2 text-sm">
-                                                            <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
-
-                                                            {/*<div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData*/}
-                                                            {/*    ?.flatMap((c: any) => [c, ...(c.children || [])]) */}
-                                                            {/*    .find((c: any) => String(c.id) === String(formData.serviceId)) // Căutăm ID-ul (convertit la string)*/}
-                                                            {/*    ?.name}</div>*/}
-                                                            <div>
-                                                                <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
-                                                                <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
-                                                            </div>
-                                                            <div>
-                                                                <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
-                                                                <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? 150 : Number(formData.budget ?? 0) * 0.10} />
-                                                            </div>
-                                                            <div>
-                                                                <strong>{t('projects.new.review.labels.total')}</strong>{' '}
-                                                                <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? Number(formData.budget ?? 0) + 150 : Number(formData.budget ?? 0) * 1.10} />
-                                                            </div>
-                                                            {formData.deadline && (
-                                                                <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
-                                                            )}
-                                                            {/*<div>*/}
-                                                            {/*    <strong>Tip proiect:</strong>*/}
-                                                            {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
-                                                            {/*        {formData.visibility}*/}
-                                                            {/*    </Badge>*/}
-                                                            {/*</div>*/}
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <h4 className="font-semibold mb-2">{t('projects.new.review.technologies_title', { count: formData.technologies.length })}</h4>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {formData.technologies.map((tech) => (
-                                                                <Badge key={tech.id} variant="outline" className="text-xs">
-                                                                    {tech.name}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center justify-between">
-                                                            <h3 className="text-lg font-semibold">{t('projects.new.review.selected_providers_title', { count: selectedProviders.length })}</h3>
-                                                            <div className="flex items-center space-x-2">
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={redistributeBudget}
-                                                                    disabled={selectedProviders.length === 0}
-                                                                >
-                                                                    <DollarSign className="w-4 h-4 mr-1" />
-                                                                    {t('projects.new.review.split_evenly')}
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Budget Summary */}
-                                                        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-                                                            <CardContent className="p-4">
-                                                                <div className="grid grid-cols-3 gap-4 text-sm">
-                                                                    <div>
-                                                                        <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
-                                                                        <div className="text-lg font-bold text-blue-600">
-                                                                            <PriceDisplay value={Number(formData.budget)} />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
-                                                                        <div className="text-lg font-bold text-green-600">
-                                                                            <PriceDisplay value={getTotalAllocatedBudget()} />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
-                                                                        <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                                                            <PriceDisplay value={getRemainingBudget()} />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                {getRemainingBudget() !== 0 && (
-                                                                    <Alert className="mt-3 border-orange-200 bg-orange-50">
-                                                                        <AlertCircle className="h-4 w-4" />
-                                                                        <AlertDescription className="text-orange-800">
-                                                                            {getRemainingBudget() > 0
-                                                                                ? (
-                                                                                    <>
-                                                                                        {t('projects.new.review.budget_remaining_positive')}{' '}
-                                                                                        <PriceDisplay value={getRemainingBudget()} />
-                                                                                    </>
-                                                                                )
-                                                                                : (
-                                                                                    <>
-                                                                                        {t('projects.new.review.budget_remaining_negative')}{' '}
-                                                                                        <PriceDisplay value={Math.abs(getRemainingBudget())} />
-                                                                                    </>
-                                                                                )
-                                                                            }
-                                                                        </AlertDescription>
-                                                                    </Alert>
-                                                                )}
-                                                            </CardContent>
-                                                        </Card>
-
-                                                        {isLongProject && (
-                                                            <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
-                                                                <CardHeader>
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div>
-                                                                            <CardTitle className="text-base">{t('projects.new.review.milestones.title')}</CardTitle>
-                                                                            <CardDescription>
-                                                                                {t('projects.new.review.milestones.description')}
-                                                                            </CardDescription>
-                                                                        </div>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={applyAiMilestonesToProviders}
-                                                                            disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
-                                                                        >
-                                                                            <AutoAwesomeIcon className="w-4 h-4 mr-2" />
-                                                                            {t('projects.new.review.milestones.apply_ai')}
-                                                                        </Button>
-                                                                    </div>
-                                                                </CardHeader>
-                                                                <CardContent className="space-y-4">
-                                                                    {selectedProviders.map((selectedProvider) => {
-                                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                                        const milestones = providerMilestones[selectedProvider.id] ?? [];
-
-                                                                        return (
-                                                                            <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
-                                                                                <div className="flex items-center justify-between">
-                                                                                    <div className="font-medium">
-                                                                                        {provider ? `${provider.firstName} ${provider.lastName}` : t('projects.new.review.milestones.provider_fallback', { id: selectedProvider.id })}
-                                                                                    </div>
-                                                                                    <Button
-                                                                                        type="button"
-                                                                                        variant="outline"
-                                                                                        size="sm"
-                                                                                        onClick={() => addProviderMilestone(selectedProvider.id)}
-                                                                                    >
-                                                                                        <Plus className="w-4 h-4 mr-2" />
-                                                                                        {t('projects.new.review.milestones.add')}
-                                                                                    </Button>
-                                                                                </div>
-                                                                                {milestones.length === 0 ? (
-                                                                                    <div className="text-sm text-muted-foreground">
-                                                                                        {t('projects.new.review.milestones.empty')}
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <div className="space-y-3">
-                                                                                        {milestones.map((milestone, index) => (
-                                                                                            <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
-                                                                                                <div>
-                                                                                                    <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>{t('projects.new.review.milestones.name_label')}</Label>
-                                                                                                    <Input
-                                                                                                        id={`provider-${selectedProvider.id}-milestone-title-${index}`}
-                                                                                                        value={milestone.title}
-                                                                                                        onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
-                                                                                                        placeholder={t('projects.new.review.milestones.name_placeholder')}
-                                                                                                    />
-                                                                                                </div>
-                                                                                                <div>
-                                                                                                    <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label')}</Label>
-                                                                                                    <Input
-                                                                                                        id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
-                                                                                                        type="number"
-                                                                                                        min="0"
-                                                                                                        value={milestone.amount}
-                                                                                                        onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
-                                                                                                        placeholder={t('projects.new.review.milestones.budget_placeholder')}
-                                                                                                    />
-                                                                                                </div>
-                                                                                                <Button
-                                                                                                    type="button"
-                                                                                                    variant="ghost"
-                                                                                                    size="icon"
-                                                                                                    onClick={() => removeProviderMilestone(selectedProvider.id, index)}
-                                                                                                    aria-label={t('projects.new.review.milestones.delete_aria')}
-                                                                                                >
-                                                                                                    <X className="w-4 h-4" />
-                                                                                                </Button>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                )}
-                                                                                <div className="text-sm text-muted-foreground">
-                                                                                    {t('projects.new.review.milestones.total_provider')}{' '}
-                                                                                    <PriceDisplay value={milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0)} />
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-
-                                                                    {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
-                                                                        <div className="text-sm text-red-500">
-                                                                            {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="text-sm text-muted-foreground">
-                                                                        {t('projects.new.review.milestones.summary_total')}{' '}
-                                                                        <PriceDisplay value={getMilestoneTotal()} />{' '}
-                                                                        •{' '}
-                                                                        {t('projects.new.review.milestones.summary_difference')}{' '}
-                                                                        <PriceDisplay value={Number(formData.budget || 0) - getMilestoneTotal()} />
-                                                                    </div>
-                                                                </CardContent>
-                                                            </Card>
-                                                        )}
-
-                                                        <div className="space-y-3">
-                                                            {selectedProviders.map(selectedProvider => {
-                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                                if (!provider) return null;
-
-                                                                return (
-                                                                    <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                                                                        <div className="flex items-center space-x-3">
-                                                                            <Avatar className="w-10 h-10">
-                                                                                <AvatarImage src={provider.avatar} />
-                                                                                <AvatarFallback className="text-xs">
-                                                                                    {provider.firstName[0]}{provider.lastName[0]}
-                                                                                </AvatarFallback>
-                                                                            </Avatar>
-                                                                            <div className="flex-1">
-                                                                                <div className="font-medium text-sm">
-                                                                                    {provider.firstName} {provider.lastName}
-                                                                                    <Badge className={
-                                                                                        skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                        'bg-blue-100 text-blue-800'
-                                                                                    }>
-                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                        {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
-                                                                                    </Badge>
-                                                                                </div>
-                                                                                <div className="text-xs text-muted-foreground">
-                                                                                    {t('projects.new.review.match_score', { score: provider.matchScore })}
-                                                                                </div>
-                                                                                <div className="flex flex-wrap gap-1 mb-3">
-                                                                                    {provider.skills.map((skill, index) =>
-                                                                                        index < 4 ? (
-                                                                                            <Badge key={skill} variant="outline" className="text-xs">
-                                                                                                {skill}
-                                                                                            </Badge>
-                                                                                        ) : null
-                                                                                    )}
-                                                                                    {provider.skills.length > 4 && (
-                                                                                        <Badge variant="outline" className="text-xs">
-                                                                                            +{provider.skills.length - 4}
-                                                                                        </Badge>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div className="mt-3 flex items-center justify-between">
-                                                                            <div className="flex items-center space-x-3">
-                                                                                <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
-                                                                                    {t('projects.new.review.allocated_budget_label')}
-                                                                                </Label>
-                                                                                <div className="flex items-center space-x-2">
-                                                                                    <Input
-                                                                                        id={`budget-${selectedProvider.id}`}
-                                                                                        type="number"
-                                                                                        value={providerBudgets[selectedProvider.id] || 0}
-                                                                                        onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
-                                                                                        className="w-32"
-                                                                                        min="0"
-                                                                                        max={Number(formData.budget)}
-                                                                                    />
-                                                                                </div>
-                                                                            </div>
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
-                                                                            >
-                                                                                <X className="w-4 h-4" />
-                                                                            </Button>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <h4 className="font-semibold mb-2">{t('projects.new.review.description_title')}</h4>
-                                                <div className="bg-muted p-4 rounded-lg text-sm">
-                                                    {formData.description}
-                                                </div>
-                                            </div>
-
-                                            {formData.requirements && (
-                                                <div>
-                                                    <h4 className="font-semibold mb-2">{t('projects.new.review.requirements_title')}</h4>
-                                                    <div className="bg-muted p-4 rounded-lg text-sm">
-                                                        {formData.requirements}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-
-                                    <div className="flex justify-between">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setActiveTab('providers')}
-                                        >
-                                            {t('projects.new.actions.back_to_providers')}
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            disabled={submitting || getRemainingBudget() !== 0}
-                                            className="btn-primary px-8"
-                                        >
-                                            {submitting ? (
-                                                <>
-                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    {t('projects.new.actions.submitting')}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Zap className="w-4 h-4 mr-2" />
-                                                    {t('projects.new.actions.submit_project')}
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </TabsContent>
-                            </Tabs>
-                        </form>
-                    </div>
-                </section>
-            </main>
-
-            <Footer />
-        </div>
+    const serviceKey = getServiceKey(serviceName);
+
+    setSelectedProviders((current) => {
+      const exists = current.some((entry) => {
+        const entryId = getProviderId(entry);
+        if (entryId === null || entryId !== providerId) {
+          return false;
+        }
+
+        const entryServiceKey = getServiceKey((entry as { service_name?: unknown }).service_name);
+        return entryServiceKey === serviceKey || !entryServiceKey;
+      });
+
+      if (exists) {
+        return current.filter((entry) => {
+          const entryId = getProviderId(entry);
+          if (entryId === null || entryId !== providerId) {
+            return true;
+          }
+
+          const entryServiceKey = getServiceKey((entry as { service_name?: unknown }).service_name);
+          return entryServiceKey !== serviceKey && entryServiceKey !== '';
+        });
+      }
+
+      return [
+        ...current,
+        {
+          ...provider,
+          service_name: serviceName,
+        },
+      ];
+    });
+  }, []);
+
+  const cleanupBriefSubscription = useCallback(() => {
+    const activeSubscription = briefSubscriptionRef.current;
+    if (!activeSubscription) {
+      return;
+    }
+
+    AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+      activeSubscription.channel.stopListening(eventName);
+    });
+
+    AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+      activeSubscription.channel.stopListening(eventName);
+    });
+
+    activeSubscription.echo?.leave(activeSubscription.channelName);
+
+    const privateChannelName = `private-${activeSubscription.channelName}`;
+    const echoWithLeaveChannel = activeSubscription.echo as
+      | (ReturnType<typeof getEcho> & { leaveChannel?: (channelName: string) => void })
+      | null;
+
+    if (echoWithLeaveChannel && typeof echoWithLeaveChannel.leaveChannel === 'function') {
+      echoWithLeaveChannel.leaveChannel(privateChannelName);
+    }
+
+    briefSubscriptionRef.current = null;
+  }, []);
+
+  const applyBriefResponse = useCallback((response: AiBriefResponse) => {
+    setBriefStatus(response.status);
+    setBriefPayloadTruncated(Boolean(response.payload_truncated));
+    setBriefPayloadTrimmedSections(response.payload_trimmed_sections ?? []);
+
+    if (response.status === 'CLARIFY') {
+      setBriefQuestions(response.questions ?? []);
+      return;
+    }
+
+    if (response.status === 'FINAL') {
+      const finalBrief = response.final_brief ?? response.final_brief_modular ?? null;
+      if (finalBrief) {
+        setBriefResult(finalBrief);
+      }
+
+      setBriefModularDetails(response.final_brief_modular ?? null);
+      setBriefFullDetails(response.final_brief_full ?? null);
+      setBriefText(response.final_brief_text ?? '');
+      setBriefQuestions([]);
+
+      if (response.recommended_providers) {
+        setRecommendedProviders(response.recommended_providers);
+        const autoSelectedProviders = Object.entries(response.recommended_providers)
+          .flatMap(([serviceName, providers]) =>
+            Array.isArray(providers)
+              ? providers.slice(0, 1).map((provider) => ({
+                ...provider,
+                service_name: serviceName,
+              }))
+              : []
+          )
+          .filter(
+            (provider): provider is AiBriefProvider & { service_name: string } =>
+              Boolean(provider && provider.id)
+          );
+        if (autoSelectedProviders.length > 0) {
+          const unique = new Map<string, AiBriefProvider>();
+          autoSelectedProviders.forEach((provider) => {
+            const providerId = getProviderId(provider);
+            const serviceName = getServiceKey(
+              (provider as { service_name?: unknown }).service_name
+            );
+            if (providerId !== null) {
+              unique.set(`${serviceName}::${providerId}`, provider);
+            }
+          });
+          setSelectedProviders(Array.from(unique.values()));
+        }
+      } else {
+        setRecommendedProviders(undefined);
+        setSelectedProviders([]);
+      }
+      if (response.other_providers_by_service) {
+        setOtherProviders(response.other_providers_by_service);
+      } else if (response.other_providers && Array.isArray(response.other_providers as unknown)) {
+        setOtherProviders(response.other_providers as unknown as AiBriefOtherProvidersByService);
+      } else {
+        setOtherProviders(undefined);
+      }
+
+      const autoBudget =
+        toNumber(finalBrief?.budget) ??
+        toNumber(response.final_brief_full?.budget);
+
+      if (autoBudget !== null) {
+        setTotalBudget((currentValue) =>
+          currentValue.trim() ? currentValue : String(autoBudget)
+        );
+      }
+      return;
+    }
+
+    if (response.status === 'PROCESSING') {
+      setBriefQuestions([]);
+    }
+  }, []);
+
+  const loadBriefResultById = useCallback(
+    async (briefResultId: number | string) => {
+      const response = await aiService.getBriefBuilderResult(briefResultId);
+      setBriefDebugResponseJson(toJsonDebugString(response));
+
+      const normalizedResponse = normalizeAiBriefResponse(response);
+      if (normalizedResponse) {
+        applyBriefResponse(normalizedResponse);
+      }
+    },
+    [applyBriefResponse]
+  );
+
+  useEffect(
+    () => () => {
+      cleanupBriefSubscription();
+    },
+    [cleanupBriefSubscription]
+  );
+
+  useEffect(() => {
+    if (step !== 'briefing') {
+      cleanupBriefSubscription();
+      return;
+    }
+
+    const userId = toString(user?.id);
+    if (!userId) {
+      return;
+    }
+
+    const echo = getEcho();
+    if (!echo) {
+      setBriefSubscriptionError('Canalul de realtime nu este disponibil momentan.');
+      return;
+    }
+
+    setBriefSubscriptionError(null);
+
+    const channelName = `user.${userId}.briefs`;
+    const channel = echo.private(channelName);
+
+    const handleGenerated = (payload: unknown) => {
+      setBriefDebugResponseJson(toJsonDebugString(payload));
+      const response = normalizeAiBriefResponse(payload);
+      if (!response) {
+        const briefResultId = extractBriefResultId(payload);
+        if (briefResultId !== null) {
+          setBriefStatus('PROCESSING');
+          void loadBriefResultById(briefResultId).catch((error) => {
+            setBriefStatus('CLARIFY');
+            toast.error(
+              extractErrorMessage(
+                error,
+                'Nu am putut încărca rezultatul final al brief-ului.'
+              )
+            );
+          });
+        }
+        return;
+      }
+
+      applyBriefResponse(response);
+
+      if (response.status === 'PROCESSING') {
+        const briefResultId = response.brief_result_id ?? extractBriefResultId(payload);
+        if (briefResultId !== null) {
+          void loadBriefResultById(briefResultId).catch((error) => {
+            setBriefStatus('CLARIFY');
+            toast.error(
+              extractErrorMessage(
+                error,
+                'Nu am putut încărca rezultatul final al brief-ului.'
+              )
+            );
+          });
+        }
+      }
+    };
+
+    const handleFailed = (payload: unknown) => {
+      const source = toObject(payload);
+      const message =
+        toString(source?.errorMessage) ||
+        toString(source?.error_message) ||
+        toString(source?.message) ||
+        toString(source?.error) ||
+        'Generarea brief-ului a eșuat.';
+
+      setBriefStatus('CLARIFY');
+      toast.error(message);
+    };
+
+    AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+      channel.listen(eventName, handleGenerated);
+    });
+
+    AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+      channel.listen(eventName, handleFailed);
+    });
+
+    briefSubscriptionRef.current = {
+      channelName,
+      channel,
+      echo,
+    };
+
+    return () => {
+      cleanupBriefSubscription();
+    };
+  }, [step, user?.id, applyBriefResponse, cleanupBriefSubscription, loadBriefResultById]);
+
+  const requestBriefBuilder = useCallback(
+    async (messages: AiAssistantMessage[]) => {
+      if (messages.length === 0) {
+        return;
+      }
+
+      setBriefStatus('PROCESSING');
+      try {
+        const response = await aiService.buildBrief({
+          locale,
+          messages,
+        });
+        setBriefDebugResponseJson(toJsonDebugString(response));
+
+        const normalizedResponse = normalizeAiBriefResponse(response);
+        if (normalizedResponse) {
+          applyBriefResponse(normalizedResponse);
+
+          if (normalizedResponse.status === 'PROCESSING') {
+            const briefResultId =
+              normalizedResponse.brief_result_id ?? extractBriefResultId(response);
+            if (briefResultId !== null) {
+              try {
+                await loadBriefResultById(briefResultId);
+              } catch {
+                // Keep waiting for realtime event fallback.
+              }
+            }
+          }
+
+          return;
+        }
+
+        const briefResultId = extractBriefResultId(response);
+        if (briefResultId !== null) {
+          try {
+            await loadBriefResultById(briefResultId);
+          } catch {
+            // Keep waiting for realtime event fallback.
+          }
+        }
+      } catch (error) {
+        setBriefStatus('CLARIFY');
+        toast.error(extractErrorMessage(error, 'Nu am putut genera brief-ul.'));
+      }
+    },
+    [applyBriefResponse, loadBriefResultById, locale]
+  );
+
+  useEffect(() => {
+    if (step !== 'briefing') {
+      return;
+    }
+
+    if (briefRequestSentRef.current) {
+      return;
+    }
+
+    if (briefMessages.length === 0) {
+      return;
+    }
+
+    briefRequestSentRef.current = true;
+    void requestBriefBuilder(briefMessages);
+  }, [briefMessages, requestBriefBuilder, step]);
+
+  const handleRequestRecommendation = async () => {
+    const normalizedIntent = intent.trim();
+    if (!normalizedIntent) {
+      toast.error('Completează intenția proiectului înainte să continui.');
+      return;
+    }
+
+    setLoadingRecommendation(true);
+    try {
+      const response = await aiService.recommendServices({
+        brief: normalizedIntent,
+      });
+
+      const normalized = normalizeRecommendationResponse(
+        response as AiRecommendServicesResponse,
+        serviceCatalogById
+      );
+
+      if (normalized.services.length === 0) {
+        toast.error('AI-ul nu a returnat servicii. Încearcă să adaugi mai mult context.');
+        return;
+      }
+
+      setRecommendation(normalized);
+      const preferredSelection = normalized.services
+        .map((service, index) => (isAlternativeService(service) ? -1 : index))
+        .filter((index) => index >= 0);
+      setSelectedServiceIndexes(
+        preferredSelection.length > 0
+          ? preferredSelection
+          : normalized.services.map((_service, index) => index)
+      );
+      setBriefMessages([]);
+      setBriefResult(null);
+      setBriefModularDetails(null);
+      setBriefFullDetails(null);
+      setBriefText('');
+      setBriefStatus('IDLE');
+      setBriefQuestions([]);
+      setBriefAnswer('');
+      setBriefDebugResponseJson('');
+      setBriefPayloadTruncated(false);
+      setBriefPayloadTrimmedSections([]);
+      setRecommendedProviders(undefined);
+      setOtherProviders(undefined);
+      setSelectedProviders([]);
+      setTotalBudget('');
+      setEditableDuration('');
+      setEditablePaymentPlan('');
+      briefRequestSentRef.current = false;
+      transitionTo('recommendation');
+      toast.success('Recomandarea AI a fost generată.');
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Nu am putut genera recomandarea de servicii.'));
+    } finally {
+      setLoadingRecommendation(false);
+    }
+  };
+
+  const handleToggleService = (index: number) => {
+    setSelectedServiceIndexes((current) => {
+      if (current.includes(index)) {
+        return current.filter((entry) => entry !== index);
+      }
+      return [...current, index].sort((a, b) => a - b);
+    });
+  };
+
+  const handleConfirmRecommendation = () => {
+    if (selectedServices.length === 0) {
+      toast.error('Selectează cel puțin o linie de proiect.');
+      return;
+    }
+
+    const initialMessages = buildInitialConversation(intent.trim(), selectedServices);
+    setBriefMessages(initialMessages);
+    setBriefQuestions([]);
+    setBriefResult(null);
+    setBriefModularDetails(null);
+    setBriefFullDetails(null);
+    setBriefText('');
+    setBriefStatus('IDLE');
+    setBriefAnswer('');
+    setBriefPayloadTruncated(false);
+    setBriefPayloadTrimmedSections([]);
+    setRecommendedProviders(undefined);
+    setOtherProviders(undefined);
+    setSelectedProviders([]);
+    setEditableDuration('');
+    setEditablePaymentPlan('');
+    briefRequestSentRef.current = false;
+    transitionTo('briefing');
+  };
+
+  const handleSendClarification = async () => {
+    const normalizedAnswer = briefAnswer.trim();
+    if (!normalizedAnswer) {
+      toast.error('Scrie răspunsul pentru clarificare.');
+      return;
+    }
+
+    const nextMessages = [...briefMessages, { role: 'user', content: normalizedAnswer } satisfies AiAssistantMessage];
+    setBriefMessages(nextMessages);
+    setBriefAnswer('');
+    await requestBriefBuilder(nextMessages);
+  };
+
+  const createProjectPayload = useMemo(() => {
+    if (!briefResult) {
+      return null;
+    }
+
+    const serviceIndex = new Map(
+      selectedServices.map((service) => [
+        `${service.service_name.toLowerCase()}::${service.delivery_provider}`,
+        service.service_id,
+      ])
     );
+
+    const projectLines = reviewLines.map((line, index) => {
+      const serviceKey = `${line.service_name.toLowerCase()}::${line.delivery_provider}`;
+      const serviceId = serviceIndex.get(serviceKey);
+
+      return {
+        id: `line-${index + 1}`,
+        ...(typeof serviceId === 'string' || typeof serviceId === 'number'
+          ? { service_id: serviceId }
+          : {}),
+        service_name: line.service_name,
+        delivery_provider: line.delivery_provider,
+        status: 'pending',
+        price: line.budget_allocation,
+        budget_allocation: Number(line.budget_percentage || 0),
+        milestones: line.milestones,
+        description: line.description,
+        budget_percentage: line.budget_percentage,
+      };
+    });
+
+    return {
+      ...(typeof user?.id === 'string' || typeof user?.id === 'number'
+        ? { clientId: user.id }
+        : {}),
+      title: buildProjectTitle(intent, briefResult.title),
+      description: intent.trim(),
+      budget: budgetValue,
+      ...(briefingDisplay.currency ? { currency: briefingDisplay.currency } : {}),
+      ...(effectivePaymentPlan ? { paymentPlan: effectivePaymentPlan } : {}),
+      ...(effectiveDuration ? { duration: effectiveDuration } : {}),
+      brief: {
+        title: briefResult.title,
+        project_lines: briefResult.project_lines,
+        ...(effectiveDuration
+          ? {
+            duration: effectiveDuration,
+            recommended_duration: effectiveDuration,
+            project_duration: effectiveDuration,
+          }
+          : {}),
+        ...(effectivePaymentPlan ? { payment_plan: effectivePaymentPlan } : {}),
+        selected_providers: selectedProviders,
+      },
+      project_lines: projectLines,
+    };
+  }, [
+    briefResult,
+    selectedServices,
+    reviewLines,
+    intent,
+    budgetValue,
+    user?.id,
+    briefingDisplay.currency,
+    selectedProviders,
+    effectivePaymentPlan,
+    effectiveDuration,
+  ]);
+
+  const createProjectPayloadDebugJson = useMemo(
+    () => (createProjectPayload ? toJsonDebugString(createProjectPayload) : ''),
+    [createProjectPayload]
+  );
+
+  const handleCreateProject = async () => {
+    if (!briefResult || !createProjectPayload) {
+      toast.error('Brief-ul final nu este disponibil.');
+      return;
+    }
+
+    if (!Number.isFinite(budgetValue) || budgetValue <= 0) {
+      toast.error('Introdu un buget total valid pentru distribuția pe linii.');
+      return;
+    }
+
+    if (!effectiveDuration) {
+      toast.error('Completează durata proiectului înainte de creare.');
+      return;
+    }
+
+    if (!effectivePaymentPlan) {
+      toast.error('Selectează planul de plată înainte de creare.');
+      return;
+    }
+
+    if (requiresMilestonesByDuration && linesMissingMilestones.length > 0) {
+      toast.error(
+        `Pentru durate mai mari de 3 luni, fiecare linie trebuie să aibă milestones. Lipsesc pentru: ${linesMissingMilestones.join(', ')}.`
+      );
+      return;
+    }
+
+    setCreatingProject(true);
+
+    try {
+      const response = await projectsService.createProject(createProjectPayload, {
+        language: locale,
+      });
+
+      const createdProject = projectsService.extractCreatedProject(response);
+      const data = toObject(response);
+      const nestedData = toObject(data?.data);
+      const nestedProject = toObject(data?.project);
+
+      const projectIdentifier =
+        toString(createdProject?.slug) ||
+        toString(createdProject?.id) ||
+        toString(data?.project_url) ||
+        toString(data?.slug) ||
+        toString(data?.id) ||
+        toString(nestedData?.project_url) ||
+        toString(nestedData?.slug) ||
+        toString(nestedData?.id) ||
+        toString(nestedProject?.project_url) ||
+        toString(nestedProject?.slug) ||
+        toString(nestedProject?.id);
+
+      toast.success('Proiectul modular a fost creat cu succes.');
+
+      if (projectIdentifier) {
+        router.push(`/projects/${projectIdentifier}`);
+        return;
+      }
+
+      router.push('/projects');
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Nu am putut crea proiectul.'));
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+
+  if (loading || userLoading) {
+    return (
+      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <TrustoraThemeStyles />
+        <Header />
+        <main className="container mx-auto flex min-h-[70vh] items-center justify-center px-4 pt-24">
+          <Card className="w-full max-w-lg">
+            <CardContent className="flex items-center gap-3 p-6">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm text-muted-foreground">Se încarcă wizard-ul de creare proiect...</span>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <TrustoraThemeStyles />
+        <Header />
+        <main className="container mx-auto px-4 pt-24">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>Trebuie să fii autentificat pentru a crea un proiect modular.</span>
+              <Button asChild size="sm">
+                <Link href="/auth/signin">Sign in</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+      <TrustoraThemeStyles />
+      <Header />
+
+      <main className="container mx-auto px-4 pb-12 pt-24">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <Sparkles className="h-5 w-5 text-emerald-500" />
+                Nexora Project Lines Wizard
+              </CardTitle>
+              <CardDescription>
+                Creează proiecte modulare cu recomandare AI, briefing pe linii și livrare multi-track.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-2 md:grid-cols-5">
+                {WIZARD_STEPS.map((wizardStep, index) => {
+                  const active = step === wizardStep.id;
+                  const done = stepIndex > index;
+
+                  return (
+                    <div
+                      key={wizardStep.id}
+                      className={`rounded-lg border px-3 py-2 text-sm transition ${active
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200'
+                        : done
+                          ? 'border-slate-300 bg-slate-100 text-slate-700 dark:border-[#2A3A52] dark:bg-[#0F172A] dark:text-[#A3ADC2]'
+                          : 'border-slate-200 bg-white text-slate-500 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#6B778D]'
+                        }`}
+                    >
+                      <div className="text-[11px] font-medium uppercase tracking-wide">Pas {index + 1}</div>
+                      <div className="font-semibold">{wizardStep.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {step === 'intent' ? (
+            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+              <CardHeader>
+                <CardTitle>Pasul 1: Intenție</CardTitle>
+                <CardDescription>
+                  Descrie ce vrei să construiești, iar AI-ul recomandă pachetul optim de servicii.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="intent">Ce dorești să construiești?</Label>
+                  <Textarea
+                    id="intent"
+                    rows={7}
+                    value={intent}
+                    onChange={(event) => setIntent(event.target.value)}
+                    placeholder="Ex: Vreau să lansez o platformă SaaS pentru managementul clinicilor, cu dashboard analytics și onboarding pentru utilizatori."
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleRequestRecommendation} disabled={loadingRecommendation}>
+                    {loadingRecommendation ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generăm recomandarea...
+                      </>
+                    ) : (
+                      <>
+                        Continuă la recomandare
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'recommendation' ? (
+            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+              <CardHeader>
+                <CardTitle>Pasul 2: Recomandare servicii</CardTitle>
+                <CardDescription>
+                  Confirmă liniile recomandate pentru proiectul modular.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {recommendation?.bundle_name ? (
+                  <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300">
+                    Bundle recomandat: {recommendation.bundle_name}
+                  </Badge>
+                ) : null}
+
+                {recommendedCards.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                      Servicii recomandate
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {recommendedCards.map((service) => {
+                        const checked = selectedServiceIndexes.includes(service.index);
+                        const categoryName = getServiceCategoryName(service);
+
+                        return (
+                          <Card
+                            key={service.key}
+                            className={`cursor-pointer border transition ${checked
+                              ? 'border-emerald-500 bg-emerald-50/70 dark:border-emerald-500/50 dark:bg-emerald-500/10'
+                              : 'border-slate-200 dark:border-[#1E2A3D]'
+                              }`}
+                            onClick={() => handleToggleService(service.index)}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-2">
+                                  <CardTitle className="text-base">{service.service_name}</CardTitle>
+                                  <CardDescription className="flex items-center gap-1">
+                                    {getProviderIcon(service.delivery_provider)}
+                                    {getProviderLabel(service.delivery_provider)}
+                                  </CardDescription>
+                                  {categoryName ? (
+                                    <Badge variant="outline" className="w-fit text-[10px] uppercase">
+                                      {categoryName}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() => handleToggleService(service.index)}
+                                  aria-label={`Select ${service.service_name}`}
+                                />
+                              </div>
+                            </CardHeader>
+                            {service.description ? (
+                              <CardContent>
+                                <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">{service.description}</p>
+                              </CardContent>
+                            ) : null}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {alternativeCards.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        Servicii alternative (similar services)
+                      </div>
+                      <Badge variant="secondary">Opțional</Badge>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                      Clientul poate selecta un serviciu alternativ din aceeași categorie.
+                    </p>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {alternativeCards.map((service) => {
+                        const checked = selectedServiceIndexes.includes(service.index);
+                        const categoryName = getServiceCategoryName(service);
+
+                        return (
+                          <Card
+                            key={service.key}
+                            className={`cursor-pointer border transition ${checked
+                              ? 'border-blue-500 bg-blue-50/70 dark:border-blue-500/50 dark:bg-blue-500/10'
+                              : 'border-slate-200 dark:border-[#1E2A3D]'
+                              }`}
+                            onClick={() => handleToggleService(service.index)}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-2">
+                                  <CardTitle className="text-base">{service.service_name}</CardTitle>
+                                  <CardDescription className="flex items-center gap-1">
+                                    {getProviderIcon(service.delivery_provider)}
+                                    {getProviderLabel(service.delivery_provider)}
+                                  </CardDescription>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="text-[10px] uppercase">
+                                      Alternativă
+                                    </Badge>
+                                    {categoryName ? (
+                                      <Badge variant="outline" className="text-[10px] uppercase">
+                                        {categoryName}
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() => handleToggleService(service.index)}
+                                  aria-label={`Select ${service.service_name}`}
+                                />
+                              </div>
+                            </CardHeader>
+                            {service.description ? (
+                              <CardContent>
+                                <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">{service.description}</p>
+                              </CardContent>
+                            ) : null}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button variant="outline" onClick={() => transitionTo('intent')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Înapoi la intenție
+                  </Button>
+                  <Button onClick={handleConfirmRecommendation}>
+                    Confirmă și continuă
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'briefing' ? (
+            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+              <CardHeader>
+                <CardTitle>Pasul 3: Modular Briefing</CardTitle>
+                <CardDescription>
+                  Brief-ul este construit pe canalul Echo <code>user.{String(user.id)}.briefs</code> și afișat pe linii de proiect.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={
+                      briefStatus === 'FINAL'
+                        ? 'border-emerald-300 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300'
+                        : briefStatus === 'PROCESSING'
+                          ? 'border-blue-300 text-blue-700 dark:border-blue-500/30 dark:text-blue-300'
+                          : 'border-amber-300 text-amber-700 dark:border-amber-500/30 dark:text-amber-300'
+                    }
+                  >
+                    Status: {briefStatus}
+                  </Badge>
+
+                  {briefStatus === 'PROCESSING' ? (
+                    <span className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-[#8FA0B8]">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generăm structura modulară...
+                    </span>
+                  ) : null}
+                </div>
+
+                {briefPayloadTruncated ? (
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="space-y-2">
+                      <p>
+                        Payload-ul websocket a fost compactat pentru limita de broadcast (10KB).
+                      </p>
+                      {briefPayloadTrimmedSections.length > 0 ? (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide">
+                            Secțiuni trimise compactat
+                          </div>
+                          <ul className="mt-1 space-y-1 text-xs">
+                            {briefPayloadTrimmedSections.map((section, index) => (
+                              <li key={`${section}-${index}`}>• {section}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefSubscriptionError ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{briefSubscriptionError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefQuestions.length > 0 ? (
+                  <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                    <h4 className="font-semibold text-amber-800 dark:text-amber-200">Clarificări necesare</h4>
+                    <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-100">
+                      {briefQuestions.map((question, index) => (
+                        <li key={`${question}-${index}`}>• {question}</li>
+                      ))}
+                    </ul>
+                    <div className="space-y-2">
+                      <Label htmlFor="clarification">Răspunsul tău</Label>
+                      <Textarea
+                        id="clarification"
+                        rows={4}
+                        value={briefAnswer}
+                        onChange={(event) => setBriefAnswer(event.target.value)}
+                        placeholder="Completează detaliile necesare pentru AI..."
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={() => void handleSendClarification()}>
+                        Trimite clarificare
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {briefResult ? (
+                  <div className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {briefingDisplay.title || briefResult.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">
+                        Preview structurat cu datele din <code>final_brief</code>, <code>final_brief_full</code> și <code>final_brief_modular</code>.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Buget
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {typeof briefingDisplay.budget === 'number'
+                            ? `$${briefingDisplay.budget.toLocaleString()}`
+                            : '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Durată
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.duration || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Payment Plan
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.paymentPlan || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Currency
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.currency || 'USD'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/*{briefingDisplay.description ? (*/}
+                    {/*  <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm text-slate-700 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#C9D4E7]">*/}
+                    {/*    {briefingDisplay.description}*/}
+                    {/*  </div>*/}
+                    {/*) : null}*/}
+
+                    {briefingDisplay.overview || briefingDisplay.clientGoal || briefingDisplay.targetAudience ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        {briefingDisplay.overview ? (
+                          <p className="text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Overview:</span> {briefingDisplay.overview}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.clientGoal ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Client goal:</span> {briefingDisplay.clientGoal}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.targetAudience ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Target audience:</span> {briefingDisplay.targetAudience}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.technologies.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Technologies
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {briefingDisplay.technologies.map((item, index) => (
+                            <Badge key={`${item}-${index}`} variant="outline">
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.specificRequirements.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Specific requirements
+                        </div>
+                        <ul className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {briefingDisplay.specificRequirements.map((item, index) => (
+                            <li key={`${item}-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.teamStructure.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Team structure
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {briefingDisplay.teamStructure.map((member, index) => (
+                            <div key={`${member.role}-${index}`} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                              <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {member.role}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {member.service || 'General'} • {member.level || 'N/A'} • x{member.count ?? 1}
+                              </div>
+                              {typeof member.estimated_cost === 'number' ? (
+                                <div className="mt-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  Cost est.: ${member.estimated_cost.toLocaleString()}
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.milestones.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Milestones
+                        </div>
+                        <div className="space-y-2">
+                          {briefingDisplay.milestones.map((milestone, index) => (
+                            <div key={`${milestone.title}-${index}`} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                              <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {milestone.title}
+                              </div>
+                              {milestone.description ? (
+                                <p className="mt-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  {milestone.description}
+                                </p>
+                              ) : null}
+                              <div className="mt-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {typeof milestone.percentage === 'number' ? `${milestone.percentage}%` : '—'}
+                                {' • '}
+                                {typeof milestone.amount === 'number' ? `$${milestone.amount.toLocaleString()}` : '—'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {fullBusinessAnalysis ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_full: Business analysis
+                        </div>
+                        {toString(fullBusinessAnalysis.problem_statement) ? (
+                          <p className="text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Problem:</span> {toString(fullBusinessAnalysis.problem_statement)}
+                          </p>
+                        ) : null}
+                        {toString(fullBusinessAnalysis.value_proposition) ? (
+                          <p className="mt-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Value proposition:</span> {toString(fullBusinessAnalysis.value_proposition)}
+                          </p>
+                        ) : null}
+                        {fullTargetUsers.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                              Target users
+                            </div>
+                            <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                              {fullTargetUsers.map((item, index) => (
+                                <li key={`${item}-${index}`}>• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {fullFeatureBusinessValue.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                              Feature business value
+                            </div>
+                            <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                              {fullFeatureBusinessValue.map((item, index) => (
+                                <li key={`${item}-${index}`}>• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {(fullTechStackItems.length > 0 || toString(briefFullDetails?.tech_stack?.architecture_notes)) ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_full: Tech stack
+                        </div>
+                        {fullTechStackItems.length > 0 ? (
+                          <div className="space-y-2">
+                            {fullTechStackItems.map((item, index) => (
+                              <div key={`${item.technology}-${index}`} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                  {item.technology}
+                                </div>
+                                {item.purpose ? (
+                                  <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                    Purpose: {item.purpose}
+                                  </div>
+                                ) : null}
+                                {item.justification ? (
+                                  <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                    Why: {item.justification}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {toString(briefFullDetails?.tech_stack?.architecture_notes) ? (
+                          <p className="mt-2 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Architecture notes:</span>{' '}
+                            {toString(briefFullDetails?.tech_stack?.architecture_notes)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {fullTechnicalRisks.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_full: Technical risks
+                        </div>
+                        <ul className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {fullTechnicalRisks.map((item, index) => (
+                            <li key={`${item}-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {(fullComplexityEstimationEntries.length > 0 || fullComplexityEntries.length > 0) ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_full: Complexity
+                        </div>
+                        {fullComplexityEstimationEntries.length > 0 ? (
+                          <div className="mb-2">
+                            <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">Complexity estimation</div>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {fullComplexityEstimationEntries.map(([key, value]) => (
+                                <Badge key={key} variant="outline">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {fullComplexityEntries.length > 0 ? (
+                          <div>
+                            <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">Complexity by domain</div>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {fullComplexityEntries.map(([key, value]) => (
+                                <Badge key={key} variant="outline">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {fullTeamRecommendationEntries.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_full: Team recommendation
+                        </div>
+                        <div className="space-y-2">
+                          {fullTeamRecommendationEntries.map(([phase, members]) => (
+                            <div key={phase} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                              <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {phase}
+                              </div>
+                              <ul className="mt-1 space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {(Array.isArray(members) ? members : []).map((member, index) => (
+                                  <li key={`${member.role}-${index}`}>
+                                    • {member.role} x{member.count ?? 1} ({member.seniority ?? 'N/A'})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        Linii modulare de proiect
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {briefingProjectLines.map((line, index) => (
+                          <Card key={`${line.service_name}-${index}`} className="border-emerald-200/80 dark:border-emerald-500/20">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">{line.service_name}</CardTitle>
+                              <CardDescription className="flex items-center gap-2">
+                                {getProviderIcon(line.delivery_provider)}
+                                {getProviderLabel(line.delivery_provider)}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                              <p className="text-slate-600 dark:text-[#A3ADC2]">{line.description || 'Fără descriere.'}</p>
+                              <div className="rounded-md border border-slate-200 bg-white/80 p-2 text-xs dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                <span className="font-semibold">Buget (%): </span>
+                                {line.budget_percentage}
+                              </div>
+                              <div>
+                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                  Milestones
+                                </div>
+                                <ul className="space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  {line.milestones.map((milestone, milestoneIndex) => (
+                                    <li key={`${milestone.title}-${milestoneIndex}`}>
+                                      • {milestone.title} - ${milestone.amount.toLocaleString()}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {briefText ? (
+                      <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Final brief text
+                        </div>
+                        <pre className="max-h-56 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
+{briefText}
+                        </pre>
+                      </div>
+                    ) : null}
+
+                    {briefDebugResponseJson ? (
+                      <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          Debug Response JSON
+                        </div>
+                        <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
+{briefDebugResponseJson}
+                        </pre>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button variant="outline" onClick={() => transitionTo('recommendation')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Înapoi la recomandare
+                  </Button>
+
+                  <Button onClick={() => transitionTo('providers')} disabled={!briefResult || briefStatus !== 'FINAL'}>
+                    Continuă la prestatori
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'providers' ? (
+            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+              <CardHeader>
+                <CardTitle>Pasul 4: Selectare prestatori</CardTitle>
+                <CardDescription>
+                  Pentru fiecare serviciu selectează prestatorii recomandați sau alege alternative din lista suplimentară.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {providerSelectionGroups.length === 0 ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Nu există încă recomandări de prestatori. Poți continua la review fără selecții.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="space-y-4">
+                    {providerSelectionGroups.map((group, groupIndex) => {
+                      const serviceKey = getServiceKey(group.service_name);
+                      const selectedCount = selectedProvidersCountByService.get(serviceKey) ?? 0;
+
+                      return (
+                        <div
+                          key={`provider-group-${group.service_name}-${group.service_id ?? groupIndex}`}
+                          className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-base font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {group.service_name}
+                            </div>
+                            <Badge variant="outline">
+                              Selectați: {selectedCount}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                              Prestatori recomandați
+                            </div>
+                            {group.recommended.length > 0 ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {group.recommended.map((provider) => {
+                                  const checked = isProviderSelected(group.service_name, provider);
+                                  const providerId = getProviderId(provider);
+                                  return (
+                                    <Card
+                                      key={`recommended-${group.service_name}-${providerId ?? getProviderDisplayName(provider)}`}
+                                      className={`cursor-pointer border transition ${checked
+                                        ? 'border-emerald-500 bg-emerald-50/70 dark:border-emerald-500/50 dark:bg-emerald-500/10'
+                                        : 'border-slate-200 dark:border-[#1E2A3D]'
+                                        }`}
+                                      onClick={() => handleToggleProvider(group.service_name, provider)}
+                                    >
+                                      <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="space-y-1">
+                                            <CardTitle className="text-base">
+                                              {getProviderDisplayName(provider)}
+                                            </CardTitle>
+                                            <CardDescription>
+                                              Match score:{' '}
+                                              {typeof provider.matchScore === 'number'
+                                                ? `${provider.matchScore}%`
+                                                : 'N/A'}
+                                            </CardDescription>
+                                            <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                              <span>
+                                                Rating:{' '}
+                                                {typeof provider.rating === 'number'
+                                                  ? provider.rating.toFixed(2)
+                                                  : 'N/A'}
+                                              </span>
+                                              <span>
+                                                Reviews:{' '}
+                                                {typeof provider.reviewCount === 'number'
+                                                  ? provider.reviewCount
+                                                  : 'N/A'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <Checkbox
+                                            checked={checked}
+                                            onCheckedChange={() =>
+                                              handleToggleProvider(group.service_name, provider)
+                                            }
+                                            aria-label={`Select ${getProviderDisplayName(provider)}`}
+                                          />
+                                        </div>
+                                      </CardHeader>
+                                      {Array.isArray(provider.matchReasons) &&
+                                      provider.matchReasons.length > 0 ? (
+                                        <CardContent>
+                                          <ul className="space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                            {provider.matchReasons.slice(0, 3).map((reason, reasonIndex) => (
+                                              <li key={`recommended-reason-${providerId ?? reasonIndex}-${reasonIndex}`}>
+                                                • {reason}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </CardContent>
+                                      ) : null}
+                                    </Card>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500 dark:text-[#8FA0B8]">
+                                Nu există prestatori recomandați pentru acest serviciu.
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                Alți prestatori (others)
+                              </div>
+                              <Badge variant="secondary">Opțional</Badge>
+                            </div>
+                            {group.others.length > 0 ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {group.others.map((provider) => {
+                                  const checked = isProviderSelected(group.service_name, provider);
+                                  const providerId = getProviderId(provider);
+                                  return (
+                                    <Card
+                                      key={`other-${group.service_name}-${providerId ?? getProviderDisplayName(provider)}`}
+                                      className={`cursor-pointer border transition ${checked
+                                        ? 'border-blue-500 bg-blue-50/70 dark:border-blue-500/50 dark:bg-blue-500/10'
+                                        : 'border-slate-200 dark:border-[#1E2A3D]'
+                                        }`}
+                                      onClick={() => handleToggleProvider(group.service_name, provider)}
+                                    >
+                                      <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="space-y-1">
+                                            <CardTitle className="text-base">
+                                              {getProviderDisplayName(provider)}
+                                            </CardTitle>
+                                            <CardDescription>
+                                              Match score:{' '}
+                                              {typeof provider.matchScore === 'number'
+                                                ? `${provider.matchScore}%`
+                                                : 'N/A'}
+                                            </CardDescription>
+                                            <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                              <span>
+                                                Rating:{' '}
+                                                {typeof provider.rating === 'number'
+                                                  ? provider.rating.toFixed(2)
+                                                  : 'N/A'}
+                                              </span>
+                                              <span>
+                                                Reviews:{' '}
+                                                {typeof provider.reviewCount === 'number'
+                                                  ? provider.reviewCount
+                                                  : 'N/A'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <Checkbox
+                                            checked={checked}
+                                            onCheckedChange={() =>
+                                              handleToggleProvider(group.service_name, provider)
+                                            }
+                                            aria-label={`Select ${getProviderDisplayName(provider)}`}
+                                          />
+                                        </div>
+                                      </CardHeader>
+                                      {Array.isArray(provider.matchReasons) &&
+                                      provider.matchReasons.length > 0 ? (
+                                        <CardContent>
+                                          <ul className="space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                            {provider.matchReasons.slice(0, 3).map((reason, reasonIndex) => (
+                                              <li key={`other-reason-${providerId ?? reasonIndex}-${reasonIndex}`}>
+                                                • {reason}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </CardContent>
+                                      ) : null}
+                                    </Card>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500 dark:text-[#8FA0B8]">
+                                Nu există alți prestatori disponibili pentru acest serviciu.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                  <span className="font-semibold">Total prestatori selectați:</span>{' '}
+                  {selectedProviders.length}
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button variant="outline" onClick={() => transitionTo('briefing')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Înapoi la briefing
+                  </Button>
+
+                  <Button onClick={() => transitionTo('review')} disabled={!briefResult || briefStatus !== 'FINAL'}>
+                    Continuă la review
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'review' ? (
+            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+              <CardHeader>
+                <CardTitle>Pasul 5: Review & Create</CardTitle>
+                <CardDescription>
+                  Verifică distribuția bugetului pe fiecare linie, apoi creează proiectul modular.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {briefPayloadTruncated ? (
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="space-y-2">
+                      <p>
+                        Datele pentru review provin dintr-un payload compactat (broadcast limit 10KB).
+                      </p>
+                      {briefPayloadTrimmedSections.length > 0 ? (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide">
+                            Secțiuni compactate
+                          </div>
+                          <ul className="mt-1 space-y-1 text-xs">
+                            {briefPayloadTrimmedSections.map((section, index) => (
+                              <li key={`review-trimmed-${section}-${index}`}>• {section}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefResult ? (
+                  <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/80 p-4 dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                    <h4 className="text-base font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                      Sinteză finală pentru creare
+                    </h4>
+                    {briefingDisplay.description ? (
+                      <p className="text-sm text-slate-700 dark:text-[#C9D4E7]">
+                        {briefingDisplay.description}
+                      </p>
+                    ) : null}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">Buget AI</div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {typeof briefingDisplay.budget === 'number'
+                            ? `$${briefingDisplay.budget.toLocaleString()}`
+                            : '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">Durată</div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {effectiveDuration || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">Payment Plan</div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {effectivePaymentPlan || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">Currency</div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.currency || 'USD'}
+                        </div>
+                      </div>
+                    </div>
+                    {(typeof briefingDisplay.budgetMin === 'number' || typeof briefingDisplay.budgetMax === 'number') ? (
+                      <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                        Range: {typeof briefingDisplay.budgetMin === 'number' ? `$${briefingDisplay.budgetMin.toLocaleString()}` : '—'}
+                        {' - '}
+                        {typeof briefingDisplay.budgetMax === 'number' ? `$${briefingDisplay.budgetMax.toLocaleString()}` : '—'}
+                      </div>
+                    ) : null}
+
+                    <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                        Configurare finală contract
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="project-duration">Durată proiect</Label>
+                          <Input
+                            id="project-duration"
+                            value={editableDuration}
+                            onChange={(event) => setEditableDuration(event.target.value)}
+                            placeholder="Ex: 2months / 1month / 6months"
+                          />
+                          <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            Durata este evaluată pentru regula milestones obligatorii peste 3 luni.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-plan">Plan de plată</Label>
+                          <Select
+                            value={effectivePaymentPlan || undefined}
+                            onValueChange={(value) => setEditablePaymentPlan(value)}
+                            disabled={!canEditPaymentPlanByDuration}
+                          >
+                            <SelectTrigger id="payment-plan">
+                              <SelectValue placeholder="Selectează planul de plată" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PAYMENT_PLAN_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            {canEditPaymentPlanByDuration
+                              ? 'Pentru durate de până la 3 luni, planul de plată poate fi modificat.'
+                              : 'Pentru durate mai mari de 3 luni, planul de plată nu poate fi modificat în acest pas.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {requiresMilestonesByDuration && linesMissingMilestones.length > 0 ? (
+                      <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Pentru durate mai mari de 3 luni, milestones sunt obligatorii pe fiecare linie.
+                          Lipsesc pentru: {linesMissingMilestones.join(', ')}.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    {briefingDisplay.overview || briefingDisplay.clientGoal || briefingDisplay.targetAudience ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_modular
+                        </div>
+                        {briefingDisplay.overview ? (
+                          <p className="text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Overview:</span> {briefingDisplay.overview}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.clientGoal ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Client goal:</span> {briefingDisplay.clientGoal}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.targetAudience ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Target audience:</span> {briefingDisplay.targetAudience}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.technologies.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          Technologies
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {briefingDisplay.technologies.map((item, index) => (
+                            <Badge key={`${item}-review-tech-${index}`} variant="outline">
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.specificRequirements.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          Cerințe specifice
+                        </div>
+                        <ul className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {briefingDisplay.specificRequirements.map((item, index) => (
+                            <li key={`${item}-review-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.milestones.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          Milestones plan
+                        </div>
+                        <div className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {briefingDisplay.milestones.map((milestone, index) => (
+                            <div key={`${milestone.title}-review-${index}`}>
+                              {index + 1}. {milestone.title}
+                              {' - '}
+                              {typeof milestone.amount === 'number'
+                                ? `$${milestone.amount.toLocaleString()}`
+                                : 'N/A'}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingProjectLines.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief / final_brief_modular: Project lines
+                        </div>
+                        <div className="space-y-2">
+                          {briefingProjectLines.map((line, index) => (
+                            <div
+                              key={`${line.service_name}-review-line-${index}`}
+                              className="flex flex-wrap items-center justify-between rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                            >
+                              <div className="flex items-center gap-2">
+                                {getProviderIcon(line.delivery_provider)}
+                                <span className="font-medium">{line.service_name}</span>
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {line.budget_percentage}% ({line.milestones.length} milestones)
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {(toString(fullBusinessAnalysis?.problem_statement) || fullTechnicalRisks.length > 0) ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          final_brief_full
+                        </div>
+                        {toString(fullBusinessAnalysis?.problem_statement) ? (
+                          <p className="text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">Problem statement:</span>{' '}
+                            {toString(fullBusinessAnalysis?.problem_statement)}
+                          </p>
+                        ) : null}
+                        {fullTechnicalRisks.length > 0 ? (
+                          <ul className="mt-2 space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            {fullTechnicalRisks.map((risk, index) => (
+                              <li key={`${risk}-review-risk-${index}`}>• {risk}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <Label htmlFor="total-budget">Buget total proiect (USD)</Label>
+                  <Input
+                    id="total-budget"
+                    type="number"
+                    min="0"
+                    value={totalBudget}
+                    onChange={(event) => setTotalBudget(event.target.value)}
+                    placeholder="Ex: 25000"
+                  />
+                </div>
+
+                <div className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-[#1E2A3D]">
+                  <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">Distribuție buget pe linii</div>
+                  <div className="space-y-2">
+                    {reviewLines.map((line, index) => (
+                      <div
+                        key={`${line.service_name}-${index}`}
+                        className="flex flex-wrap items-center justify-between rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                      >
+                        <div className="flex items-center gap-2">
+                          {getProviderIcon(line.delivery_provider)}
+                          <span className="font-medium">{line.service_name}</span>
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                          {line.budget_percentage}% - ${line.budget_allocation.toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {createProjectPayloadDebugJson ? (
+                  <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                      Debug Create Payload JSON (request body)
+                    </div>
+                    <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
+{createProjectPayloadDebugJson}
+                    </pre>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button variant="outline" onClick={() => transitionTo('providers')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Înapoi la prestatori
+                  </Button>
+
+                  <Button
+                    onClick={() => void handleCreateProject()}
+                    disabled={
+                      creatingProject ||
+                      !briefResult ||
+                      !effectiveDuration ||
+                      !effectivePaymentPlan ||
+                      (requiresMilestonesByDuration && linesMissingMilestones.length > 0)
+                    }
+                  >
+                    {creatingProject ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creăm proiectul...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Create Project
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
 }

@@ -5,12 +5,16 @@
 
 // Service exports
 export * from './auth.service';
+export * from './ai.service';
 export * from './early-access.service';
+export * from './projects';
 export * from './user.service';
 
 // Re-export individual services as named exports
 export { default as authService } from './auth.service';
+export { default as aiService } from './ai.service';
 export { default as earlyAccessService } from './early-access.service';
+export { default as projectsService } from './projects';
 export { default as userService } from './user.service';
 
 /**

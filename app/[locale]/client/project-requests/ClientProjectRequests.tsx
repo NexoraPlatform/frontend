@@ -95,7 +95,6 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const router = useRouter();
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
-    const [selectedProviderId, setSelectedProviderId] = useState<number | string | null>(null);
     const [releasingId, setReleasingId] = useState<string | null>(null);
     const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
     const [openContractDialog, setOpenContractDialog] = useState(false);
@@ -112,6 +111,114 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
     }, []);
 
+    const getProjectMilestones = useCallback((project: any) => {
+        if (!project) return [];
+
+        const rootMilestones = Array.isArray(project.project_line_milestones)
+            ? project.project_line_milestones
+            : [];
+        if (rootMilestones.length > 0) {
+            return rootMilestones;
+        }
+
+        const lineMilestones = Array.isArray(project.project_lines)
+            ? project.project_lines.flatMap((line: any) => {
+                const lineId = line?.id;
+                const lineServiceId = line?.service_id;
+                const lineServiceName = line?.service_name;
+                const lineMilestonesRaw = Array.isArray(line?.milestones) ? line.milestones : [];
+                return lineMilestonesRaw.map((milestone: any) => ({
+                    ...milestone,
+                    project_line_id:
+                        milestone?.project_line_id ??
+                        milestone?.projectLineId ??
+                        lineId,
+                    service_id: milestone?.service_id ?? lineServiceId,
+                    service_name: milestone?.service_name ?? lineServiceName,
+                }));
+            })
+            : [];
+        if (lineMilestones.length > 0) {
+            return lineMilestones;
+        }
+
+        if (Array.isArray(project.milestones)) {
+            return project.milestones.flatMap((milestoneGroup: any) =>
+                Array.isArray(milestoneGroup?.milestones) ? milestoneGroup.milestones : []
+            );
+        }
+
+        return [];
+    }, []);
+
+    const getProviderMilestones = useCallback((project: any, provider: any) => {
+        const legacyProviderMilestones = project?.milestones
+            ?.find((m: any) => String(m?.providerId) === String(provider?.id))
+            ?.milestones;
+        if (Array.isArray(legacyProviderMilestones) && legacyProviderMilestones.length > 0) {
+            return legacyProviderMilestones;
+        }
+
+        const allMilestones = getProjectMilestones(project);
+        if (allMilestones.length === 0) {
+            return [];
+        }
+
+        const providerServices = Array.isArray(provider?.services) ? provider.services : [];
+        const providerServiceIds = new Set(
+            providerServices
+                .map((service: any) => service?.id ?? service?.service_id)
+                .filter((id: unknown) => id !== null && id !== undefined)
+                .map((id: unknown) => String(id))
+        );
+        const providerServiceNames = new Set(
+            providerServices
+                .map((service: any) => String(service?.name ?? '').trim().toLowerCase())
+                .filter(Boolean)
+        );
+
+        if (providerServiceIds.size === 0 && providerServiceNames.size === 0) {
+            return allMilestones;
+        }
+
+        const projectLines = Array.isArray(project?.project_lines) ? project.project_lines : [];
+        const filtered = allMilestones.filter((milestone: any) => {
+            const milestoneServiceId = milestone?.service_id;
+            if (milestoneServiceId !== null && milestoneServiceId !== undefined) {
+                if (providerServiceIds.has(String(milestoneServiceId))) {
+                    return true;
+                }
+            }
+
+            const milestoneServiceName = String(milestone?.service_name ?? '').trim().toLowerCase();
+            if (milestoneServiceName && providerServiceNames.has(milestoneServiceName)) {
+                return true;
+            }
+
+            const lineId = milestone?.project_line_id ?? milestone?.projectLineId;
+            if (lineId === null || lineId === undefined) {
+                return false;
+            }
+
+            const line = projectLines.find((entry: any) => String(entry?.id) === String(lineId));
+            if (!line) {
+                return false;
+            }
+
+            const lineServiceId = line?.service_id;
+            if (lineServiceId !== null && lineServiceId !== undefined) {
+                if (providerServiceIds.has(String(lineServiceId))) {
+                    return true;
+                }
+            }
+
+            const lineServiceName = String(line?.service_name ?? '').trim().toLowerCase();
+            return Boolean(lineServiceName && providerServiceNames.has(lineServiceName));
+        });
+
+        return filtered.length > 0 ? filtered : allMilestones;
+    }, [getProjectMilestones]);
+
     const projectBudgetAmount = selectedProject?.budget?.amount != null
         ? Number(selectedProject.budget.amount)
         : null;
@@ -124,11 +231,16 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         ? Math.min(projectBudgetAmount * 0.10, 150)
         : null;
     const isFirstMilestone = (() => {
-        if (!isMilestonePayment || !selectedProject || !selectedMilestoneId || !selectedProviderId) return false;
-        const providerMilestones = selectedProject.milestones
-            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(selectedProviderId))
-            ?.milestones ?? [];
-        const index = providerMilestones.findIndex(
+        if (!isMilestonePayment || !selectedProject || !selectedMilestoneId) return false;
+        const allMilestones = getProjectMilestones(selectedProject);
+        const selectedLineId = selectedMilestone?.project_line_id ?? selectedMilestone?.projectLineId;
+        const scopedMilestones = selectedLineId !== null && selectedLineId !== undefined
+            ? allMilestones.filter(
+                (milestone: any) =>
+                    String(milestone?.project_line_id ?? milestone?.projectLineId) === String(selectedLineId)
+            )
+            : allMilestones;
+        const index = scopedMilestones.findIndex(
             (milestone: any) => String(getMilestoneId(milestone)) === String(selectedMilestoneId)
         );
         return index === 0;
@@ -602,9 +714,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                         ) : (
                             <div className="space-y-6">
                             {projects.map((project) => {
-                                const hasAnyMilestones = (project.milestones ?? []).some(
-                                    (milestoneGroup: any) => (milestoneGroup.milestones ?? []).length > 0
-                                );
+                                const hasAnyMilestones = getProjectMilestones(project).length > 0;
                                 const canReleaseFull = !hasAnyMilestones && project.status === 'FINISHED';
 
                                 return (
@@ -690,10 +800,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                 </div>
                                                 <div className="space-y-3">
                                                     {project.providers?.map((provider: any) => {
-                                                        const providerMilestones =
-                                                            project.milestones
-                                                                ?.find((m: any) => m.providerId === provider.id)
-                                                                ?.milestones || [];
+                                                        const providerMilestones = getProviderMilestones(project, provider);
                                                         return (
                                                             <div
                                                                 key={provider.id}
@@ -823,25 +930,34 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                 <div className="space-y-2 mt-2">
                                                                     {providerMilestones.map((milestone: any, index: number) => {
                                                                         const milestoneId = getMilestoneId(milestone);
+                                                                        const milestoneStatus = String(milestone?.status ?? '').toUpperCase();
+                                                                        const milestonePaymentStatus = String(milestone?.payment_status ?? milestone?.paymentStatus ?? 'PENDING').toUpperCase();
 
                                                                         // 1. Logica pentru Release (existentă)
-                                                                        const canReleaseMilestone = milestone.status === 'FINISHED' && milestoneId;
+                                                                        const canReleaseMilestone =
+                                                                            (milestoneStatus === 'FINISHED' || milestoneStatus === 'COMPLETED') &&
+                                                                            milestoneId;
 
                                                                         // 2. Logica pentru Secure Payment (NOUĂ)
                                                                         // Verificăm dacă milestone-ul anterior este plătit (sau dacă e primul din listă)
-                                                                        const isPreviousPaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+                                                                        const previousStatus = String(providerMilestones[index - 1]?.status ?? '').toUpperCase();
+                                                                        const previousPaymentStatus = String(providerMilestones[index - 1]?.payment_status ?? providerMilestones[index - 1]?.paymentStatus ?? '').toUpperCase();
+                                                                        const isPreviousPaid =
+                                                                            index === 0 ||
+                                                                            previousStatus === 'PAID' ||
+                                                                            previousPaymentStatus === 'PAID';
 
                                                                         // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
-                                                                        const showSecurePaymentBtn = milestone.payment_status === 'PENDING' && isPreviousPaid;
+                                                                        const showSecurePaymentBtn = milestonePaymentStatus === 'PENDING' && isPreviousPaid;
 
                                                                         return (
                                                                             <div
                                                                                 key={milestoneId ?? index}
                                                                                 className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
-    ${milestone.status === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
-    ${milestone.status === 'FINISHED' ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
-    ${milestone.status === 'PAID' ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
-    ${milestone.status === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
+    ${milestoneStatus === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
+    ${(milestoneStatus === 'FINISHED' || milestoneStatus === 'COMPLETED') ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
+    ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
+    ${milestoneStatus === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
 `}
                                                                             >
                                                                                 {/* Partea Stângă: Detalii Milestone */}
@@ -859,8 +975,8 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                 {/* Partea Dreaptă: Status + Butoane */}
                                                                                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                                                                     <div className="flex gap-2">
-                                                                                        {getMilestoneStatusBadge(milestone.status)}
-                                                                                        {getMilestonePaymentStatusBadge(milestone.payment_status)}
+                                                                                        {getMilestoneStatusBadge(milestoneStatus)}
+                                                                                        {getMilestonePaymentStatusBadge(milestonePaymentStatus)}
                                                                                     </div>
 
                                                                                     <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
@@ -913,7 +1029,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                 {/*    <Shield className="w-5 h-5 mr-2" />*/}
                                                 {/*    {t('client.project_requests.actions.secure_payment')}*/}
                                                 {/*</Button>)}*/}
-                                                {project.paymentStatus === 'ESCROW' && canReleaseFull && (
+                                                {(String(project.paymentStatus ?? project.payment_status ?? '').toUpperCase() === 'ESCROW') && canReleaseFull && (
                                                     <Button
                                                         onClick={() => handleReleaseFunds(project.id)}
                                                         className="btn-primary w-full lg:w-auto px-6 py-6 text-base font-semibold"

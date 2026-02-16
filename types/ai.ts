@@ -1,3 +1,5 @@
+import type { DeliveryProvider } from './projects';
+
 export type AiAssistantMessageRole = 'system' | 'user' | 'assistant';
 
 export interface AiAssistantMessage {
@@ -5,7 +7,76 @@ export interface AiAssistantMessage {
   content: string;
 }
 
-export type AiBriefBuilderStatus = 'CLARIFY' | 'FINAL';
+export interface AiBriefProjectLineMilestone {
+  title: string;
+  description?: string;
+  percentage?: number;
+  amount: number;
+}
+
+export interface AiBriefProjectLine {
+  service_name: string;
+  delivery_provider: DeliveryProvider;
+  description: string;
+  budget_percentage: number;
+  milestones: AiBriefProjectLineMilestone[];
+}
+
+export interface AiBriefFinalBrief {
+  title: string;
+  project_lines: AiBriefProjectLine[];
+  description?: string;
+  overview?: string;
+  client_goal?: string;
+  target_audience?: string;
+  technologies?: string[];
+  budget?: number;
+  budget_min?: number;
+  budget_max?: number;
+  business_analysis?: AiBusinessAnalysis;
+  technical_risks?: string[];
+  complexity_estimation?: Record<string, number>;
+  specific_requirements?: string[];
+  team_structure?: AiTeamStructureItem[];
+  milestones?: AiMilestoneItem[];
+  duration?: string;
+  recommended_duration?: string;
+  project_duration?: string;
+  payment_plan?: string;
+  currency?: string;
+}
+
+export interface AiBriefResponse {
+  status: 'PROCESSING' | 'CLARIFY' | 'FINAL';
+  id?: number | string;
+  brief_result_id?: number | string;
+  channel?: string;
+  locale?: string;
+  messages?: AiAssistantMessage[];
+  questions?: string[];
+  final_brief?: AiBriefFinalBrief;
+  final_brief_modular?: AiBriefFinalBrief;
+  final_brief_full?: AiStructuredBrief;
+  final_brief_text?: string;
+  recommended_providers?: AiBriefRecommendedProviders;
+  other_providers?: AiBriefOtherProviders;
+  other_providers_by_service?: AiBriefOtherProvidersByService;
+  payload_truncated?: boolean;
+  payload_trimmed_sections?: string[];
+}
+
+export interface AiBriefBuilderResultEnvelope {
+  id?: number | string;
+  status?: AiBriefBuilderStatus | string;
+  channel?: string;
+  locale?: string;
+  messages?: AiAssistantMessage[];
+  result?: AiBriefResponse | AiBriefBuilderResponse | Record<string, unknown>;
+  debug?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export type AiBriefBuilderStatus = 'PROCESSING' | 'CLARIFY' | 'FINAL';
 
 export interface AiTeamStructureItem {
   role: string;
@@ -24,7 +95,7 @@ export interface AiMilestoneItem {
 
 export interface AiBusinessAnalysis {
   problem_statement?: string;
-  target_users?: string;
+  target_users?: string[] | string;
   value_proposition?: string;
   feature_business_value?: string[];
 }
@@ -49,6 +120,9 @@ export interface AiTeamRecommendationMember {
 export interface AiStructuredBrief {
   title?: string;
   description?: string;
+  overview?: string;
+  client_goal?: string;
+  target_audience?: string;
   budget?: number;
   budget_min?: number;
   budget_max?: number;
@@ -68,6 +142,8 @@ export interface AiStructuredBrief {
   duration?: string;
   payment_plan?: string;
   currency?: string;
+  project_lines?: AiBriefProjectLine[];
+  selected_providers?: AiBriefProvider[];
 }
 
 export interface AiBriefAvailableService {
@@ -83,11 +159,58 @@ export interface AiBriefBuilderRequestBody {
   available_services?: AiBriefAvailableService[];
 }
 
+export interface AiBriefProvider {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  matchScore?: number;
+  matchReasons?: string[];
+  [key: string]: unknown;
+}
+
+export interface AiBriefRecommendedProviders {
+  [serviceName: string]: AiBriefProvider[];
+}
+
+export interface AiBriefOtherProviders {
+  current_page?: number;
+  data?: AiBriefProvider[];
+  first_page_url?: string;
+  from?: number | null;
+  last_page?: number;
+  last_page_url?: string;
+  links?: Array<{ url: string | null; label: string; active: boolean }>;
+  next_page_url?: string | null;
+  path?: string;
+  per_page?: number;
+  prev_page_url?: string | null;
+  to?: number | null;
+  total?: number;
+}
+
+export interface AiBriefOtherProvidersByServiceEntry {
+  service_id?: number | string;
+  service_name: string;
+  providers: AiBriefOtherProviders;
+}
+
+export type AiBriefOtherProvidersByService = AiBriefOtherProvidersByServiceEntry[];
+
 export interface AiBriefBuilderResponse {
   status: AiBriefBuilderStatus;
   questions: string[];
-  final_brief: AiStructuredBrief | null;
+  final_brief: AiStructuredBrief | AiBriefFinalBrief | null;
+  brief_result_id?: number | string;
+  channel?: string;
+  final_brief_modular?: AiBriefFinalBrief;
+  final_brief_full?: AiStructuredBrief;
   final_brief_text?: string;
+  recommended_providers?: AiBriefRecommendedProviders;
+  other_providers?: AiBriefOtherProviders;
+  other_providers_by_service?: AiBriefOtherProvidersByService;
+  payload_truncated?: boolean;
+  payload_trimmed_sections?: string[];
 
   // Backward-compatibility (older backend variants)
   message?: string;
@@ -127,6 +250,12 @@ export interface AiBriefFormDraft {
   payment_plan?: string;
   currency?: string;
   final_brief_text?: string;
+  recommended_providers?: AiBriefRecommendedProviders;
+  other_providers?: AiBriefOtherProviders;
+  other_providers_by_service?: AiBriefOtherProvidersByService;
+  payload_truncated?: boolean;
+  payload_trimmed_sections?: string[];
+  selected_providers?: AiBriefProvider[];
 }
 
 export const AI_BRIEF_DRAFT_STORAGE_KEY = 'trustora:ai-brief-draft';

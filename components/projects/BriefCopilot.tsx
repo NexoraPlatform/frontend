@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { getEcho } from '@/lib/echo';
 import { FetchError, fetchClient } from '@/lib/fetch-client';
+import { aiService } from '@/services/ai.service';
 import { cn } from '@/lib/utils';
 import { normalizeProjectDeadlineValue } from '@/types/ai';
 import type {
@@ -131,6 +132,40 @@ const toNumber = (value: unknown): number | null => {
   return null;
 };
 
+const extractBriefResultId = (value: unknown): number | string | null => {
+  const root = toObject(value);
+  if (!root) {
+    return null;
+  }
+
+  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+  const sourceResponsePayload = toObject(source.response_payload);
+  const rootResponsePayload = toObject(root.response_payload);
+  const sourceDebug = toObject(source.debug);
+  const rootDebug = toObject(root.debug);
+  const sourceDebugResponsePayload = toObject(sourceDebug?.response_payload);
+  const rootDebugResponsePayload = toObject(rootDebug?.response_payload);
+  const candidate =
+    source.brief_result_id ??
+    root.brief_result_id ??
+    source.id ??
+    root.id ??
+    sourceResponsePayload?.brief_result_id ??
+    rootResponsePayload?.brief_result_id ??
+    sourceDebugResponsePayload?.brief_result_id ??
+    rootDebugResponsePayload?.brief_result_id;
+
+  if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+    return candidate;
+  }
+
+  if (typeof candidate === 'string' && candidate.trim()) {
+    return candidate.trim();
+  }
+
+  return null;
+};
+
 const normalizeBudgetType = (value: unknown): 'FIXED' | 'HOURLY' => {
   const normalized = toString(value).toUpperCase();
   return normalized === 'HOURLY' ? 'HOURLY' : 'FIXED';
@@ -195,13 +230,13 @@ const normalizeQuickReplies = (response: AiBriefBuilderResponse): string[] => {
   const rawQuestions = (response as { questions?: unknown }).questions;
   const questionReplies = Array.isArray(rawQuestions)
     ? rawQuestions.flatMap((entry) => {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-          return [];
-        }
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
 
-        const replies = (entry as { quick_replies?: unknown }).quick_replies;
-        return Array.isArray(replies) ? replies : [];
-      })
+      const replies = (entry as { quick_replies?: unknown }).quick_replies;
+      return Array.isArray(replies) ? replies : [];
+    })
     : [];
 
   return Array.from(
@@ -583,9 +618,9 @@ const buildFormDraft = (response: AiBriefBuilderResponse): AiBriefFormDraft | nu
     .trim();
   const technologies = Array.isArray(briefData.technologies)
     ? briefData.technologies
-        .map((item) => normalizeTextForTextarea(toString(item)))
-        .map((item) => item.replace(/\n+/g, ' ').trim())
-        .filter(Boolean)
+      .map((item) => normalizeTextForTextarea(toString(item)))
+      .map((item) => item.replace(/\n+/g, ' ').trim())
+      .filter(Boolean)
     : [];
 
   const budgetObject = toObject(briefData.budget);
@@ -694,6 +729,11 @@ const buildFormDraft = (response: AiBriefBuilderResponse): AiBriefFormDraft | nu
     ...(paymentPlan ? { payment_plan: paymentPlan } : {}),
     ...(currency ? { currency } : {}),
     ...(fallbackFinalBriefText ? { final_brief_text: fallbackFinalBriefText } : {}),
+    ...(response.recommended_providers ? { recommended_providers: response.recommended_providers } : {}),
+    ...(response.other_providers ? { other_providers: response.other_providers } : {}),
+    ...(response.other_providers_by_service
+      ? { other_providers_by_service: response.other_providers_by_service }
+      : {}),
   };
 };
 
@@ -734,6 +774,11 @@ const AI_BRIEF_FIELD_KEYS = new Set([
   'payment_plan',
   'currency',
   'final_brief_text',
+  'recommended_providers',
+  'other_providers',
+  'other_providers_by_service',
+  'payload_truncated',
+  'payload_trimmed_sections',
 ]);
 
 const toBriefStatus = (value: unknown): AiBriefBuilderStatus | null => {
@@ -743,6 +788,9 @@ const toBriefStatus = (value: unknown): AiBriefBuilderStatus | null => {
   }
   if (normalized === 'CLARIFY') {
     return 'CLARIFY';
+  }
+  if (normalized === 'PROCESSING') {
+    return 'PROCESSING';
   }
   return null;
 };
@@ -772,6 +820,11 @@ const normalizeBriefGeneratedPayload = (payload: unknown): AiBriefBuilderRespons
   const status = toBriefStatus(source.status ?? root.status);
   const rawQuestions = source.questions ?? root.questions;
   const hasQuestions = Array.isArray(rawQuestions);
+  const payloadTruncated = Boolean(source.payload_truncated ?? root.payload_truncated);
+  const payloadTrimmedSource = source.payload_trimmed_sections ?? root.payload_trimmed_sections;
+  const payloadTrimmedSections = Array.isArray(payloadTrimmedSource)
+    ? payloadTrimmedSource.map((entry) => toString(entry)).filter(Boolean)
+    : [];
 
   const finalBrief =
     toStructuredBrief(source.final_brief) ??
@@ -782,7 +835,7 @@ const normalizeBriefGeneratedPayload = (payload: unknown): AiBriefBuilderRespons
     toStructuredBrief(source.result) ??
     (status === 'FINAL' ? toStructuredBrief(source) : null);
 
-  if (!status && !hasQuestions && !finalBrief) {
+  if (!status && !hasQuestions && !finalBrief && !payloadTruncated && payloadTrimmedSections.length === 0) {
     return null;
   }
 
@@ -807,8 +860,17 @@ const normalizeBriefGeneratedPayload = (payload: unknown): AiBriefBuilderRespons
     (Array.isArray(source.team_structure) ? source.team_structure : null) ??
     (Array.isArray(root.team_structure) ? root.team_structure : null);
 
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const recommendedProviders = (source.recommended_providers ?? root.recommended_providers) as any;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const otherProviders = (source.other_providers ?? root.other_providers) as any;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const otherProvidersByService = (source.other_providers_by_service ?? root.other_providers_by_service) as any;
+  const briefResultId = extractBriefResultId(payload);
+
   return {
     status: status ?? (finalBrief ? 'FINAL' : 'CLARIFY'),
+    ...(briefResultId !== null ? { brief_result_id: briefResultId } : {}),
     questions: hasQuestions ? (rawQuestions as string[]) : [],
     final_brief: finalBrief,
     ...(message ? { message } : {}),
@@ -816,6 +878,11 @@ const normalizeBriefGeneratedPayload = (payload: unknown): AiBriefBuilderRespons
     ...(summary ? { summary } : {}),
     ...(finalBriefText ? { final_brief_text: finalBriefText } : {}),
     ...(teamStructureRaw ? { team_structure: teamStructureRaw as AiTeamStructureItem[] } : {}),
+    ...(recommendedProviders ? { recommended_providers: recommendedProviders } : {}),
+    ...(otherProviders ? { other_providers: otherProviders } : {}),
+    ...(otherProvidersByService ? { other_providers_by_service: otherProvidersByService } : {}),
+    ...(payloadTruncated ? { payload_truncated: true } : {}),
+    ...(payloadTrimmedSections.length > 0 ? { payload_trimmed_sections: payloadTrimmedSections } : {}),
   };
 };
 
@@ -880,6 +947,8 @@ export default function BriefCopilot({
   const [finalDraft, setFinalDraft] = useState<AiBriefFormDraft | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [payloadTruncated, setPayloadTruncated] = useState(false);
+  const [payloadTrimmedSections, setPayloadTrimmedSections] = useState<string[]>([]);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const briefSubscriptionRef = useRef<{
     echo: BriefEchoInstance;
@@ -917,6 +986,8 @@ export default function BriefCopilot({
   const applyAssistantResponse = useCallback(
     (response: AiBriefBuilderResponse) => {
       const status = toBriefStatus(response.status) ?? (response.final_brief ? 'FINAL' : 'CLARIFY');
+      setPayloadTruncated(Boolean(response.payload_truncated));
+      setPayloadTrimmedSections(response.payload_trimmed_sections ?? []);
       const clarifyQuestions = normalizeQuestions(
         (response as { questions?: unknown }).questions ?? response.questions
       );
@@ -951,6 +1022,11 @@ export default function BriefCopilot({
     },
     [t]
   );
+
+  const fetchBriefResultById = useCallback(async (briefResultId: number | string) => {
+    const payload = await aiService.getBriefBuilderResult(briefResultId);
+    return normalizeBriefGeneratedPayload(payload);
+  }, []);
 
   useEffect(() => {
     const container = chatScrollRef.current;
@@ -987,6 +1063,8 @@ export default function BriefCopilot({
       setIsLoading(true);
       setError(null);
       setInput('');
+      setPayloadTruncated(false);
+      setPayloadTrimmedSections([]);
 
       const nextUserMessage: ChatMessage = {
         id: `user-${Date.now()}`,
@@ -1036,14 +1114,44 @@ export default function BriefCopilot({
         }
 
         const response = normalizeBriefGeneratedPayload(payload);
-        if (!response) {
+        if (response) {
+          applyAssistantResponse(response);
+          completePendingRequest();
+          return;
+        }
+
+        const briefResultId = extractBriefResultId(payload);
+        if (briefResultId === null) {
           setError(t('client.project_requests.brief_copilot.errors.generic'));
           completePendingRequest();
           return;
         }
 
-        applyAssistantResponse(response);
-        completePendingRequest();
+        void (async () => {
+          try {
+            const persistedResponse = await fetchBriefResultById(briefResultId);
+            if (!persistedResponse) {
+              setError(t('client.project_requests.brief_copilot.errors.generic'));
+              return;
+            }
+
+            if (briefSubscriptionRef.current?.requestId !== requestId) {
+              return;
+            }
+
+            applyAssistantResponse(persistedResponse);
+          } catch (cause) {
+            if (cause instanceof FetchError) {
+              setError(cause.message);
+            } else if (cause instanceof Error) {
+              setError(cause.message);
+            } else {
+              setError(t('client.project_requests.brief_copilot.errors.generic'));
+            }
+          } finally {
+            completePendingRequest();
+          }
+        })();
       };
 
       const handleFailed = (payload: unknown) => {
@@ -1075,6 +1183,20 @@ export default function BriefCopilot({
         if (immediateResponse && briefSubscriptionRef.current?.requestId === requestId) {
           applyAssistantResponse(immediateResponse);
           completePendingRequest();
+          return;
+        }
+
+        const immediateBriefResultId = extractBriefResultId(immediatePayload);
+        if (immediateBriefResultId !== null && briefSubscriptionRef.current?.requestId === requestId) {
+          try {
+            const persistedResponse = await fetchBriefResultById(immediateBriefResultId);
+            if (persistedResponse && briefSubscriptionRef.current?.requestId === requestId) {
+              applyAssistantResponse(persistedResponse);
+              completePendingRequest();
+            }
+          } catch {
+            // Ignore here and keep websocket as fallback path.
+          }
         }
       } catch (cause) {
         if (briefSubscriptionRef.current?.requestId !== requestId) {
@@ -1097,6 +1219,7 @@ export default function BriefCopilot({
       availableServices,
       cleanupBriefSubscription,
       conversation,
+      fetchBriefResultById,
       isLoading,
       locale,
       t,
@@ -1201,6 +1324,19 @@ export default function BriefCopilot({
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
             {error}
           </p>
+        ) : null}
+
+        {payloadTruncated ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <p>Payload-ul răspunsului a fost compactat pentru limita de broadcast (10KB).</p>
+            {payloadTrimmedSections.length > 0 ? (
+              <ul className="mt-1 space-y-1 text-xs">
+                {payloadTrimmedSections.map((section, index) => (
+                  <li key={`${section}-${index}`}>• {section}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
 
         {finalDraft ? (

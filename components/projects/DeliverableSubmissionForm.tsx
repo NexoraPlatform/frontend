@@ -84,8 +84,16 @@ const FORM_CONFIG: Record<string, FormConfig> = {
     },
 };
 
-const resolveLineProvider = (line: ProjectLine): DeliveryProvider =>
-    String(line?.delivery_provider ?? '').toLowerCase();
+const resolveLineProvider = (line: ProjectLine): DeliveryProvider => {
+    const normalized = String(line?.delivery_provider ?? '').toLowerCase();
+
+    if (normalized === 'github') return 'github';
+    if (normalized === 'figma') return 'figma';
+    if (normalized === 'google_drive') return 'google_drive';
+    if (normalized === 'google_analytics') return 'google_analytics';
+
+    return 'manual_upload';
+};
 
 export default function DeliverableSubmissionForm({ project, line }: DeliverableSubmissionFormProps) {
     const [resourceId, setResourceId] = useState('');

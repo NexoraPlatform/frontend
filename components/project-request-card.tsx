@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +40,6 @@ import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
 import { Locale } from '@/types/locale';
 import { PriceDisplay } from '@/components/PriceDisplay';
-import RapydCheckoutButton from "@/components/RapydCheckoutButton";
 
 interface ProjectRequestCardProps {
     project: any;
@@ -52,7 +51,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const { user, loading } = useAuth();
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
-    const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
     const locale = useLocale() as Locale;
     const t = useTranslations();
     const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
@@ -61,7 +59,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
 
 
 
-    const handleMarkMilestoneAsComplete = async (projectId: number, milestone: number) => {
+    const handleMarkMilestoneAsComplete = async (projectId: number | string, milestone: number | string) => {
         try {
             await apiClient.markMilestoneAsComplete(projectId, milestone, locale);
             await onRefresh?.();
@@ -177,10 +175,116 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         (project?.existing_services ?? []).map((s: any) => [s.id, s])
     );
 
-    const providerMilestones =
-        project.milestones
-            ?.find((m: any) => Number(m.providerId) === Number(user.id))
-            ?.milestones ?? [];
+    const getMilestoneId = (milestone: any) => {
+        return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
+    };
+
+    const getProjectMilestones = (projectData: any) => {
+        const rootMilestones = Array.isArray(projectData?.project_line_milestones)
+            ? projectData.project_line_milestones
+            : [];
+        if (rootMilestones.length > 0) {
+            return rootMilestones;
+        }
+
+        const lineMilestones = Array.isArray(projectData?.project_lines)
+            ? projectData.project_lines.flatMap((line: any) =>
+                (Array.isArray(line?.milestones) ? line.milestones : []).map((milestone: any) => ({
+                    ...milestone,
+                    project_line_id: milestone?.project_line_id ?? milestone?.projectLineId ?? line?.id,
+                    service_id: milestone?.service_id ?? line?.service_id,
+                    service_name: milestone?.service_name ?? line?.service_name,
+                }))
+            )
+            : [];
+        if (lineMilestones.length > 0) {
+            return lineMilestones;
+        }
+
+        return Array.isArray(projectData?.milestones)
+            ? projectData.milestones.flatMap((milestoneGroup: any) =>
+                Array.isArray(milestoneGroup?.milestones) ? milestoneGroup.milestones : []
+            )
+            : [];
+    };
+
+    const getProviderMilestones = (projectData: any, providerData: any) => {
+        const legacyProviderMilestones = projectData?.milestones
+            ?.find((entry: any) => String(entry?.providerId) === String(providerData?.id))
+            ?.milestones;
+        if (Array.isArray(legacyProviderMilestones) && legacyProviderMilestones.length > 0) {
+            return legacyProviderMilestones;
+        }
+
+        const allMilestones = getProjectMilestones(projectData);
+        if (allMilestones.length === 0) {
+            return [];
+        }
+
+        const providerServices = Array.isArray(providerData?.services) ? providerData.services : [];
+        const providerServiceIds = new Set(
+            providerServices
+                .map((service: any) => service?.id ?? service?.service_id)
+                .filter((id: unknown) => id !== null && id !== undefined)
+                .map((id: unknown) => String(id))
+        );
+        const providerServiceNames = new Set(
+            providerServices
+                .map((service: any) => String(service?.name ?? '').trim().toLowerCase())
+                .filter(Boolean)
+        );
+
+        if (providerServiceIds.size === 0 && providerServiceNames.size === 0) {
+            return allMilestones;
+        }
+
+        const projectLines = Array.isArray(projectData?.project_lines) ? projectData.project_lines : [];
+        const filtered = allMilestones.filter((milestone: any) => {
+            const milestoneServiceId = milestone?.service_id;
+            if (milestoneServiceId !== null && milestoneServiceId !== undefined) {
+                if (providerServiceIds.has(String(milestoneServiceId))) {
+                    return true;
+                }
+            }
+
+            const milestoneServiceName = String(milestone?.service_name ?? '').trim().toLowerCase();
+            if (milestoneServiceName && providerServiceNames.has(milestoneServiceName)) {
+                return true;
+            }
+
+            const lineId = milestone?.project_line_id ?? milestone?.projectLineId;
+            if (lineId === null || lineId === undefined) {
+                return false;
+            }
+
+            const line = projectLines.find((entry: any) => String(entry?.id) === String(lineId));
+            if (!line) {
+                return false;
+            }
+
+            const lineServiceId = line?.service_id;
+            if (lineServiceId !== null && lineServiceId !== undefined) {
+                if (providerServiceIds.has(String(lineServiceId))) {
+                    return true;
+                }
+            }
+
+            const lineServiceName = String(line?.service_name ?? '').trim().toLowerCase();
+            return Boolean(lineServiceName && providerServiceNames.has(lineServiceName));
+        });
+
+        return filtered.length > 0 ? filtered : allMilestones;
+    };
+
+    const projectBudgetAmount = (() => {
+        if (project?.budget && typeof project.budget === 'object') {
+            const amount = Number((project.budget as { amount?: unknown }).amount);
+            return Number.isFinite(amount) ? amount : null;
+        }
+
+        const numeric = Number(project?.budget);
+        return Number.isFinite(numeric) ? numeric : null;
+    })();
 
     return (
         <Card key={project.id} className="border-2">
@@ -200,7 +304,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 <DollarSign className="w-4 h-4" />
                                 <span>
                                     {t('client.project_requests.project.total_budget')}{' '}
-                                    {project.budget != null ? <PriceDisplay value={project.budget} /> : '-'}
+                                    {projectBudgetAmount != null ? <PriceDisplay value={projectBudgetAmount} /> : '-'}
                                 </span>
                             </div>
                             <div className="flex items-center space-x-1">
@@ -257,7 +361,9 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                 <div>
                     <div className="text-sm font-medium mb-3">{t('client.project_requests.providers.title')}:</div>
                     <div className="space-y-3">
-                        {project.providers?.map((provider: any) => (
+                        {project.providers?.map((provider: any) => {
+                            const providerMilestones = getProviderMilestones(project, provider);
+                            return (
                             <div key={provider.id} className="border rounded-lg p-4">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center space-x-3">
@@ -430,12 +536,20 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
 
                                         <div className="space-y-2">
                                             {providerMilestones.map((milestone: any, index: number) => {
-                                                const isPreviousMilestonePaid = index === 0 || providerMilestones[index - 1]?.status === 'PAID';
+                                                const milestoneId = getMilestoneId(milestone);
+                                                const milestoneStatus = String(milestone?.status ?? '').toUpperCase();
+                                                const milestonePaymentStatus = String(milestone?.payment_status ?? milestone?.paymentStatus ?? 'PENDING').toUpperCase();
+                                                const previousStatus = String(providerMilestones[index - 1]?.status ?? '').toUpperCase();
+                                                const previousPaymentStatus = String(providerMilestones[index - 1]?.payment_status ?? providerMilestones[index - 1]?.paymentStatus ?? '').toUpperCase();
+                                                const isPreviousMilestonePaid =
+                                                    index === 0 ||
+                                                    previousStatus === 'PAID' ||
+                                                    previousPaymentStatus === 'PAID';
 
                                                 return (
                                                     <div
-                                                        key={index}
-                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm ${milestone.payment_status === 'PAID' ? 'bg-green-300' : ''}`}
+                                                        key={milestoneId ?? index}
+                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? 'bg-green-300' : ''}`}
                                                     >
                                                         <div className="flex items-center justify-between gap-6">
                                                             <span>{milestone.title}</span>
@@ -445,20 +559,20 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                                 <PriceDisplay value={milestone.amount} />
                                                             </span>
                                                         </div>
-                                                        <span className="ms-2">{getMilestonePaymentStatusBadge(milestone.payment_status)}</span>
-                                                        {project.status === 'ACCEPTED' && milestone.payment_status === 'ESCROW' && isPreviousMilestonePaid && (
+                                                        <span className="ms-2">{getMilestonePaymentStatusBadge(milestonePaymentStatus)}</span>
+                                                        {project.status === 'ACCEPTED' && milestonePaymentStatus === 'ESCROW' && isPreviousMilestonePaid && milestoneId && (
                                                             <span>
                                                                 <Button
                                                                     size="sm"
                                                                     variant="default"
-                                                                    onClick={() => handleMarkMilestoneAsComplete(project.id, milestone.id)}
-                                                                    disabled={milestone.status !== 'PENDING'}
+                                                                    onClick={() => handleMarkMilestoneAsComplete(project.id, milestoneId)}
+                                                                    disabled={milestoneStatus !== 'PENDING'}
                                                                 >
-                                                                    {milestone.status === 'PENDING'
+                                                                    {milestoneStatus === 'PENDING'
                                                                         ? t('client.project_requests.milestones.mark_complete')
-                                                                        : milestone.status === 'PAID'
+                                                                        : milestoneStatus === 'PAID'
                                                                             ? t('client.project_requests.milestones.paid')
-                                                                            : milestone.status === 'REJECTED'
+                                                                            : milestoneStatus === 'REJECTED'
                                                                                 ? t('client.project_requests.milestones.rejected')
                                                                                 : t('client.project_requests.milestones.pending')}
                                                                 </Button>
@@ -471,7 +585,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                     </div>
                                 )}
                             </div>
-                        ))}
+                        );
+                        })}
 
 
                     </div>
