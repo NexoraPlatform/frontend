@@ -48,7 +48,6 @@ import { apiClient, DashboardStatsResponse } from '@/lib/api';
 import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
-import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
 
@@ -339,19 +338,27 @@ export default function DashboardClient() {
     setLoadingProjects(true);
     setProjectsError('');
     try {
-      let response;
+      let response: any;
       if (isProvider) {
         response = await apiClient.getProviderProjectRequests();
       } else {
         response = await apiClient.getClientProjectRequests();
       }
-      let filteredProjects = response.projects || [];
+      const projectsCollection = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.projects)
+          ? response.projects
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+      let filteredProjects = projectsCollection;
 
       // Apply search filter
       if (searchTerm) {
+        const normalizedSearchTerm = searchTerm.toLowerCase();
         filteredProjects = filteredProjects.filter((project: any) =>
-          project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          project.description.toLowerCase().includes(searchTerm.toLowerCase())
+          String(project?.title ?? '').toLowerCase().includes(normalizedSearchTerm) ||
+          String(project?.description ?? '').toLowerCase().includes(normalizedSearchTerm)
         );
       }
 
@@ -518,13 +525,23 @@ export default function DashboardClient() {
     };
   }, [activeTab, loadProjects]);
 
-  const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
+  const handleProjectResponse = async (
+    projectId: string,
+    payload: {
+      response: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
+      proposedBudget?: number;
+      reason?: string;
+      refusal_scope?: 'project' | 'milestone' | 'milestones';
+      milestone_ids?: Array<string | number>;
+      suggestions_limit?: number;
+    }
+  ) => {
     try {
-      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget }, locale);
+      await apiClient.respondToProjectRequest(projectId, payload, locale);
       let message = '';
-      if (response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
-      else if (response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
-      else if (response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
+      if (payload.response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
+      else if (payload.response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
+      else if (payload.response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
       toast.success(message);
       await loadProjects();
     } catch (error: any) {
@@ -1229,7 +1246,7 @@ export default function DashboardClient() {
                       </p>
                     </div>
 
-                    {isClient && (
+                    {isClient && !isProvider && (
                       <Button asChild className="btn-primary">
                         <Link href="/projects/new">
                           <Plus className="w-4 h-4 mr-2" />
@@ -1262,14 +1279,14 @@ export default function DashboardClient() {
                             : t('dashboard.projects.empty.description.client')
                           }
                         </p>
-                        <Can roles={['client']}>
+                        {isClient && !isProvider && (
                           <Button asChild className="btn-primary">
                             <Link href="/projects/new">
                               <Plus className="w-4 h-4 mr-2" />
                               {t('dashboard.projects.empty.cta')}
                             </Link>
                           </Button>
-                        </Can>
+                        )}
                       </CardContent>
                     </Card>
                   ) : (

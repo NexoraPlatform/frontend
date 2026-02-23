@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev --webpack",
     "postinstall": "node scripts/ensure-next-internals.mjs",
     "prebuild": "node scripts/ensure-next-internals.mjs",
-    "build": "next build --turbo",
+    "build": "next build --webpack",
     "build:turbo": "next build --turbo",
     "build:sandbox": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
-    "analyze": "ANALYZE=true next build --turbo"
+    "analyze": "ANALYZE=true next build --webpack"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",

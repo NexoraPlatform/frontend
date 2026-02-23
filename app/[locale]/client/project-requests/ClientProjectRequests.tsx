@@ -98,6 +98,16 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [releasingId, setReleasingId] = useState<string | null>(null);
     const [contractResponse, setContractResponse] = useState<ContractResponse | null>(null);
     const [openContractDialog, setOpenContractDialog] = useState(false);
+    const [openReplacementDialog, setOpenReplacementDialog] = useState(false);
+    const [replacementContext, setReplacementContext] = useState<{
+        projectId: string;
+        milestoneId: string;
+        milestoneTitle: string;
+        excludeProviderId?: string;
+    } | null>(null);
+    const [replacementSuggestions, setReplacementSuggestions] = useState<any[]>([]);
+    const [loadingReplacementSuggestions, setLoadingReplacementSuggestions] = useState(false);
+    const [reassigningProviderId, setReassigningProviderId] = useState<string | null>(null);
     const [briefDraft, setBriefDraft] = useState<AiBriefFormDraft>(createEmptyBriefDraft);
     const roleSlugs = [
         ...(user?.role_slugs ?? []),
@@ -108,8 +118,43 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const isClientRole = roleSlugs.includes('client') || user?.role?.toLowerCase() === 'client';
     const hasRoleInfo = roleSlugs.length > 0 || Boolean(user?.role);
     const getMilestoneId = useCallback((milestone: any) => {
-        return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
+        return (
+            milestone?.id ??
+            milestone?.milestone_id ??
+            milestone?.milestoneId ??
+            milestone?.milestone_uuid ??
+            milestone?.milestoneUuid ??
+            milestone?.uuid ??
+            null
+        );
     }, []);
+    const getProviderId = useCallback((value: any) => {
+        const rawId = value?.id ?? value?.provider_id ?? value?.providerId ?? null;
+        return rawId === null || rawId === undefined ? null : String(rawId);
+    }, []);
+    const normalizeStatusValue = (value: unknown, fallback = '') =>
+        String(value ?? fallback).trim().toUpperCase();
+    const isApprovedBudgetStatus = (value: unknown) => {
+        const normalized = normalizeStatusValue(value, '');
+        return normalized === 'ACCEPTED' || normalized === 'APPROVED' || normalized === 'TRUE';
+    };
+    const toFiniteNumber = (value: unknown): number | null => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+
+        if (typeof value === 'string' && value.trim()) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        return null;
+    };
+    const normalizePositiveBudget = (value: unknown): number | null => {
+        const numeric = toFiniteNumber(value);
+        if (numeric === null || numeric <= 0) return null;
+        return numeric;
+    };
 
     const getProjectMilestones = useCallback((project: any) => {
         if (!project) return [];
@@ -133,8 +178,13 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                         milestone?.project_line_id ??
                         milestone?.projectLineId ??
                         lineId,
-                    service_id: milestone?.service_id ?? lineServiceId,
-                    service_name: milestone?.service_name ?? lineServiceName,
+                    service_id: milestone?.service_id ?? milestone?.serviceId ?? lineServiceId,
+                    service_name: milestone?.service_name ?? milestone?.serviceName ?? lineServiceName,
+                    assigned_provider_id:
+                        milestone?.assigned_provider_id ??
+                        milestone?.providerId ??
+                        milestone?.provider_id ??
+                        null,
                 }));
             })
             : [];
@@ -143,25 +193,141 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         }
 
         if (Array.isArray(project.milestones)) {
-            return project.milestones.flatMap((milestoneGroup: any) =>
-                Array.isArray(milestoneGroup?.milestones) ? milestoneGroup.milestones : []
-            );
+            return project.milestones.flatMap((milestoneGroup: any) => {
+                const groupServiceId = milestoneGroup?.service_id ?? milestoneGroup?.serviceId ?? null;
+                const groupServiceName = milestoneGroup?.service_name ?? milestoneGroup?.serviceName ?? null;
+                const groupLineId = milestoneGroup?.project_line_id ?? milestoneGroup?.projectLineId ?? null;
+                const groupProviderId = milestoneGroup?.provider_id ?? milestoneGroup?.providerId ?? null;
+                const groupedMilestones = Array.isArray(milestoneGroup?.milestones) ? milestoneGroup.milestones : [];
+
+                return groupedMilestones.map((milestone: any) => ({
+                    ...milestone,
+                    project_line_id: milestone?.project_line_id ?? milestone?.projectLineId ?? groupLineId,
+                    service_id: milestone?.service_id ?? milestone?.serviceId ?? groupServiceId,
+                    service_name: milestone?.service_name ?? milestone?.serviceName ?? groupServiceName,
+                    assigned_provider_id:
+                        milestone?.assigned_provider_id ??
+                        milestone?.providerId ??
+                        milestone?.provider_id ??
+                        groupProviderId ??
+                        null,
+                }));
+            });
         }
 
         return [];
     }, []);
 
     const getProviderMilestones = useCallback((project: any, provider: any) => {
-        const legacyProviderMilestones = project?.milestones
-            ?.find((m: any) => String(m?.providerId) === String(provider?.id))
-            ?.milestones;
-        if (Array.isArray(legacyProviderMilestones) && legacyProviderMilestones.length > 0) {
-            return legacyProviderMilestones;
+        const providerId = getProviderId(provider);
+        if (!providerId) {
+            return [];
         }
+
+        const toSortableNumber = (value: unknown) => {
+            if (value === null || value === undefined || value === '') {
+                return Number.MAX_SAFE_INTEGER;
+            }
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER;
+        };
+
+        const sortAndDeduplicateMilestones = (milestones: any[]) => {
+            const seenIds = new Set<string>();
+            return [...milestones]
+                .sort((a: any, b: any) => {
+                    const lineOrderA = toSortableNumber(a?.project_line_id ?? a?.projectLineId);
+                    const lineOrderB = toSortableNumber(b?.project_line_id ?? b?.projectLineId);
+                    if (lineOrderA !== lineOrderB) return lineOrderA - lineOrderB;
+
+                    const sequenceOrderA = toSortableNumber(
+                        a?.sequence ??
+                        a?.order ??
+                        a?.order_index ??
+                        a?.orderIndex ??
+                        a?.position
+                    );
+                    const sequenceOrderB = toSortableNumber(
+                        b?.sequence ??
+                        b?.order ??
+                        b?.order_index ??
+                        b?.orderIndex ??
+                        b?.position
+                    );
+                    if (sequenceOrderA !== sequenceOrderB) return sequenceOrderA - sequenceOrderB;
+
+                    const numericIdA = toSortableNumber(getMilestoneId(a));
+                    const numericIdB = toSortableNumber(getMilestoneId(b));
+                    return numericIdA - numericIdB;
+                })
+                .filter((milestone: any, index: number) => {
+                    const milestoneId = getMilestoneId(milestone);
+                    if (milestoneId === null || milestoneId === undefined) {
+                        return true;
+                    }
+                    const key = String(milestoneId);
+                    if (seenIds.has(key)) {
+                        return false;
+                    }
+                    seenIds.add(key);
+                    return true;
+                });
+        };
 
         const allMilestones = getProjectMilestones(project);
         if (allMilestones.length === 0) {
             return [];
+        }
+
+        const getAssignedProviderId = (milestone: any) =>
+            milestone?.assigned_provider_id ??
+            milestone?.assignedProviderId ??
+            milestone?.providerId ??
+            milestone?.provider_id ??
+            null;
+        const isUnassignedMilestone = (milestone: any) => {
+            const assignedProviderId = getAssignedProviderId(milestone);
+            return assignedProviderId === null || assignedProviderId === undefined || String(assignedProviderId) === '';
+        };
+
+        const projectLines = Array.isArray(project?.project_lines) ? project.project_lines : [];
+        const providerLineIds = new Set(
+            projectLines
+                .filter((line: any) =>
+                    Array.isArray(line?.providers) &&
+                    line.providers.some((lineProvider: any) => getProviderId(lineProvider) === providerId)
+                )
+                .map((line: any) => String(line?.id))
+                .filter(Boolean)
+        );
+
+        const explicitlyAssignedMilestones = allMilestones.filter((milestone: any) => {
+            const assignedProviderId = getAssignedProviderId(milestone);
+            return assignedProviderId !== null &&
+                assignedProviderId !== undefined &&
+                String(assignedProviderId) === providerId;
+        });
+        const unassignedMilestonesFromProviderLines = allMilestones.filter((milestone: any) => {
+            if (!isUnassignedMilestone(milestone)) {
+                return false;
+            }
+            const lineId = milestone?.project_line_id ?? milestone?.projectLineId;
+            if (lineId === null || lineId === undefined) {
+                return false;
+            }
+            return providerLineIds.has(String(lineId));
+        });
+
+        const legacyProviderMilestones = project?.milestones
+            ?.find((m: any) => String(m?.providerId ?? m?.provider_id) === providerId)
+            ?.milestones;
+        const mergedPrimaryMilestones = [
+            ...explicitlyAssignedMilestones,
+            ...unassignedMilestonesFromProviderLines,
+            ...(Array.isArray(legacyProviderMilestones) ? legacyProviderMilestones : []),
+        ];
+        if (mergedPrimaryMilestones.length > 0) {
+            return sortAndDeduplicateMilestones(mergedPrimaryMilestones);
         }
 
         const providerServices = Array.isArray(provider?.services) ? provider.services : [];
@@ -178,11 +344,14 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         );
 
         if (providerServiceIds.size === 0 && providerServiceNames.size === 0) {
-            return allMilestones;
+            return [];
         }
 
-        const projectLines = Array.isArray(project?.project_lines) ? project.project_lines : [];
         const filtered = allMilestones.filter((milestone: any) => {
+            if (!isUnassignedMilestone(milestone)) {
+                return false;
+            }
+
             const milestoneServiceId = milestone?.service_id;
             if (milestoneServiceId !== null && milestoneServiceId !== undefined) {
                 if (providerServiceIds.has(String(milestoneServiceId))) {
@@ -216,8 +385,8 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             return Boolean(lineServiceName && providerServiceNames.has(lineServiceName));
         });
 
-        return filtered.length > 0 ? filtered : allMilestones;
-    }, [getProjectMilestones]);
+        return sortAndDeduplicateMilestones(filtered);
+    }, [getMilestoneId, getProjectMilestones, getProviderId]);
 
     const projectBudgetAmount = selectedProject?.budget?.amount != null
         ? Number(selectedProject.budget.amount)
@@ -389,11 +558,23 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const handleBudgetResponse = useCallback(async (
         projectId: string,
         providerId: string,
+        budget: number,
         response: 'ACCEPTED' | 'REJECTED'
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
-            await apiClient.respondToBudgetProposal(projectId, providerId, { response }, locale);
+            await apiClient.respondToBudgetProposal(
+                projectId,
+                providerId,
+                {
+                    budget,
+                    notes:
+                        response === 'ACCEPTED'
+                            ? 'Budget approved by client'
+                            : 'Budget proposal rejected by client',
+                },
+                locale
+            );
             await loadProjects();
             toast.success(
                 response === 'ACCEPTED'
@@ -430,13 +611,100 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         }
     }, [loadProjects, locale, t]);
 
+    const openReplacementSuggestionsForMilestone = useCallback(async (
+        projectId: string,
+        milestone: any,
+        excludeProviderId?: string | null
+    ) => {
+        const milestoneId = getMilestoneId(milestone);
+        if (milestoneId === null || milestoneId === undefined) {
+            toast.error(t('client.project_requests.errors.generic', { message: 'Invalid milestone identifier.' }));
+            return;
+        }
+
+        const milestoneIdText = String(milestoneId);
+        setReplacementContext({
+            projectId: String(projectId),
+            milestoneId: milestoneIdText,
+            milestoneTitle: String(milestone?.title ?? ''),
+            ...(excludeProviderId ? { excludeProviderId: String(excludeProviderId) } : {}),
+        });
+        setOpenReplacementDialog(true);
+        setLoadingReplacementSuggestions(true);
+        setReplacementSuggestions([]);
+
+        try {
+            const response = await apiClient.getReplacementProviderSuggestions(projectId, {
+                milestone_ids: [milestoneIdText],
+                ...(excludeProviderId ? { exclude_provider_id: excludeProviderId } : {}),
+                limit: 5,
+            });
+
+            const suggestionBuckets = Array.isArray(response?.replacement_suggestions)
+                ? response.replacement_suggestions
+                : [];
+            const scopedBucket =
+                suggestionBuckets.find((bucket: any) => {
+                    const bucketMilestoneId =
+                        bucket?.milestone_id ??
+                        bucket?.project_line_milestone_id ??
+                        null;
+                    return bucketMilestoneId !== null && String(bucketMilestoneId) === milestoneIdText;
+                }) ?? suggestionBuckets[0];
+            const providers = Array.isArray(scopedBucket?.providers) ? scopedBucket.providers : [];
+            setReplacementSuggestions(providers);
+        } catch (error: any) {
+            toast.error(t('client.project_requests.errors.generic', { message: error?.message ?? 'Unknown error' }));
+            setReplacementSuggestions([]);
+        } finally {
+            setLoadingReplacementSuggestions(false);
+        }
+    }, [getMilestoneId, t]);
+
+    const handleReassignMilestoneProvider = useCallback(async (providerId: string) => {
+        if (!replacementContext) return;
+
+        setReassigningProviderId(providerId);
+        try {
+            await apiClient.reassignProjectMilestones(replacementContext.projectId, {
+                provider_id: providerId,
+                milestone_ids: [replacementContext.milestoneId],
+                language: locale,
+            });
+            await loadProjects();
+            setOpenReplacementDialog(false);
+            setReplacementContext(null);
+            setReplacementSuggestions([]);
+            toast.success('Milestone reassigned successfully.');
+        } catch (error: any) {
+            toast.error(t('client.project_requests.errors.generic', { message: error?.message ?? 'Unknown error' }));
+        } finally {
+            setReassigningProviderId(null);
+        }
+    }, [loadProjects, locale, replacementContext, t]);
+
     const getStatusBadge = (status: string) => {
-        switch (status) {
+        const normalizedStatus = normalizeStatusValue(status);
+        switch (normalizedStatus) {
             case 'PENDING':
                 return (
                     <Badge className="bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-500/30">
                         <Clock className="w-3 h-3 mr-1" />
                         {t('client.project_requests.status.pending')}
+                    </Badge>
+                );
+            case 'WORK_IN_PROGRESS':
+                return (
+                    <Badge className="bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:border-sky-500/30">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.status.work_in_progress')}
+                    </Badge>
+                );
+            case 'AWAITING_BUDGET_APPROVAL':
+                return (
+                    <Badge className="bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-500/30">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.status.awaiting_budget_approval')}
                     </Badge>
                 );
             case 'ACCEPTED':
@@ -461,12 +729,13 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                     </Badge>
                 );
             default:
-                return <Badge variant="secondary">{status}</Badge>;
+                return <Badge variant="secondary">{normalizedStatus || '-'}</Badge>;
         }
     };
 
     const getMilestoneStatusBadge = (status: string) => {
-        switch (status) {
+        const normalizedStatus = normalizeStatusValue(status);
+        switch (normalizedStatus) {
             case 'PENDING':
                 return (
                     <Badge className="bg-yellow-100 text-yellow-800">
@@ -474,7 +743,16 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                         {t('client.project_requests.milestones.pending')}
                     </Badge>
                 );
+            case 'WORK_IN_PROGRESS':
+            case 'IN_PROGRESS':
+                return (
+                    <Badge className="bg-sky-100 text-sky-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {t('client.project_requests.milestones.work_in_progress')}
+                    </Badge>
+                );
             case 'FINISHED':
+            case 'COMPLETED':
                 return (
                     <Badge className="bg-green-100 text-green-800">
                         <CheckCircle className="w-3 h-3 mr-1" />
@@ -496,12 +774,13 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                     </Badge>
                 );
             default:
-                return <Badge variant="secondary">{status}</Badge>;
+                return <Badge variant="secondary">{normalizedStatus || '-'}</Badge>;
         }
     };
 
     const getMilestonePaymentStatusBadge = (status: string) => {
-        switch (status) {
+        const normalizedStatus = normalizeStatusValue(status);
+        switch (normalizedStatus) {
             case 'PENDING':
                 return (
                     <Badge className="bg-yellow-100 text-yellow-800">
@@ -531,7 +810,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                     </Badge>
                 );
             default:
-                return <Badge variant="secondary">{status}</Badge>;
+                return <Badge variant="secondary">{normalizedStatus || '-'}</Badge>;
         }
     };
 
@@ -801,6 +1080,137 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                 <div className="space-y-3">
                                                     {project.providers?.map((provider: any) => {
                                                         const providerMilestones = getProviderMilestones(project, provider);
+                                                        const providerId = getProviderId(provider);
+                                                        const milestoneStatusFor = (entry: any) =>
+                                                            normalizeStatusValue(entry?.status, '');
+                                                        const milestonePaymentStatusFor = (entry: any) =>
+                                                            normalizeStatusValue(entry?.payment_status ?? entry?.paymentStatus, 'PENDING');
+                                                        const isPendingPaymentStatus = (entry: any) =>
+                                                            milestonePaymentStatusFor(entry).startsWith('PENDING');
+                                                        const providerBudgetApprovalStatus = normalizeStatusValue(
+                                                            provider?.client_budget_approved ??
+                                                            provider?.pivotClientResponse ??
+                                                            provider?.pivot?.client_budget_approved ??
+                                                            provider?.clientBudgetApproved ??
+                                                            '',
+                                                            ''
+                                                        );
+                                                        const getMilestoneBudgetApprovalStatus = (entry: any) =>
+                                                            normalizeStatusValue(
+                                                                entry?.budget_approved ??
+                                                                entry?.budgetApproval ??
+                                                                entry?.client_budget_approved ??
+                                                                entry?.clientBudgetApproved ??
+                                                                entry?.assigned_provider?.client_budget_approved ??
+                                                                entry?.assigned_provider?.clientBudgetApproved ??
+                                                                entry?.assigned_provider?.pivot?.client_budget_approved ??
+                                                                '',
+                                                                ''
+                                                            );
+                                                        const isMilestoneBudgetApproved = (entry: any) => {
+                                                            const milestoneBudgetApprovalStatus = getMilestoneBudgetApprovalStatus(entry);
+                                                            if (milestoneBudgetApprovalStatus) {
+                                                                return isApprovedBudgetStatus(milestoneBudgetApprovalStatus);
+                                                            }
+                                                            if (providerBudgetApprovalStatus) {
+                                                                return isApprovedBudgetStatus(providerBudgetApprovalStatus);
+                                                            }
+                                                            return false;
+                                                        };
+                                                        const getAssignedProviderIdForMilestone = (entry: any) =>
+                                                            entry?.assigned_provider_id ??
+                                                            entry?.assignedProviderId ??
+                                                            entry?.providerId ??
+                                                            entry?.provider_id ??
+                                                            null;
+                                                        const isMilestoneOwnedByCurrentProvider = (entry: any) => {
+                                                            if (!providerId) return false;
+                                                            const assignedProviderId = getAssignedProviderIdForMilestone(entry);
+                                                            if (assignedProviderId === null || assignedProviderId === undefined || String(assignedProviderId) === '') {
+                                                                return true;
+                                                            }
+                                                            return String(assignedProviderId) === providerId;
+                                                        };
+                                                        const isFinalizedMilestone = (entry: any) => {
+                                                            const status = milestoneStatusFor(entry);
+                                                            return (
+                                                                status === 'FINISHED' ||
+                                                                status === 'COMPLETED' ||
+                                                                status === 'PAID'
+                                                            );
+                                                        };
+                                                        const providerOwnedMilestones = providerMilestones.filter(isMilestoneOwnedByCurrentProvider);
+                                                        const nextSecurizableMilestone = (() => {
+                                                            for (let milestoneIndex = 0; milestoneIndex < providerOwnedMilestones.length; milestoneIndex += 1) {
+                                                                const currentMilestone = providerOwnedMilestones[milestoneIndex];
+                                                                if (!isPendingPaymentStatus(currentMilestone)) {
+                                                                    continue;
+                                                                }
+
+                                                                if (milestoneIndex === 0) {
+                                                                    return currentMilestone;
+                                                                }
+
+                                                                const previousMilestone = providerOwnedMilestones[milestoneIndex - 1];
+                                                                if (isFinalizedMilestone(previousMilestone)) {
+                                                                    return currentMilestone;
+                                                                }
+
+                                                                return null;
+                                                            }
+                                                            return null;
+                                                        })();
+                                                        const rawNextSecurizableMilestoneId = nextSecurizableMilestone
+                                                            ? getMilestoneId(nextSecurizableMilestone)
+                                                            : null;
+                                                        const nextSecurizableMilestoneId =
+                                                            rawNextSecurizableMilestoneId !== null && rawNextSecurizableMilestoneId !== undefined
+                                                                ? String(rawNextSecurizableMilestoneId)
+                                                                : null;
+                                                        const providerHasApprovedMilestoneBudget = providerOwnedMilestones.some((entry: any) => {
+                                                            const milestoneBudgetApprovalStatus = getMilestoneBudgetApprovalStatus(entry);
+                                                            if (!milestoneBudgetApprovalStatus) return false;
+                                                            return isApprovedBudgetStatus(milestoneBudgetApprovalStatus);
+                                                        });
+                                                        const isProviderBudgetApproved =
+                                                            isApprovedBudgetStatus(providerBudgetApprovalStatus) || providerHasApprovedMilestoneBudget;
+                                                        const providerStatus = normalizeStatusValue(provider?.status, 'PENDING');
+                                                        const providerDisplayStatus =
+                                                            providerStatus === 'WORK_IN_PROGRESS' && !isProviderBudgetApproved
+                                                                ? 'AWAITING_BUDGET_APPROVAL'
+                                                                : providerStatus;
+                                                        const providerAllocatedBudget = (() => {
+                                                            const directBudget = normalizePositiveBudget(
+                                                                provider?.allocatedBudget ??
+                                                                provider?.allocated_budget ??
+                                                                provider?.pivot?.allocated_budget
+                                                            );
+                                                            if (directBudget !== null) {
+                                                                return directBudget;
+                                                            }
+
+                                                            const milestonesTotal = providerOwnedMilestones.reduce((sum: number, milestone: any) => {
+                                                                const amount = toFiniteNumber(milestone?.amount);
+                                                                if (amount === null || amount <= 0) return sum;
+                                                                return sum + amount;
+                                                            }, 0);
+
+                                                            return milestonesTotal > 0 ? milestonesTotal : null;
+                                                        })();
+                                                        const providerProposedBudget = normalizePositiveBudget(
+                                                            provider?.proposedBudget ??
+                                                            provider?.proposed_budget ??
+                                                            provider?.pivot?.provider_budgets
+                                                        );
+                                                        const approveBudgetValue =
+                                                            providerProposedBudget != null
+                                                                ? providerProposedBudget
+                                                                : providerAllocatedBudget;
+                                                        const rejectBudgetValue =
+                                                            providerAllocatedBudget != null
+                                                                ? providerAllocatedBudget
+                                                                : providerProposedBudget;
+
                                                         return (
                                                             <div
                                                                 key={provider.id}
@@ -843,11 +1253,11 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         </div>
                                                                     </div>
                                                                     <div className="text-left lg:text-right">
-                                                                        {getStatusBadge(provider.status)}
+                                                                        {getStatusBadge(providerDisplayStatus)}
                                                                         <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
                                                                             {t('client.project_requests.providers.allocated')}{' '}
-                                                                            {provider.allocatedBudget != null ? (
-                                                                                <PriceDisplay value={provider.allocatedBudget} />
+                                                                            {providerAllocatedBudget != null ? (
+                                                                                <PriceDisplay value={providerAllocatedBudget} />
                                                                             ) : (
                                                                                 '-'
                                                                             )}
@@ -867,7 +1277,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                     </div>
                                                                 </div>
 
-                                                                {provider.status === 'NEW_PROPOSE' && (
+                                                                {providerStatus === 'NEW_PROPOSE' && (
                                                                     <Alert className="mt-4 border-emerald-200 bg-emerald-50 dark:border-[#1E2A3D] dark:bg-[rgba(27,196,125,0.1)]">
                                                                         <DollarSign className="h-4 w-4 text-[#1BC47D]" />
                                                                         <AlertDescription>
@@ -877,16 +1287,16 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                         {t('client.project_requests.budget.new_proposal')}
                                                                                     </div>
                                                                                     <div className="text-lg font-bold text-[#1BC47D]">
-                                                                                        {provider.proposedBudget != null ? (
-                                                                                            <PriceDisplay value={provider.proposedBudget} />
+                                                                                        {providerProposedBudget != null ? (
+                                                                                            <PriceDisplay value={providerProposedBudget} />
                                                                                         ) : (
                                                                                             '-'
                                                                                         )}
                                                                                     </div>
                                                                                     <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
                                                                                         {t('client.project_requests.budget.original')}{' '}
-                                                                                        {provider.allocatedBudget != null ? (
-                                                                                            <PriceDisplay value={provider.allocatedBudget} />
+                                                                                        {providerAllocatedBudget != null ? (
+                                                                                            <PriceDisplay value={providerAllocatedBudget} />
                                                                                         ) : (
                                                                                             '-'
                                                                                         )}
@@ -895,8 +1305,20 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                 <div className="flex flex-wrap gap-2">
                                                                                     <Button
                                                                                         size="sm"
-                                                                                        onClick={() => handleBudgetResponse(project.id, provider.id, 'ACCEPTED')}
-                                                                                        disabled={responding === `${project.id}-${provider.id}` || provider.pivotClientResponse === 'ACCEPTED'}
+                                                                                        onClick={() => {
+                                                                                            if (approveBudgetValue == null) return;
+                                                                                            handleBudgetResponse(
+                                                                                                project.id,
+                                                                                                provider.id,
+                                                                                                approveBudgetValue,
+                                                                                                'ACCEPTED'
+                                                                                            );
+                                                                                        }}
+                                                                                        disabled={
+                                                                                            responding === `${project.id}-${provider.id}` ||
+                                                                                            provider.pivotClientResponse === 'ACCEPTED' ||
+                                                                                            approveBudgetValue == null
+                                                                                        }
                                                                                         className="btn-primary"
                                                                                     >
                                                                                         <CheckCircle className="w-4 h-4 mr-1" />
@@ -905,8 +1327,19 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                     <Button
                                                                                         size="sm"
                                                                                         variant="outline"
-                                                                                        onClick={() => handleBudgetResponse(project.id, provider.id, 'REJECTED')}
-                                                                                        disabled={responding === `${project.id}-${provider.id}`}
+                                                                                        onClick={() => {
+                                                                                            if (rejectBudgetValue == null) return;
+                                                                                            handleBudgetResponse(
+                                                                                                project.id,
+                                                                                                provider.id,
+                                                                                                rejectBudgetValue,
+                                                                                                'REJECTED'
+                                                                                            );
+                                                                                        }}
+                                                                                        disabled={
+                                                                                            responding === `${project.id}-${provider.id}` ||
+                                                                                            rejectBudgetValue == null
+                                                                                        }
                                                                                         className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
                                                                                     >
                                                                                         <XCircle className="w-4 h-4 mr-1" />
@@ -928,33 +1361,43 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                 )}
 
                                                                 <div className="space-y-2 mt-2">
-                                                                    {providerMilestones.map((milestone: any, index: number) => {
+                                                                    {providerOwnedMilestones.map((milestone: any, index: number) => {
                                                                         const milestoneId = getMilestoneId(milestone);
-                                                                        const milestoneStatus = String(milestone?.status ?? '').toUpperCase();
-                                                                        const milestonePaymentStatus = String(milestone?.payment_status ?? milestone?.paymentStatus ?? 'PENDING').toUpperCase();
+                                                                        const milestoneStatus = milestoneStatusFor(milestone);
+                                                                        const milestonePaymentStatus = milestonePaymentStatusFor(milestone);
+                                                                        const milestoneIdKey =
+                                                                            milestoneId !== null && milestoneId !== undefined
+                                                                                ? String(milestoneId)
+                                                                                : null;
+                                                                        const assignedProviderIdForMilestone = getAssignedProviderIdForMilestone(milestone);
+                                                                        const isMilestoneUnassigned =
+                                                                            assignedProviderIdForMilestone === null ||
+                                                                            assignedProviderIdForMilestone === undefined ||
+                                                                            String(assignedProviderIdForMilestone) === '';
 
                                                                         // 1. Logica pentru Release (existentă)
                                                                         const canReleaseMilestone =
                                                                             (milestoneStatus === 'FINISHED' || milestoneStatus === 'COMPLETED') &&
                                                                             milestoneId;
 
-                                                                        // 2. Logica pentru Secure Payment (NOUĂ)
-                                                                        // Verificăm dacă milestone-ul anterior este plătit (sau dacă e primul din listă)
-                                                                        const previousStatus = String(providerMilestones[index - 1]?.status ?? '').toUpperCase();
-                                                                        const previousPaymentStatus = String(providerMilestones[index - 1]?.payment_status ?? providerMilestones[index - 1]?.paymentStatus ?? '').toUpperCase();
-                                                                        const isPreviousPaid =
-                                                                            index === 0 ||
-                                                                            previousStatus === 'PAID' ||
-                                                                            previousPaymentStatus === 'PAID';
-
-                                                                        // Afișăm butonul doar dacă e rândul acestui milestone și nu a fost plătit încă
-                                                                        const showSecurePaymentBtn = milestonePaymentStatus === 'PENDING' && isPreviousPaid;
+                                                                        // 2. Logica pentru Secure Payment (sequential per provider)
+                                                                        // Se poate securiza doar următorul milestone PENDING al providerului,
+                                                                        // iar acesta devine eligibil după finalizarea milestone-ului anterior.
+                                                                        const showSecurePaymentBtn =
+                                                                            isPendingPaymentStatus(milestone) &&
+                                                                            isMilestoneBudgetApproved(milestone) &&
+                                                                            milestoneIdKey !== null &&
+                                                                            nextSecurizableMilestoneId !== null &&
+                                                                            milestoneIdKey === nextSecurizableMilestoneId;
+                                                                        const showDisabledSecurePaymentBtn =
+                                                                            isPendingPaymentStatus(milestone) && !showSecurePaymentBtn;
 
                                                                         return (
                                                                             <div
                                                                                 key={milestoneId ?? index}
                                                                                 className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
     ${milestoneStatus === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
+    ${(milestoneStatus === 'WORK_IN_PROGRESS' || milestoneStatus === 'IN_PROGRESS') ? "bg-sky-50 border-sky-200 dark:bg-sky-900/10 dark:border-sky-800" : ""}
     ${(milestoneStatus === 'FINISHED' || milestoneStatus === 'COMPLETED') ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
     ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? "bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800" : ""}
     ${milestoneStatus === 'REJECTED' ? "bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800" : ""}
@@ -980,8 +1423,23 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                     </div>
 
                                                                                     <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                                                                        {isMilestoneUnassigned && milestoneIdKey !== null && (
+                                                                                            <Button
+                                                                                                size="sm"
+                                                                                                variant="outline"
+                                                                                                className="w-full sm:w-auto"
+                                                                                                onClick={() =>
+                                                                                                    openReplacementSuggestionsForMilestone(
+                                                                                                        String(project.id),
+                                                                                                        milestone,
+                                                                                                        providerId
+                                                                                                    )
+                                                                                                }
+                                                                                            >
+                                                                                                {t('client.project_requests.actions.find_replacement')}
+                                                                                            </Button>
+                                                                                        )}
                                                                                         {/* BUTON RELEASE FUNDS */}
-                                                                                        {}
                                                                                         {canReleaseMilestone && (
                                                                                             <Button
                                                                                                 size="sm"
@@ -1006,6 +1464,18 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                                     countryCode="RO"
                                                                                                     onSuccess={() => window.location.reload()}
                                                                                                 />
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {showDisabledSecurePaymentBtn && (
+                                                                                            <div className="flex-1 sm:flex-none">
+                                                                                                <Button
+                                                                                                    size="sm"
+                                                                                                    disabled
+                                                                                                    className="w-full sm:w-auto"
+                                                                                                >
+                                                                                                    <Shield className="w-3.5 h-3.5 mr-2" />
+                                                                                                    {t('client.project_requests.actions.secure_payment')}
+                                                                                                </Button>
                                                                                             </div>
                                                                                         )}
                                                                                     </div>
@@ -1228,6 +1698,80 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             {/*        </div>*/}
             {/*    </DialogContent>*/}
             {/*</Dialog>*/}
+
+            <Dialog
+                open={openReplacementDialog}
+                onOpenChange={(open) => {
+                    setOpenReplacementDialog(open);
+                    if (!open) {
+                        setReplacementContext(null);
+                        setReplacementSuggestions([]);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-2xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-6">
+                    <div className="space-y-4">
+                        <div>
+                            <DialogTitle className="text-xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {t('client.project_requests.replacement.title')}
+                            </DialogTitle>
+                            <DialogDescription className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                {replacementContext?.milestoneTitle || t('client.project_requests.replacement.no_milestone')}
+                            </DialogDescription>
+                        </div>
+
+                        {loadingReplacementSuggestions ? (
+                            <div className="flex items-center justify-center py-6">
+                                <Loader2 className="w-5 h-5 animate-spin text-[#1BC47D]" />
+                            </div>
+                        ) : replacementSuggestions.length === 0 ? (
+                            <div className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                                {t('client.project_requests.replacement.no_suggestions')}
+                            </div>
+                        ) : (
+                            <div className="space-y-3 max-h-[55vh] overflow-y-auto">
+                                {replacementSuggestions.map((candidate: any) => {
+                                    const candidateId = String(candidate?.id ?? '');
+                                    return (
+                                        <div
+                                            key={candidateId}
+                                            className="rounded-xl border border-slate-200 dark:border-[#1E2A3D] p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="w-10 h-10">
+                                                    <AvatarImage src={candidate?.avatar} />
+                                                    <AvatarFallback>
+                                                        {candidate?.firstName?.[0]}{candidate?.lastName?.[0]}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                        {candidate?.name || `${candidate?.firstName ?? ''} ${candidate?.lastName ?? ''}`.trim()}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 dark:text-[#A3ADC2]">
+                                                        {candidate?.profile?.location || t('client.project_requests.providers.location_fallback')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                className="btn-primary"
+                                                disabled={reassigningProviderId === candidateId}
+                                                onClick={() => handleReassignMilestoneProvider(candidateId)}
+                                            >
+                                                {reassigningProviderId === candidateId ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : null}
+                                                {t('client.project_requests.replacement.assign')}
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={openContractDialog} onOpenChange={setOpenContractDialog}>
                 <DialogContent className="max-w-3xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-0 overflow-hidden flex flex-col max-h-[90vh]">

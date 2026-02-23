@@ -131,6 +131,27 @@ export default function RapydCheckoutButton({
         };
     }, [closeCheckoutToolkit, onSuccess]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (isScriptLoaded) return;
+
+        if (window.RapydCheckoutToolkit) {
+            setIsScriptLoaded(true);
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            if (window.RapydCheckoutToolkit) {
+                setIsScriptLoaded(true);
+                window.clearInterval(intervalId);
+            }
+        }, 250);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [isScriptLoaded]);
+
     // 2. Funcția de start plată
     const handlePayment = async () => {
         setIsModalVisible(true);
@@ -284,7 +305,9 @@ export default function RapydCheckoutButton({
                 src="https://sandboxcheckouttoolkit.rapyd.net"
                 strategy="afterInteractive"
                 onLoad={() => {
-                    console.log('Rapyd Script Loaded');
+                    setIsScriptLoaded(true);
+                }}
+                onReady={() => {
                     setIsScriptLoaded(true);
                 }}
             />

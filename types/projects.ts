@@ -29,7 +29,37 @@ export interface ProjectLineMilestone {
   description?: string | null;
   percentage?: number;
   amount: number;
-  status?: 'pending' | 'active' | 'completed' | 'PENDING' | 'APPROVED' | (string & {});
+  assigned_provider_id?: number | null;
+  provider_id?: number | null;
+  providerId?: number | null;
+  assigned_provider?: {
+    id: number | string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    avatar?: string | null;
+    rating?: number | null;
+    pivot_type?: string | null;
+    provider_response?: string | null;
+    client_budget_approved?: string | null;
+    allocated_budget?: number | null;
+    proposed_budget?: number | null;
+    [key: string]: unknown;
+  } | null;
+  status?:
+    | 'pending'
+    | 'work_in_progress'
+    | 'finished'
+    | 'paid'
+    | 'in_progress'
+    | 'completed'
+    | 'PENDING'
+    | 'WORK_IN_PROGRESS'
+    | 'FINISHED'
+    | 'PAID'
+    | 'IN_PROGRESS'
+    | 'COMPLETED'
+    | (string & {});
   due_date?: string;
   [key: string]: unknown;
 }

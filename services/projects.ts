@@ -15,6 +15,9 @@ export interface ProjectBriefLinePayload {
     description?: string | null;
     percentage?: number;
     amount: number;
+    assigned_provider_id?: number | null;
+    provider_id?: number | null;
+    providerId?: number | null;
   }>;
 }
 
@@ -43,6 +46,9 @@ export interface CreateProjectPayload {
       description?: string | null;
       percentage?: number;
       amount: number;
+      assigned_provider_id?: number | null;
+      provider_id?: number | null;
+      providerId?: number | null;
     }>;
     [key: string]: unknown;
   }>;

@@ -11,8 +11,8 @@
       "client": "Client"
     },
     "stripe": {
-      "manage": "Edit Stripe Account Details",
-      "connect": "Connect Stripe Account"
+      "manage": "Edit Rapyd Account Details",
+      "connect": "Connect Rapyd Account"
     },
     "rapyd": {
       "manage": "Edit Rapyd Account Detailsd",

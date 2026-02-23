@@ -40,11 +40,14 @@
     },
     "milestones": {
       "title": "Project milestones",
-      "mark_complete": "Mark milestone as completed",
+      "mark_complete": "Update milestone status",
+      "start_work": "Start work",
+      "mark_finished": "Mark as finished",
       "paid": "Paid",
       "finished": "Finished",
       "rejected": "Rejected",
-      "pending": "Work in progress",
+      "pending": "Pending",
+      "work_in_progress": "Work in progress",
       "payment_status": {
         "pending": "Pending Payment",
         "escrow": "Payment Secured",
@@ -54,14 +57,23 @@
     },
     "status": {
       "pending": "Pending",
+      "work_in_progress": "Work in progress",
+      "awaiting_budget_approval": "Waiting for budget approval",
       "accepted": "Accepted",
       "rejected": "Rejected",
       "budget_proposed": "Budget proposed"
     },
     "actions": {
       "secure_payment": "Secure payment",
+      "find_replacement": "Find replacement",
       "view_details": "View details",
       "messages": "Messages"
+    },
+    "replacement": {
+      "title": "Replacement providers",
+      "assign": "Assign provider",
+      "no_suggestions": "No replacement providers found for this milestone.",
+      "no_milestone": "Select a milestone to load suggestions."
     },
     "release": {
       "button": "Release funds",
@@ -70,8 +82,8 @@
       "error": "Error: {message}"
     },
     "stripe": {
-      "load_error": "Stripe failed to load.",
-      "not_ready": "Stripe is not ready.",
+      "load_error": "Rapyd failed to load.",
+      "not_ready": "Rapyd is not ready.",
       "session_not_ready": "The payment session is not ready yet.",
       "payment_error": "Payment error"
     },
@@ -103,7 +115,7 @@
       "footer": {
         "ssl": "SSL secured",
         "pci": "PCI compliant",
-        "stripe": "Stripe powered"
+        "stripe": "Rapyd powered"
       }
     },
     "brief_copilot": {
