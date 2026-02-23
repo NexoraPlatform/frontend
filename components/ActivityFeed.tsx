@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useLocale } from 'next-intl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/lib/navigation';
 import { Activity as ActivityIcon, Loader2, TrendingUp, FileText, ArrowRight } from 'lucide-react';
 import apiClient, { RecentActivityQuick } from '@/lib/api';
 
-const getActivityIcon = (title: string) => {
-    const lowerTitle = title.toLowerCase();
+const getActivityIcon = (activity: RecentActivityQuick) => {
+    const actionKey = (activity.action ?? activity.type ?? '').toLowerCase();
+    const lowerTitle = activity.title.toLowerCase();
 
-    if (lowerTitle.includes('project created')) {
+    if (actionKey === 'project.created' || lowerTitle.includes('project created')) {
         return { icon: FileText, color: 'text-blue-500' };
-    } else if (lowerTitle.includes('paid')) {
+    } else if (actionKey.includes('payment') || lowerTitle.includes('paid')) {
         return { icon: TrendingUp, color: 'text-green-500' };
-    } else if (lowerTitle.includes('proposal')) {
+    } else if (actionKey.includes('proposal') || lowerTitle.includes('proposal')) {
         return { icon: FileText, color: 'text-yellow-500' };
     } else {
         return { icon: ActivityIcon, color: 'text-gray-500' };
@@ -25,13 +27,14 @@ export default function ActivityFeed() {
     const [activities, setActivities] = useState<RecentActivityQuick[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const locale = useLocale();
 
     useEffect(() => {
         const fetchActivities = async () => {
             setLoading(true);
             setError(null);
             try {
-                const response = await apiClient.getRecentActivitiesQuick();
+                const response = await apiClient.getRecentActivitiesQuick(locale === 'ro' ? 'ro' : 'en');
                 if (Array.isArray(response)) {
                     setActivities(response);
                 } else {
@@ -47,7 +50,7 @@ export default function ActivityFeed() {
         };
 
         fetchActivities();
-    }, []);
+    }, [locale]);
 
     return (
         <Card className="border border-border/60 bg-card/80 text-foreground shadow-[0_16px_40px_-32px_rgba(15,23,42,0.25)] dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-100 dark:shadow-[0_16px_40px_-32px_rgba(15,23,42,0.9)]">
@@ -70,9 +73,9 @@ export default function ActivityFeed() {
                             <div className="text-center text-muted-foreground py-4">No recent activity.</div>
                         ) : (
                             activities.map((activity, index) => {
-                                const { icon: Icon, color } = getActivityIcon(activity.title);
+                                const { icon: Icon, color } = getActivityIcon(activity);
                                 return (
-                                    <div key={index} className="flex items-center space-x-3 rounded-2xl border border-border/60 bg-background/60 p-3 transition-colors hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:hover:border-sky-500/30 dark:hover:bg-slate-950">
+                                    <div key={activity.id ?? index} className="flex items-center space-x-3 rounded-2xl border border-border/60 bg-background/60 p-3 transition-colors hover:border-sky-500/30 hover:bg-background dark:border-slate-800/70 dark:bg-slate-950/60 dark:hover:border-sky-500/30 dark:hover:bg-slate-950">
                                         <div className={`w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center ${color}`}>
                                             <Icon className="w-4 h-4" />
                                         </div>

@@ -486,8 +486,19 @@ export interface ActivityFeedResponse {
 }
 
 export interface RecentActivityQuick {
+  id?: number;
+  type?: string;
+  action?: string;
   title: string;
+  project_id?: number | null;
+  actor?: {
+    id?: number | string;
+    name?: string;
+    role?: string;
+  };
+  payload?: Record<string, unknown>;
   time_ago: string;
+  created_at?: string;
 }
 
 export interface AuditLog {
@@ -2251,8 +2262,14 @@ export class ApiClient {
     return this.request<ActivityPageResponse>(`/activities?page=${page}`);
   }
 
-  async getRecentActivitiesQuick() {
-    return this.request<RecentActivityQuick[]>('/activities/recent');
+  async getRecentActivitiesQuick(language?: 'ro' | 'en') {
+    const params = new URLSearchParams();
+    if (language) {
+      params.set('language', language);
+    }
+    const query = params.toString();
+    const endpoint = query ? `/activities/recent?${query}` : '/activities/recent';
+    return this.request<RecentActivityQuick[]>(endpoint);
   }
 
   // Audit Logs
