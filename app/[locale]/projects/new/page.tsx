@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -13,10 +14,18 @@ import {
   Figma,
   FolderOpen,
   Github,
+  History,
+  LayoutDashboard,
+  Layers,
   Loader2,
+  Lock,
+  Moon,
   Plus,
+  Settings,
+  Sun,
   Sparkles,
   UploadCloud,
+  Users,
   Wrench,
   X,
 } from 'lucide-react';
@@ -24,6 +33,7 @@ import { toast } from 'sonner';
 
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
+import { NotificationBell } from '@/components/notification-bell';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -40,6 +50,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,7 +59,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useGetServicesGroupedByCategory } from '@/hooks/use-api';
 import { buildOAuthRedirectUrl } from '@/lib/backend-url';
 import { getEcho } from '@/lib/echo';
-import { Link, useRouter } from '@/lib/navigation';
+import { Link, usePathname, useRouter } from '@/lib/navigation';
 import { aiService, type AiRecommendServicesResponse, type RecommendedServiceCandidate } from '@/services/ai.service';
 import { projectsService } from '@/services/projects';
 import {
@@ -238,6 +249,40 @@ const MANUAL_WIZARD_STEPS: Array<{ id: WizardStep; labelKey: string }> = [
   { id: 'connections', labelKey: 'step_label_connections' },
   { id: 'review', labelKey: 'step_label_review' },
 ];
+
+type CreateProjectThemeVars = {
+  '--bg-main': string;
+  '--bg-card': string;
+  '--text-main': string;
+  '--text-muted': string;
+  '--border-color': string;
+  '--header-bg': string;
+  '--input-bg': string;
+  '--stat-bg': string;
+};
+
+const createProjectThemes: Record<'light' | 'dark', CreateProjectThemeVars> = {
+  light: {
+    '--bg-main': '#F5F7FA',
+    '--bg-card': '#FFFFFF',
+    '--text-main': '#0B1C2D',
+    '--text-muted': '#64748B',
+    '--border-color': 'rgba(226, 232, 240, 0.8)',
+    '--header-bg': 'rgba(255, 255, 255, 0.8)',
+    '--input-bg': '#F5F7FA',
+    '--stat-bg': '#F5F7FA',
+  },
+  dark: {
+    '--bg-main': '#06111A',
+    '--bg-card': '#0D1F30',
+    '--text-main': '#F8FAFC',
+    '--text-muted': '#94A3B8',
+    '--border-color': 'rgba(255, 255, 255, 0.08)',
+    '--header-bg': 'rgba(13, 31, 48, 0.8)',
+    '--input-bg': '#06111A',
+    '--stat-bg': '#152A40',
+  },
+};
 
 const GROUPED_SERVICES_DEFAULT_LIMIT = 2;
 
@@ -1653,9 +1698,58 @@ const createManualProjectLine = (
 export default function NewProjectPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations('projects.new.modular');
+  const tDashboard = useTranslations('dashboard');
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, loading, userLoading, refreshUser } = useAuth();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const roleSlugs = useMemo(() => {
+    const rolesList = Array.isArray(user?.roles) ? (user?.roles ?? []) : [];
+    const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
+    const fromRoleSlugs = Array.isArray(user?.role_slugs) ? (user?.role_slugs ?? []) : [];
+    const fromSingleRole = user?.role ? [user.role] : [];
+    return Array.from(
+      new Set(
+        [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
+          .filter(Boolean)
+          .map((slug) => String(slug).toLowerCase())
+      )
+    );
+  }, [user?.roles, user?.role_slugs, user?.role]);
+  const isClient = roleSlugs.includes('client');
+  const isProvider = roleSlugs.includes('provider');
+  const servicesTitle = isProvider ? tDashboard('services.title.provider') : tDashboard('services.title.client');
+  const currentTheme = isDarkMode ? createProjectThemes.dark : createProjectThemes.light;
+  const wizardCardClass = 'rounded-2xl border shadow-sm transition-colors duration-300';
+  const wizardCardStyle: CSSProperties = {
+    backgroundColor: 'var(--bg-card)',
+    borderColor: 'var(--border-color)',
+  };
+  const dashboardSidebarItemClass = (tab: string) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
+      (tab === 'overview' && pathname.includes('/dashboard') && !searchParams.get('tab')) ||
+      (pathname.includes('/dashboard') && searchParams.get('tab') === tab) ||
+      (tab === 'new-project' && pathname.includes('/projects/new'))
+        ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
+        : 'text-slate-400 hover:text-white hover:bg-white/5'
+    }`;
+  const userInitials = `${(user?.firstName?.[0] ?? '')}${(user?.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
+  const userDisplayName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.email || 'User';
+  const userAvatarSrc = (user as any)?.avatar ?? (user as any)?.profile_photo_url ?? (user as any)?.avatar_url ?? undefined;
+
+  useEffect(() => {
+    document.title = 'Trustora | Create Project';
+    const existing = document.querySelector('link[data-dashboard-fonts="true"]');
+    if (!existing) {
+      const link = document.createElement('link');
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap';
+      link.rel = 'stylesheet';
+      link.setAttribute('data-dashboard-fonts', 'true');
+      document.head.appendChild(link);
+    }
+  }, []);
+
   const [manualServiceSearch, setManualServiceSearch] = useState('');
   const [debouncedManualServiceSearch, setDebouncedManualServiceSearch] = useState('');
   const [groupedServicesPage, setGroupedServicesPage] = useState(1);
@@ -4574,109 +4668,306 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+    <div
+      className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
+      style={
+        {
+          ...(currentTheme as CSSProperties),
+          backgroundColor: 'var(--bg-main)',
+          color: 'var(--text-main)',
+        } as CSSProperties
+      }
+    >
       <TrustoraThemeStyles />
-      <Header />
+      <style jsx global>{`
+        .trustora-wizard input,
+        .trustora-wizard textarea,
+        .trustora-wizard button[role='combobox'] {
+          background-color: var(--input-bg);
+          border-color: var(--border-color);
+          color: var(--text-main);
+        }
+        .trustora-wizard input::placeholder,
+        .trustora-wizard textarea::placeholder {
+          color: var(--text-muted);
+          opacity: 0.9;
+        }
+      `}</style>
 
-      <main className="container mx-auto px-4 pb-12 pt-24">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-            <CardHeader>
-              <div className="flex flex-wrap items-start justify-between gap-3">
+      <aside className="w-64 bg-[#0B1C2D] border-r border-[#152B42] flex flex-col justify-between hidden md:flex shrink-0 z-20">
+        <div>
+          <div className="h-20 flex items-center px-6 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <img src="/trustora-logo2.png" alt="Trustora Logo" className="w-8 h-8 object-contain rounded border border-white/10" />
+              <div className="flex flex-col">
+                <span className="font-bold text-lg tracking-tight text-white leading-none">TRUSTORA</span>
+                <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-[#1BC47D] mt-0.5">{tDashboard('hero.badge')}</span>
+              </div>
+            </div>
+          </div>
+
+          <nav className="p-4 space-y-1">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{tDashboard('quick_actions.title')}</p>
+
+            <button type="button" onClick={() => router.push('/dashboard')} className={dashboardSidebarItemClass('overview')}>
+              <LayoutDashboard size={18} />
+              {tDashboard('tabs.overview')}
+            </button>
+            {isClient && !isProvider ? (
+              <button type="button" onClick={() => router.push('/projects/new')} className={dashboardSidebarItemClass('new-project')}>
+                <Plus size={18} />
+                {tDashboard('projects.new_project')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+              className={dashboardSidebarItemClass(isProvider ? 'finance' : 'projects')}
+            >
+              <Lock size={18} />
+              {isProvider ? tDashboard('tabs.finance') : tDashboard('tabs.projects')}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+              className={dashboardSidebarItemClass(isProvider ? 'projects' : 'services')}
+            >
+              <Layers size={18} />
+              {isProvider ? tDashboard('tabs.projects') : tDashboard('tabs.services')}
+            </button>
+            <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={dashboardSidebarItemClass('messages')}>
+              <History size={18} />
+              {tDashboard('tabs.messages')}
+            </button>
+            {isProvider ? (
+              <>
+                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">
+                  {servicesTitle}
+                </p>
+                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={dashboardSidebarItemClass('services')}>
+                  <Users size={18} />
+                  {tDashboard('tabs.services')}
+                </button>
+              </>
+            ) : null}
+          </nav>
+        </div>
+
+        <div className="p-4 border-t border-white/5">
+          <button type="button" onClick={() => router.push('/dashboard?tab=settings')} className={`${dashboardSidebarItemClass('settings')} mb-2`}>
+            <Settings size={18} />
+            {tDashboard('tabs.settings')}
+          </button>
+          <div className="flex items-center gap-3 px-3 py-2 mt-2 bg-[#152B42] rounded-xl border border-white/5">
+            <div className="relative">
+              <Avatar className="w-8 h-8 border border-white/10">
+                <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
+                <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-white text-xs font-bold">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BC47D] rounded-full border-2 border-[#152B42]" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm font-bold text-white truncate">{userDisplayName}</p>
+              <p className="text-[10px] text-[#1BC47D] uppercase font-bold flex items-center gap-1">
+                <CheckCircle2 size={10} /> {isProvider ? tDashboard('hero.role.provider') : tDashboard('hero.role.client')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+      {/* --- MAIN CONTENT AREA --- */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300">
+        <header
+          className="h-20 backdrop-blur-md border-b flex items-center justify-between px-8 z-10 shrink-0 transition-colors duration-300"
+          style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
+        >
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text-main)' }}>{t('start_new_project')}</h1>
+            <span className="px-2.5 py-1 bg-[#1BC47D]/10 text-[#1BC47D] text-[10px] uppercase font-bold tracking-wider rounded border border-[#1BC47D]/20">
+              {t('review_create')}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-5">
+            <button
+              type="button"
+              onClick={() => setIsDarkMode((prev) => !prev)}
+              className="relative transition-colors hover:text-[var(--text-main)]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <NotificationBell />
+          </div>
+        </header>
+
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <div className="px-8 pt-8 pb-12 border-b z-10 shrink-0" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
                 <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2 text-2xl">
-                    <Sparkles className="h-5 w-5 text-emerald-500" />
+                  <h2 className="flex items-center gap-2 text-2xl font-bold" style={{ color: 'var(--text-main)' }}>
+                    <Sparkles className="h-5 w-5 text-[#1BC47D]" />
                     {t('nexora_project_lines_wizard')}
-                  </CardTitle>
-                  <CardDescription>
+                  </h2>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                     {t('create_modular_projects_with_ai_recommendations_line_by_line_briefing_and_multi')}
-                  </CardDescription>
+                  </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleStartNewProject}
+                  className="border-[#1BC47D]/30 text-[#1BC47D] hover:bg-[#1BC47D]/10 hover:text-[#1BC47D]"
                 >
                   {t('start_new_project')}
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div
-                className="grid gap-2"
-                style={{ gridTemplateColumns: `repeat(${wizardSteps.length}, minmax(0, 1fr))` }}
-              >
+
+              <div className="relative flex justify-between items-start w-full">
+                <div className="absolute top-4 left-[16px] right-[16px] h-1 -translate-y-1/2 rounded-full overflow-hidden bg-slate-200/70">
+                  <div
+                    className="h-full bg-[#1BC47D] transition-all duration-500"
+                    style={{
+                      width:
+                        wizardSteps.length > 1 && stepIndex >= 0
+                          ? `${(stepIndex / (wizardSteps.length - 1)) * 100}%`
+                          : '0%',
+                    }}
+                  />
+                </div>
+
                 {wizardSteps.map((wizardStep, index) => {
                   const active = step === wizardStep.id;
                   const done = stepIndex > index;
-
                   return (
-                    <div
-                      key={wizardStep.id}
-                      className={`rounded-lg border px-3 py-2 text-sm transition ${active
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-300 dark:bg-emerald-100 dark:text-[#0B1C2D]'
-                        : done
-                          ? 'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-300 dark:bg-slate-100 dark:text-[#0B1C2D]'
-                          : 'border-slate-200 bg-white text-slate-500 dark:border-slate-300 dark:bg-slate-50 dark:text-[#0B1C2D]'
+                    <div key={`progress-${wizardStep.id}`} className={`relative z-10 flex flex-col items-center transition-opacity duration-300 ${index <= stepIndex ? 'opacity-100' : 'opacity-50'}`}>
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                          done
+                            ? 'border-[#1BC47D] text-white'
+                            : active
+                              ? 'border-[#1BC47D] text-[#1BC47D]'
+                              : 'border-slate-300 text-slate-400'
                         }`}
-                    >
-                      <div className="text-[11px] font-medium uppercase tracking-wide">
-                        {t('step')} {index + 1}
+                        style={{ backgroundColor: done ? '#1BC47D' : 'var(--bg-card)' }}
+                      >
+                        {done ? <CheckCircle2 size={14} /> : index + 1}
                       </div>
-                      <div className="font-semibold">
-                        {t(wizardStep.labelKey)}
+                      <div className="mt-2 w-24 text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden md:block" style={{ color: index <= stepIndex ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                          {t(wizardStep.labelKey)}
+                        </span>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-8 relative pb-24">
+            <div className="max-w-4xl mx-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${step}-${projectInputMode}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                  className="trustora-wizard space-y-6"
+                >
 
           {step === 'intent' ? (
-            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-              <CardHeader>
-                <CardTitle>{t('step_1_intent')}</CardTitle>
-                <CardDescription>
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_1_intent')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('choose_your_workflow_ai_assisted_or_fully_manual')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t('input_mode')}</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    {t('input_mode')}
+                  </Label>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <button
                       type="button"
-                      variant={projectInputMode === 'ai' ? 'default' : 'outline'}
                       onClick={() => handleSelectProjectInputMode('ai')}
+                      className={`rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
+                        projectInputMode === 'ai'
+                          ? 'border-[#1BC47D] shadow-sm'
+                          : 'hover:border-[#1BC47D]/50'
+                      }`}
+                      style={{
+                        borderColor: projectInputMode === 'ai' ? '#1BC47D' : 'var(--border-color)',
+                        backgroundColor: projectInputMode === 'ai' ? 'var(--accent-light)' : 'var(--bg-card)',
+                      }}
                     >
-                      {t('ai_assistance')}
-                    </Button>
-                    <Button
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1BC47D]/20 text-[#1BC47D]">
+                          <Sparkles size={18} />
+                        </div>
+                        {projectInputMode === 'ai' ? <CheckCircle2 size={18} className="text-[#1BC47D]" /> : null}
+                      </div>
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>{t('ai_assistance')}</p>
+                    </button>
+                    <button
                       type="button"
-                      variant={projectInputMode === 'manual' ? 'default' : 'outline'}
                       onClick={() => handleSelectProjectInputMode('manual')}
+                      className={`rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
+                        projectInputMode === 'manual'
+                          ? 'border-[#0B1C2D] shadow-sm'
+                          : 'hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                      style={{
+                        borderColor: projectInputMode === 'manual'
+                          ? (isDarkMode ? '#FFFFFF' : '#0B1C2D')
+                          : 'var(--border-color)',
+                        backgroundColor: projectInputMode === 'manual'
+                          ? (isDarkMode ? 'rgba(255,255,255,0.05)' : 'var(--stat-bg)')
+                          : 'var(--bg-card)',
+                      }}
                     >
-                      {t('manual_input')}
-                    </Button>
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}>
+                          <Wrench size={18} />
+                        </div>
+                        {projectInputMode === 'manual' ? (
+                          <CheckCircle2 size={18} style={{ color: isDarkMode ? '#FFFFFF' : '#0B1C2D' }} />
+                        ) : null}
+                      </div>
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>{t('manual_input')}</p>
+                    </button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="intent">{t('what_do_you_want_to_build')}</Label>
+                  <Label htmlFor="intent" className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    {t('what_do_you_want_to_build')}
+                  </Label>
                   <Textarea
                     id="intent"
                     rows={7}
                     value={intent}
                     onChange={(event) => setIntent(event.target.value)}
                     placeholder={t('ex_i_want_to_launch_a_saas_platform_for_clinic_management_with')}
-                    className="resize-none"
+                    className="resize-none rounded-xl border shadow-inner"
+                    style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
                   />
                 </div>
 
                 {projectInputMode === 'manual' ? (
-                  <div className="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-[#1E2A3D]">
+                  <div
+                    className="space-y-4 rounded-2xl border p-5"
+                    style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)' }}
+                  >
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-2 sm:col-span-2">
                         <Label htmlFor="manual-title">{t('project_title')}</Label>
@@ -4995,7 +5286,11 @@ export default function NewProjectPage() {
 
                 <div className="flex justify-end">
                   {projectInputMode === 'ai' ? (
-                    <Button onClick={handleRequestRecommendation} disabled={loadingRecommendation}>
+                    <Button
+                      onClick={handleRequestRecommendation}
+                      disabled={loadingRecommendation}
+                      className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                    >
                       {loadingRecommendation ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -5009,7 +5304,11 @@ export default function NewProjectPage() {
                       )}
                     </Button>
                   ) : (
-                    <Button onClick={() => void handleContinueManualToReview()} disabled={loadingManualProviders}>
+                    <Button
+                      onClick={() => void handleContinueManualToReview()}
+                      disabled={loadingManualProviders}
+                      className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                    >
                       {loadingManualProviders ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -5029,14 +5328,16 @@ export default function NewProjectPage() {
           ) : null}
 
           {step === 'recommendation' && projectInputMode === 'ai' ? (
-            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-              <CardHeader>
-                <CardTitle>{t('step_2_service_recommendation')}</CardTitle>
-                <CardDescription>
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_2_service_recommendation')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('confirm_the_recommended_lines_for_your_modular_project')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {recommendation?.bundle_name ? (
                   <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300">
                     {t('recommended_bundle')}: {recommendation.bundle_name}
@@ -5044,11 +5345,11 @@ export default function NewProjectPage() {
                 ) : null}
 
                 {recommendedCards.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                  <div className="space-y-3">
+                    <div className="text-sm font-bold uppercase tracking-wider text-[#1BC47D]">
                       {t('recommended_services')}
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       {recommendedCards.map((service) => {
                         const checked = selectedServiceIndexes.includes(service.index);
                         const categoryName = getServiceCategoryName(service);
@@ -5056,17 +5357,22 @@ export default function NewProjectPage() {
                         return (
                           <Card
                             key={service.key}
-                            className={`cursor-pointer border transition ${checked
-                              ? 'border-emerald-500 bg-emerald-50/70 dark:border-emerald-500/50 dark:bg-emerald-500/10'
-                              : 'border-slate-200 dark:border-[#1E2A3D]'
-                              }`}
+                            className={`cursor-pointer border-2 transition ${
+                              checked
+                                ? 'border-[#1BC47D] shadow-sm'
+                                : 'hover:border-[#1BC47D]/50'
+                            }`}
+                            style={{
+                              borderColor: checked ? '#1BC47D' : 'var(--border-color)',
+                              backgroundColor: checked ? 'var(--accent-light)' : 'var(--bg-card)',
+                            }}
                             onClick={() => handleToggleService(service.index)}
                           >
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-2">
-                                  <CardTitle className="text-base">{service.service_name}</CardTitle>
-                                  <CardDescription className="flex items-center gap-1">
+                                  <CardTitle className="text-base" style={{ color: 'var(--text-main)' }}>{service.service_name}</CardTitle>
+                                  <CardDescription className="flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                                     {getProviderIcon(service.delivery_provider)}
                                     {getLocalizedProviderLabel(service.delivery_provider)}
                                   </CardDescription>
@@ -5085,7 +5391,7 @@ export default function NewProjectPage() {
                             </CardHeader>
                             {service.description ? (
                               <CardContent>
-                                <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">{service.description}</p>
+                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{service.description}</p>
                               </CardContent>
                             ) : null}
                           </Card>
@@ -5096,17 +5402,17 @@ export default function NewProjectPage() {
                 ) : null}
 
                 {alternativeCards.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                      <div className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                         {t('alternative_services')}
                       </div>
                       <Badge variant="secondary">{t('optional')}</Badge>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {t('you_can_select_an_alternative_service_from_the_same_category')}
                     </p>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       {alternativeCards.map((service) => {
                         const checked = selectedServiceIndexes.includes(service.index);
                         const categoryName = getServiceCategoryName(service);
@@ -5114,17 +5420,22 @@ export default function NewProjectPage() {
                         return (
                           <Card
                             key={service.key}
-                            className={`cursor-pointer border transition ${checked
-                              ? 'border-blue-500 bg-blue-50/70 dark:border-blue-500/50 dark:bg-blue-500/10'
-                              : 'border-slate-200 dark:border-[#1E2A3D]'
-                              }`}
+                            className={`cursor-pointer border-2 transition ${
+                              checked
+                                ? 'shadow-sm'
+                                : 'hover:border-[#1BC47D]/50'
+                            }`}
+                            style={{
+                              borderColor: checked ? (isDarkMode ? '#FFFFFF' : '#0B1C2D') : 'var(--border-color)',
+                              backgroundColor: checked ? 'var(--stat-bg)' : 'var(--bg-card)',
+                            }}
                             onClick={() => handleToggleService(service.index)}
                           >
                             <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-2">
-                                  <CardTitle className="text-base">{service.service_name}</CardTitle>
-                                  <CardDescription className="flex items-center gap-1">
+                                  <CardTitle className="text-base" style={{ color: 'var(--text-main)' }}>{service.service_name}</CardTitle>
+                                  <CardDescription className="flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                                     {getProviderIcon(service.delivery_provider)}
                                     {getLocalizedProviderLabel(service.delivery_provider)}
                                   </CardDescription>
@@ -5148,7 +5459,7 @@ export default function NewProjectPage() {
                             </CardHeader>
                             {service.description ? (
                               <CardContent>
-                                <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">{service.description}</p>
+                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{service.description}</p>
                               </CardContent>
                             ) : null}
                           </Card>
@@ -5159,11 +5470,16 @@ export default function NewProjectPage() {
                 ) : null}
 
                 <div className="flex items-center justify-between pt-2">
-                  <Button variant="outline" onClick={() => transitionTo('intent')}>
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('intent')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {t('back_to_intent')}
                   </Button>
-                  <Button onClick={handleConfirmRecommendation}>
+                  <Button onClick={handleConfirmRecommendation} className="bg-[#1BC47D] text-white hover:bg-[#18A96B]">
                     {t('confirm_and_continue')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -5173,16 +5489,18 @@ export default function NewProjectPage() {
           ) : null}
 
           {step === 'briefing' && projectInputMode === 'ai' ? (
-            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-              <CardHeader>
-                <CardTitle>{t('step_3_modular_briefing')}</CardTitle>
-                <CardDescription>
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_3_modular_briefing')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('the_brief_is_built_on_the_echo_channel')}{' '}
                   <code>user.{String(user.id)}.briefs</code>{' '}
                   {t('and_displayed_by_project_lines')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
@@ -5256,7 +5574,7 @@ export default function NewProjectPage() {
                       />
                     </div>
                     <div className="flex justify-end">
-                      <Button onClick={() => void handleSendClarification()}>
+                      <Button onClick={() => void handleSendClarification()} className="bg-[#1BC47D] text-white hover:bg-[#18A96B]">
                         {t('send_clarification')}
                       </Button>
                     </div>
@@ -5647,12 +5965,21 @@ export default function NewProjectPage() {
                 ) : null}
 
                 <div className="flex items-center justify-between pt-2">
-                  <Button variant="outline" onClick={() => transitionTo('recommendation')}>
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('recommendation')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {t('back_to_recommendation')}
                   </Button>
 
-                  <Button onClick={() => transitionTo('providers')} disabled={!briefResult || briefStatus !== 'FINAL'}>
+                  <Button
+                    onClick={() => transitionTo('providers')}
+                    disabled={!briefResult || briefStatus !== 'FINAL'}
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                  >
                     {t('continue_to_providers')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -5662,17 +5989,17 @@ export default function NewProjectPage() {
           ) : null}
 
           {step === 'providers' ? (
-            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-              <CardHeader>
-                <CardTitle>
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
                   {t('step_2')} {currentStepNumber ?? 4}:{' '}
                   {t('provider_selection')}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('for_each_service_select_recommended_providers_or_choose_alternatives_from_the_extended')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {providerSelectionGroups.length === 0 ? (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
@@ -5927,6 +6254,8 @@ export default function NewProjectPage() {
                     onClick={() =>
                       transitionTo(projectInputMode === 'manual' ? 'intent' : 'briefing')
                     }
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {projectInputMode === 'manual'
@@ -5937,6 +6266,7 @@ export default function NewProjectPage() {
                   <Button
                     onClick={() => transitionTo('connections')}
                     disabled={!briefResult || briefStatus !== 'FINAL'}
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
                   >
                     {t('continue_to_connections')}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -5947,16 +6277,16 @@ export default function NewProjectPage() {
           ) : null}
 
           {step === 'connections' ? (
-            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-              <CardHeader>
-                <CardTitle>
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
                   {t('step_2')} {currentStepNumber ?? 5}: {t('provider_connections')}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('connect_required_delivery_providers_for_selected_services')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {requiredOAuthProviders.length === 0 ? (
                   <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
                     <CheckCircle2 className="h-4 w-4" />
@@ -6033,12 +6363,21 @@ export default function NewProjectPage() {
                 ) : null}
 
                 <div className="flex items-center justify-between pt-2">
-                  <Button variant="outline" onClick={() => transitionTo('providers')}>
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('providers')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {t('back_to_providers')}
                   </Button>
 
-                  <Button onClick={() => transitionTo('review')} disabled={!canContinueFromConnections}>
+                  <Button
+                    onClick={() => transitionTo('review')}
+                    disabled={!canContinueFromConnections}
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                  >
                     {t('continue_to_review')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -6048,16 +6387,16 @@ export default function NewProjectPage() {
           ) : null}
 
           {step === 'review' ? (
-            <Card className="border-slate-200 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-              <CardHeader>
-                <CardTitle>
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
                   {t('step_2')} {currentStepNumber ?? 6}: {t('review_create')}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {t('review_budget_distribution_for_each_line_then_create_the_modular_project')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {briefPayloadTruncated ? (
                   <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
                     <AlertCircle className="h-4 w-4" />
@@ -6367,6 +6706,8 @@ export default function NewProjectPage() {
                   <Button
                     variant="outline"
                     onClick={() => transitionTo('connections')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {t('back_to_connections')}
@@ -6381,6 +6722,7 @@ export default function NewProjectPage() {
                       !effectivePaymentPlan
                       // || (requiresMilestonesByDuration && linesMissingMilestones.length > 0)
                     }
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
                   >
                     {creatingProject ? (
                       <>
@@ -6398,6 +6740,10 @@ export default function NewProjectPage() {
               </CardContent>
             </Card>
           ) : null}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -6415,8 +6761,6 @@ export default function NewProjectPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Footer />
     </div>
   );
 }
