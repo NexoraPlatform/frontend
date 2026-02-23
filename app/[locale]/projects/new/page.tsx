@@ -4780,7 +4780,7 @@ export default function NewProjectPage() {
       {/* --- MAIN CONTENT AREA --- */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300">
         <header
-          className="h-20 backdrop-blur-md border-b flex items-center justify-between px-8 z-10 shrink-0 transition-colors duration-300"
+          className="h-20 backdrop-blur-md border-b flex items-center justify-between px-4 md:px-6 z-10 shrink-0 transition-colors duration-300"
           style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
         >
           <div className="flex items-center gap-4">
@@ -4804,8 +4804,8 @@ export default function NewProjectPage() {
         </header>
 
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          <div className="px-8 pt-8 pb-12 border-b z-10 shrink-0" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-            <div className="max-w-6xl mx-auto">
+          <div className="px-4 md:px-6 pt-8 pb-12 border-b z-10 shrink-0" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+            <div className="max-w-7xl mx-auto">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
                 <div className="space-y-1">
                   <h2 className="flex items-center gap-2 text-2xl font-bold" style={{ color: 'var(--text-main)' }}>
@@ -4869,8 +4869,8 @@ export default function NewProjectPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 relative pb-24">
-            <div className="max-w-4xl mx-auto">
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 relative pb-24">
+            <div className="max-w-7xl mx-auto">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`${step}-${projectInputMode}`}
