@@ -30,7 +30,6 @@ import {
     Dialog,
     DialogContent,
     DialogHeader,
-    DialogTrigger,
     DialogTitle,
     DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
@@ -94,7 +93,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
 
     const getNextMilestoneStatus = (status: string): 'work_in_progress' | 'finished' | null => {
         const normalized = normalizeStatusValue(status);
-        if (normalized === 'PENDING') return 'work_in_progress';
+        if (normalized === 'PENDING' || normalized === 'ESCROW' || normalized === 'BLOCKED') return 'work_in_progress';
         if (normalized === 'WORK_IN_PROGRESS' || normalized === 'IN_PROGRESS') return 'finished';
         return null;
     };
@@ -113,6 +112,12 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             await apiClient.markProjectMilestone(projectId, {
                 milestone: requestMilestoneId,
                 language: locale,
+                currency:
+                    String(
+                        project?.budget?.currency ??
+                        project?.currency ??
+                        'USD'
+                    ).toUpperCase(),
                 status: nextStatus,
             });
             await onRefresh?.();
@@ -126,7 +131,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const handleBudgetResponse = async (
         projectId: string,
         providerId: string,
-        budget: number,
         response: 'ACCEPTED' | 'REJECTED'
     ) => {
         setResponding(`${projectId}-${providerId}`);
@@ -135,11 +139,10 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                 projectId,
                 providerId,
                 {
-                    budget,
-                    notes:
-                        response === 'ACCEPTED'
-                            ? 'Budget approved by client'
-                            : 'Budget proposal rejected by client',
+                    response,
+                    ...(response === 'REJECTED'
+                        ? { reason: 'Budget proposal rejected by client' }
+                        : {}),
                 },
                 locale
             );
@@ -206,6 +209,22 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         }
     };
 
+    const getBudgetStatusBadge = (status: string) => {
+        const normalizedStatus = normalizeStatusValue(status);
+        switch (normalizedStatus) {
+            case 'PENDING':
+                return <Badge className="bg-yellow-100 text-yellow-800">Budget pending</Badge>;
+            case 'PROPOSED':
+                return <Badge className="bg-blue-100 text-blue-800">Budget proposed</Badge>;
+            case 'ACCEPTED':
+                return <Badge className="bg-green-100 text-green-800">Budget accepted</Badge>;
+            case 'REJECTED':
+                return <Badge className="bg-red-100 text-red-800">Budget rejected</Badge>;
+            default:
+                return <Badge variant="secondary">{normalizedStatus || '-'}</Badge>;
+        }
+    };
+
     const getMilestonePaymentStatusBadge = (status: string) => {
         const normalizedStatus = normalizeStatusValue(status);
         switch (normalizedStatus) {
@@ -217,6 +236,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                     </Badge>
                 );
             case 'ESCROW':
+            case 'BLOCKED':
                 return (
                     <Badge className="bg-green-100 text-green-800">
                         <CheckCircle className="w-3 h-3 mr-1" />
@@ -285,6 +305,62 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             default:
                 return <Badge variant="secondary">{normalizedStatus || '-'}</Badge>;
         }
+    };
+
+    const isMilestonePaymentSecuredStatus = (status: string) => {
+        const normalized = normalizeStatusValue(status);
+        if (!normalized) return false;
+        return (
+            normalized === 'ESCROW' ||
+            normalized.includes('ESCROW') ||
+            normalized === 'BLOCKED' ||
+            normalized.includes('BLOCK') ||
+            normalized === 'PAID' ||
+            normalized === 'RELEASED' ||
+            normalized.includes('RELEASE')
+        );
+    };
+
+    const isMilestonePaymentSettledStatus = (status: string) => {
+        const normalized = normalizeStatusValue(status);
+        return (
+            normalized === 'PAID' ||
+            normalized === 'RELEASED'
+        );
+    };
+
+    const isPendingMilestonePaymentStatus = (status: string) => {
+        const normalized = normalizeStatusValue(status);
+        if (!normalized) return true;
+        if (normalized === 'PENDING') return true;
+
+        if (normalized.startsWith('PENDING')) {
+            return (
+                !normalized.includes('ESCROW') &&
+                !normalized.includes('BLOCK') &&
+                !normalized.includes('PAID') &&
+                !normalized.includes('RELEASE')
+            );
+        }
+
+        return false;
+    };
+
+    const hasMilestoneEscrowOrPaymentReference = (entry: any) => {
+        const escrowReference =
+            entry?.escrow_id ??
+            entry?.escrowId ??
+            entry?.escrow_reference ??
+            entry?.escrowReference ??
+            null;
+        const paymentReference =
+            entry?.payment_id ??
+            entry?.paymentId ??
+            entry?.rapyd_payment_id ??
+            entry?.rapydPaymentId ??
+            null;
+
+        return Boolean(escrowReference || paymentReference);
     };
 
     if (loading) {
@@ -371,13 +447,24 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         if (!providerId) return null;
 
         const selectedProvider = selectedProvidersById.get(providerId) ?? null;
+        const rawName = String(providerRaw?.name ?? selectedProvider?.name ?? '').trim();
+        const [nameFirstPart = '', ...nameRestParts] = rawName ? rawName.split(/\s+/) : [];
+        const inferredFirstName = nameFirstPart;
+        const inferredLastName = nameRestParts.join(' ');
+        const projectStatus = normalizeStatusValue(project?.status ?? '');
+        const inferredProviderResponse =
+            projectStatus === 'PENDING'
+                ? 'PENDING'
+                : projectStatus
+                    ? 'ACCEPTED'
+                    : '';
         const providerResponse = normalizeStatusValue(
             providerRaw?.provider_response ??
             providerRaw?.pivotResponse ??
             providerRaw?.pivot?.provider_response ??
             selectedProvider?.provider_response ??
             selectedProvider?.pivot?.provider_response
-        );
+        ) || inferredProviderResponse;
         const providerStatus = normalizeStatusValue(
             providerRaw?.status ??
             providerResponse ??
@@ -401,8 +488,18 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         return {
             ...providerRaw,
             id: providerId,
-            firstName: providerRaw?.firstName ?? providerRaw?.first_name ?? selectedProvider?.firstName ?? '',
-            lastName: providerRaw?.lastName ?? providerRaw?.last_name ?? selectedProvider?.lastName ?? '',
+            firstName:
+                providerRaw?.firstName ??
+                providerRaw?.first_name ??
+                selectedProvider?.firstName ??
+                inferredFirstName ??
+                'Provider',
+            lastName:
+                providerRaw?.lastName ??
+                providerRaw?.last_name ??
+                selectedProvider?.lastName ??
+                inferredLastName ??
+                (inferredFirstName ? '' : `#${providerId}`),
             avatar: providerRaw?.avatar ?? selectedProvider?.avatar ?? null,
             rating: toFiniteNumber(providerRaw?.rating ?? selectedProvider?.rating) ?? 0,
             location:
@@ -413,12 +510,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             services,
             status: providerStatus,
             provider_response: providerResponse,
-            client_budget_approved: normalizeStatusValue(
-                providerRaw?.client_budget_approved ??
-                providerRaw?.pivotClientResponse ??
-                providerRaw?.pivot?.client_budget_approved ??
-                selectedProvider?.pivot?.client_budget_approved
-            ),
             allocatedBudget,
             proposedBudget,
             respondedAt:
@@ -430,10 +521,63 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         };
     };
 
-    const providersListRaw =
-        Array.isArray(project?.providers) && project.providers.length > 0
-            ? project.providers
-            : selectedProviders;
+    const projectLineMilestonesForProviders = Array.isArray(project?.project_line_milestones)
+        ? project.project_line_milestones
+        : projectLines.flatMap((line: any) =>
+            (Array.isArray(line?.milestones) ? line.milestones : []).map((milestone: any) => ({
+                ...milestone,
+                project_line_id: milestone?.project_line_id ?? milestone?.projectLineId ?? line?.id,
+                service_id: milestone?.service_id ?? milestone?.serviceId ?? line?.service_id,
+                service_name: milestone?.service_name ?? milestone?.serviceName ?? line?.service_name,
+            }))
+        );
+    const providersFromProjectLines = projectLines.flatMap((line: any) =>
+        Array.isArray(line?.providers) ? line.providers : []
+    );
+    const providersFromMilestones = projectLineMilestonesForProviders
+        .map((milestone: any) => {
+            const assignedProvider = (milestone?.assigned_provider && typeof milestone.assigned_provider === 'object')
+                ? milestone.assigned_provider
+                : null;
+            const assignedProviderId =
+                resolveProviderId(assignedProvider) ??
+                (milestone?.assigned_provider_id != null ? String(milestone.assigned_provider_id) : null) ??
+                (milestone?.assignedProviderId != null ? String(milestone.assignedProviderId) : null) ??
+                (milestone?.provider_id != null ? String(milestone.provider_id) : null) ??
+                (milestone?.providerId != null ? String(milestone.providerId) : null);
+            if (!assignedProviderId) return null;
+
+            if (assignedProvider) {
+                return {
+                    ...assignedProvider,
+                    id: assignedProviderId,
+                };
+            }
+
+            return {
+                id: assignedProviderId,
+                provider_response: normalizeStatusValue(project?.status ?? '') === 'PENDING' ? 'PENDING' : 'ACCEPTED',
+            };
+        })
+        .filter((provider: any) => Boolean(provider));
+    const providersListRawMap = new Map<string, any>();
+    const registerProviderCandidate = (providerCandidate: any) => {
+        const providerId = resolveProviderId(providerCandidate);
+        if (!providerId) return;
+        const existing = providersListRawMap.get(providerId) ?? { id: providerId };
+        providersListRawMap.set(providerId, {
+            ...existing,
+            ...providerCandidate,
+            id: providerId,
+        });
+    };
+    [
+        ...providersFromMilestones,
+        ...providersFromProjectLines,
+        ...(Array.isArray(project?.providers) ? project.providers : []),
+        ...selectedProviders,
+    ].forEach(registerProviderCandidate);
+    const providersListRaw = Array.from(providersListRawMap.values());
     const normalizedProviders = providersListRaw
         .map((provider: any) => normalizeProviderForCard(provider))
         .filter((provider: any) => Boolean(provider));
@@ -464,31 +608,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         if (lineMilestones.length > 0) {
             return lineMilestones;
         }
-
-        if (!Array.isArray(projectData?.milestones)) {
-            return [];
-        }
-
-        return projectData.milestones.flatMap((milestoneGroup: any) => {
-            const groupServiceId = milestoneGroup?.service_id ?? milestoneGroup?.serviceId ?? null;
-            const groupServiceName = milestoneGroup?.service_name ?? milestoneGroup?.serviceName ?? null;
-            const groupLineId = milestoneGroup?.project_line_id ?? milestoneGroup?.projectLineId ?? null;
-            const groupProviderId = milestoneGroup?.provider_id ?? milestoneGroup?.providerId ?? null;
-            const groupedMilestones = Array.isArray(milestoneGroup?.milestones) ? milestoneGroup.milestones : [];
-
-            return groupedMilestones.map((milestone: any) => ({
-                ...milestone,
-                project_line_id: milestone?.project_line_id ?? milestone?.projectLineId ?? groupLineId,
-                service_id: milestone?.service_id ?? milestone?.serviceId ?? groupServiceId,
-                service_name: milestone?.service_name ?? milestone?.serviceName ?? groupServiceName,
-                assigned_provider_id:
-                    milestone?.assigned_provider_id ??
-                    milestone?.providerId ??
-                    milestone?.provider_id ??
-                    groupProviderId ??
-                    null,
-            }));
-        });
+        return [];
     };
 
     const getProviderMilestones = (projectData: any, providerData: any) => {
@@ -589,13 +709,9 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             return providerLineIds.has(String(lineId));
         });
 
-        const legacyProviderMilestones = projectData?.milestones
-            ?.find((entry: any) => String(entry?.providerId ?? entry?.provider_id) === providerId)
-            ?.milestones;
         const mergedPrimaryMilestones = [
             ...explicitlyAssignedMilestones,
             ...unassignedMilestonesFromProviderLines,
-            ...(Array.isArray(legacyProviderMilestones) ? legacyProviderMilestones : []),
         ];
         if (mergedPrimaryMilestones.length > 0) {
             return sortAndDeduplicateMilestones(mergedPrimaryMilestones);
@@ -662,6 +778,68 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         return sortAndDeduplicateMilestones(filtered);
     };
 
+    const getAssignedProviderMilestones = (projectData: any, providerData: any) => {
+        const providerId = resolveProviderId(providerData);
+        if (!providerId) return [];
+
+        const toSortableNumber = (value: unknown) => {
+            if (value === null || value === undefined || value === '') {
+                return Number.MAX_SAFE_INTEGER;
+            }
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER;
+        };
+
+        const allMilestones = getProjectMilestones(projectData);
+        const providerMilestones = allMilestones.filter((milestone: any) => {
+            const assignedProviderId =
+                milestone?.assigned_provider_id ??
+                milestone?.assignedProviderId ??
+                milestone?.provider_id ??
+                milestone?.providerId ??
+                null;
+            return assignedProviderId !== null && assignedProviderId !== undefined && String(assignedProviderId) === providerId;
+        });
+
+        const seenIds = new Set<string>();
+        return [...providerMilestones]
+            .sort((a: any, b: any) => {
+                const lineOrderA = toSortableNumber(a?.project_line_id ?? a?.projectLineId);
+                const lineOrderB = toSortableNumber(b?.project_line_id ?? b?.projectLineId);
+                if (lineOrderA !== lineOrderB) return lineOrderA - lineOrderB;
+
+                const sequenceOrderA = toSortableNumber(
+                    a?.sequence ??
+                    a?.order ??
+                    a?.order_index ??
+                    a?.orderIndex ??
+                    a?.position
+                );
+                const sequenceOrderB = toSortableNumber(
+                    b?.sequence ??
+                    b?.order ??
+                    b?.order_index ??
+                    b?.orderIndex ??
+                    b?.position
+                );
+                if (sequenceOrderA !== sequenceOrderB) return sequenceOrderA - sequenceOrderB;
+
+                const numericIdA = toSortableNumber(getMilestoneId(a));
+                const numericIdB = toSortableNumber(getMilestoneId(b));
+                return numericIdA - numericIdB;
+            })
+            .filter((milestone: any) => {
+                const milestoneId = getMilestoneId(milestone);
+                if (milestoneId === null || milestoneId === undefined) {
+                    return true;
+                }
+                const key = String(milestoneId);
+                if (seenIds.has(key)) return false;
+                seenIds.add(key);
+                return true;
+            });
+    };
+
     const projectBudgetAmount = (() => {
         if (project?.budget && typeof project.budget === 'object') {
             return toFiniteNumber((project.budget as { amount?: unknown }).amount);
@@ -673,6 +851,18 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const hasValidProjectCreatedAt = Boolean(projectCreatedAt && !Number.isNaN(projectCreatedAt.getTime()));
     const activeServices = Array.from(servicesMap.values());
     const providersCount = normalizedProviders.length;
+    const currentUserId = user?.id != null ? String(user.id) : null;
+    const currentProviderMilestones = currentUserId
+        ? getAssignedProviderMilestones(project, { id: currentUserId })
+        : [];
+    const hasCurrentProviderWorkInProgress = currentProviderMilestones.some((milestone: any) => {
+        const milestoneStatus = normalizeStatusValue(milestone?.status ?? '');
+        return milestoneStatus === 'WORK_IN_PROGRESS' || milestoneStatus === 'IN_PROGRESS';
+    });
+    const projectStatusForDisplay =
+        isProviderRole && !isClientRole && hasCurrentProviderWorkInProgress
+            ? 'WORK_IN_PROGRESS'
+            : project.status;
 
     return (
         <Card key={project.id} className="border-2">
@@ -681,7 +871,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                     <div>
                         <CardTitle className="text-xl mb-2">
                             {project.title}
-                            <span className="ms-2">{getStatusBadge(project.status)}</span>
+                            <span className="ms-2">{getStatusBadge(projectStatusForDisplay)}</span>
                         </CardTitle>
                         <CardDescription className="line-clamp-2">
                             {project.description}
@@ -756,89 +946,177 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                     <div className="text-sm font-medium mb-3">{t('client.project_requests.providers.title')}:</div>
                     <div className="space-y-3">
                         {normalizedProviders.map((provider: any) => {
-                            const providerMilestones = getProviderMilestones(project, provider);
+                            const collectIdentityValues = (source: any): string[] => {
+                                if (!source || typeof source !== 'object') return [];
+                                const rawValues = [
+                                    source?.id,
+                                    source?.user_id,
+                                    source?.userId,
+                                    source?.provider_id,
+                                    source?.providerId,
+                                    source?.profile_id,
+                                    source?.profileId,
+                                    source?.pivot?.provider_id,
+                                    source?.pivot?.providerId,
+                                    source?.pivot?.user_id,
+                                    source?.pivot?.userId,
+                                    source?.profile?.id,
+                                    source?.profile?.user_id,
+                                    source?.profile?.userId,
+                                ];
+
+                                return Array.from(
+                                    new Set(
+                                        rawValues
+                                            .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
+                                            .map((value) => String(value))
+                                    )
+                                );
+                            };
+                            const providerIdentityValues = collectIdentityValues(provider);
+                            const currentUserIdentityValues = collectIdentityValues(user);
+                            const isCurrentUserProvider =
+                                providerIdentityValues.some((value) => currentUserIdentityValues.includes(value)) ||
+                                (isProviderRole && !isClientRole && normalizedProviders.length === 1);
+                            const providerMilestones =
+                                isProviderRole && !isClientRole && isCurrentUserProvider
+                                    ? getAssignedProviderMilestones(project, provider)
+                                    : getProviderMilestones(project, provider);
                             const providerMilestonesTotal = providerMilestones.reduce((sum: number, milestone: any) => {
                                 return sum + (toFiniteNumber(milestone?.amount) ?? 0);
                             }, 0);
-                            const providerResponseStatus = normalizeStatusValue(provider?.provider_response);
-                            const isCurrentUserProvider = String(provider?.id ?? '') === String(user?.id ?? '');
-                            const isProjectPending = normalizeStatusValue(project?.status) === 'PENDING';
                             const providerBudgetBase =
                                 provider.allocatedBudget != null
                                     ? provider.allocatedBudget
                                     : providerMilestonesTotal > 0
                                         ? providerMilestonesTotal
                                         : null;
-                            const approveBudgetValue =
-                                provider.proposedBudget != null ? provider.proposedBudget : providerBudgetBase;
-                            const rejectBudgetValue =
-                                providerBudgetBase != null ? providerBudgetBase : provider.proposedBudget;
-                            const canClientManageBudgetProposal = isClientRole && providerResponseStatus === 'PENDING';
+                            const providerMilestonesProposedTotal = providerMilestones.reduce((sum: number, milestone: any) => {
+                                const proposedAmount = normalizePositiveBudget(
+                                    milestone?.proposed_amount ??
+                                    milestone?.proposedAmount
+                                );
+                                if (proposedAmount === null) return sum;
+                                return sum + proposedAmount;
+                            }, 0);
+                            const providerProposedBudget =
+                                provider.proposedBudget != null
+                                    ? provider.proposedBudget
+                                    : providerMilestonesProposedTotal > 0
+                                        ? providerMilestonesProposedTotal
+                                        : null;
+                            const milestoneBudgetStatusFor = (entry: any) =>
+                                normalizeStatusValue(entry?.budget_status ?? entry?.budgetStatus ?? '');
+                            const providerMilestoneBudgetStatuses = providerMilestones
+                                .map((entry: any) => milestoneBudgetStatusFor(entry))
+                                .filter(Boolean);
+                            const providerLineBudgetStatuses = projectLines
+                                .filter((line: any) => {
+                                    const lineProviders = Array.isArray(line?.providers) ? line.providers : [];
+                                    const hasDirectProviderMatch = lineProviders.some(
+                                        (lineProvider: any) => resolveProviderId(lineProvider) === String(provider.id)
+                                    );
+                                    if (hasDirectProviderMatch) return true;
+
+                                    const lineMilestones = Array.isArray(line?.milestones) ? line.milestones : [];
+                                    return lineMilestones.some((lineMilestone: any) => {
+                                        const assignedProviderId =
+                                            lineMilestone?.assigned_provider_id ??
+                                            lineMilestone?.assignedProviderId ??
+                                            lineMilestone?.provider_id ??
+                                            lineMilestone?.providerId ??
+                                            null;
+                                        return assignedProviderId !== null && String(assignedProviderId) === String(provider.id);
+                                    });
+                                })
+                                .map((line: any) => normalizeStatusValue(line?.budget_status ?? line?.budgetStatus ?? ''))
+                                .filter(Boolean);
+                            const providerBudgetStatus = (() => {
+                                if (providerMilestoneBudgetStatuses.includes('PROPOSED')) return 'PROPOSED';
+                                if (providerMilestoneBudgetStatuses.includes('REJECTED')) return 'REJECTED';
+                                if (
+                                    providerMilestoneBudgetStatuses.length > 0 &&
+                                    providerMilestoneBudgetStatuses.every((status: string) => status === 'ACCEPTED')
+                                ) {
+                                    return 'ACCEPTED';
+                                }
+                                if (providerLineBudgetStatuses.includes('PROPOSED')) return 'PROPOSED';
+                                if (providerLineBudgetStatuses.includes('REJECTED')) return 'REJECTED';
+                                if (
+                                    providerLineBudgetStatuses.length > 0 &&
+                                    providerLineBudgetStatuses.every((status: string) => status === 'ACCEPTED')
+                                ) {
+                                    return 'ACCEPTED';
+                                }
+                                const explicitProviderBudgetStatus = normalizeStatusValue(
+                                    provider?.budget_status ?? provider?.budgetStatus ?? ''
+                                );
+                                return explicitProviderBudgetStatus || 'PENDING';
+                            })();
+                            const canClientManageBudgetProposal =
+                                isClientRole && providerBudgetStatus === 'PROPOSED';
                             const canProviderRespondToProject =
                                 isProviderRole &&
                                 isCurrentUserProvider &&
-                                isProjectPending &&
-                                providerResponseStatus === 'PENDING';
+                                (providerBudgetStatus === 'PENDING' || providerBudgetStatus === 'REJECTED');
                             const milestoneStatusFor = (entry: any) => normalizeStatusValue(entry?.status ?? '');
-                            const milestonePaymentStatusFor = (entry: any) =>
-                                normalizeStatusValue(entry?.payment_status ?? entry?.paymentStatus ?? 'PENDING');
-                            const isPendingPaymentStatus = (entry: any) =>
-                                milestonePaymentStatusFor(entry).startsWith('PENDING');
-                            const isApprovedStatus = (value: unknown) => {
-                                const normalized = normalizeStatusValue(value);
-                                return normalized === 'ACCEPTED' || normalized === 'APPROVED' || normalized === 'TRUE';
-                            };
-                            const providerBudgetApprovalStatus = normalizeStatusValue(
-                                provider?.client_budget_approved ??
-                                provider?.pivotClientResponse ??
-                                provider?.pivot?.client_budget_approved ??
-                                ''
-                            );
-                            const getMilestoneBudgetApprovalStatus = (entry: any) =>
-                                normalizeStatusValue(
-                                    entry?.budget_approved ??
-                                    entry?.budgetApproval ??
-                                    entry?.client_budget_approved ??
-                                    entry?.clientBudgetApproved ??
-                                    entry?.assigned_provider?.client_budget_approved ??
-                                    entry?.assigned_provider?.clientBudgetApproved ??
-                                    entry?.assigned_provider?.pivot?.client_budget_approved ??
+                            const milestonePaymentStatusFor = (entry: any) => {
+                                const explicitStatus = normalizeStatusValue(
+                                    entry?.payment_status ??
+                                    entry?.paymentStatus ??
                                     ''
                                 );
+                                if (explicitStatus) return explicitStatus;
+
+                                const fallbackStatus = normalizeStatusValue(entry?.status ?? '');
+                                if (!fallbackStatus) return 'PENDING';
+                                if (fallbackStatus === 'REJECTED') return 'REJECTED';
+                                if (isMilestonePaymentSecuredStatus(fallbackStatus)) return fallbackStatus;
+                                if (isPendingMilestonePaymentStatus(fallbackStatus)) return fallbackStatus;
+                                return 'PENDING';
+                            };
+                            const isPendingPaymentStatus = (entry: any) =>
+                                isPendingMilestonePaymentStatus(milestonePaymentStatusFor(entry)) &&
+                                !isMilestonePaymentSecuredStatus(milestonePaymentStatusFor(entry)) &&
+                                !isMilestonePaymentSettledStatus(milestoneStatusFor(entry)) &&
+                                !hasMilestoneEscrowOrPaymentReference(entry);
                             const isMilestoneBudgetApproved = (entry: any) => {
-                                const milestoneBudgetApprovalStatus = getMilestoneBudgetApprovalStatus(entry);
-                                if (milestoneBudgetApprovalStatus) {
-                                    return isApprovedStatus(milestoneBudgetApprovalStatus);
+                                const milestoneBudgetStatus = milestoneBudgetStatusFor(entry);
+                                if (milestoneBudgetStatus) {
+                                    return milestoneBudgetStatus === 'ACCEPTED';
                                 }
-                                if (providerBudgetApprovalStatus) {
-                                    return isApprovedStatus(providerBudgetApprovalStatus);
-                                }
-                                return false;
+                                return providerBudgetStatus === 'ACCEPTED';
                             };
-                            const providerHasApprovedMilestoneBudget = providerMilestones.some((entry: any) => {
-                                const milestoneBudgetApprovalStatus = getMilestoneBudgetApprovalStatus(entry);
-                                if (!milestoneBudgetApprovalStatus) return false;
-                                return isApprovedStatus(milestoneBudgetApprovalStatus);
-                            });
-                            const isProviderBudgetApproved =
-                                isApprovedStatus(providerBudgetApprovalStatus) || providerHasApprovedMilestoneBudget;
-                            const providerStatus = normalizeStatusValue(provider?.status ?? 'PENDING');
-                            const providerDisplayStatus =
-                                providerStatus === 'WORK_IN_PROGRESS' && !isProviderBudgetApproved
-                                    ? 'AWAITING_BUDGET_APPROVAL'
-                                    : providerStatus;
-                            const isFinalizedMilestone = (entry: any) => {
+                            const providerDisplayStatus = providerBudgetStatus;
+                            const isMilestoneBeyondEscrowPhase = (entry: any) => {
                                 const status = milestoneStatusFor(entry);
-                                return status === 'FINISHED' || status === 'COMPLETED' || status === 'PAID';
+                                return (
+                                    status === 'WORK_IN_PROGRESS' ||
+                                    status === 'IN_PROGRESS' ||
+                                    status === 'FINISHED' ||
+                                    status === 'COMPLETED' ||
+                                    status === 'PAID'
+                                );
                             };
-                            const firstPendingIndex = providerMilestones.findIndex(
-                                (milestone: any) => isPendingPaymentStatus(milestone)
+                            const isMilestonePaidStatus = (entry: any) => {
+                                const status = milestoneStatusFor(entry);
+                                return status === 'PAID';
+                            };
+                            const firstPendingIndex = providerMilestones.findIndex((milestone: any) => {
+                                const status = milestoneStatusFor(milestone);
+                                const isStatusEligibleForSecurePayment = status === 'PENDING';
+                                return (
+                                    isStatusEligibleForSecurePayment &&
+                                    isPendingPaymentStatus(milestone) &&
+                                    isMilestoneBudgetApproved(milestone)
+                                );
+                            }
                             );
                             const previousPendingMilestone =
                                 firstPendingIndex > 0 ? providerMilestones[firstPendingIndex - 1] : null;
                             const canAdvanceToNextPendingMilestone =
                                 firstPendingIndex === 0 ||
-                                (previousPendingMilestone != null && isFinalizedMilestone(previousPendingMilestone));
+                                (previousPendingMilestone != null && isMilestonePaidStatus(previousPendingMilestone));
                             const securizablePendingIndex =
                                 firstPendingIndex >= 0 && canAdvanceToNextPendingMilestone ? firstPendingIndex : -1;
                             return (
@@ -876,7 +1154,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        {getStatusBadge(providerDisplayStatus)}
+                                        {getBudgetStatusBadge(providerDisplayStatus)}
                                         <div className="text-sm text-muted-foreground mt-1">
                                             {t('client.project_requests.providers.allocated')}{' '}
                                             {providerBudgetBase != null ? (
@@ -889,15 +1167,17 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 </div>
                                 {canProviderRespondToProject && (
                                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        <Button
-                                            size="sm"
-                                            onClick={() =>
-                                                onResponse(String(project.id), { response: 'ACCEPTED' })
-                                            }
-                                        >
-                                            <CheckCircle className="w-4 h-4 mr-1" />
-                                            {t('client.project_requests.budget.approve')}
-                                        </Button>
+                                        {providerBudgetStatus === 'PENDING' ? (
+                                            <Button
+                                                size="sm"
+                                                onClick={() =>
+                                                    onResponse(String(project.id), { response: 'ACCEPTED' })
+                                                }
+                                            >
+                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                                {t('client.project_requests.budget.approve')}
+                                            </Button>
+                                        ) : null}
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -907,23 +1187,27 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                             }}
                                         >
                                             <Banknote className="w-4 h-4 mr-1" />
-                                            {t('client.project_requests.budget.propose_new')}
+                                            {providerBudgetStatus === 'REJECTED'
+                                                ? t('client.project_requests.budget.propose_new')
+                                                : t('client.project_requests.budget.propose_new')}
                                         </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() =>
-                                                onResponse(String(project.id), {
-                                                    response: 'REJECTED',
-                                                    refusal_scope: 'project',
-                                                    suggestions_limit: 5,
-                                                    reason: 'Provider rejected project participation',
-                                                })
-                                            }
-                                        >
-                                            <XCircle className="w-4 h-4 mr-1" />
-                                            {t('client.project_requests.budget.reject')}
-                                        </Button>
+                                        {providerBudgetStatus === 'PENDING' ? (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() =>
+                                                    onResponse(String(project.id), {
+                                                        response: 'REJECTED',
+                                                        refusal_scope: 'project',
+                                                        suggestions_limit: 5,
+                                                        reason: 'Provider rejected project participation',
+                                                    })
+                                                }
+                                            >
+                                                <XCircle className="w-4 h-4 mr-1" />
+                                                {t('client.project_requests.budget.reject')}
+                                            </Button>
+                                        ) : null}
                                     </div>
                                 )}
 
@@ -937,71 +1221,6 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                             setProposeNewBudgetProviderId(isOpen ? provider.id : null);
                                         }}
                                     >
-                                        <DialogContent className="max-w-2xl">
-                                            <DialogHeader>
-                                                <DialogTitle>{t('client.project_requests.budget.new_proposal')}</DialogTitle>
-                                                <DialogDescription>
-                                                    {t('client.project_requests.budget.new_proposal_description')}
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="flex flex-col flex-wrap gap-1">
-                                                <div>
-                                                    {t('client.project_requests.budget.original')}{' '}
-                                                    {providerBudgetBase != null ? (
-                                                        <PriceDisplay value={providerBudgetBase} />
-                                                    ) : (
-                                                        '-'
-                                                    )}
-                                                </div>
-                                                <div>{t('client.project_requests.budget.enter_proposal')}</div>
-                                                <div>
-                                                    <Input
-                                                        type="number"
-                                                        value={newBudget}
-                                                        onChange={(e) => setNewBudget(Number(e.target.value))}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <DialogFooter>
-                                                <DialogClose asChild>
-                                                    <Button variant="outline">{t('client.project_requests.budget.cancel')}</Button>
-                                                </DialogClose>
-                                                <Button
-                                                    variant="default"
-                                                    onClick={() => {
-                                                        onResponse(String(project.id), {
-                                                            response: 'NEW_PROPOSE',
-                                                            proposedBudget: newBudget,
-                                                        });
-                                                        setProposeNewBudgetProviderId(null);
-                                                    }}
-                                                >
-                                                    {t('client.project_requests.budget.save_changes')}
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
-
-                                {canClientManageBudgetProposal && (
-                                    <Dialog
-                                        open={proposeNewBudgetProviderId === provider.id}
-                                        onOpenChange={(isOpen) => {
-                                            if (isOpen) {
-                                                setNewBudget(providerBudgetBase ?? 0);
-                                            }
-                                            setProposeNewBudgetProviderId(isOpen ? provider.id : null);
-                                        }}
-                                    >
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setNewBudget(providerBudgetBase ?? 0)}
-                                            >
-                                                {t('client.project_requests.budget.new_proposal')}
-                                            </Button>
-                                        </DialogTrigger>
                                         <DialogContent className="max-w-2xl">
                                             <DialogHeader>
                                                 <DialogTitle>{t('client.project_requests.budget.new_proposal')}</DialogTitle>
@@ -1058,8 +1277,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 <div>
                                                     <div className="font-medium">{t('client.project_requests.budget.new_proposal')}:</div>
                                                     <div className="text-lg font-bold text-emerald-600">
-                                                        {provider.proposedBudget != null ? (
-                                                            <PriceDisplay value={provider.proposedBudget} />
+                                                        {providerProposedBudget != null ? (
+                                                            <PriceDisplay value={providerProposedBudget} />
                                                         ) : (
                                                             '-'
                                                         )}
@@ -1077,18 +1296,15 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                     <Button
                                                         size="sm"
                                                         onClick={() => {
-                                                            if (approveBudgetValue == null) return;
                                                             handleBudgetResponse(
                                                                 String(project.id),
                                                                 String(provider.id),
-                                                                approveBudgetValue,
                                                                 'ACCEPTED'
                                                             );
                                                         }}
                                                         disabled={
                                                             responding === `${project.id}-${provider.id}` ||
-                                                            providerResponseStatus !== 'PENDING' ||
-                                                            approveBudgetValue == null
+                                                            providerBudgetStatus !== 'PROPOSED'
                                                         }
                                                     >
                                                         <CheckCircle className="w-4 h-4 mr-1" />
@@ -1096,29 +1312,15 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                     </Button>
                                                     <Button
                                                         size="sm"
-                                                        variant="outline"
-                                                        onClick={() => setProposeNewBudgetProviderId(provider.id)}
-                                                        disabled={responding === `${project.id}-${provider.id}` || providerResponseStatus !== 'PENDING'}
-                                                    >
-                                                        <Banknote className="w-4 h-4 mr-1" />
-                                                        {t('client.project_requests.budget.propose_new')}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
                                                         variant="destructive"
                                                         onClick={() => {
-                                                            if (rejectBudgetValue == null) return;
                                                             handleBudgetResponse(
                                                                 String(project.id),
                                                                 String(provider.id),
-                                                                rejectBudgetValue,
                                                                 'REJECTED'
                                                             );
                                                         }}
-                                                        disabled={
-                                                            responding === `${project.id}-${provider.id}` ||
-                                                            rejectBudgetValue == null
-                                                        }
+                                                        disabled={responding === `${project.id}-${provider.id}` || providerBudgetStatus !== 'PROPOSED'}
                                                     >
                                                         <XCircle className="w-4 h-4 mr-1" />
                                                         {t('client.project_requests.budget.reject')}
@@ -1150,16 +1352,10 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 const milestoneId = getMilestoneId(milestone);
                                                 const milestoneStatus = milestoneStatusFor(milestone);
                                                 const milestonePaymentStatus = milestonePaymentStatusFor(milestone);
-                                                const previousStatus = normalizeStatusValue(providerMilestones[index - 1]?.status ?? '');
-                                                const previousPaymentStatus = normalizeStatusValue(
-                                                    providerMilestones[index - 1]?.payment_status ?? providerMilestones[index - 1]?.paymentStatus ?? ''
-                                                );
-                                                const isPreviousMilestonePaid =
-                                                    index === 0 ||
-                                                    previousStatus === 'PAID' ||
-                                                    previousPaymentStatus === 'PAID';
+                                                const hasMilestoneExceededEscrowPhase = isMilestoneBeyondEscrowPhase(milestone);
                                                 const canSecureThisMilestone =
                                                     isClientRole &&
+                                                    !hasMilestoneExceededEscrowPhase &&
                                                     isPendingPaymentStatus(milestone) &&
                                                     isMilestoneBudgetApproved(milestone) &&
                                                     milestoneId !== null &&
@@ -1167,15 +1363,57 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                     index === securizablePendingIndex;
                                                 const showDisabledSecurePaymentButton =
                                                     isClientRole &&
-                                                    isPendingPaymentStatus(milestone) &&
+                                                    (isPendingPaymentStatus(milestone) || hasMilestoneExceededEscrowPhase) &&
                                                     !canSecureThisMilestone;
                                                 const nextMilestoneStatus = getNextMilestoneStatus(milestoneStatus);
+                                                const milestoneBudgetStatus =
+                                                    milestoneBudgetStatusFor(milestone) || providerBudgetStatus;
+                                                const assignedProviderIdForMilestone =
+                                                    milestone?.assigned_provider_id ??
+                                                    milestone?.assignedProviderId ??
+                                                    milestone?.provider_id ??
+                                                    milestone?.providerId ??
+                                                    null;
+                                                const providerIdForCard = String(provider?.id ?? '');
+                                                const isMilestoneAssignedToCardProvider =
+                                                    assignedProviderIdForMilestone !== null &&
+                                                    assignedProviderIdForMilestone !== undefined &&
+                                                    String(assignedProviderIdForMilestone) === providerIdForCard;
                                                 const canAdvanceMilestoneStatus =
-                                                    project.status === 'ACCEPTED' &&
-                                                    milestonePaymentStatus === 'ESCROW' &&
-                                                    isPreviousMilestonePaid &&
-                                                    milestoneId &&
-                                                    nextMilestoneStatus !== null;
+                                                    (() => {
+                                                        if (
+                                                            !isProviderRole ||
+                                                            !isCurrentUserProvider ||
+                                                            !isMilestoneAssignedToCardProvider ||
+                                                            !milestoneId ||
+                                                            nextMilestoneStatus === null
+                                                        ) {
+                                                            return false;
+                                                        }
+
+                                                        const normalizedMilestoneStatus = normalizeStatusValue(milestoneStatus);
+                                                        const isTerminatedMilestone =
+                                                            normalizedMilestoneStatus === 'FINISHED' ||
+                                                            normalizedMilestoneStatus === 'COMPLETED' ||
+                                                            normalizedMilestoneStatus === 'PAID' ||
+                                                            normalizedMilestoneStatus === 'REJECTED';
+                                                        if (isTerminatedMilestone) {
+                                                            return false;
+                                                        }
+
+                                                        if (nextMilestoneStatus === 'work_in_progress') {
+                                                            return (
+                                                                isMilestonePaymentSecuredStatus(milestonePaymentStatus) ||
+                                                                normalizedMilestoneStatus === 'ESCROW' ||
+                                                                normalizedMilestoneStatus === 'BLOCKED'
+                                                            );
+                                                        }
+
+                                                        return nextMilestoneStatus === 'finished';
+                                                    })();
+                                                const milestoneProposedAmount = toFiniteNumber(
+                                                    milestone?.proposed_amount ?? milestone?.proposedAmount
+                                                );
                                                 const isMilestoneUpdating =
                                                     milestoneId !== null &&
                                                     milestoneId !== undefined &&
@@ -1192,11 +1430,15 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                             <span className="font-medium">
                                                                 {t('client.project_requests.providers.milestone_budget')}{' '}
                                                                 <PriceDisplay value={toFiniteNumber(milestone.amount) ?? 0} />
+                                                                {milestoneBudgetStatus === 'PROPOSED' && milestoneProposedAmount != null ? (
+                                                                    <span className="ml-2 text-blue-700">
+                                                                        {'->'} <PriceDisplay value={milestoneProposedAmount} />
+                                                                    </span>
+                                                                ) : null}
                                                             </span>
                                                         </div>
                                                         <div className="ms-2 flex items-center gap-2">
                                                             {getMilestoneStatusBadge(milestoneStatus)}
-                                                            {getMilestonePaymentStatusBadge(milestonePaymentStatus)}
                                                         </div>
                                                         {canAdvanceMilestoneStatus && (
                                                             <span>
@@ -1211,9 +1453,9 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                                     {isMilestoneUpdating ? (
                                                                         <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
                                                                     ) : null}
-                                                                    {milestoneStatus === 'PENDING'
+                                                                    {nextMilestoneStatus === 'work_in_progress'
                                                                         ? t('client.project_requests.milestones.start_work')
-                                                                        : milestoneStatus === 'WORK_IN_PROGRESS' || milestoneStatus === 'IN_PROGRESS'
+                                                                        : nextMilestoneStatus === 'finished'
                                                                             ? t('client.project_requests.milestones.mark_finished')
                                                                             : t('client.project_requests.milestones.finished')}
                                                                 </Button>
@@ -1260,7 +1502,12 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                 {/* Project Actions */}
                 <div className="flex space-x-3 mt-6 pt-4 border-t">
 
-                    <Button variant="outline" size="sm" onClick={() => router.push(`/projects/${project.slug}`)}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/projects/${project.slug ?? project.id}`)}
+                        disabled={!project?.slug && !project?.id}
+                    >
                         <Eye className="w-4 h-4 mr-2" />
                         {t('client.project_requests.actions.view_details')}
                     </Button>

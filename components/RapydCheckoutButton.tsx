@@ -37,6 +37,7 @@ export default function RapydCheckoutButton({
     const locale = useLocale();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const checkoutInstance = useRef<any>(null);
+    const checkoutContainerId = 'rapyd-checkout';
 
     const getMilestoneId = useCallback((milestone: any) => {
         return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
@@ -83,17 +84,42 @@ export default function RapydCheckoutButton({
         return [];
     }, []);
 
+    const resetCheckoutContainer = useCallback(() => {
+        if (typeof document === 'undefined') return;
+        const container = document.getElementById(checkoutContainerId);
+        if (container) {
+            container.innerHTML = '';
+        }
+    }, [checkoutContainerId]);
+
+    const waitForCheckoutContainer = useCallback(async () => {
+        if (typeof document === 'undefined') return null;
+        for (let i = 0; i < 40; i += 1) {
+            const node = document.getElementById(checkoutContainerId);
+            if (node) return node;
+            await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+        return null;
+    }, [checkoutContainerId]);
+
+    const wait = useCallback((ms: number) => {
+        return new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), ms);
+        });
+    }, []);
+
     const closeCheckoutToolkit = useCallback(() => {
         const instance = checkoutInstance.current;
-        if (!instance) return;
-        try {
-            if (typeof instance.closeToolkit === 'function') {
-                instance.closeToolkit();
+        if (instance) {
+            try {
+                if (typeof instance.closeToolkit === 'function') {
+                    instance.closeToolkit();
+                }
+            } catch (error) {
+                console.warn('Failed to close Rapyd checkout toolkit:', error);
+            } finally {
+                checkoutInstance.current = null;
             }
-        } catch (error) {
-            console.warn('Failed to close Rapyd checkout toolkit:', error);
-        } finally {
-            checkoutInstance.current = null;
         }
     }, []);
 
@@ -154,16 +180,17 @@ export default function RapydCheckoutButton({
 
     // 2. Funcția de start plată
     const handlePayment = async () => {
-        setIsModalVisible(true);
-
-        if (checkoutInstance.current) {
-            return;
-        }
         if (!isScriptLoaded) {
             toast.error('Sistemul de plată se încarcă. Te rugăm să încerci din nou în câteva secunde.');
             return;
         }
+        if (isLoading) {
+            return;
+        }
 
+        closeCheckoutToolkit();
+        resetCheckoutContainer();
+        setIsModalVisible(true);
         setIsLoading(true);
 
         try {
@@ -189,20 +216,26 @@ export default function RapydCheckoutButton({
                 throw new Error('Nu am primit ID-ul de checkout.');
             }
 
-            // B. Lansăm Rapyd Toolkit (Dialog/Modal)
-            if (window.RapydCheckoutToolkit) {
-                const checkout = new window.RapydCheckoutToolkit({
-                    pay_button_text: `Plătește acum`,
-                    id: data.checkout_id,
-                    container_id: 'rapyd-checkout',
-                    close_on_complete: true // Modul de încasare
-                });
+            // Asigură că modalul și containerul sunt montate înainte de init toolkit.
+            await wait(30);
+            const checkoutContainer = await waitForCheckoutContainer();
+            if (!checkoutContainer) {
+                throw new Error('Container-ul de plată nu a fost inițializat. Încearcă din nou.');
+            }
+            resetCheckoutContainer();
 
-                checkoutInstance.current = checkout;
-                checkout.displayCheckout();
-            } else {
+            // B. Lansăm Rapyd Toolkit (Dialog/Modal)
+            if (!window.RapydCheckoutToolkit) {
                 throw new Error('Librăria Rapyd nu este încărcată.');
             }
+            const checkout = new window.RapydCheckoutToolkit({
+                pay_button_text: `Plătește acum`,
+                id: data.checkout_id,
+                container_id: checkoutContainerId,
+                close_on_complete: true
+            });
+            checkoutInstance.current = checkout;
+            checkout.displayCheckout();
 
         } catch (error: any) {
             console.error(error);
@@ -302,6 +335,7 @@ export default function RapydCheckoutButton({
         <>
             {/* Încărcăm scriptul Rapyd (Sandbox sau Prod) */}
             <Script
+                id="rapyd-checkout-toolkit-script"
                 src="https://sandboxcheckouttoolkit.rapyd.net"
                 strategy="afterInteractive"
                 onLoad={() => {
@@ -321,10 +355,9 @@ export default function RapydCheckoutButton({
                 {isLoading ? 'Se procesează...' : t('client.project_requests.actions.secure_payment') || "Secure Payment"}
             </Button>
 
+            {isModalVisible ? (
             <div
-                className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 p-4 sm:p-6 ${
-                    isModalVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                }`}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 p-4 sm:p-6 opacity-100 pointer-events-auto"
             >
                 <div className={`bg-white dark:bg-[#0B1220] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[95vh] transition-transform duration-300 ${
                     isModalVisible ? 'scale-100' : 'scale-95'
@@ -343,9 +376,11 @@ export default function RapydCheckoutButton({
                             </div>
                             <button
                                 onClick={() => {
-                                    setIsModalVisible(false);
-                                    setIsLoading(false);
                                     closeCheckoutToolkit();
+                                    resetCheckoutContainer();
+                                    if (typeof window !== 'undefined') {
+                                        window.location.reload();
+                                    }
                                 }}
                                 className="p-1.5 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                             >
@@ -421,7 +456,7 @@ export default function RapydCheckoutButton({
                             )}
 
                             <div
-                                id="rapyd-checkout"
+                                id={checkoutContainerId}
                                 className="w-full"
                                 style={{ minHeight: '350px' }}
                             ></div>
@@ -436,6 +471,7 @@ export default function RapydCheckoutButton({
                     </div>
                 </div>
             </div>
+            ) : null}
         </>
     );
 }

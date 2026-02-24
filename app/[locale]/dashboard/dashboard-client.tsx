@@ -56,6 +56,10 @@ import { Link } from '@/lib/navigation';
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
 import { NotificationBell } from '@/components/notification-bell';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
+import { ChatButton } from '@/components/chat/chat-button';
+import ChatLauncher from '@/components/chat/chat-launcher';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 
@@ -209,17 +213,11 @@ export default function DashboardClient() {
   const [transferAmount, setTransferAmount] = useState('');
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferLoading, setTransferLoading] = useState(false);
+  const [rapydConnecting, setRapydConnecting] = useState(false);
+  const hasRapydConnected = Boolean(user?.rapyd_wallet_id);
 
   useEffect(() => {
     document.title = 'Trustora | Escrow Dashboard';
-    const existing = document.querySelector('link[data-dashboard-fonts="true"]');
-    if (!existing) {
-      const link = document.createElement('link');
-      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap';
-      link.rel = 'stylesheet';
-      link.setAttribute('data-dashboard-fonts', 'true');
-      document.head.appendChild(link);
-    }
   }, []);
 
   const parseBalanceAmount = useCallback((value: unknown) => {
@@ -623,37 +621,56 @@ export default function DashboardClient() {
     const channel = echo.private(`App.Models.User.${user.id}`);
     const handler = (notification: {
       type?: string;
-      data?: { type?: string; projectId?: string | number; payload?: { projectId?: string | number } };
+      data?: {
+        type?: string;
+        projectId?: string | number;
+        payload?: { projectId?: string | number; status?: string };
+      };
       projectId?: string | number;
-      payload?: { projectId?: string | number };
+      payload?: { projectId?: string | number; status?: string };
     }) => {
-      const declaredType = String(
-        notification?.data?.type ??
-        notification?.type ??
-        ''
-      ).toLowerCase();
+      const rawType = String(notification?.type ?? '').toLowerCase();
+      const declaredType = String(notification?.data?.type ?? '').toLowerCase();
+      const isBudgetAcceptedByProvider =
+        declaredType === 'budget.accepted.by_provider' ||
+        rawType.includes('provideracceptedclientbudget');
       const projectId =
         notification?.data?.projectId ??
         notification?.projectId ??
         notification?.data?.payload?.projectId ??
         notification?.payload?.projectId;
+      const payloadStatus = String(
+        notification?.data?.payload?.status ??
+        notification?.payload?.status ??
+        ''
+      ).toUpperCase();
       const isProjectEvent =
         declaredType.startsWith('project.') ||
         declaredType.startsWith('budget.');
+      const isProjectStatusUpdatedEvent =
+        declaredType === 'project.status.updated' ||
+        rawType.includes('projectstatusupdated');
+      const isProviderFinishedNotification =
+        isProjectStatusUpdatedEvent && payloadStatus === 'FINISHED';
       const isRapydEvent = declaredType.startsWith('rapyd.');
+      const isFallbackProjectEvent = !declaredType && Boolean(projectId);
+      const shouldReloadProjectsForBothRoles =
+        isProjectEvent ||
+        isProjectStatusUpdatedEvent ||
+        isProviderFinishedNotification ||
+        isBudgetAcceptedByProvider ||
+        isFallbackProjectEvent ||
+        (isRapydEvent && Boolean(projectId));
 
       if (isRapydEvent && isProvider) {
         void fetchBalance();
       }
 
-      const shouldRefetchProjects =
-        activeTab === 'projects' &&
-        isProvider &&
-        (isProjectEvent || (isRapydEvent && Boolean(projectId)));
+      const shouldRefetchProjects = shouldReloadProjectsForBothRoles;
 
       const shouldRefreshOverview =
         activeTab === 'overview' &&
-        (isProjectEvent || isRapydEvent);
+        (isProjectEvent || isBudgetAcceptedByProvider || isRapydEvent);
 
       if (shouldRefetchProjects) {
         void loadProjects();
@@ -747,6 +764,7 @@ export default function DashboardClient() {
 
 
   const getRapydOnboardingUrl = async () => {
+    setRapydConnecting(true);
     try {
       if (!user) return;
       const response = await apiClient.rapydOnboarding(locale);
@@ -769,10 +787,24 @@ export default function DashboardClient() {
       });
       refreshUser().catch(() => { });
 
-      // window.location.href = response.url;
+      const onboardingUrl =
+        (typeof response?.url === 'string' && response.url.trim()
+          ? response.url
+          : typeof response?.data?.url === 'string' && response.data.url.trim()
+            ? response.data.url
+            : null);
+
+      if (onboardingUrl && typeof window !== 'undefined') {
+        window.location.href = onboardingUrl;
+        return;
+      }
+
+      await fetchBalance();
     } catch (error) {
       console.error('Error fetching Rapyd onboarding URL:', error);
       return null;
+    } finally {
+      setRapydConnecting(false);
     }
   }
 
@@ -1130,7 +1162,20 @@ export default function DashboardClient() {
                 </p>
               </div>
 
-              {balanceLoading ? (
+              {!hasRapydConnected ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-400">{t('dashboard.hero.balance.error')}</p>
+                  <button
+                    type="button"
+                    onClick={getRapydOnboardingUrl}
+                    disabled={rapydConnecting}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#1BC47D] px-3 py-2 text-xs font-semibold text-[#06111A] transition-colors hover:bg-[#17b672] disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {rapydConnecting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    {t('dashboard.hero.rapyd.connect')}
+                  </button>
+                </div>
+              ) : balanceLoading ? (
                 <p className="text-xs text-slate-400">{t('dashboard.hero.balance.loading')}</p>
               ) : balanceError ? (
                 <p className="text-xs text-red-300">{balanceError}</p>
@@ -1197,7 +1242,21 @@ export default function DashboardClient() {
             </div>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+              </div>
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+              </div>
+            </div>
             <button
               onClick={() => setIsDarkMode((prev) => !prev)}
               className="relative transition-colors hover:text-[var(--text-main)]"
@@ -1209,6 +1268,9 @@ export default function DashboardClient() {
 
             <div className="relative">
               <NotificationBell />
+            </div>
+            <div className="relative">
+              <ChatButton />
             </div>
 
             <div className="w-px h-6 transition-colors duration-300" style={{ backgroundColor: 'var(--border-color)' }} />
@@ -1680,10 +1742,28 @@ export default function DashboardClient() {
                       <span>{t('dashboard.finance.title')}</span>
                     </CardTitle>
                     <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                      {t('dashboard.finance.wallet_balance')}: {formatBalanceAmount(balance?.balance, balance?.currency)}
+                      {hasRapydConnected
+                        ? `${t('dashboard.finance.wallet_balance')}: ${formatBalanceAmount(balance?.balance, balance?.currency)}`
+                        : t('dashboard.hero.rapyd.connect')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {!hasRapydConnected ? (
+                      <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
+                        <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-4">
+                          {t('dashboard.hero.balance.error')}
+                        </p>
+                        <Button
+                          type="button"
+                          className="bg-[#1BC47D] hover:bg-[#159c63] text-[#06111A]"
+                          onClick={getRapydOnboardingUrl}
+                          disabled={rapydConnecting}
+                        >
+                          {rapydConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          {t('dashboard.hero.rapyd.connect')}
+                        </Button>
+                      </div>
+                    ) : (
                     <div className="grid gap-6 lg:grid-cols-2">
                       <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
                         <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
@@ -1780,6 +1860,7 @@ export default function DashboardClient() {
                         </Button>
                       </div>
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1790,6 +1871,7 @@ export default function DashboardClient() {
           </motion.div>
         </div>
       </main>
+      {user ? <ChatLauncher /> : null}
     </Tabs>
   );
 }

@@ -34,6 +34,10 @@ import { toast } from 'sonner';
 import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
 import { NotificationBell } from '@/components/notification-bell';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
+import { ChatButton } from '@/components/chat/chat-button';
+import ChatLauncher from '@/components/chat/chat-launcher';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -1740,14 +1744,6 @@ export default function NewProjectPage() {
 
   useEffect(() => {
     document.title = 'Trustora | Create Project';
-    const existing = document.querySelector('link[data-dashboard-fonts="true"]');
-    if (!existing) {
-      const link = document.createElement('link');
-      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap';
-      link.rel = 'stylesheet';
-      link.setAttribute('data-dashboard-fonts', 'true');
-      document.head.appendChild(link);
-    }
   }, []);
 
   const [manualServiceSearch, setManualServiceSearch] = useState('');
@@ -3439,15 +3435,15 @@ export default function NewProjectPage() {
 
   const briefingDisplay = useMemo(() => {
     const duration =
-      briefResult?.recommended_duration ||
       briefResult?.project_duration ||
       briefResult?.duration ||
-      briefModularDetails?.recommended_duration ||
+      briefResult?.recommended_duration ||
       briefModularDetails?.project_duration ||
       briefModularDetails?.duration ||
-      briefFullDetails?.recommended_duration ||
+      briefModularDetails?.recommended_duration ||
       briefFullDetails?.project_duration ||
       briefFullDetails?.duration ||
+      briefFullDetails?.recommended_duration ||
       '';
 
     const paymentPlan =
@@ -4790,7 +4786,21 @@ export default function NewProjectPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+              </div>
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setIsDarkMode((prev) => !prev)}
@@ -4800,6 +4810,7 @@ export default function NewProjectPage() {
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             <NotificationBell />
+            <ChatButton />
           </div>
         </header>
 
@@ -5951,16 +5962,16 @@ export default function NewProjectPage() {
                       </div>
                     ) : null}
 
-                    {briefDebugResponseJson ? (
-                      <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                          {t('debug_response_json')}
-                        </div>
-                        <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
-{briefDebugResponseJson}
-                        </pre>
-                      </div>
-                    ) : null}
+{/*                    {briefDebugResponseJson ? (*/}
+{/*                      <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">*/}
+{/*                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">*/}
+{/*                          {t('debug_response_json')}*/}
+{/*                        </div>*/}
+{/*                        <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">*/}
+{/*{briefDebugResponseJson}*/}
+{/*                        </pre>*/}
+{/*                      </div>*/}
+{/*                    ) : null}*/}
                   </div>
                 ) : null}
 
@@ -6691,16 +6702,16 @@ export default function NewProjectPage() {
                   </div>
                 </div>
 
-                {createProjectPayloadDebugJson ? (
-                  <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                      {t('debug_create_payload_json_request_body')}
-                    </div>
-                    <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
-{createProjectPayloadDebugJson}
-                    </pre>
-                  </div>
-                ) : null}
+{/*                {createProjectPayloadDebugJson ? (*/}
+{/*                  <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">*/}
+{/*                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">*/}
+{/*                      {t('debug_create_payload_json_request_body')}*/}
+{/*                    </div>*/}
+{/*                    <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">*/}
+{/*{createProjectPayloadDebugJson}*/}
+{/*                    </pre>*/}
+{/*                  </div>*/}
+{/*                ) : null}*/}
 
                 <div className="flex items-center justify-between pt-2">
                   <Button
@@ -6761,6 +6772,7 @@ export default function NewProjectPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ChatLauncher />
     </div>
   );
 }

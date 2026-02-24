@@ -1,4 +1,4 @@
-import { apiFetch, FetchError } from '@/lib/fetch-client';
+import { apiFetch, FetchError, type ApiFetchOptions } from '@/lib/fetch-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
@@ -46,6 +46,7 @@ export type MilestoneStatusInput =
 export type MarkProjectMilestonePayload = {
   milestone: number | string;
   language?: string;
+  currency?: string;
   status?: MilestoneStatusInput;
 };
 
@@ -59,8 +60,8 @@ export type ProjectRespondPayload = {
 };
 
 export type ProjectProviderBudgetResponsePayload = {
-  budget?: number;
-  notes?: string;
+  response: 'ACCEPTED' | 'REJECTED';
+  reason?: string;
   [key: string]: unknown;
 };
 
@@ -193,12 +194,24 @@ const normalizeBudgetPayload = (value: unknown): BudgetPayload => {
 const normalizeProjectLineMilestone = (value: unknown) => {
   const milestone = asObject(value) ?? {};
   const amount = toFiniteNumber(milestone.amount) ?? 0;
+  const proposedAmount = toFiniteNumber(
+    milestone.proposed_amount ?? milestone.proposedAmount
+  );
   const percentage = toFiniteNumber(milestone.percentage) ?? 0;
+  const budgetStatusRaw =
+    typeof milestone.budget_status === 'string'
+      ? milestone.budget_status
+      : typeof milestone.budgetStatus === 'string'
+        ? milestone.budgetStatus
+        : '';
+  const budgetStatus = budgetStatusRaw.trim().toUpperCase() || 'PENDING';
 
   return {
     ...milestone,
     amount,
+    proposed_amount: proposedAmount,
     percentage,
+    budget_status: budgetStatus,
     status:
       (typeof milestone.status === 'string' && milestone.status) || 'PENDING',
   };
@@ -232,12 +245,33 @@ const normalizeProjectLine = (value: unknown) => {
     (rawBudgetAllocation !== null && rawBudgetAllocation > 100
       ? rawBudgetAllocation
       : 0);
+  const lineBudgetStatusRaw =
+    typeof line.budget_status === 'string'
+      ? line.budget_status
+      : typeof line.budgetStatus === 'string'
+        ? line.budgetStatus
+        : '';
+  const lineMilestoneBudgetStatuses = milestones
+    .map((milestone) => String((milestone as Record<string, unknown>)?.budget_status ?? '').trim().toUpperCase())
+    .filter(Boolean);
+  const derivedLineBudgetStatus = (() => {
+    if (lineMilestoneBudgetStatuses.includes('PROPOSED')) return 'PROPOSED';
+    if (lineMilestoneBudgetStatuses.includes('REJECTED')) return 'REJECTED';
+    if (
+      lineMilestoneBudgetStatuses.length > 0 &&
+      lineMilestoneBudgetStatuses.every((status) => status === 'ACCEPTED')
+    ) {
+      return 'ACCEPTED';
+    }
+    return 'PENDING';
+  })();
 
   return {
     ...line,
     price: price ?? 0,
     budget_allocation: budgetAllocationAmount,
     budget_percentage: budgetPercentage,
+    budget_status: lineBudgetStatusRaw.trim().toUpperCase() || derivedLineBudgetStatus,
     milestones,
     deliverables,
   };
@@ -537,7 +571,7 @@ export class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: ApiFetchOptions = {}
   ): Promise<T> {
     try {
       const response = await apiFetch<T | null>(endpoint, {
@@ -1637,8 +1671,15 @@ export class ApiClient {
         'Content-Type': 'application/json',
       },
     });
-    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
     const payload = asObject(response);
+    if (payload && payload.success === false) {
+      const message =
+        (typeof payload.message === 'string' && payload.message) ||
+        (typeof payload.error === 'string' && payload.error) ||
+        'Failed to load project requests.';
+      throw new Error(message);
+    }
+    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
 
     return {
       ...(payload ?? {}),
@@ -1671,11 +1712,13 @@ export class ApiClient {
 
   async markProjectMilestone(projectId: number | string, payload: MarkProjectMilestonePayload) {
     const normalizedStatus = normalizeMilestoneStatusInput(payload?.status);
+    const params = new URLSearchParams();
+
+
     const response = await this.request<any>(`/projects/${projectId}/markMilestone`, {
       method: 'POST',
       body: JSON.stringify({
         milestone: String(payload.milestone),
-        ...(payload.language ? { language: payload.language } : {}),
         ...(normalizedStatus ? { status: normalizedStatus } : {}),
       }),
       headers: {
@@ -1715,8 +1758,15 @@ export class ApiClient {
         'Content-Type': 'application/json',
       },
     });
-    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
     const payload = asObject(response);
+    if (payload && payload.success === false) {
+      const message =
+        (typeof payload.message === 'string' && payload.message) ||
+        (typeof payload.error === 'string' && payload.error) ||
+        'Failed to load project requests.';
+      throw new Error(message);
+    }
+    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
 
     return {
       ...(payload ?? {}),
@@ -2101,12 +2151,16 @@ export class ApiClient {
   }
 
   async updateUserLanguage(language: string) {
-    return this.request<any>(`/users/language`, {
+    const params = new URLSearchParams();
+    params.set('language', language);
+
+    return this.request<any>(`/users/language?${params.toString()}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ lang: language }),
+      skipDefaultParams: true,
     });
   }
 
