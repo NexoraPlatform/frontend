@@ -7,35 +7,19 @@ export function useActivityTracker() {
     useEffect(() => {
         if (userLoading || !user) return;
 
-        let interval: ReturnType<typeof setInterval> | null = null;
-        let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-        const resolveToken = () => {
-            if (typeof window === 'undefined') return null;
-            const clientToken = apiClient.getToken?.() ?? null;
-            return clientToken || localStorage.getItem('auth_token');
+        const updateActivity = () => {
+            void apiClient.updateLastActive().catch((error) => {
+                if (process.env.NODE_ENV !== 'production') {
+                    console.warn('Failed to update last active timestamp:', error);
+                }
+            });
         };
 
-        const start = () => {
-            const token = resolveToken();
-            if (!token) {
-                retryTimer = setTimeout(start, 500);
-                return;
-            }
-
-            if (apiClient.getToken?.() !== token && apiClient.setToken) {
-                apiClient.setToken(token);
-            }
-
-            apiClient.updateLastActive();
-            interval = setInterval(() => apiClient.updateLastActive(), 60_000);
-        };
-
-        start();
+        updateActivity();
+        const interval = window.setInterval(updateActivity, 60_000);
 
         return () => {
-            if (retryTimer) clearTimeout(retryTimer);
-            if (interval) clearInterval(interval);
+            clearInterval(interval);
         };
     }, [userLoading, user]);
 }

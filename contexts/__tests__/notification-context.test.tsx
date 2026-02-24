@@ -63,7 +63,6 @@ describe('contexts/notification-context', () => {
   };
 
   beforeEach(() => {
-    localStorage.setItem('auth_token', 'token-123');
     mockedUseAuth.mockReturnValue({ user: { id: '1' } });
   });
 

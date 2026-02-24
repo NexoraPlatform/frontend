@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useRouter } from '@/lib/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,8 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const t = useTranslations();
-  const router = useRouter();
+  const locale = useLocale();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const badgeText = t('auth.signin.badge');
   const titlePrefix = t('auth.signin.title_prefix');
@@ -46,6 +47,28 @@ export default function SignInPage() {
   const genericErrorText = t('auth.signin.generic_error');
   const benefits = [benefitVerifiedContracts, benefitAutomatedEscrow, benefitProjectTimeline, benefitSupport];
 
+  const getSafeCallbackUrl = () => {
+    const fallback = `/${locale}/dashboard`;
+    const raw = searchParams.get('callbackUrl');
+    if (!raw) return fallback;
+
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    })();
+
+    try {
+      const parsed = new URL(decoded, window.location.origin);
+      if (parsed.origin !== window.location.origin) return fallback;
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return decoded.startsWith('/') ? decoded : fallback;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -53,7 +76,7 @@ export default function SignInPage() {
 
     try {
       await login(email, password);
-      router.push('/dashboard');
+      window.location.assign(getSafeCallbackUrl());
     } catch (error: any) {
       setError(error.message || genericErrorText);
     } finally {
@@ -85,14 +108,14 @@ export default function SignInPage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {benefits.map((item) => (
-                    <div
-                      key={item}
-                      className="glass-card flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
-                    >
-                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                      {item}
-                    </div>
-                  ))}
+                  <div
+                    key={item}
+                    className="glass-card flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    {item}
+                  </div>
+                ))}
               </div>
             </div>
 

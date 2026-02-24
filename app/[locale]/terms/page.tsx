@@ -19,7 +19,12 @@ export async function generateMetadata({ params }: TermsPageProps) {
     description: isEnglish
       ? "Trustora terms and conditions for clients and providers."
       : "Termenii și condițiile de utilizare Trustora pentru clienți și furnizori.",
+    locale,
     url: "/terms",
+    robots: {
+      index: false,
+      follow: false,
+    },
   });
 }
 

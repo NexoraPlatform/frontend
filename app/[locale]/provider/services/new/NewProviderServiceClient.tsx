@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { hasRole } from '@/lib/access';
 
 type ClientProps = {
     serviceId?: string; // vine din searchParams
@@ -62,7 +63,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
             return;
         }
 
-        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (!hasRole(user, ['provider'])) {
             router.push('/dashboard');
             return;
         }
@@ -125,7 +126,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) return null;
+    if (!user || !hasRole(user, ['provider'])) return null;
 
     return (
         <>

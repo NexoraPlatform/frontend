@@ -58,12 +58,12 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
             certificate de înregistrare a firmei (CUI/CIF), extrase bancare.
           </li>
           <li>
-            Notă: Procesarea documentelor sensibile de identitate se face predominant prin partenerul nostru Stripe,
+            Notă: Procesarea documentelor sensibile de identitate se face predominant prin partenerul nostru Rapyd,
             conform standardelor bancare de securitate.
           </li>
           <li>
             Date Financiare: Detalii cont bancar (IBAN), istoric tranzacții, detalii facturare. Nu stocăm numere complete
-            de card pe serverele noastre; acestea sunt procesate securizat de Stripe.
+            de card pe serverele noastre; acestea sunt procesate securizat de Rapyd.
           </li>
           <li>
             Comunicări: Mesajele trimise prin sistemul nostru de Chat (components/chat), detaliile despre apelurile video
@@ -168,9 +168,9 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
         <p>Nu vindem datele dumneavoastră. Le transmitem doar partenerilor necesari funcționării serviciului:</p>
         <ul className="space-y-1 pl-5 list-disc">
           <li>
-            Procesatori de Plăți (Stripe): Pentru procesarea plăților, gestionarea conturilor &quot;Connected Accounts&quot; și
+            Procesatori de Plăți (Rapyd): Pentru procesarea plăților, gestionarea conturilor &quot;Connected Accounts&quot; și
             procedurile de verificare a identității. Politica lor de confidențialitate se aplică datelor colectate direct
-            de ei (dashboard/stripe/onboard).
+            de ei (dashboard/Rapyd/onboard).
           </li>
           <li>
             Furnizori de Infrastructură: Servicii de hosting (ex: Vercel, AWS), baze de date (ex: Supabase/PostgreSQL) și
@@ -204,7 +204,7 @@ function PrivacyContentRo({ className, headingClassName }: Omit<PrivacyContentPr
         <ul className="space-y-1 pl-5 list-disc">
           <li>Criptare: Datele sensibile sunt criptate în tranzit (SSL/TLS) și în repaus.</li>
           <li>
-            Controlul Accesului: Folosim autentificare securizată (server-auth.ts, middleware.ts) și roluri de utilizator
+            Controlul Accesului: Folosim autentificare securizată (server-auth.ts, proxy.ts) și roluri de utilizator
             stricte (Admin, Client, Provider) pentru a limita accesul la date (PermissionMatrixTab).
           </li>
           <li>Audit: Monitorizăm activitatea pentru a detecta tentativele de fraudă sau acces neautorizat (ActivityTracker).</li>
@@ -316,12 +316,12 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
             company registration certificates (CUI/CIF), bank statements.
           </li>
           <li>
-            Note: Processing of sensitive identity documents is primarily handled by our partner Stripe, under banking
+            Note: Processing of sensitive identity documents is primarily handled by our partner Rapyd, under banking
             security standards.
           </li>
           <li>
             Financial data: Bank account details (IBAN), transaction history, invoicing details. We do not store full
-            card numbers on our servers; these are processed securely by Stripe.
+            card numbers on our servers; these are processed securely by Rapyd.
           </li>
           <li>
             Communications: Messages sent through our Chat system (components/chat), details about scheduled video calls
@@ -425,9 +425,9 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
         <p>We do not sell your data. We only share it with partners necessary for service operation:</p>
         <ul className="space-y-1 pl-5 list-disc">
           <li>
-            Payment processors (Stripe): For payment processing, management of &quot;Connected Accounts&quot;, and identity
+            Payment processors (Rapyd): For payment processing, management of &quot;Connected Accounts&quot;, and identity
             verification procedures. Their privacy policy applies to data collected directly by them
-            (dashboard/stripe/onboard).
+            (dashboard/Rapyd/onboard).
           </li>
           <li>
             Infrastructure providers: Hosting services (e.g., Vercel, AWS), databases (e.g., Supabase/PostgreSQL), and
@@ -460,7 +460,7 @@ function PrivacyContentEn({ className, headingClassName }: Omit<PrivacyContentPr
         <ul className="space-y-1 pl-5 list-disc">
           <li>Encryption: Sensitive data is encrypted in transit (SSL/TLS) and at rest.</li>
           <li>
-            Access control: We use secure authentication (server-auth.ts, middleware.ts) and strict user roles (Admin,
+            Access control: We use secure authentication (server-auth.ts, proxy.ts) and strict user roles (Admin,
             Client, Provider) to limit data access (PermissionMatrixTab).
           </li>
           <li>Audit: We monitor activity to detect fraud attempts or unauthorized access (ActivityTracker).</li>

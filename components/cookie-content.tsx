@@ -73,15 +73,15 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
                 </thead>
                 <tbody className="text-slate-600 dark:text-slate-300">
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">next-auth.session-token</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">laravel_session</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
-                      Gestionează sesiunea de autentificare securizată. Vă menține logat.
+                      Gestionează sesiunea de autentificare securizată (Laravel Sanctum). Vă menține logat.
                     </td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">Sesiune</td>
                   </tr>
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">next-auth.csrf-token</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">XSRF-TOKEN</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
                       Protecție împotriva atacurilor de tip Cross-Site Request Forgery (CSRF).
@@ -97,8 +97,8 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">1 an</td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-4">__stripe_sid</td>
-                    <td className="py-2 pr-4">Stripe</td>
+                    <td className="py-2 pr-4">__rapyd_sid</td>
+                    <td className="py-2 pr-4">Rapyd</td>
                     <td className="py-2 pr-4">Identificatorul sesiunii pentru procesarea plăților securizate.</td>
                     <td className="py-2">30 min</td>
                   </tr>
@@ -174,7 +174,7 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">4. COOKIE-URI DE LA TERȚI (THIRD PARTY)</h3>
         <p>Trustora integrează servicii externe care pot plasa propriile cookie-uri. Noi nu controlăm direct aceste fișiere:</p>
         <ul className="space-y-1 pl-5 list-disc">
-          <li>Stripe: Pentru procesarea plăților și verificarea identității (KYC). Politica lor: Stripe Cookie Policy.</li>
+          <li>Rapyd: Pentru procesarea plăților și verificarea identității (KYC). Politica lor: Stripe Cookie Policy.</li>
           <li>Vercel: Infrastructura de hosting poate plasa cookie-uri tehnice pentru performanță.</li>
         </ul>
       </section>
@@ -198,7 +198,7 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
           <li>Safari</li>
         </ul>
         <p>
-          Atenție: Blocarea cookie-urilor strict necesare (Stripe, NextAuth) va face imposibilă autentificarea sau
+          Atenție: Blocarea cookie-urilor strict necesare (Rapyd, NextAuth) va face imposibilă autentificarea sau
           efectuarea plăților pe Trustora.
         </p>
       </section>
@@ -287,15 +287,15 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
                 </thead>
                 <tbody className="text-slate-600 dark:text-slate-300">
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">next-auth.session-token</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">laravel_session</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
-                      Manages the secure authentication session. Keeps you signed in.
+                      Manages the secure authentication session (Laravel Sanctum). Keeps you signed in.
                     </td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">Session</td>
                   </tr>
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">next-auth.csrf-token</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">XSRF-TOKEN</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
                       Protection against Cross-Site Request Forgery (CSRF) attacks.
@@ -304,15 +304,15 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
                   </tr>
                   <tr>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">__stripe_mid</td>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Stripe</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Rapyd</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
                       Fraud prevention and identification of risky transactions.
                     </td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">1 year</td>
                   </tr>
                   <tr>
-                    <td className="py-2 pr-4">__stripe_sid</td>
-                    <td className="py-2 pr-4">Stripe</td>
+                    <td className="py-2 pr-4">__rapyd_sid</td>
+                    <td className="py-2 pr-4">Rapyd</td>
                     <td className="py-2 pr-4">Session identifier for secure payment processing.</td>
                     <td className="py-2">30 min</td>
                   </tr>
@@ -384,7 +384,7 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
           Trustora integrates external services that may place their own cookies. We do not directly control these files:
         </p>
         <ul className="space-y-1 pl-5 list-disc">
-          <li>Stripe: For payment processing and identity verification (KYC). Their policy: Stripe Cookie Policy.</li>
+          <li>Rapyd: For payment processing and identity verification (KYC). Their policy: Rapyd Cookie Policy.</li>
           <li>Vercel: Hosting infrastructure may place technical performance cookies.</li>
         </ul>
       </section>
@@ -407,7 +407,7 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
           <li>Safari</li>
         </ul>
         <p>
-          Note: Blocking strictly necessary cookies (Stripe, NextAuth) will make it impossible to authenticate or make
+          Note: Blocking strictly necessary cookies (Rapyd, NextAuth) will make it impossible to authenticate or make
           payments on Trustora.
         </p>
       </section>

@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
+import { http } from '@/lib/fetch-client';
+import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 
 type RawLaravelNotification = {
     id: string;
@@ -378,7 +380,7 @@ function getNotificationPermission(): NotificationPermission {
 }
 
 let echoSingleton: Echo<any> | null = null;
-function getOrCreateEcho(token: string): Echo<any> {
+function getOrCreateEcho(): Echo<any> {
     if (echoSingleton) return echoSingleton;
     disablePusherUnloadListener(Pusher);
     (window as any).Pusher = Pusher;
@@ -386,8 +388,30 @@ function getOrCreateEcho(token: string): Echo<any> {
         broadcaster: 'pusher',
         key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
         cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-        authEndpoint: `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
-        auth: { headers: { Authorization: `Bearer ${token}` } },
+        authEndpoint: `/api/broadcasting/auth`,
+        authorizer: (channel: any) => ({
+            authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
+                ensureCsrfCookie()
+                    .then(() => {
+                        const xsrfToken = getXsrfToken();
+                        return http.post(
+                            '/api/broadcasting/auth',
+                            {
+                                socket_id: socketId,
+                                channel_name: channel.name,
+                            },
+                            {
+                                skipAuthHandling: true,
+                                ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
+                            }
+                        );
+                    })
+                    .then((response) => callback(null, response))
+                    .catch((error) =>
+                        callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
+                    );
+            },
+        }),
         forceTLS: true,
         enableStats: false,
     });
@@ -420,8 +444,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const refresh = useCallback(async () => {
         if (!user) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        if (!token) return;
 
         setLoading(true);
         try {
@@ -576,15 +598,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (!user) return;
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        if (!token) return;
-
-        const echo = getOrCreateEcho(token);
+        const echo = getOrCreateEcho();
         const channelName = `App.Models.User.${user.id}`;
         const ch = echo.private(channelName);
         privateChannelRef.current = ch;
 
         ch.notification((raw: RawLaravelNotification) => {
+            const rawType = String(raw?.type ?? '').toLowerCase();
+            const notificationType = String(raw?.data?.type ?? '').toLowerCase();
             const n = normalize(raw);
             setNotifications(prev => {
                 if (prev.find(x => x.id === n.id)) return prev;
@@ -592,13 +613,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             });
             if (!n.isRead) setUnreadCount(prev => prev + 1);
             showNotificationToast(n);
+
+            if (
+                notificationType === 'budget.accepted.by_provider' ||
+                rawType.includes('provideracceptedclientbudget')
+            ) {
+                void refresh();
+            }
         });
 
         return () => {
             try { (echo as any).leave?.(channelName); } catch {}
             privateChannelRef.current = null;
         };
-    }, [showNotificationToast, user]);
+    }, [refresh, showNotificationToast, user]);
 
     const readPushStatus = useCallback(async () => {
         if (!isWebPushSupported) return;

@@ -12,29 +12,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, AlertCircle, Loader2, X, Plus } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Loader2, X, Plus, Check, ChevronsUpDown } from 'lucide-react';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import {InputAdornment, TextField} from "@mui/material";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 export default function ServiceDetailClient({ id }: { id: string;}) {
+    type DeliveryProviderOption = {
+        value: string;
+        label: string;
+    };
+
     const [formData, setFormData] = useState({
         name: '',
         slug: '',
         description: '',
         requirements: '',
         category_id: '',
+        delivery_provider: '',
         skills: [] as string[],
         tags: [] as string[],
         status: 'DRAFT'
     });
     const [loading, setLoading] = useState(true);
+    const [loadingDeliveryProviders, setLoadingDeliveryProviders] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [newSkill, setNewSkill] = useState('');
     const [newTag, setNewTag] = useState('');
     const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
+    const [deliveryProviderOptions, setDeliveryProviderOptions] = useState<DeliveryProviderOption[]>([]);
+    const [deliveryProviderOpen, setDeliveryProviderOpen] = useState(false);
     const router = useRouter();
     const locale = useLocale();
   const t = useTranslations();
@@ -51,6 +70,10 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
     const requirementsLabel = t('admin.services.requirements_label');
     const categoryLabel = t('admin.services.category_label');
     const categoryPlaceholder = t('admin.services.category_placeholder');
+    const deliveryProviderLabel = 'Delivery Provider';
+    const deliveryProviderPlaceholder = 'Select delivery provider';
+    const deliveryProviderSearchPlaceholder = 'Search delivery provider...';
+    const deliveryProviderEmpty = 'No delivery provider found.';
     const statusLabel = t('admin.services.edit_service.status_label');
     const skillsTagsTitle = t('admin.services.skills_tags_title');
     const skillsLabel = t('admin.services.skills_label');
@@ -69,6 +92,39 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
     const statusDraft = t('admin.services.statuses.DRAFT');
     const statusSuspended = t('admin.services.statuses.SUSPENDED');
 
+    useEffect(() => {
+        let mounted = true;
+
+        const loadDeliveryProviders = async () => {
+            setLoadingDeliveryProviders(true);
+            try {
+                const response = await apiClient.getDeliveryProviders();
+                const providers = Array.isArray(response?.data) ? response.data : [];
+                const normalized = providers
+                    .filter((provider: any) => provider?.value && provider?.label)
+                    .map((provider: any) => ({
+                        value: String(provider.value),
+                        label: String(provider.label),
+                    }));
+
+                if (!mounted) return;
+                setDeliveryProviderOptions(normalized);
+            } catch (err) {
+                if (!mounted) return;
+                setError((prev) => prev || 'Failed to load delivery providers');
+            } finally {
+                if (mounted) {
+                    setLoadingDeliveryProviders(false);
+                }
+            }
+        };
+
+        void loadDeliveryProviders();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
     const loadService = useCallback(async () => {
         try {
             const service = await apiClient.getService(id);
@@ -78,6 +134,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                 description: service.description[locale] || '',
                 requirements: service.requirements || '',
                 category_id: service.category_id || '',
+                delivery_provider: service.delivery_provider || '',
                 skills: service.skills || [],
                 tags: service.tags || [],
                 status: service.status || 'DRAFT'
@@ -110,6 +167,10 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
 
 
     const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [buildCategoryOptions, categoriesData]);
+    const selectedDeliveryProvider = useMemo(
+        () => deliveryProviderOptions.find((option) => option.value === formData.delivery_provider) ?? null,
+        [deliveryProviderOptions, formData.delivery_provider],
+    );
 
     const handleNameChange = (title: string) => {
         setFormData(prev => ({
@@ -145,6 +206,12 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
         e.preventDefault();
         setSaving(true);
         setError('');
+
+        if (!formData.delivery_provider) {
+            setError('Delivery provider is required');
+            setSaving(false);
+            return;
+        }
 
         try {
             await apiClient.updateService(id, formData);
@@ -301,7 +368,7 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                 />
                             </div>
 
-                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <Label htmlFor="category_id">{categoryLabel}</Label>
                                     <Select
@@ -325,6 +392,60 @@ export default function ServiceDetailClient({ id }: { id: string;}) {
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="delivery_provider">{deliveryProviderLabel}</Label>
+                                    <Popover open={deliveryProviderOpen} onOpenChange={setDeliveryProviderOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                id="delivery_provider"
+                                                type="button"
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={deliveryProviderOpen}
+                                                className="w-full justify-between bg-white/80 dark:bg-slate-900/60"
+                                                disabled={loadingDeliveryProviders}
+                                            >
+                                                <span className="truncate">
+                                                    {selectedDeliveryProvider?.label
+                                                        || (formData.delivery_provider || '')
+                                                        || (loadingDeliveryProviders ? 'Loading delivery providers...' : deliveryProviderPlaceholder)}
+                                                </span>
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder={deliveryProviderSearchPlaceholder} />
+                                                <CommandList className="max-h-[260px] overflow-y-auto">
+                                                    <CommandEmpty>{deliveryProviderEmpty}</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {deliveryProviderOptions.map((provider) => (
+                                                            <CommandItem
+                                                                key={provider.value}
+                                                                value={`${provider.label} ${provider.value}`}
+                                                                onSelect={() => {
+                                                                    setFormData((prev) => ({
+                                                                        ...prev,
+                                                                        delivery_provider: provider.value,
+                                                                    }));
+                                                                    setDeliveryProviderOpen(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        formData.delivery_provider === provider.value ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {provider.label}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                                 <div>
                                     <Label htmlFor="status">{statusLabel}</Label>

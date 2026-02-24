@@ -154,7 +154,7 @@ export function NotificationBell() {
                 >
                     {unreadCount > 0 ? <BellRing className="h-5 w-5 text-emerald-600" /> : <Bell className="h-5 w-5" />}
                     {unreadCount > 0 && (
-                        <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-[#E5484D] to-[#F5A623] text-white text-xs border-2 border-background">
+                        <Badge className="absolute -top-1 right-0 w-6 h-6 p-0 flex items-center justify-center bg-gradient-to-r from-[#E5484D] to-[#F5A623] text-white text-xs border-2 border-background">
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </Badge>
                     )}

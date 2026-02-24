@@ -39,3 +39,6 @@ next-env.d.ts
 /.idea/*
 .idea/*
 !.idea/
+
+pp/[locale]/contracts/
+pp/[locale]/contracts/*

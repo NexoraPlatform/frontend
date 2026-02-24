@@ -1,94 +1,85 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import React from 'react';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import { getCurrentUserAction, updateUserLanguageAction } from '@/app/actions/secure';
 
 vi.mock('@/lib/api', () => ({
   apiClient: {
-    setToken: vi.fn(),
-    removeToken: vi.fn(),
-    register: vi.fn(),
     updateUserLanguage: vi.fn(),
   },
 }));
 
-vi.mock('@/app/actions/secure', () => ({
-  getCurrentUserAction: vi.fn(),
-  updateUserLanguageAction: vi.fn(),
-}));
-
-const mockUseSession = vi.fn();
-const mockSignIn = vi.fn();
-const mockSignOut = vi.fn();
-
-vi.mock('next-auth/react', () => ({
-  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
-  useSession: () => mockUseSession(),
-  signIn: (...args: any[]) => mockSignIn(...args),
-  signOut: (...args: any[]) => mockSignOut(...args),
-}));
+const jsonResponse = (payload: unknown, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 
 describe('contexts/auth-context', () => {
-  const mockedApi = apiClient as unknown as {
-    setToken: vi.Mock;
-    removeToken: vi.Mock;
-  };
-  const mockedActions = {
-    getCurrentUserAction: getCurrentUserAction as unknown as vi.Mock,
-    updateUserLanguageAction: updateUserLanguageAction as unknown as vi.Mock,
-  };
+  const mockedApi = apiClient as unknown as { updateUserLanguage: vi.Mock };
 
   beforeEach(() => {
-    localStorage.clear();
-    mockUseSession.mockReset();
-    mockedApi.setToken.mockReset();
-    mockedApi.removeToken.mockReset();
-    mockedActions.getCurrentUserAction.mockReset();
+    mockedApi.updateUserLanguage.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('sets token and user from session (authenticated)', async () => {
-    mockUseSession.mockReturnValue({
-      status: 'authenticated',
-      update: vi.fn(),
-      data: {
-        accessToken: 'token-123',
-        user: {
+  it('hydrates user from SSR initialUser', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/sanctum/csrf-cookie')) {
+        return new Response(null, { status: 204 });
+      }
+      if (url.includes('/api/auth/me')) {
+        return jsonResponse({
+          user: {
+            id: 123,
+            email: 'test@example.com',
+            firstName: 'Test',
+            lastName: 'User',
+          },
+        });
+      }
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider
+        initialUser={{
           id: 123,
           email: 'test@example.com',
           firstName: 'Test',
           lastName: 'User',
-        },
-      },
-    });
-
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <AuthProvider>{children}</AuthProvider>
+        } as any}
+      >
+        {children}
+      </AuthProvider>
     );
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => expect(result.current.user).not.toBeNull());
-
-    expect(mockedApi.setToken).toHaveBeenCalledWith('token-123');
-    expect(localStorage.getItem('auth_token')).toBe('token-123');
     expect(result.current.user?.id).toBe('123');
     expect(result.current.user?.email).toBe('test@example.com');
   });
 
-  it('removes token and user on unauthenticated', async () => {
-    localStorage.setItem('auth_token', 'old-token');
-    localStorage.setItem('user_data', JSON.stringify({ id: '1' }));
-
-    mockUseSession.mockReturnValue({
-      status: 'unauthenticated',
-      update: vi.fn(),
-      data: null,
+  it('handles unauthenticated /me response', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/sanctum/csrf-cookie')) {
+        return new Response(null, { status: 204 });
+      }
+      if (url.includes('/api/auth/me')) {
+        return new Response(null, { status: 401 });
+      }
+      return jsonResponse({}, 404);
     });
+    vi.stubGlobal('fetch', fetchMock as any);
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider>{children}</AuthProvider>
@@ -96,38 +87,51 @@ describe('contexts/auth-context', () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    await waitFor(() => expect(result.current.user).toBeNull());
-
-    expect(mockedApi.removeToken).toHaveBeenCalled();
-    expect(localStorage.getItem('auth_token')).toBeNull();
-    expect(localStorage.getItem('user_data')).toBeNull();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user).toBeNull();
   });
 
-  it('refreshUser calls server action and updates session when changed', async () => {
-    const updateMock = vi.fn();
-    mockUseSession.mockReturnValue({
-      status: 'authenticated',
-      update: updateMock,
-      data: {
-        accessToken: 'token-123',
-        user: {
+  it('setUserLanguage updates local user', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/sanctum/csrf-cookie')) {
+        return new Response(null, { status: 204 });
+      }
+      if (url.includes('/api/auth/me')) {
+        return jsonResponse({
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            firstName: 'Old',
+            lastName: 'User',
+            language: 'ro',
+          },
+        });
+      }
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    mockedApi.updateUserLanguage.mockResolvedValue({
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Old',
+      lastName: 'User',
+      language: 'en',
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider
+        initialUser={{
           id: 1,
           email: 'test@example.com',
           firstName: 'Old',
           lastName: 'User',
-        },
-      },
-    });
-
-    mockedActions.getCurrentUserAction.mockResolvedValue({
-      id: 1,
-      email: 'test@example.com',
-      firstName: 'New',
-      lastName: 'User',
-    });
-
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <AuthProvider>{children}</AuthProvider>
+          language: 'ro',
+        } as any}
+      >
+        {children}
+      </AuthProvider>
     );
 
     const { result } = renderHook(() => useAuth(), { wrapper });
@@ -135,11 +139,61 @@ describe('contexts/auth-context', () => {
     await waitFor(() => expect(result.current.user).not.toBeNull());
 
     await act(async () => {
-      await result.current.refreshUser();
+      await result.current.setUserLanguage('en');
     });
 
-    expect(mockedActions.getCurrentUserAction).toHaveBeenCalled();
-    expect(updateMock).toHaveBeenCalled();
-    expect(result.current.user?.firstName).toBe('New');
+    expect(result.current.user?.language).toBe('en');
+  });
+
+  it('fetches /me after login when starting unauthenticated', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+
+      if (url.includes('/sanctum/csrf-cookie')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.includes('/api/auth/login')) {
+        return jsonResponse({
+          user: {
+            id: 7,
+            email: 'login@example.com',
+            firstName: 'Log',
+            lastName: 'In',
+          },
+        });
+      }
+
+      if (url.includes('/api/auth/me')) {
+        return jsonResponse({
+          user: {
+            id: 7,
+            email: 'login@example.com',
+            firstName: 'Log',
+            lastName: 'In',
+          },
+        });
+      }
+
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await act(async () => {
+      await result.current.login('login@example.com', 'secret');
+    });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('7'));
+    expect(fetchMock).toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(
+      true
+    );
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/me'))).toBe(true);
   });
 });

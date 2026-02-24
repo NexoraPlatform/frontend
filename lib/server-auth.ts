@@ -6,13 +6,36 @@ const API_BASE_URL =
     process.env.API_URL ||
     'https://Trustorabe.dacars.ro/api';
 
+/**
+ * Get the server-side user from request cookies.
+ */
 export async function getServerUser() {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    if (!token) return null;
+    const sessionCookie = cookieStore.get('laravel_session')?.value;
+    if (!sessionCookie) return null;
 
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
+    const cookieHeader = cookieStore
+        .getAll()
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join('; ');
+
+    const xsrfToken = cookieStore.get('XSRF-TOKEN')?.value;
+
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+            Accept: 'application/json',
+            Cookie: cookieHeader,
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(xsrfToken ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrfToken) } : {}),
+            Origin:
+                process.env.NEXT_PUBLIC_APP_URL ||
+                process.env.NEXTAUTH_URL ||
+                'http://127.0.0.1:3000',
+            Referer:
+                process.env.NEXT_PUBLIC_APP_URL ||
+                process.env.NEXTAUTH_URL ||
+                'http://127.0.0.1:3000',
+        },
         cache: 'no-store',
     });
     if (!res.ok) return null;
@@ -20,6 +43,9 @@ export async function getServerUser() {
     return data?.user ?? data;
 }
 
+/**
+ * Require specific permissions for the current server user.
+ */
 export async function requirePermission(...perms: string[]) {
     const user = await getServerUser();
     if (!user) {

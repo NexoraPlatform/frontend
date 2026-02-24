@@ -21,6 +21,7 @@ export async function generateMetadata({ params }: HelpPageProps): Promise<Metad
     description: isEnglish
       ? 'Have a question? Check the FAQ section for fast answers to the most common questions about Trustora.'
       : 'Ai o intrebare? Verifica sectiunea de întrebări frecvente pentru răspunsuri rapide la cele mai comune întrebări despre Trustora.',
+    locale,
     url: '/help',
   });
 }

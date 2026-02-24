@@ -1,16 +1,13 @@
 'use client';
 
-import React, {useState, useEffect, useCallback, useRef} from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Script from 'next/script';
-import { Button } from '@/components/ui/button'; // Folosim butonul tău UI
-import { toast } from 'sonner'; // Sau hook-ul tău de toast
-import { useAuth } from '@/contexts/auth-context';
-import { rapydCheckoutSessionAction } from "@/app/actions/secure";
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { apiClient } from "@/lib/api";
 import { useLocale, useTranslations } from "next-intl";
-import {AlertCircle, CheckCircle, Globe, Shield, X} from "lucide-react";
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from "@/components/ui/dialog";
-import {PriceDisplay} from "@/components/PriceDisplay";
-import {Alert, AlertDescription} from "@/components/ui/alert"; // Presupunând că ai nevoie de token
+import { CheckCircle, Shield, X } from "lucide-react";
+import { PriceDisplay } from "@/components/PriceDisplay";
 
 // Definim tipurile pentru Rapyd Toolkit
 declare global {
@@ -33,40 +30,118 @@ export default function RapydCheckoutButton({
                                                 milestone,
                                                 countryCode = 'RO',
                                                 onSuccess
-                                            }: RapydCheckoutButtonProps) {
+    }: RapydCheckoutButtonProps) {
     const [isScriptLoaded, setIsScriptLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { user } = useAuth(); // Dacă ai nevoie de user pt auth headers
     const t = useTranslations();
     const locale = useLocale();
-    const [checkoutDialog, setCheckoutDialog] = useState<boolean>(false);
-    const [errorMessage, setErrorMessage] = useState<string>('');
-    const [successMessage, setSuccessMessage] = useState<string>('');
     const [isModalVisible, setIsModalVisible] = useState(false);
     const checkoutInstance = useRef<any>(null);
+    const checkoutContainerId = 'rapyd-checkout';
 
     const getMilestoneId = useCallback((milestone: any) => {
         return milestone?.id ?? milestone?.milestone_id ?? milestone?.milestoneId ?? null;
+    }, []);
+
+    const getProjectMilestones = useCallback((projectData: any) => {
+        if (!projectData) {
+            return [];
+        }
+
+        const rootMilestones = Array.isArray(projectData.project_line_milestones)
+            ? projectData.project_line_milestones
+            : [];
+        if (rootMilestones.length > 0) {
+            return rootMilestones;
+        }
+
+        const lineMilestones = Array.isArray(projectData.project_lines)
+            ? projectData.project_lines.flatMap((line: any) => {
+                const lineMilestonesRaw = Array.isArray(line?.milestones) ? line.milestones : [];
+                return lineMilestonesRaw.map((entry: any) => ({
+                    ...entry,
+                    project_line_id: entry?.project_line_id ?? entry?.projectLineId ?? line?.id,
+                    service_name: entry?.service_name ?? line?.service_name,
+                    service_id: entry?.service_id ?? line?.service_id,
+                }));
+            })
+            : [];
+        if (lineMilestones.length > 0) {
+            return lineMilestones;
+        }
+
+        if (Array.isArray(projectData.milestones)) {
+            return projectData.milestones.flatMap((milestoneGroup: any) =>
+                Array.isArray(milestoneGroup?.milestones)
+                    ? milestoneGroup.milestones.map((entry: any) => ({
+                        ...entry,
+                        providerId: milestoneGroup?.providerId,
+                    }))
+                    : []
+            );
+        }
+
+        return [];
+    }, []);
+
+    const resetCheckoutContainer = useCallback(() => {
+        if (typeof document === 'undefined') return;
+        const container = document.getElementById(checkoutContainerId);
+        if (container) {
+            container.innerHTML = '';
+        }
+    }, [checkoutContainerId]);
+
+    const waitForCheckoutContainer = useCallback(async () => {
+        if (typeof document === 'undefined') return null;
+        for (let i = 0; i < 40; i += 1) {
+            const node = document.getElementById(checkoutContainerId);
+            if (node) return node;
+            await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+        return null;
+    }, [checkoutContainerId]);
+
+    const wait = useCallback((ms: number) => {
+        return new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), ms);
+        });
+    }, []);
+
+    const closeCheckoutToolkit = useCallback(() => {
+        const instance = checkoutInstance.current;
+        if (instance) {
+            try {
+                if (typeof instance.closeToolkit === 'function') {
+                    instance.closeToolkit();
+                }
+            } catch (error) {
+                console.warn('Failed to close Rapyd checkout toolkit:', error);
+            } finally {
+                checkoutInstance.current = null;
+            }
+        }
     }, []);
 
     // 1. Inițializăm Event Listeners pentru Rapyd
     useEffect(() => {
         const handleSuccess = (event: any) => {
             console.log('Rapyd Success:', event.detail);
-            setSuccessMessage('Rapyd Success: ' + event.detail);
             toast.success('Plata a fost efectuată cu succes!');
-            // if (onSuccess) onSuccess();/**/
+            if (typeof onSuccess === 'function') {
+                onSuccess();
+            }
             setIsModalVisible(false);
-            checkoutInstance.current.closeToolkit();
+            setIsLoading(false);
+            closeCheckoutToolkit();
         };
 
 
         const handleFailure = (event: any) => {
             console.error('Rapyd Error:', event.detail);
-            setErrorMessage('Rapyd Error: ' + event.detail);
             toast.error('Plata a eșuat sau a fost anulată.');
+            closeCheckoutToolkit();
             setTimeout(() => {
-                setCheckoutDialog(false);
                 setIsLoading(false);
             }, 500);
         };
@@ -78,63 +153,94 @@ export default function RapydCheckoutButton({
         return () => {
             window.removeEventListener('onCheckoutPaymentSuccess', handleSuccess);
             window.removeEventListener('onCheckoutFailure', handleFailure);
+            closeCheckoutToolkit();
         };
-    }, []);
+    }, [closeCheckoutToolkit, onSuccess]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (isScriptLoaded) return;
+
+        if (window.RapydCheckoutToolkit) {
+            setIsScriptLoaded(true);
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            if (window.RapydCheckoutToolkit) {
+                setIsScriptLoaded(true);
+                window.clearInterval(intervalId);
+            }
+        }, 250);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [isScriptLoaded]);
 
     // 2. Funcția de start plată
     const handlePayment = async () => {
-        setIsModalVisible(true);
-
-        if (checkoutInstance.current) {
-            return;
-        }
         if (!isScriptLoaded) {
             toast.error('Sistemul de plată se încarcă. Te rugăm să încerci din nou în câteva secunde.');
-            setErrorMessage('Rapyd Error: Sistemul de plată se încarcă. Te rugăm să încerci din nou în câteva secunde.');
+            return;
+        }
+        if (isLoading) {
             return;
         }
 
+        closeCheckoutToolkit();
+        resetCheckoutContainer();
+        setIsModalVisible(true);
         setIsLoading(true);
-        setCheckoutDialog(true);
 
         try {
-            // A. Cerem checkout_id de la Backend-ul Laravel
-            const response = await rapydCheckoutSessionAction({
-                projectId: project.id,
-                currency: milestone.currency,
-                countryCode,
-                milestoneId: getMilestoneId(milestone),
-                language: locale,
-            });
+            const currency =
+                String(
+                    milestone?.currency ??
+                    project?.budget?.currency ??
+                    project?.currency ??
+                    'USD'
+                ).toUpperCase();
 
-            const data = await response;
+            // A. Cerem checkout_id de la Backend-ul Laravel
+            const data = await apiClient.rapydCheckoutSession(
+                project.id,
+                currency,
+                countryCode,
+                getMilestoneId(milestone),
+                locale
+            );
 
 
             if (!data.checkout_id) {
                 throw new Error('Nu am primit ID-ul de checkout.');
             }
 
-            // B. Lansăm Rapyd Toolkit (Dialog/Modal)
-            if (window.RapydCheckoutToolkit) {
-                const checkout = new window.RapydCheckoutToolkit({
-                    pay_button_text: `Plătește acum`,
-                    id: data.checkout_id,
-                    container_id: 'rapyd-checkout',
-                    close_on_complete: true // Modul de încasare
-                });
+            // Asigură că modalul și containerul sunt montate înainte de init toolkit.
+            await wait(30);
+            const checkoutContainer = await waitForCheckoutContainer();
+            if (!checkoutContainer) {
+                throw new Error('Container-ul de plată nu a fost inițializat. Încearcă din nou.');
+            }
+            resetCheckoutContainer();
 
-                checkoutInstance.current = checkout;
-                checkout.displayCheckout();
-            } else {
+            // B. Lansăm Rapyd Toolkit (Dialog/Modal)
+            if (!window.RapydCheckoutToolkit) {
                 throw new Error('Librăria Rapyd nu este încărcată.');
             }
+            const checkout = new window.RapydCheckoutToolkit({
+                pay_button_text: `Plătește acum`,
+                id: data.checkout_id,
+                container_id: checkoutContainerId,
+                close_on_complete: true
+            });
+            checkoutInstance.current = checkout;
+            checkout.displayCheckout();
 
         } catch (error: any) {
             console.error(error);
             toast.error(error.message);
-            setErrorMessage(error.message);
             setTimeout(() => {
-                setCheckoutDialog(false);
                 setIsLoading(false);
             }, 500);
         } finally {
@@ -142,54 +248,78 @@ export default function RapydCheckoutButton({
         }
     };
 
-    const getMilestoneAndProviderDetails = (projectData: any, targetMilestoneId: any) => {
-        // 1. Găsim grupul de milestone-uri și providerId-ul asociat
-        let foundProviderId: any = null;
-        let milestoneIndex = -1;
-
-        for (const group of projectData.milestones) {
-            const idx = group.milestones.findIndex((m: any) => m.id === targetMilestoneId);
-            if (idx !== -1) {
-                foundProviderId = group.providerId;
-                milestoneIndex = idx;
-                break;
-            }
+    const getMilestoneAndProviderDetails = useCallback((projectData: any, targetMilestoneId: any) => {
+        if (!projectData || targetMilestoneId === null || targetMilestoneId === undefined) {
+            return { found: false, providerName: '', position: 0, isFirst: false };
         }
 
-        if (foundProviderId === null) {
-            return { found: false };
+        const allMilestones = getProjectMilestones(projectData);
+        if (allMilestones.length === 0) {
+            return { found: false, providerName: '', position: 0, isFirst: false };
         }
 
-        // 2. Găsim detaliile providerului (numele) în array-ul "providers"
-        const providerInfo = projectData.providers.find((p: any) => p.id === foundProviderId);
+        const target = allMilestones.find(
+            (entry: any) => String(getMilestoneId(entry)) === String(targetMilestoneId)
+        );
+        if (!target) {
+            return { found: false, providerName: '', position: 0, isFirst: false };
+        }
+
+        const targetLineId = target?.project_line_id ?? target?.projectLineId;
+        const scopedMilestones = targetLineId !== null && targetLineId !== undefined
+            ? allMilestones.filter(
+                (entry: any) =>
+                    String(entry?.project_line_id ?? entry?.projectLineId) === String(targetLineId)
+            )
+            : allMilestones;
+
+        const milestoneIndex = scopedMilestones.findIndex(
+            (entry: any) => String(getMilestoneId(entry)) === String(targetMilestoneId)
+        );
+
+        const projectLines = Array.isArray(projectData?.project_lines) ? projectData.project_lines : [];
+        const matchedLine = targetLineId !== null && targetLineId !== undefined
+            ? projectLines.find((line: any) => String(line?.id) === String(targetLineId))
+            : null;
+
+        const legacyProviderId = target?.providerId ?? target?.provider_id;
+        const providers = Array.isArray(projectData?.providers) ? projectData.providers : [];
+        const providerInfo = legacyProviderId !== null && legacyProviderId !== undefined
+            ? providers.find((provider: any) => String(provider?.id) === String(legacyProviderId))
+            : null;
+
+        const providerName =
+            String(matchedLine?.service_name ?? '').trim() ||
+            String(target?.service_name ?? '').trim() ||
+            (providerInfo ? `${providerInfo.firstName ?? ''} ${providerInfo.lastName ?? ''}`.trim() : '') ||
+            'Unknown Provider';
 
         return {
             found: true,
-            providerId: foundProviderId,
-            providerName: providerInfo ? `${providerInfo.firstName} ${providerInfo.lastName}` : "Unknown Provider",
-            position: milestoneIndex + 1,
+            providerName,
+            position: milestoneIndex >= 0 ? milestoneIndex + 1 : 0,
             isFirst: milestoneIndex === 0,
-            avatar: providerInfo?.avatar
         };
-    };
+    }, [getMilestoneId, getProjectMilestones]);
 
+    const selectedMilestoneId = getMilestoneId(milestone);
     const isMilestonePayment = milestone != null;
     const selectedMilestoneAmount = milestone?.amount != null
         ? Number(milestone.amount)
         : null;
-    const projectBudgetAmount = milestone?.budget?.amount != null
-        ? Number(milestone.budget.amount)
-        : null;
-    const isFirstMilestone = (() => {
-        if (!isMilestonePayment || !project || !milestone.id || !milestone.providerId) return false;
-        const providerMilestones = project.milestones
-            ?.find((milestoneGroup: any) => String(milestoneGroup.providerId) === String(milestone.providerId))
-            ?.milestones ?? [];
-        const index = providerMilestones.findIndex(
-            (milestone: any) => String(getMilestoneId(milestone)) === String(milestone.id)
-        );
-        return index === 0;
+    const projectBudgetAmount = (() => {
+        if (project?.budget?.amount != null) {
+            const numeric = Number(project.budget.amount);
+            return Number.isFinite(numeric) ? numeric : null;
+        }
+        const fallback = Number(project?.budget);
+        return Number.isFinite(fallback) ? fallback : null;
     })();
+    const milestoneDetails = useMemo(
+        () => getMilestoneAndProviderDetails(project, selectedMilestoneId),
+        [getMilestoneAndProviderDetails, project, selectedMilestoneId]
+    );
+    const isFirstMilestone = isMilestonePayment ? milestoneDetails.isFirst : false;
     const platformFeeBase = projectBudgetAmount != null
         ? Math.min(projectBudgetAmount * 0.10, 150)
         : null;
@@ -205,10 +335,13 @@ export default function RapydCheckoutButton({
         <>
             {/* Încărcăm scriptul Rapyd (Sandbox sau Prod) */}
             <Script
+                id="rapyd-checkout-toolkit-script"
                 src="https://sandboxcheckouttoolkit.rapyd.net"
                 strategy="afterInteractive"
                 onLoad={() => {
-                    console.log('Rapyd Script Loaded');
+                    setIsScriptLoaded(true);
+                }}
+                onReady={() => {
                     setIsScriptLoaded(true);
                 }}
             />
@@ -222,10 +355,9 @@ export default function RapydCheckoutButton({
                 {isLoading ? 'Se procesează...' : t('client.project_requests.actions.secure_payment') || "Secure Payment"}
             </Button>
 
+            {isModalVisible ? (
             <div
-                className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 p-4 sm:p-6 ${
-                    isModalVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                }`}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 p-4 sm:p-6 opacity-100 pointer-events-auto"
             >
                 <div className={`bg-white dark:bg-[#0B1220] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[95vh] transition-transform duration-300 ${
                     isModalVisible ? 'scale-100' : 'scale-95'
@@ -243,7 +375,13 @@ export default function RapydCheckoutButton({
                                 </div>
                             </div>
                             <button
-                                onClick={() => setIsModalVisible(false)}
+                                onClick={() => {
+                                    closeCheckoutToolkit();
+                                    resetCheckoutContainer();
+                                    if (typeof window !== 'undefined') {
+                                        window.location.reload();
+                                    }
+                                }}
                                 className="p-1.5 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                             >
                                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -258,11 +396,15 @@ export default function RapydCheckoutButton({
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                                 <span className="text-blue-100 opacity-70">Milestone:</span>
-                                <span className="font-semibold text-right">#{getMilestoneAndProviderDetails(project, milestone.id).position}</span>
+                                <span className="font-semibold text-right">
+                                    {selectedMilestoneId ? `#${milestoneDetails.position || 1}` : '-'}
+                                </span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                                 <span className="text-blue-100 opacity-70">{t('dashboard.hero.role.provider')}</span>
-                                <span className="font-semibold text-right truncate">{getMilestoneAndProviderDetails(project, milestone.id).providerName}</span>
+                                <span className="font-semibold text-right truncate">
+                                    {milestoneDetails.providerName || '-'}
+                                </span>
                             </div>
 
                             <hr className="border-white/10 my-2" />
@@ -314,7 +456,7 @@ export default function RapydCheckoutButton({
                             )}
 
                             <div
-                                id="rapyd-checkout"
+                                id={checkoutContainerId}
                                 className="w-full"
                                 style={{ minHeight: '350px' }}
                             ></div>
@@ -329,6 +471,7 @@ export default function RapydCheckoutButton({
                     </div>
                 </div>
             </div>
+            ) : null}
         </>
     );
 }

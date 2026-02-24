@@ -40,11 +40,14 @@
     },
     "milestones": {
       "title": "Milestone-uri proiect",
-      "mark_complete": "Marchează milestone ca finalizat",
+      "mark_complete": "Actualizează statusul milestone-ului",
+      "start_work": "Începe lucrul",
+      "mark_finished": "Marchează ca finalizat",
       "paid": "Plătit",
       "finished": "Finalizat",
       "rejected": "Refuzat",
-      "pending": "În lucru",
+      "pending": "În așteptare",
+      "work_in_progress": "În lucru",
       "payment_status": {
         "pending": "Plată în așteptare",
         "escrow": "Plată securizată",
@@ -54,14 +57,23 @@
     },
     "status": {
       "pending": "În așteptare",
+      "work_in_progress": "În lucru",
+      "awaiting_budget_approval": "Se așteaptă aprobarea bugetului",
       "accepted": "Acceptat",
       "rejected": "Respins",
       "budget_proposed": "Buget propus"
     },
     "actions": {
       "secure_payment": "Securizează plata",
+      "find_replacement": "Caută înlocuitor",
       "view_details": "Vezi detalii",
       "messages": "Mesaje"
+    },
+    "replacement": {
+      "title": "Prestatori de înlocuire",
+      "assign": "Atribuie prestatorul",
+      "no_suggestions": "Nu au fost găsiți prestatori de înlocuire pentru acest milestone.",
+      "no_milestone": "Selectează un milestone pentru a încărca sugestii."
     },
     "release": {
       "button": "Eliberează fondurile",
@@ -104,6 +116,59 @@
         "ssl": "SSL securizat",
         "pci": "PCI compliant",
         "stripe": "Stripe powered"
+      }
+    },
+    "brief_copilot": {
+      "title": "Arhitect AI Trustora",
+      "subtitle": "Definește iterativ brief-ul tehnic și sincronizează-l cu formularul de proiect.",
+      "welcome": "Descrie produsul pe care vrei să îl construiești și te ajut să structurezi brief-ul.",
+      "assistant_name": "Arhitect AI",
+      "input_placeholder": "Explică obiectivul, timeline-ul, bugetul și tehnologiile preferate...",
+      "send": "Trimite",
+      "questions_title": "Clarificări necesare",
+      "clarify_ready": "Mai am nevoie de câteva detalii înainte de finalizarea brief-ului.",
+      "final_ready": "Brief-ul structurat este pregătit.",
+      "summary_title": "Rezumat Structurat",
+      "summary_title_empty": "Brief de proiect fără titlu",
+      "summary_budget": "Buget estimat",
+      "summary_technologies": "Tehnologii",
+      "summary_technologies_empty": "Nu au fost extrase tehnologii încă.",
+      "summary_duration": "Durată recomandată",
+      "summary_budget_range": "Interval de buget",
+      "summary_payment_meta": "Plată și monedă",
+      "team_title": "Structură recomandată de echipă",
+      "team_level": "Nivel: {level}",
+      "section_specific_requirements": "Cerințe specifice",
+      "section_business_analysis": "Analiză de business",
+      "business_problem_statement": "Problemă",
+      "business_target_users": "Utilizatori țintă",
+      "business_value_proposition": "Propoziție de valoare",
+      "business_feature_business_value": "Valoare de business pe funcționalități",
+      "section_tech_stack": "Stack tehnic recomandat",
+      "tech_architecture_notes": "Note de arhitectură",
+      "section_technical_risks": "Riscuri tehnice",
+      "section_complexity_estimation": "Estimare complexitate",
+      "section_complexity": "Complexitate",
+      "section_team_recommendation": "Recomandare echipă",
+      "section_milestones": "Milestone-uri",
+      "section_final_brief_text": "Text complet brief",
+      "apply_to_form": "Aplică în formular",
+      "errors": {
+        "generic": "Arhitectul AI este momentan indisponibil."
+      },
+      "draft": {
+        "title": "Ciornă Brief Proiect",
+        "description": "Verifică datele generate și continuă către formularul complet de proiect.",
+        "project_title": "Titlu",
+        "project_title_placeholder": "ex. Platformă SaaS multi-tenant pentru analytics",
+        "project_description": "Descriere",
+        "project_description_placeholder": "Obiective business, scope, integrări, constrângeri și criterii de acceptanță.",
+        "budget": "Buget",
+        "budget_placeholder": "Buget estimat în USD",
+        "technologies": "Tehnologii",
+        "technologies_placeholder": "React, Laravel, PostgreSQL, Redis",
+        "open_form": "Deschide Formularul Proiectului",
+        "empty": "Rulează copilotul pentru a pregăti o ciornă de proiect precompletată."
       }
     }
   }

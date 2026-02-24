@@ -17,8 +17,8 @@ import {
   Briefcase,
   HeadphonesIcon
 } from 'lucide-react';
-import type {Metadata} from "next";
-import {generateSEO} from "@/lib/seo";
+import type { Metadata } from "next";
+import { generateSEO } from "@/lib/seo";
 import { getTranslations } from 'next-intl/server';
 
 type ContactPageProps = {
@@ -38,6 +38,7 @@ export async function generateMetadata({ params }: ContactPageProps): Promise<Me
     description: isEnglish
       ? 'Have a question or want to collaborate with Trustora? Reach out for fast support and service information.'
       : 'Ai o intrebare sau vrei să colaborezi cu Trustora? Contactează-ne pentru suport rapid și informații despre serviciile noastre.',
+    locale,
     url: '/contact',
   });
 }
@@ -191,46 +192,80 @@ export default async function ContactPage() {
                   <form className="space-y-6">
                     <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        <label htmlFor="contact-name" className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
                           {t('contact.form.fields.name.label')}
                         </label>
-                        <Input placeholder={t('contact.form.fields.name.placeholder')} required />
+                        <Input
+                          id="contact-name"
+                          name="name"
+                          type="text"
+                          autoComplete="name"
+                          placeholder={t('contact.form.fields.name.placeholder')}
+                          required
+                        />
                       </div>
                       <div>
-                        <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        <label htmlFor="contact-email" className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
                           {t('contact.form.fields.email.label')}
                         </label>
-                        <Input type="email" placeholder={t('contact.form.fields.email.placeholder')} required />
+                        <Input
+                          id="contact-email"
+                          name="email"
+                          type="email"
+                          autoComplete="email"
+                          placeholder={t('contact.form.fields.email.placeholder')}
+                          required
+                        />
                       </div>
                     </div>
 
                     <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        <label htmlFor="contact-phone" className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
                           {t('contact.form.fields.phone.label')}
                         </label>
-                        <Input placeholder={t('contact.form.fields.phone.placeholder')} />
+                        <Input
+                          id="contact-phone"
+                          name="phone"
+                          type="tel"
+                          autoComplete="tel"
+                          placeholder={t('contact.form.fields.phone.placeholder')}
+                        />
                       </div>
                       <div>
-                        <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        <label htmlFor="contact-company" className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
                           {t('contact.form.fields.company.label')}
                         </label>
-                        <Input placeholder={t('contact.form.fields.company.placeholder')} />
+                        <Input
+                          id="contact-company"
+                          name="company"
+                          type="text"
+                          autoComplete="organization"
+                          placeholder={t('contact.form.fields.company.placeholder')}
+                        />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                      <label htmlFor="contact-subject" className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
                         {t('contact.form.fields.subject.label')}
                       </label>
-                      <Input placeholder={t('contact.form.fields.subject.placeholder')} required />
+                      <Input
+                        id="contact-subject"
+                        name="subject"
+                        type="text"
+                        placeholder={t('contact.form.fields.subject.placeholder')}
+                        required
+                      />
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
+                      <label htmlFor="contact-message" className="text-sm font-medium mb-2 block text-[#0B1C2D] dark:text-[#E6EDF3]">
                         {t('contact.form.fields.message.label')}
                       </label>
                       <textarea
+                        id="contact-message"
+                        name="message"
                         className="w-full min-h-32 px-3 py-2 border border-slate-200 bg-white rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1BC47D] focus:ring-offset-2 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#E6EDF3] dark:placeholder:text-[#6B7285]"
                         placeholder={t('contact.form.fields.message.placeholder')}
                         required
@@ -238,8 +273,14 @@ export default async function ContactPage() {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="privacy" className="rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D]" required />
-                      <label htmlFor="privacy" className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                      <input
+                        type="checkbox"
+                        id="contact-privacy"
+                        name="privacy"
+                        className="rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D]"
+                        required
+                      />
+                      <label htmlFor="contact-privacy" className="text-sm text-slate-500 dark:text-[#A3ADC2]">
                         {t('contact.form.privacy.consent')}{' '}
                         <a href="/privacy" className="text-[#1BC47D] hover:underline">
                           {t('contact.form.privacy.link')}
@@ -247,7 +288,7 @@ export default async function ContactPage() {
                       </label>
                     </div>
 
-                    <Button className="w-full btn-primary" size="lg">
+                    <Button type="submit" className="w-full btn-primary" size="lg">
                       <Send className="w-4 h-4 mr-2" />
                       {t('contact.form.submit')}
                     </Button>

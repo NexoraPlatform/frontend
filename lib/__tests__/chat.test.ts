@@ -1,12 +1,35 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ChatService } from '../chat';
-import { apiClient } from '../api';
+import { FetchError } from '../fetch-client';
+
+vi.mock('../fetch-client', () => ({
+  http: {
+    post: vi.fn(),
+  },
+  FetchError: class MockFetchError extends Error {
+    status: number;
+    response: Response;
+    data: unknown;
+    url: string;
+    constructor(message: string, status: number, response: Response, data: unknown, url: string) {
+      super(message);
+      this.status = status;
+      this.response = response;
+      this.data = data;
+      this.url = url;
+    }
+  },
+}));
+
+import { http } from '../fetch-client';
 
 describe('lib/chat ChatService', () => {
+  const mockedHttp = http as unknown as { post: vi.Mock };
+
   beforeEach(() => {
     localStorage.clear();
-    apiClient.removeToken();
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';
+    mockedHttp.post.mockReset();
   });
 
   afterEach(() => {
@@ -14,14 +37,10 @@ describe('lib/chat ChatService', () => {
     vi.restoreAllMocks();
   });
 
-  it('sendMessageViaApi censors sensitive content and sets Authorization header', async () => {
-    apiClient.setToken('token-abc');
-
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({ message: { id: 1 } }),
+  it('sendMessageViaApi censors sensitive content', async () => {
+    mockedHttp.post.mockResolvedValue({
+      message: { id: 1 },
     });
-    vi.stubGlobal('fetch', fetchMock);
 
     const service = new ChatService();
     await service.sendMessageViaApi(
@@ -30,28 +49,21 @@ describe('lib/chat ChatService', () => {
       []
     );
 
-    expect(fetchMock).toHaveBeenCalledOnce();
-    const [url, options] = fetchMock.mock.calls[0];
+    expect(mockedHttp.post).toHaveBeenCalledOnce();
+    const [url, body] = mockedHttp.post.mock.calls[0];
 
-    expect(url).toBe('https://api.example.com/chat/groups/123/messages');
-
-    const headers = (options as RequestInit).headers as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer token-abc');
-
-    const body = JSON.parse((options as RequestInit).body as string);
-    expect(body.content).toContain('[EMAIL CENZURAT]');
-    expect(body.content).toContain('[NUMĂR TELEFON CENZURAT]');
-    expect(body.content).toContain('[CONTACT CENZURAT]');
+    expect(url).toBe('/chat/groups/123/messages');
+    expect((body as any).content).toContain('[EMAIL CENZURAT]');
+    expect((body as any).content).toContain('[NUMĂR TELEFON CENZURAT]');
+    expect((body as any).content).toContain('[CONTACT CENZURAT]');
   });
 
   it('uploadAttachment throws server error message when upload fails', async () => {
-    apiClient.setToken('token-abc');
-
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      json: vi.fn().mockResolvedValue({ message: 'Upload denied' }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
+    mockedHttp.post.mockRejectedValue(
+      new FetchError('Request failed', 422, new Response(null, { status: 422 }), {
+        message: 'Upload denied',
+      }, '/chat/groups/555/attachments')
+    );
 
     const service = new ChatService();
     const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
@@ -60,13 +72,9 @@ describe('lib/chat ChatService', () => {
   });
 
   it('uploadAttachment returns message on success', async () => {
-    apiClient.setToken('token-abc');
-
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({ message: { id: 9, status: 'scanning' } }),
+    mockedHttp.post.mockResolvedValue({
+      message: { id: 9, status: 'scanning' },
     });
-    vi.stubGlobal('fetch', fetchMock);
 
     const service = new ChatService();
     const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });

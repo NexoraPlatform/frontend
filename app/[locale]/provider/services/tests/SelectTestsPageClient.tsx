@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
+import { hasRole } from '@/lib/access';
 import { AnimatePresence, motion } from "framer-motion";
 
 interface TestData {
@@ -127,7 +128,7 @@ export default function SelectTestsPageClient() {
             router.push('/auth/signin');
             return;
         }
-        if (user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+        if (!hasRole(user, ['provider'])) {
             router.push('/dashboard');
             return;
         }
@@ -504,7 +505,7 @@ export default function SelectTestsPageClient() {
         );
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'provider')) {
+    if (!user || !hasRole(user, ['provider'])) {
         return null;
     }
 

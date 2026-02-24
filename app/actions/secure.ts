@@ -61,11 +61,24 @@ export async function rapydReleasePaymentAction(params: {
   language?: string;
 }) {
   const { projectId, milestoneId, language } = params;
-  return serverRequest<any>('/rapyd/escrow/release', {
-    method: 'POST',
-    body: { project_id: projectId, milestone_id: milestoneId },
-    language,
-  });
+  const payload = {
+    project_id: projectId,
+    ...(milestoneId !== undefined && milestoneId !== null ? { milestone_id: String(milestoneId) } : {}),
+  };
+
+  try {
+    return await serverRequest<any>('/rapyd/release', {
+      method: 'POST',
+      body: payload,
+      language,
+    });
+  } catch {
+    return serverRequest<any>('/rapyd/escrow/release', {
+      method: 'POST',
+      body: payload,
+      language,
+    });
+  }
 }
 
 export async function rapydCreatePayoutBankAction(params: {

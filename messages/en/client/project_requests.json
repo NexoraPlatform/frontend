@@ -40,11 +40,14 @@
     },
     "milestones": {
       "title": "Project milestones",
-      "mark_complete": "Mark milestone as completed",
+      "mark_complete": "Update milestone status",
+      "start_work": "Start work",
+      "mark_finished": "Mark as finished",
       "paid": "Paid",
       "finished": "Finished",
       "rejected": "Rejected",
-      "pending": "Work in progress",
+      "pending": "Pending",
+      "work_in_progress": "Work in progress",
       "payment_status": {
         "pending": "Pending Payment",
         "escrow": "Payment Secured",
@@ -54,14 +57,23 @@
     },
     "status": {
       "pending": "Pending",
+      "work_in_progress": "Work in progress",
+      "awaiting_budget_approval": "Waiting for budget approval",
       "accepted": "Accepted",
       "rejected": "Rejected",
       "budget_proposed": "Budget proposed"
     },
     "actions": {
       "secure_payment": "Secure payment",
+      "find_replacement": "Find replacement",
       "view_details": "View details",
       "messages": "Messages"
+    },
+    "replacement": {
+      "title": "Replacement providers",
+      "assign": "Assign provider",
+      "no_suggestions": "No replacement providers found for this milestone.",
+      "no_milestone": "Select a milestone to load suggestions."
     },
     "release": {
       "button": "Release funds",
@@ -70,8 +82,8 @@
       "error": "Error: {message}"
     },
     "stripe": {
-      "load_error": "Stripe failed to load.",
-      "not_ready": "Stripe is not ready.",
+      "load_error": "Rapyd failed to load.",
+      "not_ready": "Rapyd is not ready.",
       "session_not_ready": "The payment session is not ready yet.",
       "payment_error": "Payment error"
     },
@@ -103,7 +115,60 @@
       "footer": {
         "ssl": "SSL secured",
         "pci": "PCI compliant",
-        "stripe": "Stripe powered"
+        "stripe": "Rapyd powered"
+      }
+    },
+    "brief_copilot": {
+      "title": "Trustora AI Architect",
+      "subtitle": "Iteratively define your technical brief and sync it to the project form.",
+      "welcome": "Describe the product you want to build and I will help structure the brief.",
+      "assistant_name": "AI Architect",
+      "input_placeholder": "Explain your goal, timeline, budget, and preferred technologies...",
+      "send": "Send",
+      "questions_title": "Clarifications",
+      "clarify_ready": "I need a few more details before finalizing the brief.",
+      "final_ready": "The structured brief is ready.",
+      "summary_title": "Structured Summary",
+      "summary_title_empty": "Untitled project brief",
+      "summary_budget": "Estimated budget",
+      "summary_technologies": "Technologies",
+      "summary_technologies_empty": "No technologies extracted yet.",
+      "summary_duration": "Recommended duration",
+      "summary_budget_range": "Budget range",
+      "summary_payment_meta": "Payment & currency",
+      "team_title": "Suggested team structure",
+      "team_level": "Level: {level}",
+      "section_specific_requirements": "Specific requirements",
+      "section_business_analysis": "Business analysis",
+      "business_problem_statement": "Problem statement",
+      "business_target_users": "Target users",
+      "business_value_proposition": "Value proposition",
+      "business_feature_business_value": "Feature business value",
+      "section_tech_stack": "Recommended tech stack",
+      "tech_architecture_notes": "Architecture notes",
+      "section_technical_risks": "Technical risks",
+      "section_complexity_estimation": "Complexity estimation",
+      "section_complexity": "Complexity",
+      "section_team_recommendation": "Team recommendation",
+      "section_milestones": "Milestones",
+      "section_final_brief_text": "Full brief text",
+      "apply_to_form": "Apply to form",
+      "errors": {
+        "generic": "The AI architect is temporarily unavailable."
+      },
+      "draft": {
+        "title": "Draft Project Brief",
+        "description": "Review the generated details and continue to the full project form.",
+        "project_title": "Title",
+        "project_title_placeholder": "e.g. Multi-tenant SaaS analytics platform",
+        "project_description": "Description",
+        "project_description_placeholder": "Business goals, scope, integrations, constraints, and acceptance criteria.",
+        "budget": "Budget",
+        "budget_placeholder": "Estimated budget in USD",
+        "technologies": "Technologies",
+        "technologies_placeholder": "React, Laravel, PostgreSQL, Redis",
+        "open_form": "Open Project Form",
+        "empty": "Run the copilot to prepare an auto-filled project draft."
       }
     }
   }

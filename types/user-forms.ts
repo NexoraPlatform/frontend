@@ -1,8 +1,10 @@
 // types/user-forms.ts
 import { z } from 'zod';
+import type { ConnectedAccount } from '@/types/auth';
 
 const emptyToUndefined = (value: unknown) =>
     typeof value === 'string' && value.trim() === '' ? undefined : value;
+
 export type BaseUser = {
     id?: number;
     firstName: string;
@@ -31,6 +33,7 @@ export type BaseUser = {
         string,
         { id: number; name: string; allowed: boolean }
     > | Array<any>; // lista din backend la load
+    connected_accounts?: ConnectedAccount[];
 };
 
 export type AdminFormData = BaseUser & {

@@ -1,2601 +1,6778 @@
 "use client";
 
-import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
-import { usePathname, useRouter } from '@/lib/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Header } from '@/components/header';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Chrome,
+  Figma,
+  FolderOpen,
+  Github,
+  History,
+  LayoutDashboard,
+  Layers,
+  Loader2,
+  Lock,
+  Moon,
+  Plus,
+  Settings,
+  Sun,
+  Sparkles,
+  UploadCloud,
+  Users,
+  Wrench,
+  X,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
 import { Footer } from '@/components/footer';
+import { Header } from '@/components/header';
+import { NotificationBell } from '@/components/notification-bell';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
+import { ChatButton } from '@/components/chat/chat-button';
+import ChatLauncher from '@/components/chat/chat-launcher';
+import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
-import {
-    Plus,
-    X,
-    Search,
-    Star,
-    MapPin,
-    Clock,
-    DollarSign,
-    CheckCircle,
-    AlertCircle,
-    Loader2,
-    FileText,
-    Code,
-    Zap,
-    Target,
-    Users,
-    MessageSquare,
-    Eye,
-    ArrowRight,
-    ArrowLeft,
-    EuroIcon,
-    Filter,
-    ChevronDown,
-    BadgeAlert, GithubIcon
-} from 'lucide-react';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '@/contexts/auth-context';
-import {useGetServicesGroupedByCategory, useMainCategories} from '@/hooks/use-api';
-import TitleIcon from '@mui/icons-material/Title';
-import DescriptionIcon from '@mui/icons-material/Description';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import { apiClient } from '@/lib/api';
-import type { GenerateProjectInformationResponse } from '@/lib/api';
-import { formatDeadline } from '@/lib/projects';
-import { hasRole } from '@/lib/access';
+import { useGetServicesGroupedByCategory } from '@/hooks/use-api';
+import { buildOAuthRedirectUrl } from '@/lib/backend-url';
+import { getEcho } from '@/lib/echo';
+import { Link, usePathname, useRouter } from '@/lib/navigation';
+import { aiService, type AiRecommendServicesResponse, type RecommendedServiceCandidate } from '@/services/ai.service';
+import { projectsService } from '@/services/projects';
+import {
+  type AiAssistantMessage,
+  type AiBriefResponse,
+  type AiMilestoneItem,
+  type AiTeamStructureItem,
+  type AiBriefRecommendedProviders,
+  type AiBriefOtherProviders,
+  type AiBriefOtherProvidersByService,
+  type AiBriefProvider,
+  type AiBriefFormDraft,
+  AI_BRIEF_DRAFT_STORAGE_KEY,
+} from '@/types/ai';
 import type { Locale } from '@/types/locale';
-import { PriceDisplay } from '@/components/PriceDisplay';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
-import AccessTimeFilledIcon from '@mui/icons-material/AccessTimeFilled';
+import type { OAuthProvider } from '@/types/auth';
+import type { DeliveryProvider } from '@/types/projects';
 
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
+type WizardStep = 'intent' | 'recommendation' | 'briefing' | 'providers' | 'connections' | 'review';
+type ProjectInputMode = 'ai' | 'manual';
 
-import 'dayjs/locale/ro';
-import 'dayjs/locale/en';
-import GithubConnect from "@/components/GithubConnect";
-
-
-function setDayjsLocale(locale: string) {
-    const supported = ['ro', 'en'];
-    if (supported.includes(locale)) {
-        dayjs.locale(locale);
-    } else {
-        dayjs.locale('ro');
-    }
-}
-
-type ServiceItem = {
-    id: string;
-    name: string;
-    slug?: string;
-    category_id: string;
-    require_repo: boolean;
+type RecommendationResult = {
+  bundle_name?: string;
+  services: RecommendedServiceCandidate[];
 };
 
-type GroupedServices = Record<
-    string,
-    Record<string, ServiceItem[]>
->;
+type ServiceCatalogEntry = {
+  name?: string;
+  description?: string;
+  delivery_provider?: DeliveryProvider;
+  category_name?: string;
+  category_id?: string | number;
+  subcategory_name?: string;
+};
 
-type matchReasons = {
-    passed: boolean;
-    message: string;
-}
+type ApiServiceOption = {
+  id: string;
+  name: string;
+  delivery_provider?: DeliveryProvider;
+  category_name: string;
+  category_id?: string | number;
+  subcategory_name?: string;
+};
 
-interface SuggestedProvider {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatar?: string;
-    rating: number;
-    reviewCount: number;
-    completedProjects: number;
-    responseTime: string;
-    location: string;
-    isVerified: boolean;
-    profileUrl: string;
-    skills: string[];
-    basePrice: number;
-    pricingType: string;
-    deliveryTime: number;
-    matchScore: number;
-    matchReasons: matchReasons[];
-    availability: string;
-    lastActive: string;
-    level: string;
-}
+type RecommendedCard = RecommendedServiceCandidate & {
+  key: string;
+};
 
+type ManualMilestoneForm = {
+  id: string;
+  title: string;
+  description: string;
+  percentage: string;
+  amount: string;
+};
 
-const aiLoadingMessageKeys = [
-    'projects.new.ai_loading.analyzing',
-    'projects.new.ai_loading.generating',
-    'projects.new.ai_loading.verifying',
-    'projects.new.ai_loading.finalizing',
+type ManualProjectLineForm = {
+  id: string;
+  service_id: string;
+  service_name: string;
+  delivery_provider: DeliveryProvider;
+  description: string;
+  budget_percentage: string;
+  milestones: ManualMilestoneForm[];
+};
+
+type NormalizedBriefProjectLine =
+  NonNullable<AiBriefResponse['final_brief']>['project_lines'][number];
+type NormalizedBriefProjectLineMilestone = NormalizedBriefProjectLine['milestones'][number];
+
+type NormalizedTechnologyLine = {
+  service_name: string;
+  service_id?: string | number;
+  delivery_provider?: DeliveryProvider;
+};
+
+type NormalizedMilestoneWithService = AiMilestoneItem & {
+  service_id?: string | number;
+  service_name?: string;
+  delivery_provider?: DeliveryProvider;
+};
+
+type ProjectNewOAuthSnapshot = {
+  savedAt: number;
+  step: WizardStep;
+  projectInputMode: ProjectInputMode;
+  intent: string;
+  manualTitle: string;
+  briefStatus: 'IDLE' | AiBriefResponse['status'];
+  briefResult: NonNullable<AiBriefResponse['final_brief']> | null;
+  briefModularDetails: AiBriefResponse['final_brief_modular'] | null;
+  briefFullDetails: AiBriefResponse['final_brief_full'] | null;
+  briefText: string;
+  briefPayloadTruncated: boolean;
+  briefPayloadTrimmedSections: string[];
+  recommendedProviders?: AiBriefRecommendedProviders;
+  otherProviders?: AiBriefOtherProvidersByService;
+  selectedProviders: AiBriefProvider[];
+  totalBudget: string;
+  editableDuration: string;
+  editablePaymentPlan: string;
+};
+
+const PROJECT_NEW_OAUTH_SNAPSHOT_KEY = 'trustora:projects-new-oauth-snapshot';
+const PROJECT_NEW_OAUTH_SNAPSHOT_TTL_MS = 30 * 60 * 1000;
+const PROJECT_NEW_WIZARD_STATE_KEY = 'trustora:projects-new-wizard-state';
+const PROJECT_NEW_WIZARD_STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const WIZARD_STEP_VALUES: WizardStep[] = [
+  'intent',
+  'recommendation',
+  'briefing',
+  'providers',
+  'connections',
+  'review',
 ];
 
-type TechnologySelected = {
-    id: string;
-    name: string
-    require_repo?: boolean;
-}
+const isWizardStep = (value: unknown): value is WizardStep =>
+  typeof value === 'string' && WIZARD_STEP_VALUES.includes(value as WizardStep);
+const isProjectInputMode = (value: unknown): value is ProjectInputMode =>
+  value === 'ai' || value === 'manual';
 
-type RecommendedProvider = {
-    role: string;
-    level: string;
-    service: string;
-    count: number;
-    estimated_cost: number;
-}
+type ProjectNewPersistedWizardState = {
+  savedAt: number;
+  step: WizardStep;
+  projectInputMode: ProjectInputMode;
+  intent: string;
+  manualTitle: string;
+  manualServiceSearch: string;
+  groupedServicesPage: number;
+  manualServiceIds: string[];
+  manualSelectedServicesMap: Record<string, ApiServiceOption>;
+  manualSpecificRequirements: string;
+  manualDuration: string;
+  manualPaymentPlan: string;
+  manualCurrency: string;
+  manualProjectLines: ManualProjectLineForm[];
+  recommendation: RecommendationResult | null;
+  selectedServiceIndexes: number[];
+  briefMessages: AiAssistantMessage[];
+  briefStatus: 'IDLE' | AiBriefResponse['status'];
+  briefQuestions: string[];
+  briefAnswer: string;
+  briefResult: NonNullable<AiBriefResponse['final_brief']> | null;
+  briefModularDetails: AiBriefResponse['final_brief_modular'] | null;
+  briefFullDetails: AiBriefResponse['final_brief_full'] | null;
+  briefText: string;
+  briefPayloadTruncated: boolean;
+  briefPayloadTrimmedSections: string[];
+  recommendedProviders?: AiBriefRecommendedProviders;
+  otherProviders?: AiBriefOtherProvidersByService;
+  selectedProviders: AiBriefProvider[];
+  milestoneAssignments: Record<string, number>;
+  milestoneAssignmentsInitialized: boolean;
+  totalBudget: string;
+  editableDuration: string;
+  editablePaymentPlan: string;
+};
 
-type BudgetType = 'FIXED' | 'HOURLY';
+type ReviewMilestoneEntry = {
+  key: string;
+  lineIndex: number;
+  milestoneIndex: number;
+  serviceName: string;
+  serviceKey: string;
+  milestone: NonNullable<AiBriefResponse['final_brief']>['project_lines'][number]['milestones'][number];
+  initialAssignedProviderId: number | null;
+};
 
-type FormData = {
-    title: string;
+const PAYMENT_PLAN_OPTIONS = [
+  { value: 'FULL', labelKey: 'payment_plan_full' },
+  { value: 'MILESTONE', labelKey: 'payment_plan_milestone' },
+  { value: 'MONTHLY', labelKey: 'payment_plan_monthly' },
+] as const;
+
+const AI_WIZARD_STEPS: Array<{ id: WizardStep; labelKey: string }> = [
+  { id: 'intent', labelKey: 'step_label_intent' },
+  { id: 'recommendation', labelKey: 'step_label_recommendation' },
+  { id: 'briefing', labelKey: 'step_label_briefing' },
+  { id: 'providers', labelKey: 'step_label_providers' },
+  { id: 'connections', labelKey: 'step_label_connections' },
+  { id: 'review', labelKey: 'step_label_review' },
+];
+
+const MANUAL_WIZARD_STEPS: Array<{ id: WizardStep; labelKey: string }> = [
+  { id: 'intent', labelKey: 'step_label_project_details' },
+  { id: 'providers', labelKey: 'step_label_providers' },
+  { id: 'connections', labelKey: 'step_label_connections' },
+  { id: 'review', labelKey: 'step_label_review' },
+];
+
+type CreateProjectThemeVars = {
+  '--bg-main': string;
+  '--bg-card': string;
+  '--text-main': string;
+  '--text-muted': string;
+  '--border-color': string;
+  '--header-bg': string;
+  '--input-bg': string;
+  '--stat-bg': string;
+};
+
+const createProjectThemes: Record<'light' | 'dark', CreateProjectThemeVars> = {
+  light: {
+    '--bg-main': '#F5F7FA',
+    '--bg-card': '#FFFFFF',
+    '--text-main': '#0B1C2D',
+    '--text-muted': '#64748B',
+    '--border-color': 'rgba(226, 232, 240, 0.8)',
+    '--header-bg': 'rgba(255, 255, 255, 0.8)',
+    '--input-bg': '#F5F7FA',
+    '--stat-bg': '#F5F7FA',
+  },
+  dark: {
+    '--bg-main': '#06111A',
+    '--bg-card': '#0D1F30',
+    '--text-main': '#F8FAFC',
+    '--text-muted': '#94A3B8',
+    '--border-color': 'rgba(255, 255, 255, 0.08)',
+    '--header-bg': 'rgba(13, 31, 48, 0.8)',
+    '--input-bg': '#06111A',
+    '--stat-bg': '#152A40',
+  },
+};
+
+const GROUPED_SERVICES_DEFAULT_LIMIT = 2;
+
+const STEP_TRANSITIONS: Record<WizardStep, WizardStep[]> = {
+  intent: ['recommendation', 'providers', 'connections', 'review'],
+  recommendation: ['intent', 'briefing'],
+  briefing: ['recommendation', 'providers'],
+  providers: ['intent', 'briefing', 'connections'],
+  connections: ['providers', 'review'],
+  review: ['connections', 'providers', 'intent'],
+};
+
+const AI_BRIEF_GENERATED_EVENT_NAMES = [
+  '.AiBriefGenerated',
+  'AiBriefGenerated',
+  '.App\\Events\\AiBriefGenerated',
+  'App\\Events\\AiBriefGenerated',
+] as const;
+
+const AI_BRIEF_FAILED_EVENT_NAMES = [
+  '.AiBriefFailed',
+  'AiBriefFailed',
+  '.App\\Events\\AiBriefFailed',
+  'App\\Events\\AiBriefFailed',
+] as const;
+
+const toObject = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const toString = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+};
+
+const toLocalizedString = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  const objectValue = toObject(value);
+  if (!objectValue) {
+    return '';
+  }
+
+  const direct =
+    toString(objectValue.ro) ||
+    toString(objectValue.en) ||
+    toString(objectValue.name);
+  if (direct) {
+    return direct;
+  }
+
+  for (const candidate of Object.values(objectValue)) {
+    const normalized = toString(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
+};
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const extractBriefResultId = (value: unknown): number | string | null => {
+  const root = toObject(value);
+  if (!root) {
+    return null;
+  }
+
+  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+  const sourceResponsePayload = toObject(source.response_payload);
+  const rootResponsePayload = toObject(root.response_payload);
+  const sourceDebug = toObject(source.debug);
+  const rootDebug = toObject(root.debug);
+  const sourceDebugResponsePayload = toObject(sourceDebug?.response_payload);
+  const rootDebugResponsePayload = toObject(rootDebug?.response_payload);
+  const candidate =
+    source.brief_result_id ??
+    root.brief_result_id ??
+    source.id ??
+    root.id ??
+    sourceResponsePayload?.brief_result_id ??
+    rootResponsePayload?.brief_result_id ??
+    sourceDebugResponsePayload?.brief_result_id ??
+    rootDebugResponsePayload?.brief_result_id;
+
+  if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+    return candidate;
+  }
+
+  if (typeof candidate === 'string' && candidate.trim()) {
+    return candidate.trim();
+  }
+
+  return null;
+};
+
+const normalizeDeliveryProvider = (value: unknown): DeliveryProvider => {
+  const normalized = toString(value).toLowerCase();
+
+  if (normalized === 'github') return 'github';
+  if (normalized === 'figma') return 'figma';
+  if (normalized === 'google_drive') return 'google_drive';
+  if (normalized === 'google_analytics') return 'google_analytics';
+
+  return 'manual_upload';
+};
+
+const getProviderLabel = (provider: DeliveryProvider) => {
+  if (provider === 'github') return 'GitHub';
+  if (provider === 'figma') return 'Figma';
+  if (provider === 'google_drive') return 'Google Drive';
+  if (provider === 'google_analytics') return 'Google Analytics';
+  return 'Manual upload';
+};
+
+const getProviderIcon = (provider: DeliveryProvider) => {
+  if (provider === 'github') return <Github className="h-4 w-4" />;
+  if (provider === 'figma') return <Figma className="h-4 w-4" />;
+  if (provider === 'google_drive') return <FolderOpen className="h-4 w-4" />;
+  if (provider === 'google_analytics') return <BarChart3 className="h-4 w-4" />;
+  if (provider === 'manual_upload') return <UploadCloud className="h-4 w-4" />;
+  return <Wrench className="h-4 w-4" />;
+};
+
+const mapDeliveryProviderToOAuth = (provider: DeliveryProvider): OAuthProvider | null => {
+  if (provider === 'github') return 'github';
+  if (provider === 'figma') return 'figma';
+  if (provider === 'google_drive' || provider === 'google_analytics') return 'google';
+  return null;
+};
+
+const getOAuthProviderIcon = (provider: OAuthProvider) => {
+  if (provider === 'github') return <Github className="h-4 w-4" />;
+  if (provider === 'figma') return <Figma className="h-4 w-4" />;
+  return <Chrome className="h-4 w-4" />;
+};
+
+const isAlternativeService = (service: RecommendedServiceCandidate | RecommendedCard) =>
+  Boolean((service as { is_alternative?: unknown }).is_alternative);
+
+const getServiceCategoryName = (service: RecommendedServiceCandidate | RecommendedCard) =>
+  toString((service as { category_name?: unknown }).category_name);
+
+const getServiceKey = (serviceName: unknown) => toString(serviceName).toLowerCase();
+
+const getMilestoneAssignmentKey = (lineIndex: number, milestoneIndex: number) =>
+  `line-${lineIndex}-milestone-${milestoneIndex}`;
+
+const getMilestoneAssignedProviderId = (milestone: unknown): number | null => {
+  const source = toObject(milestone);
+  if (!source) {
+    return null;
+  }
+
+  return (
+    toNumber(source.assigned_provider_id) ??
+    toNumber(source.provider_id) ??
+    toNumber(source.providerId)
+  );
+};
+
+const getProviderId = (provider: AiBriefProvider): number | null =>
+  toNumber((provider as { id?: unknown }).id);
+
+const getProviderDisplayName = (provider: AiBriefProvider) =>
+  toString((provider as { name?: unknown }).name) ||
+  `${toString(provider.firstName)} ${toString(provider.lastName)}`.trim() ||
+  (() => {
+    const providerId = getProviderId(provider);
+    return providerId !== null ? `Provider #${providerId}` : 'Provider';
+  })();
+
+const dedupeProviders = (providers: AiBriefProvider[]) => {
+  const unique = new Map<string, AiBriefProvider>();
+  providers.forEach((provider) => {
+    const providerId = getProviderId(provider);
+    const key = providerId !== null ? String(providerId) : getProviderDisplayName(provider);
+    if (!unique.has(key)) {
+      unique.set(key, provider);
+    }
+  });
+  return Array.from(unique.values());
+};
+
+const parseDurationToMonths = (value: unknown): number | null => {
+  const normalized = toString(value).toLowerCase().replace(/\s+/g, '');
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.includes('plusyear') || normalized.includes('over1year')) {
+    return 12;
+  }
+
+  const numericPattern = /(\d+(?:[.,]\d+)?)(day|days|week|weeks|month|months|year|years)/;
+  const match = normalized.match(numericPattern);
+  if (!match) {
+    return null;
+  }
+
+  const amount = Number(match[1].replace(',', '.'));
+  const unit = match[2];
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  if (unit.startsWith('day')) {
+    return amount / 30;
+  }
+
+  if (unit.startsWith('week')) {
+    return amount / 4;
+  }
+
+  if (unit.startsWith('year')) {
+    return amount * 12;
+  }
+
+  return amount;
+};
+
+const normalizeRecommendationResponse = (
+  payload: unknown,
+  serviceCatalogById?: Map<string, ServiceCatalogEntry>
+): RecommendationResult => {
+  const root = toObject(payload) ?? {};
+  const source = toObject(root.data) ?? root;
+  const bundle = toObject(source.bundle);
+  const recommendationType = toString(source.type).toLowerCase();
+
+  const bundleName =
+    toString(source.bundle_name) ||
+    toString(bundle?.name) ||
+    toString(source.name) ||
+    (recommendationType === 'bundle'
+      ? 'Recommended bundle'
+      : recommendationType === 'single'
+        ? 'Recommended service'
+        : '') ||
+    undefined;
+
+  const candidateLists: unknown[] = [
+    source.services,
+    bundle?.services,
+    source.recommended_services,
+    source.project_lines,
+    source.items,
+    root.services,
+  ];
+
+  let rawServices: unknown[] = [];
+  for (const entry of candidateLists) {
+    if (Array.isArray(entry) && entry.length > 0) {
+      rawServices = entry;
+      break;
+    }
+  }
+
+  if (
+    rawServices.length === 0 &&
+    (toString(source.service_name) ||
+      toString(source.name) ||
+      typeof source.service_id === 'string' ||
+      typeof source.service_id === 'number')
+  ) {
+    rawServices = [source];
+  }
+
+  const mapServiceEntries = (
+    entries: unknown[],
+    options?: {
+      isAlternative?: boolean;
+      fallbackCategoryId?: string | number;
+      fallbackCategoryName?: string;
+      fallbackReason?: string;
+    }
+  ): RecommendedServiceCandidate[] =>
+    entries
+      .map((entry) => {
+        const item = toObject(entry);
+        if (!item) {
+          return null;
+        }
+
+        const nestedService = toObject(item.service);
+        const serviceIdRaw = item.service_id ?? item.id ?? nestedService?.id;
+        const serviceId =
+          typeof serviceIdRaw === 'string' || typeof serviceIdRaw === 'number'
+            ? serviceIdRaw
+            : null;
+        const catalogData =
+          serviceId !== null ? serviceCatalogById?.get(String(serviceId)) : undefined;
+
+        const serviceName =
+          toString(item.service_name) ||
+          toString(item.name) ||
+          toString(item.title) ||
+          toString(nestedService?.name) ||
+          toString(catalogData?.name) ||
+          (serviceId !== null ? `Service #${serviceId}` : '');
+
+        if (!serviceName) {
+          return null;
+        }
+
+        const categoryId = item.category_id ?? options?.fallbackCategoryId;
+        const categoryName = toString(item.category_name) || toString(options?.fallbackCategoryName);
+        const description =
+          toString(item.description) ||
+          toString(item.reason) ||
+          toString(options?.fallbackReason) ||
+          toString(catalogData?.description);
+
+        return {
+          ...(serviceId !== null ? { service_id: serviceId } : {}),
+          service_name: serviceName,
+          delivery_provider: normalizeDeliveryProvider(
+            item.delivery_provider ??
+            item.provider ??
+            nestedService?.delivery_provider ??
+            catalogData?.delivery_provider
+          ),
+          ...(description ? { description } : {}),
+          ...((typeof categoryId === 'string' || typeof categoryId === 'number')
+            ? { category_id: categoryId }
+            : {}),
+          ...(categoryName ? { category_name: categoryName } : {}),
+          ...(options?.isAlternative ? { is_alternative: true } : {}),
+        } satisfies RecommendedServiceCandidate;
+      })
+      .filter((entry): entry is RecommendedServiceCandidate => entry !== null);
+
+  const recommendedServices = mapServiceEntries(rawServices);
+
+  const similarServicesByCategoryRaw = Array.isArray(source.similar_services_by_category)
+    ? source.similar_services_by_category
+    : [];
+
+  const alternativeServices = similarServicesByCategoryRaw.flatMap((categoryEntry) => {
+    const category = toObject(categoryEntry);
+    if (!category) {
+      return [];
+    }
+
+    const categoryServices = Array.isArray(category.services) ? category.services : [];
+    if (categoryServices.length === 0) {
+      return [];
+    }
+
+    const fallbackCategoryName = toString(category.category_name);
+    const fallbackReason = fallbackCategoryName
+      ? `Alternative service in ${fallbackCategoryName}.`
+      : 'Alternative service option.';
+
+    return mapServiceEntries(categoryServices, {
+      isAlternative: true,
+      fallbackCategoryId:
+        typeof category.category_id === 'string' || typeof category.category_id === 'number'
+          ? category.category_id
+          : undefined,
+      fallbackCategoryName,
+      fallbackReason,
+    });
+  });
+
+  const uniqueServices = new Map<string, RecommendedServiceCandidate>();
+  [...recommendedServices, ...alternativeServices].forEach((service) => {
+    const serviceId = service.service_id;
+    const categoryName = getServiceCategoryName(service).toLowerCase();
+    const key =
+      typeof serviceId === 'string' || typeof serviceId === 'number'
+        ? `service-id:${String(serviceId)}::${categoryName}`
+        : `${service.service_name.toLowerCase()}::${service.delivery_provider}::${categoryName}`;
+
+    if (!uniqueServices.has(key)) {
+      uniqueServices.set(key, service);
+    }
+  });
+
+  const services = Array.from(uniqueServices.values());
+
+  return {
+    ...(bundleName ? { bundle_name: bundleName } : {}),
+    services,
+  };
+};
+
+const normalizeQuestions = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (typeof entry === 'string') {
+        return entry.trim();
+      }
+      if (entry && typeof entry === 'object' && 'question' in entry) {
+        return toString((entry as { question?: unknown }).question);
+      }
+      return '';
+    })
+    .filter(Boolean);
+};
+
+const toJsonDebugString = (value: unknown): string => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+const normalizeBriefProjectLines = (
+  rawLines: unknown[],
+  fallbackDescription: string = ''
+): NonNullable<AiBriefResponse['final_brief']>['project_lines'] => {
+  return rawLines
+    .map((entry) => {
+      const line = toObject(entry);
+      if (!line) {
+        return null;
+      }
+
+      const serviceName =
+        toString(line.service_name) ||
+        toString(line.name) ||
+        toString(line.service) ||
+        toString(line.role);
+
+      if (!serviceName) {
+        return null;
+      }
+
+      const milestonesRaw = Array.isArray(line.milestones) ? line.milestones : [];
+      const milestones = milestonesRaw
+        .map((milestoneEntry) => {
+          const milestone = toObject(milestoneEntry);
+          if (!milestone) {
+            return null;
+          }
+
+          const milestoneTitle = toString(milestone.title);
+          if (!milestoneTitle) {
+            return null;
+          }
+
+          const milestoneDescription = toString(milestone.description);
+          const milestonePercentage = toNumber(milestone.percentage);
+          const assignedProviderId = getMilestoneAssignedProviderId(milestone);
+          const assignedProvider = toObject(milestone.assigned_provider);
+
+          return {
+            title: milestoneTitle,
+            ...(milestoneDescription ? { description: milestoneDescription } : {}),
+            ...(milestonePercentage !== null ? { percentage: milestonePercentage } : {}),
+            amount: toNumber(milestone.amount) ?? 0,
+            ...(assignedProviderId !== null ? { assigned_provider_id: assignedProviderId } : {}),
+            ...(assignedProvider ? { assigned_provider: assignedProvider } : {}),
+          };
+        })
+        .filter(
+          (item): item is { title: string; description?: string; percentage?: number; amount: number } =>
+            item !== null
+        );
+
+      return {
+        service_name: serviceName,
+        delivery_provider: normalizeDeliveryProvider(line.delivery_provider),
+        description: toString(line.description) || fallbackDescription,
+        budget_percentage:
+          toNumber(line.budget_percentage) ?? toNumber(line.percentage) ?? 0,
+        milestones,
+      };
+    })
+    .filter((line): line is NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] => line !== null);
+};
+
+const normalizeStringList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((item) => toString(item)).filter(Boolean);
+};
+
+const normalizeFlexibleStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => toString(item)).filter(Boolean);
+  }
+
+  const single = toString(value);
+  return single ? [single] : [];
+};
+
+const normalizeTechnologyLines = (value: unknown): NormalizedTechnologyLine[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const lines = new Map<string, NormalizedTechnologyLine>();
+
+  value.forEach((entry) => {
+    if (typeof entry === 'string') {
+      const name = toString(entry);
+      if (!name) {
+        return;
+      }
+
+      const key = `name:${name.toLowerCase()}`;
+      if (!lines.has(key)) {
+        lines.set(key, { service_name: name });
+      }
+      return;
+    }
+
+    const item = toObject(entry);
+    if (!item) {
+      return;
+    }
+
+    const serviceName =
+      toString(item.name) ||
+      toString(item.service_name) ||
+      toString(item.technology) ||
+      toString(item.title);
+
+    if (!serviceName) {
+      return;
+    }
+
+    const rawServiceId = item.service_id ?? item.id;
+    const serviceId =
+      typeof rawServiceId === 'string' || typeof rawServiceId === 'number'
+        ? rawServiceId
+        : undefined;
+    const rawDeliveryProvider = item.delivery_provider ?? item.provider;
+    const deliveryProvider =
+      typeof rawDeliveryProvider === 'string' && rawDeliveryProvider.trim()
+        ? normalizeDeliveryProvider(rawDeliveryProvider)
+        : undefined;
+
+    const key =
+      serviceId !== undefined
+        ? `id:${String(serviceId)}`
+        : `name:${serviceName.toLowerCase()}`;
+    const existing = lines.get(key);
+
+    lines.set(key, {
+      service_name: serviceName,
+      ...(serviceId !== undefined ? { service_id: serviceId } : {}),
+      ...(deliveryProvider ? { delivery_provider: deliveryProvider } : {}),
+      ...(existing?.service_id !== undefined && serviceId === undefined
+        ? { service_id: existing.service_id }
+        : {}),
+      ...(existing?.delivery_provider && !deliveryProvider
+        ? { delivery_provider: existing.delivery_provider }
+        : {}),
+    });
+  });
+
+  return Array.from(lines.values());
+};
+
+const normalizeTechnologyNames = (value: unknown): string[] => {
+  return normalizeTechnologyLines(value).map((line) => line.service_name);
+};
+
+const normalizeTeamStructure = (
+  value: unknown
+): AiTeamStructureItem[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const member = toObject(entry);
+      if (!member) {
+        return null;
+      }
+
+      const role = toString(member.role);
+      if (!role) {
+        return null;
+      }
+
+      const count = toNumber(member.count);
+      const estimatedCost = toNumber(member.estimated_cost);
+
+      return {
+        role,
+        ...(toString(member.service) ? { service: toString(member.service) } : {}),
+        ...(toString(member.level) ? { level: toString(member.level) } : {}),
+        ...(count !== null ? { count } : {}),
+        ...(estimatedCost !== null ? { estimated_cost: estimatedCost } : {}),
+      };
+    })
+    .filter((item): item is AiTeamStructureItem => item !== null);
+};
+
+const normalizeMilestoneListWithService = (
+  value: unknown
+): NormalizedMilestoneWithService[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const milestone = toObject(entry);
+      if (!milestone) {
+        return null;
+      }
+
+      const title = toString(milestone.title);
+      if (!title) {
+        return null;
+      }
+
+      const percentage = toNumber(milestone.percentage);
+      const amount = toNumber(milestone.amount);
+      const rawServiceId = milestone.service_id ?? milestone.serviceId;
+      const serviceId =
+        typeof rawServiceId === 'string' || typeof rawServiceId === 'number'
+          ? rawServiceId
+          : undefined;
+      const serviceName =
+        toString(milestone.service_name) ||
+        toString(milestone.serviceName) ||
+        toString(milestone.service);
+      const rawDeliveryProvider = milestone.delivery_provider ?? milestone.provider;
+      const deliveryProvider =
+        typeof rawDeliveryProvider === 'string' && rawDeliveryProvider.trim()
+          ? normalizeDeliveryProvider(rawDeliveryProvider)
+          : undefined;
+
+      return {
+        title,
+        ...(toString(milestone.description) ? { description: toString(milestone.description) } : {}),
+        ...(percentage !== null ? { percentage } : {}),
+        ...(amount !== null ? { amount } : {}),
+        ...(serviceId !== undefined ? { service_id: serviceId } : {}),
+        ...(serviceName ? { service_name: serviceName } : {}),
+        ...(deliveryProvider ? { delivery_provider: deliveryProvider } : {}),
+      };
+    })
+    .filter((item): item is NormalizedMilestoneWithService => item !== null);
+};
+
+const buildProjectLinesFromTechnologiesAndMilestones = (
+  technologies: NormalizedTechnologyLine[],
+  milestones: NormalizedMilestoneWithService[],
+  fallbackDescription: string = ''
+): NormalizedBriefProjectLine[] => {
+  type WorkingLine = {
+    service_name: string;
+    delivery_provider: DeliveryProvider;
     description: string;
-    requirements: string;
-    serviceId: string;
-    technologies: TechnologySelected[];
-    budget: string;
-    budgetType: BudgetType;
-    deadline: string;
-    visibility: string;
-    attachments: File[];
-    additionalInfo: string;
-    recommendedProviders: RecommendedProvider[];
-    notes: string;
-    paymentPlan: string;
-    githubRepoTarget: 'platform' | 'provider' | 'client' | 'without';
+    milestones: NormalizedBriefProjectLineMilestone[];
+    totalAmount: number;
+    totalExplicitPercentage: number;
+    hasExplicitPercentage: boolean;
+  };
+
+  const lines = new Map<string, WorkingLine>();
+  const order: string[] = [];
+  const keyByServiceId = new Map<string, string>();
+  const keyByServiceName = new Map<string, string>();
+
+  const upsertLine = (
+    key: string,
+    serviceName: string,
+    deliveryProvider: DeliveryProvider = 'manual_upload'
+  ) => {
+    if (!lines.has(key)) {
+      lines.set(key, {
+        service_name: serviceName,
+        delivery_provider: deliveryProvider,
+        description: fallbackDescription,
+        milestones: [],
+        totalAmount: 0,
+        totalExplicitPercentage: 0,
+        hasExplicitPercentage: false,
+      });
+      order.push(key);
+      return;
+    }
+
+    const current = lines.get(key);
+    if (current && current.delivery_provider === 'manual_upload' && deliveryProvider !== 'manual_upload') {
+      current.delivery_provider = deliveryProvider;
+    }
+  };
+
+  technologies.forEach((technology) => {
+    const serviceName = toString(technology.service_name);
+    if (!serviceName) {
+      return;
+    }
+
+    const serviceId =
+      typeof technology.service_id === 'string' || typeof technology.service_id === 'number'
+        ? String(technology.service_id)
+        : null;
+    const key = serviceId ? `id:${serviceId}` : `name:${serviceName.toLowerCase()}`;
+    const deliveryProvider = technology.delivery_provider ?? 'manual_upload';
+
+    upsertLine(key, serviceName, deliveryProvider);
+    if (serviceId) {
+      keyByServiceId.set(serviceId, key);
+    }
+
+    if (!keyByServiceName.has(serviceName.toLowerCase())) {
+      keyByServiceName.set(serviceName.toLowerCase(), key);
+    }
+  });
+
+  let hasFallbackLine = false;
+  const fallbackKey = 'name:general-shared';
+
+  milestones.forEach((milestone) => {
+    const title = toString(milestone.title);
+    if (!title) {
+      return;
+    }
+
+    const amount = toNumber(milestone.amount) ?? 0;
+    const percentage = toNumber(milestone.percentage);
+    const serviceName = toString(milestone.service_name);
+    const serviceId =
+      typeof milestone.service_id === 'string' || typeof milestone.service_id === 'number'
+        ? String(milestone.service_id)
+        : null;
+    const milestoneProvider =
+      milestone.delivery_provider ?? 'manual_upload';
+
+    let lineKey: string | null = null;
+
+    if (serviceId && keyByServiceId.has(serviceId)) {
+      lineKey = keyByServiceId.get(serviceId) ?? null;
+    }
+
+    if (!lineKey && serviceName) {
+      lineKey = keyByServiceName.get(serviceName.toLowerCase()) ?? null;
+    }
+
+    if (!lineKey && serviceName) {
+      const generatedKey = serviceId ? `id:${serviceId}` : `name:${serviceName.toLowerCase()}`;
+      lineKey = generatedKey;
+      upsertLine(generatedKey, serviceName, milestoneProvider);
+      if (serviceId) {
+        keyByServiceId.set(serviceId, generatedKey);
+      }
+      if (!keyByServiceName.has(serviceName.toLowerCase())) {
+        keyByServiceName.set(serviceName.toLowerCase(), generatedKey);
+      }
+    }
+
+    if (!lineKey) {
+      lineKey = fallbackKey;
+      if (!hasFallbackLine) {
+        hasFallbackLine = true;
+        upsertLine(fallbackKey, 'General / Shared', milestoneProvider);
+      }
+    }
+
+    const line = lines.get(lineKey);
+    if (!line) {
+      return;
+    }
+
+    const normalizedMilestone: NormalizedBriefProjectLineMilestone = {
+      title,
+      ...(toString(milestone.description)
+        ? { description: toString(milestone.description) }
+        : {}),
+      ...(percentage !== null ? { percentage } : {}),
+      amount,
+    };
+
+    line.milestones.push(normalizedMilestone);
+    line.totalAmount += amount;
+    if (percentage !== null) {
+      line.totalExplicitPercentage += percentage;
+      line.hasExplicitPercentage = true;
+    }
+  });
+
+  const overallAmount = Array.from(lines.values()).reduce(
+    (sum, line) => sum + line.totalAmount,
+    0
+  );
+
+  return order
+    .map((key) => {
+      const line = lines.get(key);
+      if (!line) {
+        return null;
+      }
+
+      const budgetPercentage = line.hasExplicitPercentage
+        ? Number(line.totalExplicitPercentage.toFixed(2))
+        : overallAmount > 0
+          ? Number(((line.totalAmount / overallAmount) * 100).toFixed(2))
+          : 0;
+
+      return {
+        service_name: line.service_name,
+        delivery_provider: line.delivery_provider,
+        description: line.description,
+        budget_percentage: budgetPercentage,
+        milestones: line.milestones,
+      } satisfies NormalizedBriefProjectLine;
+    })
+    .filter((line): line is NormalizedBriefProjectLine => line !== null);
 };
 
+const normalizeProviderCandidate = (value: unknown): AiBriefProvider | null => {
+  const provider = toObject(value);
+  if (!provider) {
+    return null;
+  }
 
-type SelectedProvider = {
-    id: string;
-    matchScore: number;
+  const id = toNumber(provider.id);
+  if (id === null) {
+    return null;
+  }
+
+  const firstName = toString(provider.firstName) || toString(provider.first_name);
+  const lastName = toString(provider.lastName) || toString(provider.last_name);
+  const name = toString(provider.name) || [firstName, lastName].filter(Boolean).join(' ');
+  const rating = toNumber(provider.rating);
+  const reviewCount = toNumber(provider.reviewCount ?? provider.review_count);
+  const matchScore = toNumber(provider.matchScore ?? provider.match_score);
+  const pineconeScore = toNumber(provider.pineconeScore ?? provider.pinecone_score);
+  const matchReasons = normalizeFlexibleStringList(provider.matchReasons ?? provider.match_reasons);
+
+  return {
+    ...provider,
+    id,
+    ...(firstName ? { firstName } : {}),
+    ...(lastName ? { lastName } : {}),
+    ...(name ? { name } : {}),
+    ...(toString(provider.avatar) ? { avatar: toString(provider.avatar) } : {}),
+    ...(rating !== null ? { rating } : {}),
+    ...(reviewCount !== null ? { reviewCount } : {}),
+    ...(matchScore !== null ? { matchScore } : {}),
+    ...(pineconeScore !== null ? { pineconeScore } : {}),
+    ...(matchReasons.length > 0 ? { matchReasons } : {}),
+  };
 };
+
+const normalizeRecommendedProviders = (value: unknown): AiBriefRecommendedProviders | undefined => {
+  if (Array.isArray(value)) {
+    const normalizedEntries = value
+      .map((entry) => {
+        const group = toObject(entry);
+        if (!group) {
+          return null;
+        }
+
+        const serviceName =
+          toString(group.service_name) ||
+          toString(group.name);
+        if (!serviceName) {
+          return null;
+        }
+
+        const providers = Array.isArray(group.providers) ? group.providers : [];
+        const providerList = providers
+          .map((provider) => normalizeProviderCandidate(provider))
+          .filter((provider): provider is AiBriefProvider => provider !== null);
+
+        return [serviceName, providerList] as const;
+      })
+      .filter((entry): entry is readonly [string, AiBriefProvider[]] => entry !== null);
+
+    if (normalizedEntries.length === 0) {
+      return undefined;
+    }
+
+    return Object.fromEntries(normalizedEntries);
+  }
+
+  const source = toObject(value);
+  if (!source) {
+    return undefined;
+  }
+
+  const normalizedEntries = Object.entries(source)
+    .map(([serviceName, providers]) => {
+      const normalizedService = toString(serviceName);
+      const providerList = Array.isArray(providers)
+        ? providers
+            .map((provider) => normalizeProviderCandidate(provider))
+            .filter((provider): provider is AiBriefProvider => provider !== null)
+        : [];
+
+      if (!normalizedService) {
+        return null;
+      }
+
+      return [normalizedService, providerList] as const;
+    })
+    .filter((entry): entry is readonly [string, AiBriefProvider[]] => entry !== null);
+
+  if (normalizedEntries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(normalizedEntries);
+};
+
+const normalizeOtherProvidersPage = (value: unknown): AiBriefOtherProviders => {
+  if (Array.isArray(value)) {
+    const providers = value
+      .map((provider) => normalizeProviderCandidate(provider))
+      .filter((provider): provider is AiBriefProvider => provider !== null);
+    const total = providers.length;
+
+    return {
+      data: providers,
+      total,
+      current_page: 1,
+      per_page: total,
+      last_page: 1,
+      from: total > 0 ? 1 : null,
+      to: total > 0 ? total : null,
+      next_page_url: null,
+      prev_page_url: null,
+    };
+  }
+
+  const source = toObject(value) ?? {};
+  const providers = Array.isArray(source.data)
+    ? source.data
+        .map((provider) => normalizeProviderCandidate(provider))
+        .filter((provider): provider is AiBriefProvider => provider !== null)
+    : [];
+
+  return {
+    ...source,
+    data: providers,
+    ...(toNumber(source.current_page) !== null ? { current_page: toNumber(source.current_page) as number } : {}),
+    ...(toNumber(source.per_page) !== null ? { per_page: toNumber(source.per_page) as number } : {}),
+    ...(toNumber(source.total) !== null ? { total: toNumber(source.total) as number } : {}),
+    ...(toNumber(source.last_page) !== null ? { last_page: toNumber(source.last_page) as number } : {}),
+    ...(toNumber(source.from) !== null ? { from: toNumber(source.from) as number } : {}),
+    ...(source.from === null ? { from: null } : {}),
+    ...(toNumber(source.to) !== null ? { to: toNumber(source.to) as number } : {}),
+    ...(source.to === null ? { to: null } : {}),
+    ...(toString(source.next_page_url) ? { next_page_url: toString(source.next_page_url) } : {}),
+    ...(source.next_page === null || source.next_page_url === null ? { next_page_url: null } : {}),
+    ...(toString(source.prev_page_url) ? { prev_page_url: toString(source.prev_page_url) } : {}),
+    ...(source.prev_page === null || source.prev_page_url === null ? { prev_page_url: null } : {}),
+  };
+};
+
+const normalizeOtherProvidersByService = (
+  value: unknown
+): AiBriefOtherProvidersByService | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const normalized = value
+    .map((entry) => {
+      const serviceGroup = toObject(entry);
+      if (!serviceGroup) {
+        return null;
+      }
+
+      const serviceName = toString(serviceGroup.service_name);
+      if (!serviceName) {
+        return null;
+      }
+
+      const serviceId = serviceGroup.service_id;
+      const providersPage = normalizeOtherProvidersPage(serviceGroup.providers);
+      const groupTotal = toNumber(serviceGroup.total);
+
+      return {
+        ...(typeof serviceId === 'string' || typeof serviceId === 'number'
+          ? { service_id: serviceId }
+          : {}),
+        service_name: serviceName,
+        providers:
+          groupTotal !== null
+            ? {
+                ...providersPage,
+                total: groupTotal,
+              }
+            : providersPage,
+      };
+    })
+    .filter(
+      (entry): entry is NonNullable<AiBriefOtherProvidersByService[number]> => entry !== null
+    );
+
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
+  const root = toObject(payload);
+  if (!root) {
+    return null;
+  }
+
+  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+
+  const statusRaw = toString(source.status ?? root.status).toUpperCase();
+  const status: AiBriefResponse['status'] =
+    statusRaw === 'FINAL' ? 'FINAL' : statusRaw === 'PROCESSING' ? 'PROCESSING' : 'CLARIFY';
+
+  const questions = normalizeQuestions(source.questions ?? root.questions);
+  const finalBriefText =
+    toString(source.final_brief_text) || toString(root.final_brief_text);
+  const modularBriefSource =
+    toObject(source.final_brief_modular) ?? toObject(root.final_brief_modular);
+  const standardBriefSource =
+    toObject(source.final_brief) ??
+    toObject(root.final_brief) ??
+    (status === 'FINAL' ? toObject(source) : null);
+  const finalBriefSource = modularBriefSource ?? standardBriefSource;
+
+  let final_brief: AiBriefResponse['final_brief'];
+  let final_brief_modular: AiBriefResponse['final_brief_modular'];
+  let final_brief_full: AiBriefResponse['final_brief_full'];
+
+  if (finalBriefSource) {
+    const title =
+      toString(modularBriefSource?.title) ||
+      toString(standardBriefSource?.title) ||
+      toString(finalBriefSource.title) ||
+      'AI Generated Brief';
+    const fallbackDescription =
+      toString(modularBriefSource?.description) ||
+      toString(standardBriefSource?.description) ||
+      '';
+
+    const standardTechnologiesDetailed = normalizeTechnologyLines(standardBriefSource?.technologies);
+    const modularTechnologiesDetailed = normalizeTechnologyLines(modularBriefSource?.technologies);
+    const standardMilestonesDetailed = normalizeMilestoneListWithService(standardBriefSource?.milestones);
+    const modularMilestonesDetailed = normalizeMilestoneListWithService(modularBriefSource?.milestones);
+
+    const modularProjectLinesRaw = modularBriefSource?.project_lines;
+    const standardProjectLinesRaw = standardBriefSource?.project_lines;
+    const modularProjectLines = Array.isArray(modularProjectLinesRaw)
+      ? normalizeBriefProjectLines(modularProjectLinesRaw, fallbackDescription)
+      : [];
+    const standardProjectLines = Array.isArray(standardProjectLinesRaw)
+      ? normalizeBriefProjectLines(standardProjectLinesRaw, fallbackDescription)
+      : [];
+    const generatedStandardProjectLines = buildProjectLinesFromTechnologiesAndMilestones(
+      standardTechnologiesDetailed,
+      standardMilestonesDetailed,
+      fallbackDescription
+    );
+    const generatedModularProjectLines = buildProjectLinesFromTechnologiesAndMilestones(
+      modularTechnologiesDetailed,
+      modularMilestonesDetailed,
+      fallbackDescription
+    );
+    let project_lines = modularProjectLines.length > 0
+      ? modularProjectLines
+      : standardProjectLines.length > 0
+        ? standardProjectLines
+        : [];
+
+    if (project_lines.length === 0) {
+      const rawProjectLines = Array.isArray(finalBriefSource.project_lines)
+        ? finalBriefSource.project_lines
+        : [];
+      project_lines = normalizeBriefProjectLines(rawProjectLines, fallbackDescription);
+    }
+
+    if (project_lines.length === 0 && generatedStandardProjectLines.length > 0) {
+      project_lines = generatedStandardProjectLines;
+    }
+
+    if (project_lines.length === 0 && generatedModularProjectLines.length > 0) {
+      project_lines = generatedModularProjectLines;
+    }
+
+    const teamStructure = standardBriefSource?.team_structure;
+    if (project_lines.length === 0 && Array.isArray(teamStructure)) {
+      const fallbackTeamLines: Array<
+        NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] | null
+      > = teamStructure.map((teamMember) => {
+        const member = toObject(teamMember);
+        if (!member) {
+          return null;
+        }
+
+        const serviceName = toString(member.service) || toString(member.role);
+        if (!serviceName) {
+          return null;
+        }
+
+        return {
+          service_name: serviceName,
+          delivery_provider: 'manual_upload' as const,
+          description: toString(member.role) || fallbackDescription,
+          budget_percentage: 0,
+          milestones: [],
+        };
+      });
+
+      project_lines = fallbackTeamLines.filter(
+        (line): line is NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] =>
+          line !== null
+      );
+    }
+
+    const standardSpecificRequirements = normalizeStringList(standardBriefSource?.specific_requirements);
+    const standardTechnologies = standardTechnologiesDetailed.map((technology) => technology.service_name);
+    const standardTeamStructure = normalizeTeamStructure(standardBriefSource?.team_structure);
+    const standardMilestones: AiMilestoneItem[] = standardMilestonesDetailed.map(
+      ({
+        service_id: _serviceId,
+        service_name: _serviceName,
+        delivery_provider: _deliveryProvider,
+        ...milestone
+      }) => milestone
+    );
+    const modularSpecificRequirements = normalizeStringList(modularBriefSource?.specific_requirements);
+    const modularTechnologies = modularTechnologiesDetailed.map((technology) => technology.service_name);
+    const modularTeamStructure = normalizeTeamStructure(modularBriefSource?.team_structure);
+    const modularMilestones: AiMilestoneItem[] = modularMilestonesDetailed.map(
+      ({
+        service_id: _serviceId,
+        service_name: _serviceName,
+        delivery_provider: _deliveryProvider,
+        ...milestone
+      }) => milestone
+    );
+    const standardTechnicalRisks = normalizeFlexibleStringList(standardBriefSource?.technical_risks);
+    const standardComplexityEstimation = Object.fromEntries(
+      Object.entries(toObject(standardBriefSource?.complexity_estimation) ?? {})
+        .map(([key, value]) => [key, toNumber(value)])
+        .filter((entry): entry is [string, number] => entry[1] !== null)
+    );
+
+    if (project_lines.length > 0) {
+      final_brief = {
+        title: toString(standardBriefSource?.title) || title,
+        project_lines,
+        ...(toString(standardBriefSource?.description)
+          ? { description: toString(standardBriefSource?.description) }
+          : {}),
+        ...(standardTechnologies.length > 0 ? { technologies: standardTechnologies } : {}),
+        ...(toNumber(standardBriefSource?.budget) !== null
+          ? { budget: toNumber(standardBriefSource?.budget) as number }
+          : {}),
+        ...(toNumber(standardBriefSource?.budget_min) !== null
+          ? { budget_min: toNumber(standardBriefSource?.budget_min) as number }
+          : {}),
+        ...(toNumber(standardBriefSource?.budget_max) !== null
+          ? { budget_max: toNumber(standardBriefSource?.budget_max) as number }
+          : {}),
+        ...(standardSpecificRequirements.length > 0
+          ? { specific_requirements: standardSpecificRequirements }
+          : {}),
+        ...(toObject(standardBriefSource?.business_analysis)
+          ? {
+              business_analysis:
+                standardBriefSource?.business_analysis as NonNullable<
+                  AiBriefResponse['final_brief']
+                >['business_analysis'],
+            }
+          : {}),
+        ...(standardTechnicalRisks.length > 0
+          ? { technical_risks: standardTechnicalRisks }
+          : {}),
+        ...(Object.keys(standardComplexityEstimation).length > 0
+          ? { complexity_estimation: standardComplexityEstimation }
+          : {}),
+        ...(standardTeamStructure.length > 0 ? { team_structure: standardTeamStructure } : {}),
+        ...(standardMilestones.length > 0 ? { milestones: standardMilestones } : {}),
+        ...(toString(standardBriefSource?.duration)
+          ? { duration: toString(standardBriefSource?.duration) }
+          : {}),
+        ...(toString(standardBriefSource?.recommended_duration)
+          ? { recommended_duration: toString(standardBriefSource?.recommended_duration) }
+          : {}),
+        ...(toString(standardBriefSource?.project_duration)
+          ? { project_duration: toString(standardBriefSource?.project_duration) }
+          : {}),
+        ...(toString(standardBriefSource?.payment_plan)
+          ? { payment_plan: toString(standardBriefSource?.payment_plan) }
+          : {}),
+        ...(toString(standardBriefSource?.currency)
+          ? { currency: toString(standardBriefSource?.currency) }
+          : {}),
+      };
+
+      final_brief_modular = {
+        title,
+        project_lines:
+          modularProjectLines.length > 0
+            ? modularProjectLines
+            : generatedModularProjectLines.length > 0
+              ? generatedModularProjectLines
+              : project_lines,
+        ...(toString(modularBriefSource?.description)
+          ? { description: toString(modularBriefSource?.description) }
+          : {}),
+        ...(toString(modularBriefSource?.overview)
+          ? { overview: toString(modularBriefSource?.overview) }
+          : {}),
+        ...(toString(modularBriefSource?.client_goal)
+          ? { client_goal: toString(modularBriefSource?.client_goal) }
+          : {}),
+        ...(toString(modularBriefSource?.target_audience)
+          ? { target_audience: toString(modularBriefSource?.target_audience) }
+          : {}),
+        ...(modularTechnologies.length > 0 ? { technologies: modularTechnologies } : {}),
+        ...(toNumber(modularBriefSource?.budget) !== null
+          ? { budget: toNumber(modularBriefSource?.budget) as number }
+          : {}),
+        ...(toNumber(modularBriefSource?.budget_min) !== null
+          ? { budget_min: toNumber(modularBriefSource?.budget_min) as number }
+          : {}),
+        ...(toNumber(modularBriefSource?.budget_max) !== null
+          ? { budget_max: toNumber(modularBriefSource?.budget_max) as number }
+          : {}),
+        ...(modularSpecificRequirements.length > 0
+          ? { specific_requirements: modularSpecificRequirements }
+          : {}),
+        ...(modularTeamStructure.length > 0 ? { team_structure: modularTeamStructure } : {}),
+        ...(modularMilestones.length > 0 ? { milestones: modularMilestones } : {}),
+        ...(toString(modularBriefSource?.duration)
+          ? { duration: toString(modularBriefSource?.duration) }
+          : {}),
+        ...(toString(modularBriefSource?.recommended_duration)
+          ? { recommended_duration: toString(modularBriefSource?.recommended_duration) }
+          : {}),
+        ...(toString(modularBriefSource?.project_duration)
+          ? { project_duration: toString(modularBriefSource?.project_duration) }
+          : {}),
+        ...(toString(modularBriefSource?.payment_plan)
+          ? { payment_plan: toString(modularBriefSource?.payment_plan) }
+          : {}),
+        ...(toString(modularBriefSource?.currency)
+          ? { currency: toString(modularBriefSource?.currency) }
+          : {}),
+      };
+    }
+  }
+
+  const fullBriefSource =
+    toObject(source.final_brief_full) ?? toObject(root.final_brief_full);
+  if (fullBriefSource) {
+    const fullProjectLinesRaw = Array.isArray(fullBriefSource.project_lines)
+      ? fullBriefSource.project_lines
+      : [];
+    const fullProjectLines = normalizeBriefProjectLines(
+      fullProjectLinesRaw,
+      toString(fullBriefSource.description)
+    );
+    const fullTechnologies = normalizeTechnologyNames(fullBriefSource.technologies);
+    final_brief_full = {
+      ...(fullBriefSource as AiBriefResponse['final_brief_full']),
+      ...(fullTechnologies.length > 0 ? { technologies: fullTechnologies } : {}),
+      ...(fullProjectLines.length > 0 ? { project_lines: fullProjectLines } : {}),
+    };
+  }
+
+  const recommendedProviders = normalizeRecommendedProviders(
+    source.recommended_providers ?? root.recommended_providers
+  );
+  const otherProvidersByService = normalizeOtherProvidersByService(
+    source.other_providers_by_service ?? root.other_providers_by_service
+  );
+  const legacyOtherProviders = toObject(source.other_providers ?? root.other_providers)
+    ? normalizeOtherProvidersPage(source.other_providers ?? root.other_providers)
+    : undefined;
+  const payloadTruncated = Boolean(source.payload_truncated ?? root.payload_truncated);
+  const payloadTrimmedSections = normalizeStringList(
+    source.payload_trimmed_sections ?? root.payload_trimmed_sections
+  );
+  const briefResultId = extractBriefResultId(payload);
+
+  const normalized: AiBriefResponse = {
+    status,
+    ...(briefResultId !== null ? { brief_result_id: briefResultId } : {}),
+    ...(toString(source.channel ?? root.channel)
+      ? { channel: toString(source.channel ?? root.channel) }
+      : {}),
+    ...(questions.length > 0 ? { questions } : {}),
+    ...(final_brief ? { final_brief } : {}),
+    ...(final_brief_modular ? { final_brief_modular } : {}),
+    ...(final_brief_full ? { final_brief_full } : {}),
+    ...(finalBriefText ? { final_brief_text: finalBriefText } : {}),
+    ...(recommendedProviders ? { recommended_providers: recommendedProviders } : {}),
+    ...(legacyOtherProviders ? { other_providers: legacyOtherProviders } : {}),
+    ...(otherProvidersByService ? { other_providers_by_service: otherProvidersByService } : {}),
+    ...(payloadTruncated ? { payload_truncated: true } : {}),
+    ...(payloadTrimmedSections.length > 0 ? { payload_trimmed_sections: payloadTrimmedSections } : {}),
+  };
+
+  const hasUsefulPayload =
+    Boolean(final_brief) ||
+    Boolean(final_brief_modular) ||
+    Boolean(final_brief_full) ||
+    Boolean(finalBriefText) ||
+    questions.length > 0 ||
+    Boolean(recommendedProviders) ||
+    Boolean(legacyOtherProviders) ||
+    Boolean(otherProvidersByService) ||
+    payloadTruncated ||
+    payloadTrimmedSections.length > 0 ||
+    Boolean(statusRaw);
+  return hasUsefulPayload ? normalized : null;
+};
+
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  const payload = toObject(error);
+  if (payload) {
+    const message = toString(payload.message) || toString(payload.error);
+    if (message) {
+      return message;
+    }
+  }
+
+  return fallback;
+};
+
+const buildInitialConversation = (
+  intent: string,
+  selectedServices: RecommendedServiceCandidate[]
+): AiAssistantMessage[] => {
+  const serviceLines = selectedServices
+    .map(
+      (service, index) =>
+        `${index + 1}. ${service.service_name} (${getProviderLabel(service.delivery_provider)})`
+    )
+    .join('\n');
+
+  const content = [
+    `Client intent: ${intent}`,
+    serviceLines ? `Recommended services:\n${serviceLines}` : '',
+    'Generate a modular project brief grouped by project lines with milestone amounts and budget percentages.',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  return [{ role: 'user', content }];
+};
+
+const buildProjectTitle = (intent: string, aiTitle?: string): string => {
+  const normalizedAiTitle = toString(aiTitle);
+  if (normalizedAiTitle) {
+    return normalizedAiTitle;
+  }
+
+  const normalizedIntent = toString(intent);
+  if (!normalizedIntent) {
+    return 'Modular Project';
+  }
+
+  if (normalizedIntent.length <= 80) {
+    return normalizedIntent;
+  }
+
+  return `${normalizedIntent.slice(0, 77)}...`;
+};
+
+const createManualMilestone = (id: string): ManualMilestoneForm => ({
+  id,
+  title: '',
+  description: '',
+  percentage: '',
+  amount: '',
+});
+
+const createManualProjectLine = (
+  id: string,
+  service?: Pick<ApiServiceOption, 'id' | 'name' | 'delivery_provider'>
+): ManualProjectLineForm => ({
+  id,
+  service_id: service?.id ?? '',
+  service_name: service?.name ?? '',
+  delivery_provider: service?.delivery_provider ?? 'manual_upload',
+  description: '',
+  budget_percentage: '',
+  milestones: [],
+});
 
 export default function NewProjectPage() {
-    const locale = useLocale() as Locale;
-    const t = useTranslations();
-    useEffect(() => {
-        setDayjsLocale(locale);
-    }, [locale]);
-
-    const { user, loading, userLoading, refreshUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('details');
-    const [formData, setFormData] = useState<FormData>({
-        title: '',
-        description: '',
-        requirements: '',
-        serviceId: '',
-        technologies: [],
-        budget: '',
-        budgetType: 'FIXED',
-        deadline: '',
-        visibility: 'PUBLIC',
-        attachments: [] as File[],
-        additionalInfo: '',
-        recommendedProviders: [],
-        notes: '',
-        paymentPlan: '',
-        githubRepoTarget: 'without',
-    });
-    const [generatedAiOutput, setGeneratedAiOutput] = useState<GenerateProjectInformationResponse>({
-        title: "",
-        description: "",
-        technologies: [],
-        estimated_budget: 0,
-        budget_type: "",
-        notes: "",
-        deadline: "",
-        additional_services: [],
-        team_structure: [],
-        payment_plan: "",
-        milestone_count: 0,
-        milestones: []
-    });
-    const [aiLoading, setAiLoading] = useState(false);
-
-    const [skipValidation, setSkipValidation] = useState(false);
-    const [suggestedProviders, setSuggestedProviders] = useState<SuggestedProvider[]>([]);
-    const [selectedProviders, setSelectedProviders] = useState<SelectedProvider[]>([]);
-    const [providerBudgets, setProviderBudgets] = useState<{[key: string]: number}>({});
-    const [loadingProviders, setLoadingProviders] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState('');
-    const [newTechnology, setNewTechnology] = useState('');
-    const [index] = useState(0);
-    const aiLoadingMessages = useMemo(
-        () => aiLoadingMessageKeys.map((key) => t(key)),
-        [t]
+  const locale = useLocale() as Locale;
+  const t = useTranslations('projects.new.modular');
+  const tDashboard = useTranslations('dashboard');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { user, loading, userLoading, refreshUser } = useAuth();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const roleSlugs = useMemo(() => {
+    const rolesList = Array.isArray(user?.roles) ? (user?.roles ?? []) : [];
+    const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
+    const fromRoleSlugs = Array.isArray(user?.role_slugs) ? (user?.role_slugs ?? []) : [];
+    const fromSingleRole = user?.role ? [user.role] : [];
+    return Array.from(
+      new Set(
+        [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
+          .filter(Boolean)
+          .map((slug) => String(slug).toLowerCase())
+      )
     );
-    const [foundSuggestedProvider, setFoundSuggestedProvider] = useState(false);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [providerSearchTerm, setProviderSearchTerm] = useState('');
-    const [selectedServiceFilters, setSelectedServiceFilters] = useState<string[]>([]);
-    const [skillLevelFilter, setSkillLevelFilter] = useState<string[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [providersPerPage] = useState(6); // 6 providers per page for better layout
-    const [availableServices, setAvailableServices] = useState<any[]>([]);
-    const [providerMilestones, setProviderMilestones] = useState<Record<string, { title: string; amount: string }[]>>({});
-    const [aiSuggestedMilestones, setAiSuggestedMilestones] = useState<{ provider_role?: string; milestones: { title: string; amount: number }[] }[]>([]);
+  }, [user?.roles, user?.role_slugs, user?.role]);
+  const isClient = roleSlugs.includes('client');
+  const isProvider = roleSlugs.includes('provider');
+  const servicesTitle = isProvider ? tDashboard('services.title.provider') : tDashboard('services.title.client');
+  const currentTheme = isDarkMode ? createProjectThemes.dark : createProjectThemes.light;
+  const wizardCardClass = 'rounded-2xl border shadow-sm transition-colors duration-300';
+  const wizardCardStyle: CSSProperties = {
+    backgroundColor: 'var(--bg-card)',
+    borderColor: 'var(--border-color)',
+  };
+  const dashboardSidebarItemClass = (tab: string) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
+      (tab === 'overview' && pathname.includes('/dashboard') && !searchParams.get('tab')) ||
+      (pathname.includes('/dashboard') && searchParams.get('tab') === tab) ||
+      (tab === 'new-project' && pathname.includes('/projects/new'))
+        ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
+        : 'text-slate-400 hover:text-white hover:bg-white/5'
+    }`;
+  const userInitials = `${(user?.firstName?.[0] ?? '')}${(user?.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
+  const userDisplayName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.email || 'User';
+  const userAvatarSrc = (user as any)?.avatar ?? (user as any)?.profile_photo_url ?? (user as any)?.avatar_url ?? undefined;
 
-    const isLongProject = useMemo(() => (
-        ['3months', '6months', '1year', '1plusyear'].includes(formData.deadline)
-    ), [formData.deadline]);
+  useEffect(() => {
+    document.title = 'Trustora | Create Project';
+  }, []);
 
-    const buildProviderMilestonesFromAi = useCallback(() => {
-        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
-            return {};
-        }
-
-        const providerMap = new Map(
-            selectedProviders.map((provider) => [
-                provider.id,
-                {
-                    ...provider,
-                    profile: suggestedProviders.find((p) => p.id === provider.id),
-                }
-            ])
-        );
-
-        const scoreProviderForRole = (providerId: string, role?: string) => {
-            const provider = providerMap.get(providerId);
-            if (!provider) {
-                return 0;
-            }
-            const baseScore = provider.matchScore ?? 0;
-            if (!role) {
-                return baseScore;
-            }
-            const roleLower = role.toLowerCase();
-            const skills = provider.profile?.skills ?? [];
-            const hasRoleMatch = skills.some((skill) => (
-                skill.toLowerCase().includes(roleLower) || roleLower.includes(skill.toLowerCase())
-            ));
-            return baseScore + (hasRoleMatch ? 50 : 0);
-        };
-
-        const sortedProviders = (role?: string) => {
-            return [...selectedProviders]
-                .sort((a, b) => scoreProviderForRole(b.id, role) - scoreProviderForRole(a.id, role));
-        };
-
-        const milestonesByProvider: Record<string, { title: string; amount: string }[]> = {};
-
-        aiSuggestedMilestones.forEach((group) => {
-            const providersByScore = sortedProviders(group.provider_role);
-            if (providersByScore.length === 0) {
-                return;
-            }
-            group.milestones.forEach((milestone, index) => {
-                const provider = providersByScore[index % providersByScore.length];
-                if (!milestonesByProvider[provider.id]) {
-                    milestonesByProvider[provider.id] = [];
-                }
-                milestonesByProvider[provider.id].push({
-                    title: milestone.title,
-                    amount: String(milestone.amount),
-                });
-            });
-        });
-
-        return milestonesByProvider;
-    }, [aiSuggestedMilestones, selectedProviders, suggestedProviders]);
-
-    useEffect(() => {
-        if (!isLongProject && Object.keys(providerMilestones).length > 0) {
-            setProviderMilestones({});
-            setAiSuggestedMilestones([]);
-        }
-    }, [isLongProject, providerMilestones]);
-
-    useEffect(() => {
-        if (aiSuggestedMilestones.length === 0) {
-            return;
-        }
-        const hasAnyMilestones = Object.values(providerMilestones).some((milestones) => milestones.length > 0);
-        if (hasAnyMilestones || selectedProviders.length === 0) {
-            return;
-        }
-        setProviderMilestones(buildProviderMilestonesFromAi());
-    }, [aiSuggestedMilestones, buildProviderMilestonesFromAi, providerMilestones, selectedProviders]);
-
-    useEffect(() => {
-        if (!isLongProject) {
-            return;
-        }
-
-        const milestoneBudgets = Object.fromEntries(
-            Object.entries(providerMilestones).map(([providerId, milestones]) => [
-                providerId,
-                milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0),
-            ])
-        );
-
-        setProviderBudgets(prevBudgets => ({
-            ...prevBudgets,
-            ...milestoneBudgets,
-        }));
-    }, [isLongProject, providerMilestones]);
-
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const githubRefreshHandled = useRef(false);
-    const { data: categoriesData } = useMainCategories();
-    const { data: servicesData } = useGetServicesGroupedByCategory();
-
-    const normalizeTechnologyName = useCallback((name: string) => name.trim().toLowerCase(), []);
-
-    useEffect(() => {
-        if (githubRefreshHandled.current || loading || userLoading || !user) {
-            return;
-        }
-
-        const githubParamKeys = ['github', 'github_status', 'github_connected'];
-        const hasGithubParam = githubParamKeys.some((key) => searchParams.has(key));
-        if (!hasGithubParam) {
-            return;
-        }
-
-        const rawValue =
-            searchParams.get('github') ??
-            searchParams.get('github_status') ??
-            searchParams.get('github_connected');
-        const normalizedValue = rawValue?.toLowerCase() ?? '';
-        const shouldRefresh =
-            !rawValue ||
-            ['success', 'connected', 'true', '1'].includes(normalizedValue);
-
-        if (!shouldRefresh) {
-            return;
-        }
-
-        githubRefreshHandled.current = true;
-        void (async () => {
-            try {
-                await refreshUser();
-            } finally {
-                router.replace(pathname);
-            }
-        })();
-    }, [loading, userLoading, user, refreshUser, router, pathname, searchParams]);
-
-    const skillLevels = useMemo(() => ([
-        { value: 'JUNIOR', label: t('projects.new.skills.junior'), color: 'bg-green-100 text-green-800', icon: '🌱' },
-        { value: 'MEDIU', label: t('projects.new.skills.medium'), color: 'bg-blue-100 text-blue-800', icon: '⚡' },
-        { value: 'SENIOR', label: t('projects.new.skills.senior'), color: 'bg-purple-100 text-purple-800', icon: '🚀' },
-        { value: 'EXPERT', label: t('projects.new.skills.expert'), color: 'bg-orange-100 text-orange-800', icon: '👑' }
-    ]), [t]);
-
-    const markedNamesSet = useMemo(() => {
-        const names = [
-            ...formData.technologies.map(t => normalizeTechnologyName(t.name)),
-            ...generatedAiOutput.technologies.map((tech) => normalizeTechnologyName(tech)),
-        ].filter(name => name.length > 0);
-
-        return new Set(names);
-    }, [formData.technologies, generatedAiOutput.technologies, normalizeTechnologyName]);
-
-    const filteredProviders = suggestedProviders.filter(provider => {
-        const searchMatch = !providerSearchTerm ||
-            provider.firstName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
-            provider.lastName.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
-            provider.location.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
-            provider.skills.some(skill => skill.toLowerCase().includes(providerSearchTerm.toLowerCase()));
-
-        const serviceMatch = selectedServiceFilters.length === 0;
-
-        // Apply skill level filter
-        const skillLevelMatch = skillLevelFilter.length === 0 ||
-            skillLevelFilter.includes(provider.level || 'MEDIU');
-
-        return searchMatch && serviceMatch && skillLevelMatch;
-    });
-
-    // Pagination logic
-    const indexOfLastProvider = currentPage * providersPerPage;
-    const indexOfFirstProvider = indexOfLastProvider - providersPerPage;
-    const currentProviders = filteredProviders.slice(indexOfFirstProvider, indexOfLastProvider);
-    const totalPages = Math.ceil(filteredProviders.length / providersPerPage);
-
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
-        // Scroll to providers section when changing page
-        const providersSection = document.getElementById('suggested-providers');
-        if (providersSection) {
-            providersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+  const [manualServiceSearch, setManualServiceSearch] = useState('');
+  const [debouncedManualServiceSearch, setDebouncedManualServiceSearch] = useState('');
+  const [groupedServicesPage, setGroupedServicesPage] = useState(1);
+  const groupedServicesQueryParams = useMemo(() => {
+    const search = toString(debouncedManualServiceSearch);
+    return {
+      page: groupedServicesPage,
+      limit: GROUPED_SERVICES_DEFAULT_LIMIT,
+      ...(search ? { search } : {}),
     };
+  }, [debouncedManualServiceSearch, groupedServicesPage]);
+  const { data: groupedServicesResponse, loading: groupedServicesLoading } =
+    useGetServicesGroupedByCategory(groupedServicesQueryParams);
+  const getLocalizedProviderLabel = useCallback(
+    (provider: DeliveryProvider) => {
+      if (provider === 'github') return t('provider_github');
+      if (provider === 'figma') return t('provider_figma');
+      if (provider === 'google_drive') return t('provider_google_drive');
+      if (provider === 'google_analytics') return t('provider_google_analytics');
+      return t('provider_manual_upload');
+    },
+    [t]
+  );
+  const getLocalizedOAuthProviderLabel = useCallback(
+    (provider: OAuthProvider) => {
+      if (provider === 'github') return t('provider_github');
+      if (provider === 'figma') return t('provider_figma');
+      return t('provider_google');
+    },
+    [t]
+  );
 
-    // Reset to first page when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [providerSearchTerm, selectedServiceFilters, skillLevelFilter]);
+  const [step, setStep] = useState<WizardStep>('intent');
+  const [projectInputMode, setProjectInputMode] = useState<ProjectInputMode>('ai');
+  const [intent, setIntent] = useState('');
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualServiceIds, setManualServiceIds] = useState<string[]>([]);
+  const [manualSelectedServicesMap, setManualSelectedServicesMap] = useState<
+    Record<string, ApiServiceOption>
+  >({});
+  const [manualSpecificRequirements, setManualSpecificRequirements] = useState('');
+  const [manualDuration, setManualDuration] = useState('');
+  const [manualPaymentPlan, setManualPaymentPlan] = useState('MILESTONE');
+  const [manualCurrency, setManualCurrency] = useState('USD');
+  const [manualProjectLines, setManualProjectLines] = useState<ManualProjectLineForm[]>([]);
 
-    const validate = () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!formData.title.trim()) {
-            newErrors.title = t('projects.new.errors.title_required');
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedManualServiceSearch(manualServiceSearch);
+      setGroupedServicesPage(1);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [manualServiceSearch]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const savedDraft = window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft) as AiBriefFormDraft;
+        // Optionally populate state from draft if needed immediately,
+        // or clear it if it's meant to be a one-time handoff.
+        // For now, we just ensure we can read it if we want to pre-fill specific fields.
+        // However, the prompt implies we should "handle" it.
+        // Let's assume we might want to set the brief result if it exists.
+
+        if (draft.recommended_providers) {
+          setRecommendedProviders(draft.recommended_providers);
         }
-        if (!formData.description.trim()) {
-            newErrors.lastName = t('projects.new.errors.description_required');
+        if (draft.other_providers_by_service && Array.isArray(draft.other_providers_by_service)) {
+          setOtherProviders(draft.other_providers_by_service);
+        } else if (draft.other_providers && Array.isArray(draft.other_providers as unknown)) {
+          setOtherProviders(draft.other_providers as unknown as AiBriefOtherProvidersByService);
         }
-        // if (!formData.visibility.trim()) {
-        //     newErrors.visibility = 'Tipul proiect este obligatoriu';
-        // }
-        if (String(formData.budget).trim() === '') {
-            newErrors.budget = t('projects.new.errors.budget_required');
-        }
-        if (!formData.budgetType.trim()) {
-            newErrors.budgetType = t('projects.new.errors.budget_type_required');
-        }
-        if (!formData.deadline.trim()) {
-            newErrors.deadline = t('projects.new.errors.deadline_required');
-        }
-
-        if (formData.technologies.length === 0) {
-            newErrors.technologies = t('projects.new.errors.technologies_required');
-        }
-
-        if (isLongProject && selectedProviders.length > 0) {
-            const hasMissingMilestones = selectedProviders.some((provider) => (
-                !providerMilestones[provider.id] || providerMilestones[provider.id].length === 0
-            ));
-            if (hasMissingMilestones) {
-                newErrors.milestones = t('projects.new.errors.milestones_required');
-            } else {
-                const hasInvalidMilestone = selectedProviders.some((provider) => (
-                    (providerMilestones[provider.id] ?? []).some(
-                        (milestone) => !milestone.title.trim() || Number(milestone.amount) <= 0
-                    )
-                ));
-                if (hasInvalidMilestone) {
-                    newErrors.milestones = t('projects.new.errors.milestones_incomplete');
-                }
-            }
-
-            if (String(formData.budget).trim() !== '') {
-                const milestoneTotal = getMilestoneTotal();
-                if (milestoneTotal !== Number(formData.budget)) {
-                    newErrors.milestoneTotal = t('projects.new.errors.milestone_total');
-                }
-            }
-
-            const hasBudgetMismatch = selectedProviders.some((provider) => {
-                const allocated = Number(providerBudgets[provider.id] ?? 0);
-                if (allocated === 0) {
-                    return false;
-                }
-                const providerTotal = (providerMilestones[provider.id] ?? []).reduce(
-                    (sum, milestone) => sum + Number(milestone.amount || 0),
-                    0
-                );
-                return providerTotal !== allocated;
-            });
-            if (hasBudgetMismatch) {
-                newErrors.milestoneBudget = t('projects.new.errors.milestone_budget');
-            }
-        }
-
-        // alte validări...
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSkillLevelFilterChange = (level: string, checked: boolean) => {
-        setSkillLevelFilter(prev =>
-            checked
-                ? [...prev, level]
-                : prev.filter(l => l !== level)
-        );
-    };
-
-    // Load available services for filtering
-    useEffect(() => {
-        const loadAvailableServices = async () => {
-            try {
-                const response = await apiClient.getServices();
-                setAvailableServices(response.services || []);
-            } catch (error) {
-                console.error('Failed to load services:', error);
-            }
-        };
-        loadAvailableServices();
-    }, []);
-
-    useEffect(() => {
-        if (userLoading) {
-            return;
-        }
-        if (!loading && !user) {
-            router.push('/auth/signin');
-            return;
-        }
-        if (!user) {
-            return;
+        if (draft.selected_providers) {
+          setSelectedProviders(draft.selected_providers);
         }
 
-        const hasRoleData = (user?.roles?.length ?? 0) > 0 || Boolean(user?.role);
-        const hasClientRole = hasRole(user, ['client']) || user?.role?.toLowerCase?.() === 'client';
-        if (hasRoleData && !hasClientRole) {
-            router.push('/dashboard');
-        }
-    }, [user, loading, router, userLoading]);
-
-    const buildProviderMatchPayload = useCallback((): { service: string; level: string; role?: string; count?: number; estimated_cost?: number }[] => {
-        if (formData.technologies.length > 0) {
-            return formData.technologies.map(p => ({
-                service: p.name,
-                level: '',
-                role: '',
-                count: 1,
-                estimated_cost: 0,
-            }));
-        } else {
-            return formData.recommendedProviders.map(p => ({
-                service: p.service,
-                level: p.level || '',
-                role: p.role || '',
-                count: p.count || 1,
-                estimated_cost: p.estimated_cost || 0,
-            }));
+        // We might also want to set other brief fields if they are empty
+        if (draft.title) {
+          // Logic to set title if this page had a title state, but it seems creatingProject payload uses it directly.
+          // Since this page manages the wizard state, we might need to map the draft to the wizard state
+          // OR just hold onto the draft data to use in payload creation.
         }
 
-        return formData.technologies.map(t => ({
-            service: t.name,
-            level: '',
-        }));
-    }, [formData]);
-
-    const loadSuggestedProviders = useCallback(async () => {
-        setLoadingProviders(true);
-        try {
-            const payload = buildProviderMatchPayload();
-
-            const apiData = await apiClient.getSuggestedProviders(payload);
-            const mapToSuggestedProviders = (users: any[]): SuggestedProvider[] => {
-                return users.map(user => {
-                    const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
-
-                    return {
-                        id: String(user.id),
-                        firstName: user.firstName ?? '',
-                        lastName: user.lastName ?? '',
-                        avatar: user.avatar ?? '',
-                        profileUrl: user.profileUrl ?? '',
-                        rating: parseFloat(user.rating ?? '0'),
-                        reviewCount: user.reviewCount ?? 0,
-                        completedProjects: user.completedProjects ?? 0,
-                        responseTime: user.responseTime ?? '—',
-                        location: user.location ?? t('projects.new.providers.location_fallback'),
-                        isVerified: Boolean(user.isVerified),
-                        level: user.level ?? '—',
-                        skills,
-                        basePrice: user.basePrice ?? 0,
-                        pricingType: user.pricingType ?? 'FIXED',
-                        deliveryTime: user.deliveryTime ?? 14,
-                        matchScore: user.matchScore ?? 0,
-                        matchReasons: Array.isArray(user.matchReasons) ? user.matchReasons.filter(Boolean) : [],
-                        availability: user.availability ?? '—',
-                        lastActive: user.lastActive ?? '',
-                    };
-                });
-            };
-
-            const providers = mapToSuggestedProviders(apiData.providers);
-
-            // Simulăm un delay pentru loading
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            setSuggestedProviders(providers);
-            setFoundSuggestedProvider(apiData.found);
-        } catch (error: any) {
-            setError(t('projects.new.errors.providers_load'));
-        } finally {
-            setLoadingProviders(false);
-        }
-    }, [buildProviderMatchPayload, t]);
-
-    useEffect(() => {
-        if (formData.serviceId && formData.technologies.length > 0) {
-            loadSuggestedProviders();
-        } else {
-            setSuggestedProviders([]);
-        }
-    }, [formData.serviceId, formData.technologies, loadSuggestedProviders]);
-
-    const handleTechnologyToggle = (techName: string, techId: string, requireRepo: boolean) => {
-        setFormData(prev => {
-            const normalizedTech = normalizeTechnologyName(techName);
-            const exists = prev.technologies.some(t => normalizeTechnologyName(t.name) === normalizedTech);
-
-            return {
-                ...prev,
-                technologies: exists
-                    ? prev.technologies.filter(t => normalizeTechnologyName(t.name) !== normalizedTech)
-                    : [...prev.technologies, { id: techId, name: techName, require_repo: requireRepo }]
-            };
-        });
-    };
-
-    const addCustomTechnology = () => {
-        const trimmed = newTechnology.trim();
-        if (trimmed && !formData.technologies.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(trimmed))) {
-            setFormData(prev => ({
-                ...prev,
-                technologies: [
-                    ...prev.technologies,
-                    resolveTechnology(trimmed)
-                ]
-            }));
-            setNewTechnology('');
-        }
-    };
-
-    const removeTechnology = (tech: TechnologySelected) => {
-        setFormData(prev => ({
-            ...prev,
-            technologies: prev.technologies.filter(t => t.id !== tech.id)
-        }));
-    };
-
-    const handleProviderSelect = (providerId: string, matchScore: number) => {
-        setSelectedProviders(prev => {
-            const exists = prev.find(p => p.id === providerId);
-            if (exists) {
-                // Removing provider - remove their budget
-                setProviderBudgets(prevBudgets => {
-                    const { [providerId]: removed, ...rest } = prevBudgets;
-                    return rest;
-                });
-                setProviderMilestones(prevMilestones => {
-                    const { [providerId]: removed, ...rest } = prevMilestones;
-                    return rest;
-                });
-                return prev.filter(p => p.id !== providerId);
-            } else {
-
-                const newSelected = [...prev, { id: providerId, matchScore: matchScore }];
-                setProviderBudgets(prevBudgets => ({
-                    ...prevBudgets,
-                    [providerId]: 0
-                }));
-
-                return newSelected;
-            }
-        });
-    };
-
-    const handleBudgetChange = (providerId: string, budget: number) => {
-        setProviderBudgets(prev => ({
-            ...prev,
-            [providerId]: budget
-        }));
-    };
-
-    const redistributeBudget = () => {
-        if (selectedProviders.length === 0) return;
-
-        const equalBudget = Math.floor(Number(formData.budget) / selectedProviders.length);
-        const newBudgets: {[key: string]: number} = {};
-        selectedProviders.forEach(provider => {
-            newBudgets[provider.id] = equalBudget;
-        });
-        setProviderBudgets(newBudgets);
-    };
-
-    const getTotalAllocatedBudget = () => {
-        return Object.values(providerBudgets).reduce((sum, budget) => sum + (budget || 0), 0);
-    };
-
-    const getRemainingBudget = () => {
-        return Number(formData.budget) - getTotalAllocatedBudget();
-    };
-
-    const getMilestoneTotal = () => {
-        return Object.values(providerMilestones).flat().reduce(
-            (sum, milestone) => sum + Number(milestone.amount || 0),
-            0
-        );
-    };
-
-    const addProviderMilestone = (providerId: string) => {
-        setProviderMilestones(prev => ({
-            ...prev,
-            [providerId]: [...(prev[providerId] ?? []), { title: '', amount: '' }],
-        }));
-    };
-
-    const updateProviderMilestoneField = (
-        providerId: string,
-        index: number,
-        field: 'title' | 'amount',
-        value: string
-    ) => {
-        setProviderMilestones(prev => ({
-            ...prev,
-            [providerId]: (prev[providerId] ?? []).map((milestone, i) => (
-                i === index ? { ...milestone, [field]: value } : milestone
-            )),
-        }));
-    };
-
-    const removeProviderMilestone = (providerId: string, index: number) => {
-        setProviderMilestones(prev => ({
-            ...prev,
-            [providerId]: (prev[providerId] ?? []).filter((_, i) => i !== index),
-        }));
-    };
-
-    const applyAiMilestonesToProviders = () => {
-        if (aiSuggestedMilestones.length === 0 || selectedProviders.length === 0) {
-            return;
-        }
-        setProviderMilestones(buildProviderMilestonesFromAi());
-    };
-
-    const getLastActiveText = (lastActiveAt: string): string => {
-        const time = dayjs.utc(lastActiveAt);
-        return `${time.fromNow()}`;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        setSkipValidation(false);
-        e.preventDefault();
-
-        if (!validate()) {
-            setError(t('projects.new.errors.complete_required'));
-            return;
-        }
-
-        if (selectedProviders.length === 0) {
-            setError(t('projects.new.errors.select_provider'));
-            return;
-        }
-
-        // Validate budget allocation
-        const totalAllocated = getTotalAllocatedBudget();
-        if (Math.abs(totalAllocated - Number(formData.budget)) > 1) {
-            setError(t('projects.new.errors.budget_allocation'));
-            return;
-        }
-
-        setSubmitting(true);
-        setError('');
-
-        try {
-            const milestonesPayload = isLongProject
-                ? selectedProviders.map((provider) => ({
-                    providerId: Number(provider.id),
-                    milestones: (providerMilestones[provider.id] ?? []).map((milestone) => ({
-                        title: milestone.title.trim(),
-                        amount: Number(milestone.amount),
-                    })),
-                }))
-                : [];
-
-            const projectData = {
-                ...formData,
-                budget: Number(formData.budget),
-                selectedProviders,
-                providerBudgets,
-                clientId: user?.id,
-                githubRepoConnected: !!user?.github_token,
-                paymentPlan: isLongProject ? 'MILESTONE' : formData.paymentPlan,
-                milestoneCount: isLongProject
-                    ? milestonesPayload.reduce((sum, providerGroup) => sum + providerGroup.milestones.length, 0)
-                    : 0,
-                milestones: milestonesPayload,
-            };
-
-            const createdProject = await apiClient.createProject(projectData, locale);
-
-            // Send notifications to selected providers
-            if (selectedProviders.length > 0) {
-                try {
-                    await apiClient.sendNotification({
-                        userIds: selectedProviders.map(p => p.id),
-                        title: t('projects.new.notifications.new_project_title'),
-                        message: t('projects.new.notifications.new_project_message', {
-                            title: formData.title,
-                            budget: formData.budget,
-                        }),
-                        type: 'PROJECT_ADDED',
-                        data: {
-                            projectId: createdProject.id,
-                            projectTitle: formData.title,
-                            budget: formData.budget,
-                            budgetType: formData.budgetType,
-                            technologies: formData.technologies,
-                            clientName: user?.firstName + ' ' + user?.lastName
-                        }
-                    });
-                } catch (notificationError) {
-                    console.error('Failed to send notifications:', notificationError);
-                    // Don't fail the project creation if notifications fail
-                }
-            }
-
-            // Simulăm crearea proiectului
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            router.push('/dashboard?tab=projects&success=project-created');
-        } catch (error: any) {
-            setError(error.message || t('projects.new.errors.create_project'));
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const getBudgetTypeLabel = (type: string) => {
-        switch (type) {
-            case 'FIXED': return t('projects.new.budget_types.fixed');
-            case 'HOURLY': return t('projects.new.budget_types.hourly');
-            case 'MILESTONE': return t('projects.new.budget_types.milestone');
-            default: return type;
-        }
-    };
-
-    const getAvailabilityStatus = (status: string) => {
-        switch (status) {
-            case 'AVAILABLE':
-                return { color: 'bg-green-100 text-green-800', label: t('projects.new.availability.available'), icon: CheckCircle };
-            case 'BUYS':
-                return { color: 'bg-yellow-100 text-yellow-800', label: t('projects.new.availability.busy'), icon: Clock };
-            case 'UNAVAILABLE':
-                return { color: 'bg-red-100 text-red-800', label: t('projects.new.availability.unavailable'), icon: AlertCircle };
-            default:
-                return { color: 'bg-gray-100 text-gray-800', label: t('projects.new.availability.unknown'), icon: AlertCircle };
-        }
-    };
-
-
-    const groupServicesByParentAndChild = (
-        apiData: Record<string, Record<string, ServiceItem[]> | ServiceItem[]>
-    ): GroupedServices => {
-        const grouped: GroupedServices = {};
-
-        Object.entries(apiData).forEach(([parentCategory, childOrServices]) => {
-            if (Array.isArray(childOrServices)) {
-                // Nu există subcategorii, grupăm direct sub parent
-                grouped[parentCategory] = {
-                    [parentCategory]: childOrServices,
-                };
-            } else {
-                // Există subcategorii
-                grouped[parentCategory] = {};
-
-                Object.entries(childOrServices).forEach(([childCategory, services]) => {
-                    grouped[parentCategory][childCategory] = services;
-                });
-            }
-        });
-
-        return grouped;
-    };
-
-    const groupedServices = groupServicesByParentAndChild(servicesData ?? []);
-
-    const serviceNameLookup = useMemo(() => {
-        const lookup = new Map<string, ServiceItem>();
-
-        Object.values(groupedServices).forEach((childCategories) => {
-            Object.values(childCategories).forEach((services) => {
-                services.forEach((service) => {
-                    lookup.set(normalizeTechnologyName(service.name), service);
-                });
-            });
-        });
-
-        return lookup;
-    }, [groupedServices, normalizeTechnologyName]);
-
-    const resolveTechnology = useCallback((techName: string): TechnologySelected => {
-        const normalizedName = normalizeTechnologyName(techName);
-        const matchedService = serviceNameLookup.get(normalizedName);
-
-        if (matchedService) {
-            return {
-                id: matchedService.id,
-                name: matchedService.name,
-                require_repo: matchedService.require_repo,
-            };
-        }
-
-        return { id: techName, name: techName };
-    }, [normalizeTechnologyName, serviceNameLookup]);
-
-    const hasRequireRepo = (data: any): boolean => {
-        if (Array.isArray(data)) {
-            return data.some(item => hasRequireRepo(item));
-        }
-
-        if (typeof data === 'object' && data !== null) {
-            if (data.require_repo === true) {
-                return true;
-            }
-
-            return Object.values(data).some(value => hasRequireRepo(value));
-        }
-
-        return false;
-    };
-
-
-    const existsRequireRepo = hasRequireRepo(formData.technologies);
-
-    const generateDescription = async () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!formData.title.trim()) {
-            newErrors.title = t('projects.new.errors.title_required');
-        }
-        if (!formData.description.trim()) {
-            newErrors.description = t('projects.new.errors.description_required');
-        }
-
-        setErrors(newErrors);
-
-        if (Object.keys(newErrors).length !== 0) return;
-
-        setSkipValidation(true);
-        setAiLoading(true);
-
-        try {
-            const generatedOutput = await apiClient.generateProjectInformation(formData);
-            setGeneratedAiOutput(generatedOutput);
-            setFormData(prev => ({
-                ...prev,
-                notes: generatedOutput.notes || '',
-                recommendedProviders: generatedOutput.team_structure.map((member: any) => ({
-                    role: member.role,
-                    level: member.level,
-                    service: member.service,
-                    count: member.count ?? 0,
-                    estimated_cost: member.estimated_cost
-                })),
-                technologies: (() => {
-                    const existing = prev.technologies;
-                    const existingNames = new Set(existing.map((tech) => normalizeTechnologyName(tech.name)));
-                    const newTechs = generatedOutput.technologies
-                        .filter((techName) => !existingNames.has(normalizeTechnologyName(techName)))
-                        .map((techName) => resolveTechnology(techName));
-
-                    return [...existing, ...newTechs];
-                })(),
-            }));
-        } catch (e: any) {
-            console.error ('Error generating AI output:', e);
-        } finally {
-            setAiLoading(false);
-        }
+        // Clear storage after reading so it doesn't persist inappropriately
+        window.sessionStorage.removeItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to parse saved brief draft:', error);
     }
+  }, []);
 
-    const handleUseGeneratedField = (field: keyof FormData, generatedText: string | number) => {
-        setSkipValidation(true);
-        setFormData(prev => {
-            if (field === 'budgetType') {
-                const normalizedBudgetType: BudgetType = generatedText === 'HOURLY' ? 'HOURLY' : 'FIXED';
+  const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
+  const [selectedServiceIndexes, setSelectedServiceIndexes] = useState<number[]>([]);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
+  const [loadingManualProviders, setLoadingManualProviders] = useState(false);
+
+  const [briefMessages, setBriefMessages] = useState<AiAssistantMessage[]>([]);
+  const [briefStatus, setBriefStatus] = useState<'IDLE' | AiBriefResponse['status']>('IDLE');
+  const [briefQuestions, setBriefQuestions] = useState<string[]>([]);
+  const [briefAnswer, setBriefAnswer] = useState('');
+  const [briefResult, setBriefResult] =
+    useState<NonNullable<AiBriefResponse['final_brief']> | null>(null);
+  const [briefSubscriptionError, setBriefSubscriptionError] = useState<string | null>(null);
+  const [briefModularDetails, setBriefModularDetails] =
+    useState<AiBriefResponse['final_brief_modular'] | null>(null);
+  const [briefFullDetails, setBriefFullDetails] =
+    useState<AiBriefResponse['final_brief_full'] | null>(null);
+  const [briefText, setBriefText] = useState('');
+  const [briefDebugResponseJson, setBriefDebugResponseJson] = useState('');
+  const [briefPayloadTruncated, setBriefPayloadTruncated] = useState(false);
+  const [briefPayloadTrimmedSections, setBriefPayloadTrimmedSections] = useState<string[]>([]);
+
+  const [recommendedProviders, setRecommendedProviders] =
+    useState<AiBriefRecommendedProviders | undefined>(undefined);
+  const [otherProviders, setOtherProviders] =
+    useState<AiBriefOtherProvidersByService | undefined>(undefined);
+  const [selectedProviders, setSelectedProviders] = useState<AiBriefProvider[]>([]);
+  const [milestoneAssignments, setMilestoneAssignments] = useState<Record<string, number>>({});
+  const [milestoneAssignmentsInitialized, setMilestoneAssignmentsInitialized] = useState(false);
+
+  const [totalBudget, setTotalBudget] = useState('');
+  const [editableDuration, setEditableDuration] = useState('');
+  const [editablePaymentPlan, setEditablePaymentPlan] = useState('');
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [startOverDialogOpen, setStartOverDialogOpen] = useState(false);
+
+  const briefRequestSentRef = useRef(false);
+  const manualLineCounterRef = useRef(1);
+  const manualMilestoneCounterRef = useRef(1);
+  const milestoneAssignmentSignatureRef = useRef('');
+  const oauthCallbackHandledRef = useRef(false);
+  const wizardStateHydratedRef = useRef(false);
+  const briefSubscriptionRef = useRef<{
+    channelName: string;
+    channel: {
+      listen: (event: string, callback: (payload: unknown) => void) => void;
+      stopListening: (event: string) => void;
+    };
+    echo: ReturnType<typeof getEcho>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (loading || userLoading) return;
+    if (user) return;
+
+    const callbackUrl = `${window.location.pathname}${window.location.search}`;
+    router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }, [loading, userLoading, user, router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const hasDraft = Boolean(window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY));
+      if (hasDraft) {
+        return;
+      }
+
+      const rawState = window.sessionStorage.getItem(PROJECT_NEW_WIZARD_STATE_KEY);
+      if (!rawState) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawState) as Partial<ProjectNewPersistedWizardState>;
+      if (!parsed || typeof parsed !== 'object') {
+        return;
+      }
+
+      const savedAt = toNumber((parsed as { savedAt?: unknown }).savedAt);
+      if (savedAt !== null && Date.now() - savedAt > PROJECT_NEW_WIZARD_STATE_TTL_MS) {
+        window.sessionStorage.removeItem(PROJECT_NEW_WIZARD_STATE_KEY);
+        return;
+      }
+
+      if (isWizardStep((parsed as { step?: unknown }).step)) {
+        setStep((parsed as { step: WizardStep }).step);
+      }
+
+      if (isProjectInputMode((parsed as { projectInputMode?: unknown }).projectInputMode)) {
+        setProjectInputMode((parsed as { projectInputMode: ProjectInputMode }).projectInputMode);
+      }
+
+      if (typeof parsed.intent === 'string') {
+        setIntent(parsed.intent);
+      }
+
+      if (typeof parsed.manualTitle === 'string') {
+        setManualTitle(parsed.manualTitle);
+      }
+
+      if (typeof parsed.manualServiceSearch === 'string') {
+        setManualServiceSearch(parsed.manualServiceSearch);
+      }
+
+      const groupedPage = toNumber(parsed.groupedServicesPage);
+      if (groupedPage !== null && groupedPage > 0) {
+        setGroupedServicesPage(Math.trunc(groupedPage));
+      }
+
+      if (Array.isArray(parsed.manualServiceIds)) {
+        setManualServiceIds(parsed.manualServiceIds.map((entry) => toString(entry)).filter(Boolean));
+      }
+
+      if (
+        parsed.manualSelectedServicesMap &&
+        typeof parsed.manualSelectedServicesMap === 'object' &&
+        !Array.isArray(parsed.manualSelectedServicesMap)
+      ) {
+        const nextMap: Record<string, ApiServiceOption> = {};
+        Object.entries(parsed.manualSelectedServicesMap).forEach(([key, rawValue]) => {
+          const service = toObject(rawValue);
+          if (!service) {
+            return;
+          }
+
+          const id = toString(service.id) || toString(key);
+          const name = toString(service.name);
+          if (!id || !name) {
+            return;
+          }
+
+          const categoryName = toString(service.category_name) || 'Altele';
+          const subcategoryName = toString(service.subcategory_name);
+          const categoryId = service.category_id;
+          const rawProvider = toString(service.delivery_provider);
+          const deliveryProvider =
+            rawProvider === 'github' ||
+            rawProvider === 'figma' ||
+            rawProvider === 'google_drive' ||
+            rawProvider === 'google_analytics' ||
+            rawProvider === 'manual_upload'
+              ? (rawProvider as DeliveryProvider)
+              : undefined;
+
+          nextMap[id] = {
+            id,
+            name,
+            category_name: categoryName,
+            ...(subcategoryName ? { subcategory_name: subcategoryName } : {}),
+            ...(typeof categoryId === 'string' || typeof categoryId === 'number'
+              ? { category_id: categoryId }
+              : {}),
+            ...(deliveryProvider ? { delivery_provider: deliveryProvider } : {}),
+          };
+        });
+
+        setManualSelectedServicesMap(nextMap);
+      }
+
+      if (typeof parsed.manualSpecificRequirements === 'string') {
+        setManualSpecificRequirements(parsed.manualSpecificRequirements);
+      }
+
+      if (typeof parsed.manualDuration === 'string') {
+        setManualDuration(parsed.manualDuration);
+      }
+
+      if (typeof parsed.manualPaymentPlan === 'string') {
+        setManualPaymentPlan(parsed.manualPaymentPlan);
+      }
+
+      if (typeof parsed.manualCurrency === 'string') {
+        setManualCurrency(parsed.manualCurrency);
+      }
+
+      if (Array.isArray(parsed.manualProjectLines)) {
+        const restoredManualLines = parsed.manualProjectLines
+          .map((line) => {
+            const lineObject = toObject(line);
+            if (!lineObject) {
+              return null;
+            }
+
+            const lineId = toString(lineObject.id);
+            const serviceId = toString(lineObject.service_id);
+            const serviceName = toString(lineObject.service_name);
+            const description = toString(lineObject.description);
+            const budgetPercentage = toString(lineObject.budget_percentage);
+            const rawProvider = toString(lineObject.delivery_provider);
+            const deliveryProvider =
+              rawProvider === 'github' ||
+              rawProvider === 'figma' ||
+              rawProvider === 'google_drive' ||
+              rawProvider === 'google_analytics' ||
+              rawProvider === 'manual_upload'
+                ? (rawProvider as DeliveryProvider)
+                : 'manual_upload';
+
+            const milestonesRaw = Array.isArray(lineObject.milestones) ? lineObject.milestones : [];
+            const milestones = milestonesRaw
+              .map((milestone) => {
+                const milestoneObject = toObject(milestone);
+                if (!milestoneObject) {
+                  return null;
+                }
+
+                const milestoneId = toString(milestoneObject.id);
+                if (!milestoneId) {
+                  return null;
+                }
+
                 return {
-                    ...prev,
-                    budgetType: normalizedBudgetType,
+                  id: milestoneId,
+                  title: toString(milestoneObject.title),
+                  description: toString(milestoneObject.description),
+                  percentage: toString(milestoneObject.percentage),
+                  amount: toString(milestoneObject.amount),
                 };
+              })
+              .filter((milestone): milestone is ManualMilestoneForm => milestone !== null);
+
+            if (!lineId) {
+              return null;
             }
 
             return {
-                ...prev,
-                [field]: generatedText,
+              id: lineId,
+              service_id: serviceId,
+              service_name: serviceName,
+              delivery_provider: deliveryProvider,
+              description,
+              budget_percentage: budgetPercentage,
+              milestones,
             };
-        });
-    }
+          })
+          .filter((line): line is ManualProjectLineForm => line !== null);
 
-    const handleUseGeneratedTechnologies = (technologies: string[]) => {
-        setFormData(prev => {
-            const existing = prev.technologies;
+        setManualProjectLines(restoredManualLines);
+      }
 
-            const newTechs = technologies
-                .filter((techName) => !existing.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(techName)))
-                .map((techName) => resolveTechnology(techName));
+      if (
+        parsed.recommendation &&
+        typeof parsed.recommendation === 'object' &&
+        Array.isArray((parsed.recommendation as { services?: unknown }).services)
+      ) {
+        setRecommendation(parsed.recommendation as RecommendationResult);
+      }
+
+      if (Array.isArray(parsed.selectedServiceIndexes)) {
+        setSelectedServiceIndexes(
+          parsed.selectedServiceIndexes
+            .map((index) => toNumber(index))
+            .filter((index): index is number => index !== null && index >= 0)
+            .map((index) => Math.trunc(index))
+        );
+      }
+
+      if (Array.isArray(parsed.briefMessages)) {
+        const restoredMessages = parsed.briefMessages
+          .map((message) => {
+            const source = toObject(message);
+            if (!source) {
+              return null;
+            }
+
+            const role = toString(source.role);
+            const content = toString(source.content);
+            if (
+              (role !== 'system' && role !== 'user' && role !== 'assistant') ||
+              !content
+            ) {
+              return null;
+            }
 
             return {
-                ...prev,
-                technologies: [...existing, ...newTechs]
-            };
-        });
-    };
+              role,
+              content,
+            } satisfies AiAssistantMessage;
+          })
+          .filter((message): message is AiAssistantMessage => message !== null);
+        setBriefMessages(restoredMessages);
+      }
 
-    const handleUseGeneratedSuggestedTechnologies = (technologies: string[]) => {
-        setFormData(prev => {
-            const existing = prev.technologies;
+      const briefStatusCandidate = (parsed as { briefStatus?: unknown }).briefStatus;
+      if (
+        briefStatusCandidate === 'IDLE' ||
+        briefStatusCandidate === 'PROCESSING' ||
+        briefStatusCandidate === 'CLARIFY' ||
+        briefStatusCandidate === 'FINAL'
+      ) {
+        setBriefStatus(briefStatusCandidate);
+      }
 
-            const newTechs = technologies
-                .filter((techName) => !existing.some(t => normalizeTechnologyName(t.name) === normalizeTechnologyName(techName)))
-                .map((techName) => resolveTechnology(techName));
+      if (Array.isArray(parsed.briefQuestions)) {
+        setBriefQuestions(parsed.briefQuestions.map((entry) => toString(entry)).filter(Boolean));
+      }
 
-            return {
-                ...prev,
-                technologies: [...existing, ...newTechs]
-            };
-        });
-    };
+      if (typeof parsed.briefAnswer === 'string') {
+        setBriefAnswer(parsed.briefAnswer);
+      }
 
-    const handleUseGeneratedMilestones = (milestones: { provider_role?: string; milestones: { title: string; amount: number }[] }[]) => {
-        setAiSuggestedMilestones(milestones);
-    };
+      if (parsed.briefResult && typeof parsed.briefResult === 'object') {
+        setBriefResult(parsed.briefResult as NonNullable<AiBriefResponse['final_brief']>);
+      }
 
-    // const handleUpdateServicesByCategory = async (categoryId: string) => {
-    //     const childrensAndServices = await apiClient.getServicesGroupedByCategory(categoryId);
-    //     const test = await apiClient.getServicesGroupedByCategory();
-    //
-    //     console.log(test);
-    //     const technologies: Technology[] = [];
-    //     Object.entries(childrensAndServices).forEach(([categoryName, services]) => {
-    //         (services as any[]).forEach((service) => {
-    //             technologies.push({
-    //                 id: String(service.id),
-    //                 name: service.name,
-    //                 category: categoryName,
-    //             });
-    //         });
-    //     });
-    //
-    //     setAvailableTechnologies(technologies);
-    //
-    // }
+      if (
+        parsed.briefModularDetails === null ||
+        (parsed.briefModularDetails && typeof parsed.briefModularDetails === 'object')
+      ) {
+        setBriefModularDetails(parsed.briefModularDetails ?? null);
+      }
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin" />
-            </div>
+      if (
+        parsed.briefFullDetails === null ||
+        (parsed.briefFullDetails && typeof parsed.briefFullDetails === 'object')
+      ) {
+        setBriefFullDetails(parsed.briefFullDetails ?? null);
+      }
+
+      if (typeof parsed.briefText === 'string') {
+        setBriefText(parsed.briefText);
+      }
+
+      if (typeof parsed.briefPayloadTruncated === 'boolean') {
+        setBriefPayloadTruncated(parsed.briefPayloadTruncated);
+      }
+
+      if (Array.isArray(parsed.briefPayloadTrimmedSections)) {
+        setBriefPayloadTrimmedSections(
+          parsed.briefPayloadTrimmedSections.map((entry) => toString(entry)).filter(Boolean)
         );
+      }
+
+      if (
+        parsed.recommendedProviders &&
+        typeof parsed.recommendedProviders === 'object' &&
+        !Array.isArray(parsed.recommendedProviders)
+      ) {
+        setRecommendedProviders(parsed.recommendedProviders as AiBriefRecommendedProviders);
+      }
+
+      if (Array.isArray(parsed.otherProviders)) {
+        setOtherProviders(parsed.otherProviders as AiBriefOtherProvidersByService);
+      }
+
+      if (Array.isArray(parsed.selectedProviders)) {
+        setSelectedProviders(parsed.selectedProviders as AiBriefProvider[]);
+      }
+
+      if (
+        parsed.milestoneAssignments &&
+        typeof parsed.milestoneAssignments === 'object' &&
+        !Array.isArray(parsed.milestoneAssignments)
+      ) {
+        const assignments: Record<string, number> = {};
+        Object.entries(parsed.milestoneAssignments).forEach(([key, value]) => {
+          const parsedProviderId = toNumber(value);
+          if (parsedProviderId === null) {
+            return;
+          }
+          assignments[key] = Math.trunc(parsedProviderId);
+        });
+        setMilestoneAssignments(assignments);
+      }
+
+      if (typeof parsed.milestoneAssignmentsInitialized === 'boolean') {
+        setMilestoneAssignmentsInitialized(parsed.milestoneAssignmentsInitialized);
+      }
+
+      if (typeof parsed.totalBudget === 'string') {
+        setTotalBudget(parsed.totalBudget);
+      }
+
+      if (typeof parsed.editableDuration === 'string') {
+        setEditableDuration(parsed.editableDuration);
+      }
+
+      if (typeof parsed.editablePaymentPlan === 'string') {
+        setEditablePaymentPlan(parsed.editablePaymentPlan);
+      }
+    } catch (error) {
+      console.error('Failed to restore persisted project wizard state:', error);
+    } finally {
+      wizardStateHydratedRef.current = true;
     }
+  }, []);
 
-    if (aiLoading) {
-        return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-                <svg
-                    className="animate-spin h-12 w-12 text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                >
-                    <circle
-                        className="opacity-25"
-                        cx="12" cy="12" r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                    />
-                    <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                </svg>
-                <p className="text-lg font-medium text-gray-700">{aiLoadingMessages[index]}</p>
-            </div>
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
+    try {
+      const rawSnapshot = window.sessionStorage.getItem(PROJECT_NEW_OAUTH_SNAPSHOT_KEY);
+      if (!rawSnapshot) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawSnapshot) as Partial<ProjectNewOAuthSnapshot>;
+      if (!parsed || typeof parsed !== 'object') {
+        return;
+      }
+
+      const savedAt = toNumber((parsed as { savedAt?: unknown }).savedAt);
+      if (savedAt !== null && Date.now() - savedAt > PROJECT_NEW_OAUTH_SNAPSHOT_TTL_MS) {
+        return;
+      }
+
+      if (isWizardStep((parsed as { step?: unknown }).step)) {
+        setStep((parsed as { step: WizardStep }).step);
+      }
+
+      if (
+        (parsed as { projectInputMode?: unknown }).projectInputMode === 'ai' ||
+        (parsed as { projectInputMode?: unknown }).projectInputMode === 'manual'
+      ) {
+        setProjectInputMode((parsed as { projectInputMode: ProjectInputMode }).projectInputMode);
+      }
+
+      if (typeof parsed.intent === 'string') {
+        setIntent(parsed.intent);
+      }
+
+      if (typeof parsed.manualTitle === 'string') {
+        setManualTitle(parsed.manualTitle);
+      }
+
+      const briefStatusCandidate = (parsed as { briefStatus?: unknown }).briefStatus;
+      if (
+        briefStatusCandidate === 'IDLE' ||
+        briefStatusCandidate === 'PROCESSING' ||
+        briefStatusCandidate === 'CLARIFY' ||
+        briefStatusCandidate === 'FINAL'
+      ) {
+        setBriefStatus(briefStatusCandidate);
+      }
+
+      if (parsed.briefResult && typeof parsed.briefResult === 'object') {
+        setBriefResult(parsed.briefResult as NonNullable<AiBriefResponse['final_brief']>);
+      }
+
+      if (
+        parsed.briefModularDetails === null ||
+        (parsed.briefModularDetails && typeof parsed.briefModularDetails === 'object')
+      ) {
+        setBriefModularDetails(parsed.briefModularDetails ?? null);
+      }
+
+      if (
+        parsed.briefFullDetails === null ||
+        (parsed.briefFullDetails && typeof parsed.briefFullDetails === 'object')
+      ) {
+        setBriefFullDetails(parsed.briefFullDetails ?? null);
+      }
+
+      if (typeof parsed.briefText === 'string') {
+        setBriefText(parsed.briefText);
+      }
+
+      if (typeof parsed.briefPayloadTruncated === 'boolean') {
+        setBriefPayloadTruncated(parsed.briefPayloadTruncated);
+      }
+
+      if (Array.isArray(parsed.briefPayloadTrimmedSections)) {
+        setBriefPayloadTrimmedSections(
+          parsed.briefPayloadTrimmedSections
+            .map((entry) => toString(entry))
+            .filter(Boolean)
         );
+      }
+
+      if (
+        parsed.recommendedProviders &&
+        typeof parsed.recommendedProviders === 'object' &&
+        !Array.isArray(parsed.recommendedProviders)
+      ) {
+        setRecommendedProviders(parsed.recommendedProviders as AiBriefRecommendedProviders);
+      }
+
+      if (Array.isArray(parsed.otherProviders)) {
+        setOtherProviders(parsed.otherProviders as AiBriefOtherProvidersByService);
+      }
+
+      if (Array.isArray(parsed.selectedProviders)) {
+        setSelectedProviders(parsed.selectedProviders as AiBriefProvider[]);
+      }
+
+      if (typeof parsed.totalBudget === 'string') {
+        setTotalBudget(parsed.totalBudget);
+      }
+
+      if (typeof parsed.editableDuration === 'string') {
+        setEditableDuration(parsed.editableDuration);
+      }
+
+      if (typeof parsed.editablePaymentPlan === 'string') {
+        setEditablePaymentPlan(parsed.editablePaymentPlan);
+      }
+    } catch (error) {
+      console.error('Failed to restore OAuth wizard snapshot:', error);
+    } finally {
+      window.sessionStorage.removeItem(PROJECT_NEW_OAUTH_SNAPSHOT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!wizardStateHydratedRef.current) return;
+
+    const snapshot: ProjectNewPersistedWizardState = {
+      savedAt: Date.now(),
+      step,
+      projectInputMode,
+      intent,
+      manualTitle,
+      manualServiceSearch,
+      groupedServicesPage,
+      manualServiceIds,
+      manualSelectedServicesMap,
+      manualSpecificRequirements,
+      manualDuration,
+      manualPaymentPlan,
+      manualCurrency,
+      manualProjectLines,
+      recommendation,
+      selectedServiceIndexes,
+      briefMessages,
+      briefStatus,
+      briefQuestions,
+      briefAnswer,
+      briefResult,
+      briefModularDetails,
+      briefFullDetails,
+      briefText,
+      briefPayloadTruncated,
+      briefPayloadTrimmedSections,
+      ...(recommendedProviders ? { recommendedProviders } : {}),
+      ...(otherProviders ? { otherProviders } : {}),
+      selectedProviders,
+      milestoneAssignments,
+      milestoneAssignmentsInitialized,
+      totalBudget,
+      editableDuration,
+      editablePaymentPlan,
+    };
+
+    try {
+      window.sessionStorage.setItem(
+        PROJECT_NEW_WIZARD_STATE_KEY,
+        JSON.stringify(snapshot)
+      );
+    } catch (error) {
+      console.error('Failed to persist project wizard state:', error);
+    }
+  }, [
+    step,
+    projectInputMode,
+    intent,
+    manualTitle,
+    manualServiceSearch,
+    groupedServicesPage,
+    manualServiceIds,
+    manualSelectedServicesMap,
+    manualSpecificRequirements,
+    manualDuration,
+    manualPaymentPlan,
+    manualCurrency,
+    manualProjectLines,
+    recommendation,
+    selectedServiceIndexes,
+    briefMessages,
+    briefStatus,
+    briefQuestions,
+    briefAnswer,
+    briefResult,
+    briefModularDetails,
+    briefFullDetails,
+    briefText,
+    briefPayloadTruncated,
+    briefPayloadTrimmedSections,
+    recommendedProviders,
+    otherProviders,
+    selectedProviders,
+    milestoneAssignments,
+    milestoneAssignmentsInitialized,
+    totalBudget,
+    editableDuration,
+    editablePaymentPlan,
+  ]);
+
+  const groupedServicesData = useMemo(() => {
+    const root = toObject(groupedServicesResponse);
+    const nestedData = toObject(root?.data);
+    if (nestedData) {
+      return nestedData;
     }
 
-    if (!user || user?.roles?.some((r: any) => r.slug?.toLowerCase() !== 'client')) {
-        return null;
+    return root ?? {};
+  }, [groupedServicesResponse]);
+
+  const groupedServicesPagination = useMemo(() => {
+    const root = toObject(groupedServicesResponse);
+    const pagination = toObject(root?.pagination);
+    if (!pagination) {
+      return null;
     }
 
-
-    return (
-        <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
-            <TrustoraThemeStyles />
-            <Header />
-
-            <main className="pt-24">
-                <section className="px-6 pb-10 hero-gradient">
-                    <div className="max-w-5xl mx-auto text-center">
-                        <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                            <span className="text-[#1BC47D]">●</span> {t('projects.new.hero.badge')}
-                        </Badge>
-                        <h1 className="text-3xl lg:text-4xl font-bold mb-3 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            {t('projects.new.hero.title')}
-                        </h1>
-                        <p className="text-base text-slate-600 max-w-3xl mx-auto dark:text-[#A3ADC2]">
-                            {t('projects.new.hero.description')}
-                        </p>
-                    </div>
-                </section>
-
-                <section className="py-12 px-6 bg-[#F5F7FA] dark:bg-[#0B1220]">
-                    <div className="max-w-6xl mx-auto">
-                        {error && (
-                            <Alert variant="destructive" className="mb-6">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-8">
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                <TabsList className="grid w-full grid-cols-3 rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                                    <TabsTrigger
-                                        value="details"
-                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
-                                    >
-                                        {t('projects.new.tabs.details')}
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="providers"
-                                        disabled={!formData.serviceId || formData.technologies.length === 0}
-                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
-                                    >
-                                        {t('projects.new.tabs.providers')}
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="review"
-                                        disabled={selectedProviders.length === 0}
-                                        className="rounded-full data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-[#0F2E25] dark:data-[state=active]:text-[#7BF1B8]"
-                                    >
-                                        {t('projects.new.tabs.review')}
-                                    </TabsTrigger>
-                                </TabsList>
-
-                        {/* Detalii Proiect */}
-                        <TabsContent value="details" className="space-y-6">
-                            <div className="grid xs:grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
-                                <div>
-                                    <Card className="mb-6 glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <FileText className="w-5 h-5" />
-                                                <span>{t('projects.new.sections.general_info')}</span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div>
-                                                <Label className={errors.title ? "text-red-500" : ""} htmlFor="title">
-                                                    {t('projects.new.fields.title')} <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Input
-                                                    id="title"
-                                                    className={errors.title ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.title}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                    placeholder={t('projects.new.fields.title_placeholder')}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label className={errors.description ? "text-red-500" : ""} htmlFor="description">
-                                                    {t('projects.new.fields.description')} <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Textarea
-                                                    id="description"
-                                                    className={errors.description ? "border-red-500 focus:ring-red-500" : ""}
-                                                    value={formData.description}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                                    placeholder={t('projects.new.fields.description_placeholder')}
-                                                    rows={5}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label htmlFor="requirements">{t('projects.new.fields.requirements')}</Label>
-                                                <Textarea
-                                                    id="requirements"
-                                                    value={formData.requirements}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                                                    placeholder={t('projects.new.fields.requirements_placeholder')}
-                                                    rows={3}
-                                                />
-                                            </div>
-
-                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/*<div>*/}
-                                                {/*    <Label htmlFor="serviceId">Categorie Serviciu *</Label>*/}
-                                                {/*    <Select value={formData.serviceId} onValueChange={(value) => {*/}
-                                                {/*        setFormData(prev => ({ ...prev, serviceId: value }));*/}
-                                                {/*    }}>*/}
-                                                {/*        <SelectTrigger>*/}
-                                                {/*            <SelectValue placeholder="Selectează categoria" />*/}
-                                                {/*        </SelectTrigger>*/}
-                                                {/*        <SelectContent>*/}
-                                                {/*            {(categoriesData || []).map((category: any) => (*/}
-                                                {/*                <SelectItem key={category.id} value={String(category.id)}>*/}
-                                                {/*                    {category.name}*/}
-                                                {/*                </SelectItem>*/}
-                                                {/*            ))}*/}
-                                                {/*        </SelectContent>*/}
-                                                {/*    </Select>*/}
-                                                {/*</div>*/}
-
-                                                {/*<div>*/}
-                                                {/*    <Label className={errors.visibility ? "text-red-500" : ""} htmlFor="visibility">Tip <span className="text-red-500">*</span></Label>*/}
-                                                {/*    <Select value={formData.visibility} onValueChange={(value) => setFormData(prev => ({ ...prev, visibility: value }))}>*/}
-                                                {/*        <SelectTrigger className={errors.visibility ? "border-red-500 focus:ring-red-500" : ""}>*/}
-                                                {/*            <SelectValue placeholder="Selecteaza vizibilitatea proiectului" />*/}
-                                                {/*        </SelectTrigger>*/}
-                                                {/*        <SelectContent>*/}
-                                                {/*            <SelectItem value="PUBLIC">Public</SelectItem>*/}
-                                                {/*            <SelectItem value="PRIVATE">Privat</SelectItem>*/}
-                                                {/*            <SelectItem value="TEAM_ONLY">Doar echipe</SelectItem>*/}
-                                                {/*        </SelectContent>*/}
-                                                {/*    </Select>*/}
-                                                {/*</div>*/}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card className="mb-6 glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <Code className="w-5 h-5" />
-                                                <span className={errors.technologies ? "text-red-500" : ""}>
-                                                    {t('projects.new.technologies.title')}
-                                                </span>
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {t('projects.new.technologies.description')}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {formData.technologies.length > 0 && (
-                                                <div>
-                                                    <Label className={`mb-3 block ${errors.technologies ? "text-red-500" : ""}`}>
-                                                        {t('projects.new.technologies.selected', { count: formData.technologies.length })}
-                                                    </Label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {formData.technologies.map((tech) => (
-                                                            <Badge key={tech.id} variant="default" className="flex items-center space-x-1">
-                                                                <span>{tech.name}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeTechnology(tech)}
-                                                                    className="ml-1 hover:text-red-300"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Adaugă tehnologie personalizată */}
-                                            <div>
-                                                <Label className={errors.technologies ? "text-red-500" : ""}>
-                                                    {t('projects.new.technologies.add_custom')}
-                                                </Label>
-                                                <div className="flex space-x-2 mt-2">
-                                                    <Input
-                                                        value={newTechnology}
-                                                        className={errors.firstName ? "border-red-500 focus:ring-red-500" : ""}
-                                                        onChange={(e) => setNewTechnology(e.target.value)}
-                                                        placeholder={t('projects.new.technologies.add_custom_placeholder')}
-                                                        onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTechnology())}
-                                                    />
-                                                    <Button type="button" onClick={addCustomTechnology} variant="outline">
-                                                        <Plus className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Tehnologii disponibile grupate */}
-                                            <div className="space-y-6">
-                                                {Object.entries(groupedServices).map(([parentCategory, childCategories]) => (
-                                                    <div key={parentCategory}>
-                                                        {/* Categoria părinte - text mai mare */}
-                                                        <h2 className="text-lg font-bold text-primary mb-4">{parentCategory}</h2>
-
-                                                        {/* Categorii copil */}
-                                                        {Object.entries(childCategories).map(([childCategory, services]) => (
-                                                            <div key={childCategory} className="mb-6">
-                                                                {/* Categoria copil */}
-                                                                <h3 className="text-md font-semibold text-custom-purple mb-2">{childCategory}</h3>
-
-                                                                {/* Lista serviciilor */}
-                                                                <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-2">
-                                                                    {services.map((service) => (
-                                                                        <div key={service.id} className="flex items-center space-x-2">
-                                                                            <Checkbox
-                                                                                id={service.id}
-                                                                                // checked={formData.technologies.some(t => t.id === service.id)}
-                                                                                checked={markedNamesSet.has(normalizeTechnologyName(service.name))}
-                                                                                onCheckedChange={() => handleTechnologyToggle(service.name, service.id, service.require_repo)}
-                                                                            />
-                                                                            <Label htmlFor={service.id} className="text-sm cursor-pointer">
-                                                                                {service.name}
-                                                                            </Label>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                        </CardContent>
-                                    </Card>
-
-                                    {existsRequireRepo && (
-                                        <Card className="mb-6 glass-card shadow-sm">
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center space-x-2">
-                                                    <GithubIcon className="w-5 h-5" />
-                                                    {t('projects.new.github.title')}
-                                                </CardTitle>
-                                                <CardDescription>
-                                                    {t('projects.new.github.description')}
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="space-y-6">
-                                                <div className="space-y-6">
-                                                <Label>
-                                                    {t('projects.new.github.connect_label')}
-                                                    <span className="block text-xs text-muted-foreground">
-                                                        {t('projects.new.github.connect_description')}
-                                                    </span>
-                                                </Label>
-                                                    <GithubConnect isConnected={!!user?.github_token} />
-                                                </div>
-
-                                                <div className="p-4 border rounded-lg bg-card">
-                                                    <h3 className="font-semibold mb-4">{t('projects.new.github.repository_title')}</h3>
-                                                    <RadioGroup
-                                                        value={formData.githubRepoTarget}
-                                                        onValueChange={(value) =>
-                                                            setFormData(prev => ({ ...prev, githubRepoTarget: value as FormData['githubRepoTarget'] }))
-                                                        }
-                                                        className="mb-4"
-                                                    >
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="platform" id="github-platform" />
-                                                            <Label htmlFor="github-platform">
-                                                                {t('projects.new.github.platform_repo')}
-                                                                {/*<span className="block text-xs text-muted-foreground">*/}
-                                                                {/*    Noi deținem repo-ul, tu ești colaborator.*/}
-                                                                {/*</span>*/}
-                                                            </Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2 mt-2">
-                                                            <RadioGroupItem
-                                                                value="provider"
-                                                                id="github-provider"
-                                                                disabled={!user?.github_token}
-                                                            />
-                                                            <Label htmlFor="github-provider" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                {t('projects.new.github.provider_repo')}
-                                                                {!user?.github_token && (
-                                                                    <span className="block text-xs text-red-500">
-                                                                        {t('projects.new.github.connect_first')}
-                                                                </span>
-                                                                )}
-                                                            </Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2 mt-2">
-                                                            <RadioGroupItem
-                                                                value="client"
-                                                                id="github-client"
-                                                                disabled={!user?.github_token}
-                                                            />
-                                                            <Label htmlFor="github-client" className={!user?.github_token ? "opacity-50" : ""}>
-                                                                {t('projects.new.github.client_repo')}
-                                                                {!user?.github_token && (
-                                                                    <span className="block text-xs text-red-500">
-                                                                        {t('projects.new.github.connect_first')}
-                                                                </span>
-                                                                )}
-                                                            </Label>
-                                                        </div>
-                                                    </RadioGroup>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    )}
-
-                                    <Card className="glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <DollarSign className="w-5 h-5" />
-                                                <span>{t('projects.new.budget.title')}</span>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div>
-                                                <Label className={`mb-3 block ${errors.budgetType ? "text-red-500" : ""}`}>
-                                                    {t('projects.new.budget.type_label')} <span className="text-red-500">*</span>
-                                                </Label>
-                                                <RadioGroup className={errors.budgetType ? "border-red-500 focus:ring-red-500" : ""}
-                                                            value={formData.budgetType}
-                                                            onValueChange={(value) => {
-                                                                const normalizedBudgetType: BudgetType = value === 'HOURLY' ? 'HOURLY' : 'FIXED';
-                                                                setFormData(prev => ({ ...prev, budgetType: normalizedBudgetType }));
-                                                            }}>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="FIXED" id="fixed" />
-                                                        <Label htmlFor="fixed">{t('projects.new.budget.fixed_label')}</Label>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="HOURLY" id="hourly" />
-                                                        <Label htmlFor="hourly">{t('projects.new.budget.hourly_label')}</Label>
-                                                    </div>
-                                                </RadioGroup>
-                                            </div>
-
-                                            <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label className={errors.buget ? "text-red-500" : ""} htmlFor="budget">
-                                                        {t('projects.new.budget.amount_label', {
-                                                            suffix: formData.budgetType === 'HOURLY'
-                                                                ? t('projects.new.budget.hourly_suffix')
-                                                                : t('projects.new.budget.fixed_suffix'),
-                                                        })}{' '}
-                                                        <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Input
-                                                        id="budget"
-                                                        className={errors.buget ? "text-red-500" : ""}
-                                                        type="number"
-                                                        value={formData.budget}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                                        placeholder={formData.budgetType === 'HOURLY'
-                                                            ? t('projects.new.budget.hourly_placeholder')
-                                                            : t('projects.new.budget.fixed_placeholder')}
-                                                        required={!skipValidation}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label className={errors.deadline ? "text-red-500" : ""} htmlFor="deadline">
-                                                        {t('projects.new.deadline.label')} <span className="text-red-500">*</span>
-                                                    </Label>
-                                                    <Select
-                                                        value={formData.deadline}
-                                                        onValueChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
-                                                    >
-                                                        <SelectTrigger className={errors.deadline ? "border-red-500 focus:ring-red-500" : ""}>
-                                                            <SelectValue placeholder={t('projects.new.deadline.placeholder')} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="1day">{t('projects.new.deadline.options.one_day')}</SelectItem>
-                                                            <SelectItem value="1week">{t('projects.new.deadline.options.one_week')}</SelectItem>
-                                                            <SelectItem value="2weeks">{t('projects.new.deadline.options.two_weeks')}</SelectItem>
-                                                            <SelectItem value="3weeks">{t('projects.new.deadline.options.three_weeks')}</SelectItem>
-                                                            <SelectItem value="1month">{t('projects.new.deadline.options.one_month')}</SelectItem>
-                                                            <SelectItem value="3months">{t('projects.new.deadline.options.three_months')}</SelectItem>
-                                                            <SelectItem value="6months">{t('projects.new.deadline.options.six_months')}</SelectItem>
-                                                            <SelectItem value="1year">{t('projects.new.deadline.options.one_year')}</SelectItem>
-                                                            <SelectItem value="1plusyear">{t('projects.new.deadline.options.one_plus_year')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                                <div>
-                                    <Card className="glass-card shadow-sm">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center space-x-2">
-                                                <AutoAwesomeIcon className="w-5 h-5" />
-                                                <span>{t('projects.new.ai.title')}</span>
-                                            </CardTitle>
-                                            <CardDescription className="flex items-center space-x-2">
-                                                {t('projects.new.ai.description')}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            {generatedAiOutput.title.trim() && (
-                                                <h2 className="font-bold">{t('projects.new.ai.suggested')}</h2>
-                                            )}
-                                            {generatedAiOutput?.title.trim() && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.title')}</span> {generatedAiOutput?.title}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('title', generatedAiOutput?.title)}>
-                                                        <TitleIcon />
-                                                        {t('projects.new.ai.actions.use_title')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.description.trim() && (
-                                                <>
-                                                    <div className="whitespace-pre-wrap">
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.description')}</span> {generatedAiOutput?.description}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedField('description', generatedAiOutput?.description)}>
-                                                        <DescriptionIcon />
-                                                        {t('projects.new.ai.actions.use_description')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.technologies.length > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.technologies')}</span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.technologies.map((tech, index) => (
-                                                                <li key={index}>{tech}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedTechnologies(generatedAiOutput.technologies)}>
-                                                        <AddCircleIcon />
-                                                        {t('projects.new.ai.actions.use_technologies')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.additional_services?.length > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.additional_services_label')}</span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {generatedAiOutput?.additional_services.map((tech, index) => (
-                                                                <li key={index}>{tech}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedSuggestedTechnologies(generatedAiOutput.additional_services)}>
-                                                        <AddCircleIcon />
-                                                        {t('projects.new.ai.actions.add_additional_services')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.team_structure.length > 0 && (
-                                                <div>
-                                                    <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.team_structure')}</span>
-                                                    {generatedAiOutput?.team_structure.map((team, index) => {
-                                                        const typedTeam = team as { role: string; level: string; count: number; estimated_cost: number };
-                                                        return (
-                                                            <div key={index}>
-                                                                <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.role')}</span>{' '}
-                                                                {typedTeam.role} - {typedTeam.count} {typedTeam.count === 1 ? t('projects.new.ai.people.singular') : t('projects.new.ai.people.plural')} - {t('projects.new.ai.fields.level')} {typedTeam.level} - <PriceDisplay value={typedTeam.estimated_cost} /> {t('projects.new.ai.fields.estimated')}
-                                                            </div>
-                                                        );
-                                                    })}
-
-                                                </div>
-                                            )}
-
-                                            {generatedAiOutput.deadline.trim() && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.deadline')}</span> {formatDeadline(generatedAiOutput?.deadline, locale)}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer" onClick={() => handleUseGeneratedField('deadline', generatedAiOutput?.deadline)}>
-                                                        <AccessTimeFilledIcon />
-                                                        {t('projects.new.ai.actions.use_deadline')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {generatedAiOutput?.estimated_budget !== 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.estimated_budget')}</span>{' '}
-                                                        <PriceDisplay value={generatedAiOutput?.estimated_budget ?? 0} /> {getBudgetTypeLabel(generatedAiOutput?.budget_type)}
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => {
-                                                           handleUseGeneratedField('budget', generatedAiOutput?.estimated_budget);
-                                                           handleUseGeneratedField('budgetType', generatedAiOutput?.budget_type || 'FIXED');
-                                                       }}>
-                                                        <EuroIcon />
-                                                        {t('projects.new.ai.actions.use_budget')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {(generatedAiOutput?.payment_plan || generatedAiOutput?.milestone_count !== 0) && (
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.payment_plan')}</span>
-                                                        {generatedAiOutput?.payment_plan || t('projects.new.ai.fields.unspecified')}
-                                                    {generatedAiOutput?.milestone_count
-                                                        ? t('projects.new.ai.milestone_count', { count: generatedAiOutput.milestone_count })
-                                                        : ''}
-                                                    </div>
-                                            )}
-
-                                            {(generatedAiOutput?.milestones?.length ?? 0) > 0 && (
-                                                <>
-                                                    <div>
-                                                        <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.milestones')}</span>
-                                                        <ul className="ml-6 list-disc">
-                                                            {(generatedAiOutput?.milestones ?? []).map((group: { provider_role?: string; milestones: { title: string; amount: number }[] }, index: number) => (
-                                                                <li key={index}>
-                                                                    {group.provider_role ? `${group.provider_role}: ` : ''}
-                                                                    {group.milestones.map((milestone, milestoneIndex) => (
-                                                                        <span key={milestoneIndex}>
-                                                                            {t('projects.new.ai.milestone_item', {
-                                                                                title: milestone.title,
-                                                                            })}{' '}
-                                                                            <PriceDisplay value={milestone.amount} />
-                                                                            {milestoneIndex < group.milestones.length - 1 ? ', ' : ''}
-                                                                        </span>
-                                                                    ))}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <a className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 w-full cursor-pointer"
-                                                       onClick={() => handleUseGeneratedMilestones(generatedAiOutput.milestones ?? [])}>
-                                                        <AddCircleIcon />
-                                                        {t('projects.new.ai.actions.use_milestones')}
-                                                    </a>
-                                                </>
-                                            )}
-
-                                            {(generatedAiOutput?.notes ?? '').trim() && (
-                                                <div>
-                                                    <span className="text-sm text-black dark:text-white font-bold">{t('projects.new.ai.fields.note')}</span> {generatedAiOutput.notes ?? ''}
-                                                </div>
-                                            )}
-
-                                            <div className="col-span-2">
-                                                <Button size="sm" className="w-full" type="button" onClick={() => generateDescription()}>
-                                                    <AutoAwesomeIcon className="w-4 h-4 me-2" />
-                                                    {t('projects.new.ai.actions.improve_description')}
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                            <div className="flex justify-end">
-                                <Button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!validate()) return;
-                                        setActiveTab('providers');
-                                        loadSuggestedProviders();
-                                    }}
-                                    disabled={formData.technologies.length === 0}
-                                    className="px-8"
-                                >
-                                    {t('projects.new.actions.continue_to_providers')}
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </TabsContent>
-
-                        {/* Prestatori Sugerați */}
-                        <TabsContent value="providers" className="space-y-6">
-                            <Card id="suggested-providers" className="glass-card shadow-sm">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Users className="w-5 h-5" />
-                                        <span>{t('projects.new.providers.title')}</span>
-                                        <Badge variant="outline">
-                                            {t('projects.new.providers.count', {
-                                                count: filteredProviders.length,
-                                                currentPage,
-                                                totalPages,
-                                            })}
-                                        </Badge>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {t('projects.new.providers.subtitle')}<br />
-                                        <span className="text-red-500 font-bold">
-                                            {!foundSuggestedProvider ? t('projects.new.providers.no_suggestions') : ''}
-                                        </span>
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {loadingProviders ? (
-                                        <div className="flex items-center justify-center py-12">
-                                            <div className="text-center">
-                                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                                                <p className="text-muted-foreground">{t('projects.new.providers.loading')}</p>
-                                            </div>
-                                        </div>
-                                    ) : suggestedProviders.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                            <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.empty_title')}</h3>
-                                            <p className="text-muted-foreground">
-                                                {t('projects.new.providers.empty_description')}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {/* Search and Filter Bar */}
-                                            <div className="mb-6 space-y-4">
-                                                <div className="flex flex-col md:flex-row gap-4">
-                                                    {/* Search Bar */}
-                                                    <div className="flex-1">
-                                                        <div className="relative">
-                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                                                            <Input
-                                                                placeholder={t('projects.new.providers.search_placeholder')}
-                                                                value={providerSearchTerm}
-                                                                onChange={(e) => setProviderSearchTerm(e.target.value)}
-                                                                className="pl-10"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Service Filter Dropdown */}
-                                                    <div className="md:w-64">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" className="w-full justify-between">
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <Filter className="w-4 h-4" />
-                                                                        <span>
-                                                                            {selectedServiceFilters.length === 0
-                                                                                ? t('projects.new.providers.filters.services')
-                                                                                : t('projects.new.providers.filters.services_count', { count: selectedServiceFilters.length })
-                                                                            }
-                                                                        </span>
-                                                                    </div>
-                                                                    <ChevronDown className="w-4 h-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                                <div className="p-2 max-h-80 overflow-y-auto">
-                                                                    <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.services_label')}</div>
-                                                                    {availableServices.map((service) => (
-                                                                        <div key={service.id} className="flex items-center space-x-2 py-1">
-                                                                            <Checkbox
-                                                                                id={`service-${service.id}`}
-                                                                                checked={selectedServiceFilters.includes(service.id)}
-                                                                                onCheckedChange={(checked) => {
-                                                                                    if (checked) {
-                                                                                        setSelectedServiceFilters(prev => [...prev, service.id]);
-                                                                                    } else {
-                                                                                        setSelectedServiceFilters(prev => prev.filter(id => id !== service.id));
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                            <label
-                                                                                htmlFor={`service-${service.id}`}
-                                                                                className="text-sm cursor-pointer flex-1"
-                                                                            >
-                                                                                {service.name}
-                                                                            </label>
-                                                                        </div>
-                                                                    ))}
-                                                                    {availableServices.length === 0 && (
-                                                                        <div className="text-sm text-muted-foreground py-2">
-                                                                            {t('projects.new.providers.filters.no_services')}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {selectedServiceFilters.length > 0 && (
-                                                                    <div className="border-t p-2">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setSelectedServiceFilters([])}
-                                                                            className="w-full text-xs"
-                                                                        >
-                                                                            <X className="w-3 h-3 mr-1" />
-                                                                            {t('projects.new.providers.filters.reset')}
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="outline" className="min-w-40">
-                                                                <Target className="w-4 h-4 mr-2" />
-                                                                {skillLevelFilter.length > 0
-                                                                    ? t('projects.new.providers.filters.levels_count', { count: skillLevelFilter.length })
-                                                                    : t('projects.new.providers.filters.levels')}
-                                                                <ChevronDown className="w-4 h-4 ml-2" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent className="w-64 max-h-64 overflow-y-auto">
-                                                            <div className="p-2">
-                                                                <div className="text-sm font-medium mb-2">{t('projects.new.providers.filters.levels_label')}</div>
-                                                                {skillLevels.map(level => (
-                                                                    <div key={level.value} className="flex items-center space-x-2 py-1">
-                                                                        <Checkbox
-                                                                            id={`skill-${level.value}`}
-                                                                            checked={skillLevelFilter.includes(level.value)}
-                                                                            onCheckedChange={(checked) =>
-                                                                                handleSkillLevelFilterChange(level.value, checked as boolean)
-                                                                            }
-                                                                        />
-                                                                        <label
-                                                                            htmlFor={`skill-${level.value}`}
-                                                                            className="flex items-center space-x-2 cursor-pointer flex-1"
-                                                                        >
-                                                                            <span>{level.icon}</span>
-                                                                            <span className="text-sm">{level.label}</span>
-                                                                        </label>
-                                                                    </div>
-                                                                ))}
-                                                                {skillLevelFilter.length > 0 && (
-                                                                    <div className="pt-2 mt-2 border-t">
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setSkillLevelFilter([])}
-                                                                            className="w-full text-xs"
-                                                                        >
-                                                                            {t('projects.new.providers.filters.reset_levels')}
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-
-                                                {/* Active Filters Display */}
-                                                {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="text-sm text-muted-foreground">{t('projects.new.providers.filters.active')}</span>
-
-                                                        {providerSearchTerm && (
-                                                            <Badge variant="secondary" className="flex items-center space-x-1">
-                                                                <Search className="w-3 h-3" />
-                                                                <span>&#34;{providerSearchTerm}&#34;</span>
-                                                                <button
-                                                                    onClick={() => setProviderSearchTerm('')}
-                                                                    className="ml-1 hover:text-red-500"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        )}
-
-                                                        {selectedServiceFilters.map(serviceId => {
-                                                            const service = availableServices.find(s => s.id === serviceId);
-                                                            return service ? (
-                                                                <Badge key={serviceId} variant="outline" className="flex items-center space-x-1">
-                                                                    <span>{service.name}</span>
-                                                                    <button
-                                                                        onClick={() => setSelectedServiceFilters(prev => prev.filter(id => id !== serviceId))}
-                                                                        className="ml-1 hover:text-red-500"
-                                                                    >
-                                                                        <X className="w-3 h-3" />
-                                                                    </button>
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
-
-                                                        {skillLevelFilter.map(level => {
-                                                            const levelInfo = skillLevels.find(l => l.value === level);
-                                                            return (
-                                                                <Badge key={level} variant="secondary" className="flex items-center space-x-1">
-                                                                    <span>{levelInfo?.icon}</span>
-                                                                    <span>{levelInfo?.label}</span>
-                                                                    <button
-                                                                        onClick={() => setSkillLevelFilter(prev => prev.filter(l => l !== level))}
-                                                                        className="ml-1 hover:text-red-500"
-                                                                    >
-                                                                        <X className="w-3 h-3" />
-                                                                    </button>
-                                                                </Badge>
-                                                            );
-                                                        })}
-
-                                                        {(providerSearchTerm || selectedServiceFilters.length > 0 || skillLevelFilter.length > 0) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setProviderSearchTerm('');
-                                                                    setSelectedServiceFilters([]);
-                                                                    setSkillLevelFilter([]);
-                                                                }}
-                                                                className="text-xs h-6"
-                                                            >
-                                                                {t('projects.new.providers.filters.reset_all')}
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {currentProviders.length === 0 ? (
-                                                <div className="text-center py-8">
-                                                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                                    <h3 className="text-lg font-medium mb-2">{t('projects.new.providers.none_title')}</h3>
-                                                    <p className="text-muted-foreground mb-4">
-                                                        {filteredProviders.length === 0
-                                                            ? t('projects.new.providers.none_description')
-                                                            : t('projects.new.providers.none_page')
-                                                        }
-                                                    </p>
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setProviderSearchTerm('');
-                                                            setSelectedServiceFilters([]);
-                                                            setSkillLevelFilter([]);
-                                                            setCurrentPage(1);
-                                                        }}
-                                                    >
-                                                        {t('projects.new.providers.filters.reset_filters')}
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                                        {currentProviders.map((provider) => {
-                                                            const passedReasons = provider.matchReasons.filter(reason => reason.passed);
-                                                            const failedReasons = provider.matchReasons.filter(reason => !reason.passed);
-                                                            const availabilityStatus = getAvailabilityStatus(provider.availability);
-                                                            return (
-                                                                <Card
-                                                                    key={provider.id}
-                                                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                                                                        selectedProviders.some(p => p.id === provider.id)
-                                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
-                                                                            : 'border-gray-200 hover:border-blue-300'
-                                                                    }`}
-                                                                    onClick={() => handleProviderSelect(provider.id, provider.matchScore)}
-                                                                >
-                                                                    <CardContent className="p-6">
-                                                                        <div className="flex flex-col items-start justify-between">
-                                                                            <div className="flex flex-row items-start space-x-4 flex-1">
-                                                                                <div className="relative">
-                                                                                    <Avatar className="w-16 h-16">
-                                                                                        <AvatarImage src={provider.avatar} />
-                                                                                        <AvatarFallback>
-                                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                                        </AvatarFallback>
-                                                                                    </Avatar>
-                                                                                    {provider.isVerified && (
-                                                                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                            <CheckCircle className="w-4 h-4 text-white" />
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-
-                                                                                <div className="flex-1">
-                                                                                    <div className="flex items-center space-x-2 mb-2">
-                                                                                        <h3 className="text-lg font-semibold">
-                                                                                            {provider.firstName} {provider.lastName}
-                                                                                        </h3>
-                                                                                        {provider.isVerified && (
-                                                                                            <CheckCircle className="w-4 h-4 text-green-500" />
-                                                                                        )}
-                                                                                        <Badge className={
-                                                                                            skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                            'bg-blue-100 text-blue-800'
-                                                                                        }>
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                            {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
-                                                                                        </Badge>
-
-                                                                                        <Badge className={`${availabilityStatus.color}`}>
-                                                                                            {
-                                                                                                (() => {
-                                                                                                    const Icon = availabilityStatus.icon;
-                                                                                                    return <Icon className="mr-1 w-4 h-4" />;
-                                                                                                })()
-                                                                                            }
-                                                                                            {availabilityStatus.label}
-                                                                                        </Badge>
-
-                                                                                    </div>
-                                                                                    <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
-                                                                                        <Badge className="bg-green-100 text-green-800">
-                                                                                            {t('projects.new.providers.match_score', { score: provider.matchScore })}
-                                                                                        </Badge>
-                                                                                        {provider.isVerified && (
-                                                                                            <Badge className="bg-blue-100 text-blue-800">
-                                                                                                {t('projects.new.providers.verified')}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                                                            <span className="font-medium">{provider.rating}</span>
-                                                                                            <span>({t('projects.new.providers.reviews', { count: provider.reviewCount })})</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <MapPin className="w-4 h-4" />
-                                                                                            <span>{provider.location}</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center space-x-1">
-                                                                                            <Clock className="w-4 h-4" />
-                                                                                            <span>
-                                                                                                {t('projects.new.providers.response_time', {
-                                                                                                    time: provider.responseTime,
-                                                                                                    unit: provider.responseTime === "1"
-                                                                                                        ? t('projects.new.providers.hour_singular')
-                                                                                                        : t('projects.new.providers.hour_plural'),
-                                                                                                })}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <div className="flex flex-wrap gap-1 mb-3">
-                                                                                        {provider.skills.map((skill, index) =>
-                                                                                            index < 4 ? (
-                                                                                                <Badge key={skill} variant="outline" className="text-xs">
-                                                                                                    {skill}
-                                                                                                </Badge>
-                                                                                            ) : null
-                                                                                        )}
-                                                                                        {provider.skills.length > 4 && (
-                                                                                            <Badge variant="outline" className="text-xs">
-                                                                                                +{provider.skills.length - 4}
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div className="space-y-1">
-                                                                                        {/*<div className="text-sm font-medium text-green-600">*/}
-                                                                                        {/*    De ce este potrivit:*/}
-                                                                                        {/*</div>*/}
-                                                                                        <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                                                            {/* Coloana 1: Passed */}
-                                                                                            <div>
-                                                                                                <h4 className="text-sm font-medium text-green-600 mb-2">{t('projects.new.providers.why_fit')}</h4>
-                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                    {passedReasons.map((reason, index) => (
-                                                                                                        <li key={`passed-${index}`} className="flex items-center space-x-2">
-                                                                                                            <CheckCircle className="w-3 h-3 text-green-500" />
-                                                                                                            <span className="text-green-600">{reason.message}</span>
-                                                                                                        </li>
-                                                                                                    ))}
-                                                                                                </ul>
-                                                                                            </div>
-
-                                                                                            {/* Coloana 2: Nepotriviri */}
-                                                                                            <div>
-                                                                                                <ul className="text-sm text-muted-foreground space-y-1">
-                                                                                                    {failedReasons.map((reason, index) => (
-                                                                                                        <li key={`failed-${index}`} className="flex items-center space-x-2">
-                                                                                                            <BadgeAlert className="w-3 h-3 text-red-500" />
-                                                                                                            <span className="text-red-600">{reason.message}</span>
-                                                                                                        </li>
-                                                                                                    ))}
-                                                                                                </ul>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div className="text-right space-y-2">
-                                                                                {/*<div className="text-sm text-muted-foreground">*/}
-                                                                                {/*    {provider.pricingType === 'FIXED' ? 'Preț fix' : 'Negociabil'}*/}
-                                                                                {/*</div>*/}
-                                                                                {/*<div className="text-sm">*/}
-                                                                                {/*    <div className="flex items-center space-x-1 justify-end">*/}
-                                                                                {/*        <Calendar className="w-3 h-3" />*/}
-                                                                                {/*        <span>{provider.deliveryTime} zile</span>*/}
-                                                                                {/*    </div>*/}
-                                                                                {/*</div>*/}
-
-                                                                                <div className="text-xs text-muted-foreground">
-                                                                                    {t('projects.new.providers.active')} {getLastActiveText(provider.lastActive)}
-                                                                                </div>
-
-                                                                                <div className="flex space-x-2 mt-4">
-                                                                                    <a href={`/provider/${provider.profileUrl}`} target="_blank"
-                                                                                       className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
-                                                                                    >
-                                                                                        <Eye className="w-3 h-3 mr-1" />
-                                                                                        {t('projects.new.providers.profile')}
-                                                                                    </a>
-                                                                                    {/*<a*/}
-                                                                                    {/*    className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"*/}
-                                                                                    {/*>*/}
-                                                                                    {/*    <MessageSquare className="w-3 h-3 mr-1" />*/}
-                                                                                    {/*    {t('projects.new.providers.message')}*/}
-                                                                                    {/*</a>*/}
-                                                                                </div>
-
-                                                                            </div>
-                                                                        </div>
-
-                                                                    </CardContent>
-                                                                </Card>
-                                                            );})}
-                                                    </div>
-
-                                                    {/* Pagination */}
-                                                    {totalPages > 1 && (
-                                                        <div className="flex items-center justify-between pt-6 border-t">
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {t('projects.new.providers.pagination', {
-                                                                    start: indexOfFirstProvider + 1,
-                                                                    end: Math.min(indexOfLastProvider, filteredProviders.length),
-                                                                    total: filteredProviders.length,
-                                                                })}
-                                                            </div>
-
-                                                            <div className="flex items-center space-x-2">
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handlePageChange(currentPage - 1)}
-                                                                    disabled={currentPage === 1}
-                                                                    className="flex items-center space-x-1"
-                                                                >
-                                                                    <ArrowLeft className="w-4 h-4" />
-                                                                    <span>{t('projects.new.pagination.previous')}</span>
-                                                                </Button>
-
-                                                                <div className="flex items-center space-x-1">
-                                                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                                                                        // Show first page, last page, current page, and pages around current
-                                                                        const showPage = page === 1 ||
-                                                                            page === totalPages ||
-                                                                            Math.abs(page - currentPage) <= 1;
-
-                                                                        if (!showPage && page === 2 && currentPage > 4) {
-                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                        }
-
-                                                                        if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
-                                                                            return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                                                                        }
-
-                                                                        if (!showPage) return null;
-
-                                                                        return (
-                                                                            <Button
-                                                                                key={page}
-                                                                                variant={currentPage === page ? "default" : "outline"}
-                                                                                size="sm"
-                                                                                onClick={() => handlePageChange(page)}
-                                                                                className="w-8 h-8 p-0"
-                                                                            >
-                                                                                {page}
-                                                                            </Button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handlePageChange(currentPage + 1)}
-                                                                    disabled={currentPage === totalPages}
-                                                                    className="flex items-center space-x-1"
-                                                                >
-                                                                    <span>{t('projects.new.pagination.next')}</span>
-                                                                    <ArrowRight className="w-4 h-4" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {selectedProviders.length > 0 && (
-                                        <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                                            <div className="flex items-center space-x-2 mb-2">
-                                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                                <span className="font-medium text-green-800 dark:text-green-200">
-                                                    {t('projects.new.providers.selected_count', {
-                                                        count: selectedProviders.length,
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-green-700 dark:text-green-300">
-                                                {t('projects.new.providers.selected_message')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setActiveTab('details')}
-                                >
-                                    {t('projects.new.actions.back_to_details')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={() => setActiveTab('review')}
-                                    disabled={selectedProviders.length === 0}
-                                    className="btn-primary px-8"
-                                >
-                                    {t('projects.new.actions.review_final')}
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </TabsContent>
-
-                        {/* Revizuire și Trimitere */}
-                        <TabsContent value="review" className="space-y-6">
-                            <Card className="glass-card shadow-sm">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Target className="w-5 h-5" />
-                                        <span>{t('projects.new.review.title')}</span>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {t('projects.new.review.subtitle')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Rezumat proiect */}
-                                    <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <h4 className="font-semibold mb-2">{t('projects.new.review.details_title')}</h4>
-                                                <div className="space-y-2 text-sm">
-                                                    <div><strong>{t('projects.new.review.labels.title')}</strong> {formData.title}</div>
-
-                                                    {/*<div><strong>{t('projects.new.review.labels.category')}</strong> {categoriesData*/}
-                                                    {/*    ?.flatMap((c: any) => [c, ...(c.children || [])]) */}
-                                                    {/*    .find((c: any) => String(c.id) === String(formData.serviceId)) // Căutăm ID-ul (convertit la string)*/}
-                                                    {/*    ?.name}</div>*/}
-                                                    <div>
-                                                        <strong>{t('projects.new.review.labels.budget')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget)} /> ({getBudgetTypeLabel(formData.budgetType)})
-                                                    </div>
-                                                    <div>
-                                                        <strong>{t('projects.new.review.labels.platform_fee')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? 150 : Number(formData.budget ?? 0) * 0.10} />
-                                                    </div>
-                                                    <div>
-                                                        <strong>{t('projects.new.review.labels.total')}</strong>{' '}
-                                                        <PriceDisplay value={Number(formData.budget ?? 0) * 0.10 >= 150 ? Number(formData.budget ?? 0) + 150 : Number(formData.budget ?? 0) * 1.10} />
-                                                    </div>
-                                                    {formData.deadline && (
-                                                        <div><strong>{t('projects.new.review.labels.deadline')}</strong> {formatDeadline(formData.deadline, locale)}</div>
-                                                    )}
-                                                    {/*<div>*/}
-                                                    {/*    <strong>Tip proiect:</strong>*/}
-                                                    {/*    <Badge className={`ml-2 ${getVisibilityBadge(formData.visibility as Visibility)}`}>*/}
-                                                    {/*        {formData.visibility}*/}
-                                                    {/*    </Badge>*/}
-                                                    {/*</div>*/}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <h4 className="font-semibold mb-2">{t('projects.new.review.technologies_title', { count: formData.technologies.length })}</h4>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {formData.technologies.map((tech) => (
-                                                        <Badge key={tech.id} variant="outline" className="text-xs">
-                                                            {tech.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-semibold">{t('projects.new.review.selected_providers_title', { count: selectedProviders.length })}</h3>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={redistributeBudget}
-                                                            disabled={selectedProviders.length === 0}
-                                                        >
-                                                            <DollarSign className="w-4 h-4 mr-1" />
-                                                            {t('projects.new.review.split_evenly')}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Budget Summary */}
-                                                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-                                                    <CardContent className="p-4">
-                                                        <div className="grid grid-cols-3 gap-4 text-sm">
-                                                            <div>
-                                                                <div className="font-medium text-blue-900 dark:text-blue-100">{t('projects.new.review.budget_summary.total')}</div>
-                                                                <div className="text-lg font-bold text-blue-600">
-                                                                    <PriceDisplay value={Number(formData.budget)} />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-green-900 dark:text-green-100">{t('projects.new.review.budget_summary.allocated')}</div>
-                                                                <div className="text-lg font-bold text-green-600">
-                                                                    <PriceDisplay value={getTotalAllocatedBudget()} />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-medium text-orange-900 dark:text-orange-100">{t('projects.new.review.budget_summary.remaining')}</div>
-                                                                <div className={`text-lg font-bold ${getRemainingBudget() === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                                                    <PriceDisplay value={getRemainingBudget()} />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        {getRemainingBudget() !== 0 && (
-                                                            <Alert className="mt-3 border-orange-200 bg-orange-50">
-                                                                <AlertCircle className="h-4 w-4" />
-                                                                <AlertDescription className="text-orange-800">
-                                                                    {getRemainingBudget() > 0
-                                                                        ? (
-                                                                            <>
-                                                                                {t('projects.new.review.budget_remaining_positive')}{' '}
-                                                                                <PriceDisplay value={getRemainingBudget()} />
-                                                                            </>
-                                                                        )
-                                                                        : (
-                                                                            <>
-                                                                                {t('projects.new.review.budget_remaining_negative')}{' '}
-                                                                                <PriceDisplay value={Math.abs(getRemainingBudget())} />
-                                                                            </>
-                                                                        )
-                                                                    }
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
-
-                                                {isLongProject && (
-                                                    <Card className="border-slate-200 bg-white dark:bg-slate-900/30">
-                                                        <CardHeader>
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <CardTitle className="text-base">{t('projects.new.review.milestones.title')}</CardTitle>
-                                                                    <CardDescription>
-                                                                        {t('projects.new.review.milestones.description')}
-                                                                    </CardDescription>
-                                                                </div>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={applyAiMilestonesToProviders}
-                                                                    disabled={aiSuggestedMilestones.length === 0 || selectedProviders.length === 0}
-                                                                >
-                                                                    <AutoAwesomeIcon className="w-4 h-4 mr-2" />
-                                                                    {t('projects.new.review.milestones.apply_ai')}
-                                                                </Button>
-                                                            </div>
-                                                        </CardHeader>
-                                                        <CardContent className="space-y-4">
-                                                            {selectedProviders.map((selectedProvider) => {
-                                                                const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                                const milestones = providerMilestones[selectedProvider.id] ?? [];
-
-                                                                return (
-                                                                    <div key={`provider-milestones-${selectedProvider.id}`} className="space-y-3 border rounded-lg p-4">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="font-medium">
-                                                                                {provider ? `${provider.firstName} ${provider.lastName}` : t('projects.new.review.milestones.provider_fallback', { id: selectedProvider.id })}
-                                                                            </div>
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={() => addProviderMilestone(selectedProvider.id)}
-                                                                            >
-                                                                                <Plus className="w-4 h-4 mr-2" />
-                                                                                {t('projects.new.review.milestones.add')}
-                                                                            </Button>
-                                                                        </div>
-                                                                        {milestones.length === 0 ? (
-                                                                            <div className="text-sm text-muted-foreground">
-                                                                                {t('projects.new.review.milestones.empty')}
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="space-y-3">
-                                                                                {milestones.map((milestone, index) => (
-                                                                                    <div key={`provider-${selectedProvider.id}-milestone-${index}`} className="grid xs:grid-cols-1 md:grid-cols-[1.4fr_1fr_auto] gap-3 items-end">
-                                                                                        <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-title-${index}`}>{t('projects.new.review.milestones.name_label')}</Label>
-                                                                                            <Input
-                                                                                                id={`provider-${selectedProvider.id}-milestone-title-${index}`}
-                                                                                                value={milestone.title}
-                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'title', e.target.value)}
-                                                                                                placeholder={t('projects.new.review.milestones.name_placeholder')}
-                                                                                            />
-                                                                                        </div>
-                                                                                        <div>
-                                                                                            <Label htmlFor={`provider-${selectedProvider.id}-milestone-amount-${index}`}>{t('projects.new.review.milestones.budget_label')}</Label>
-                                                                                            <Input
-                                                                                                id={`provider-${selectedProvider.id}-milestone-amount-${index}`}
-                                                                                                type="number"
-                                                                                                min="0"
-                                                                                                value={milestone.amount}
-                                                                                                onChange={(e) => updateProviderMilestoneField(selectedProvider.id, index, 'amount', e.target.value)}
-                                                                                                placeholder={t('projects.new.review.milestones.budget_placeholder')}
-                                                                                            />
-                                                                                        </div>
-                                                                                        <Button
-                                                                                            type="button"
-                                                                                            variant="ghost"
-                                                                                            size="icon"
-                                                                                            onClick={() => removeProviderMilestone(selectedProvider.id, index)}
-                                                                                            aria-label={t('projects.new.review.milestones.delete_aria')}
-                                                                                        >
-                                                                                            <X className="w-4 h-4" />
-                                                                                        </Button>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="text-sm text-muted-foreground">
-                                                                            {t('projects.new.review.milestones.total_provider')}{' '}
-                                                                            <PriceDisplay value={milestones.reduce((sum, milestone) => sum + Number(milestone.amount || 0), 0)} />
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-
-                                                            {(errors.milestones || errors.milestoneTotal || errors.milestoneBudget) && (
-                                                                <div className="text-sm text-red-500">
-                                                                    {errors.milestones || errors.milestoneTotal || errors.milestoneBudget}
-                                                                </div>
-                                                            )}
-
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {t('projects.new.review.milestones.summary_total')}{' '}
-                                                                <PriceDisplay value={getMilestoneTotal()} />{' '}
-                                                                •{' '}
-                                                                {t('projects.new.review.milestones.summary_difference')}{' '}
-                                                                <PriceDisplay value={Number(formData.budget || 0) - getMilestoneTotal()} />
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-
-                                                <div className="space-y-3">
-                                                    {selectedProviders.map(selectedProvider => {
-                                                        const provider = suggestedProviders.find(p => p.id === selectedProvider.id);
-                                                        if (!provider) return null;
-
-                                                        return (
-                                                            <div key={selectedProvider.id} className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <Avatar className="w-10 h-10">
-                                                                        <AvatarImage src={provider.avatar} />
-                                                                        <AvatarFallback className="text-xs">
-                                                                            {provider.firstName[0]}{provider.lastName[0]}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <div className="flex-1">
-                                                                        <div className="font-medium text-sm">
-                                                                            {provider.firstName} {provider.lastName}
-                                                                            <Badge className={
-                                                                                skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.color ||
-                                                                                'bg-blue-100 text-blue-800'
-                                                                            }>
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.icon}&nbsp;
-                                                                                {skillLevels.find(l => l.value === (provider.level || 'MEDIU'))?.label || t('projects.new.providers.level_default')}
-                                                                            </Badge>
-                                                                        </div>
-                                                                        <div className="text-xs text-muted-foreground">
-                                                                            {t('projects.new.review.match_score', { score: provider.matchScore })}
-                                                                        </div>
-                                                                        <div className="flex flex-wrap gap-1 mb-3">
-                                                                            {provider.skills.map((skill, index) =>
-                                                                                index < 4 ? (
-                                                                                    <Badge key={skill} variant="outline" className="text-xs">
-                                                                                        {skill}
-                                                                                    </Badge>
-                                                                                ) : null
-                                                                            )}
-                                                                            {provider.skills.length > 4 && (
-                                                                                <Badge variant="outline" className="text-xs">
-                                                                                    +{provider.skills.length - 4}
-                                                                                </Badge>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-3 flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-3">
-                                                                        <Label htmlFor={`budget-${selectedProvider.id}`} className="text-sm font-medium">
-                                                                            {t('projects.new.review.allocated_budget_label')}
-                                                                        </Label>
-                                                                        <div className="flex items-center space-x-2">
-                                                                            <Input
-                                                                                id={`budget-${selectedProvider.id}`}
-                                                                                type="number"
-                                                                                value={providerBudgets[selectedProvider.id] || 0}
-                                                                                onChange={(e) => handleBudgetChange(selectedProvider.id, parseInt(e.target.value) || 0)}
-                                                                                className="w-32"
-                                                                                min="0"
-                                                                                max={Number(formData.budget)}
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => handleProviderSelect(selectedProvider.id, selectedProvider.matchScore)}
-                                                                    >
-                                                                        <X className="w-4 h-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h4 className="font-semibold mb-2">{t('projects.new.review.description_title')}</h4>
-                                        <div className="bg-muted p-4 rounded-lg text-sm">
-                                            {formData.description}
-                                        </div>
-                                    </div>
-
-                                    {formData.requirements && (
-                                        <div>
-                                            <h4 className="font-semibold mb-2">{t('projects.new.review.requirements_title')}</h4>
-                                            <div className="bg-muted p-4 rounded-lg text-sm">
-                                                {formData.requirements}
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setActiveTab('providers')}
-                                >
-                                    {t('projects.new.actions.back_to_providers')}
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={submitting || getRemainingBudget() !== 0}
-                                    className="btn-primary px-8"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            {t('projects.new.actions.submitting')}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Zap className="w-4 h-4 mr-2" />
-                                            {t('projects.new.actions.submit_project')}
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                        </form>
-                    </div>
-                </section>
-            </main>
-
-            <Footer />
-        </div>
+    const parsedPage = toNumber(pagination.page);
+    const parsedLimit = toNumber(pagination.limit);
+    const parsedTotal = toNumber(pagination.total);
+    const parsedTotalPages = toNumber(pagination.total_pages);
+
+    const page =
+      parsedPage !== null && parsedPage > 0 ? Math.trunc(parsedPage) : groupedServicesPage;
+    const limit =
+      parsedLimit !== null && parsedLimit > 0
+        ? Math.trunc(parsedLimit)
+        : GROUPED_SERVICES_DEFAULT_LIMIT;
+    const total = parsedTotal !== null && parsedTotal >= 0 ? Math.trunc(parsedTotal) : 0;
+    const totalPages =
+      parsedTotalPages !== null && parsedTotalPages > 0
+        ? Math.trunc(parsedTotalPages)
+        : Math.max(1, Math.ceil(total / Math.max(limit, 1)));
+    const hasMore =
+      typeof pagination.has_more === 'boolean' ? pagination.has_more : page < totalPages;
+
+    return {
+      page,
+      limit,
+      total,
+      total_pages: totalPages,
+      has_more: hasMore,
+    };
+  }, [groupedServicesResponse, groupedServicesPage]);
+
+  useEffect(() => {
+    if (!groupedServicesPagination) {
+      return;
+    }
+
+    if (groupedServicesPage > groupedServicesPagination.total_pages) {
+      setGroupedServicesPage(Math.max(1, groupedServicesPagination.total_pages));
+    }
+  }, [groupedServicesPage, groupedServicesPagination]);
+
+  const serviceCatalogById = useMemo(() => {
+    const map = new Map<string, ServiceCatalogEntry>();
+
+    const addService = (
+      candidate: unknown,
+      fallbackCategoryName?: string,
+      fallbackCategoryId?: string | number,
+      fallbackSubcategoryName?: string
+    ) => {
+      const service = toObject(candidate);
+      if (!service) {
+        return;
+      }
+
+      const serviceId = service.id;
+      if (typeof serviceId !== 'string' && typeof serviceId !== 'number') {
+        return;
+      }
+
+      const existing = map.get(String(serviceId)) ?? {};
+      const rawProvider = service.delivery_provider ?? service.provider;
+      const hasRawProvider = typeof rawProvider === 'string' && rawProvider.trim().length > 0;
+      const categoryObject = toObject(service.category);
+      const categoryName =
+        toLocalizedString(service.category_name) ||
+        (typeof service.category === 'string' ? toString(service.category) : '') ||
+        toLocalizedString(categoryObject?.name) ||
+        toLocalizedString(service.parent_category) ||
+        toString(fallbackCategoryName);
+      const categoryIdCandidate =
+        service.category_id ??
+        service.categoryId ??
+        categoryObject?.id ??
+        fallbackCategoryId;
+      const subcategoryName =
+        toLocalizedString(service.subcategory_name) ||
+        toLocalizedString(service.subcategory) ||
+        toString(fallbackSubcategoryName);
+
+      map.set(String(serviceId), {
+        name: toString(service.name) || existing.name,
+        description: toString(service.description) || existing.description,
+        delivery_provider: hasRawProvider
+          ? normalizeDeliveryProvider(rawProvider)
+          : existing.delivery_provider,
+        category_name: categoryName || existing.category_name,
+        ...(typeof categoryIdCandidate === 'string' || typeof categoryIdCandidate === 'number'
+          ? { category_id: categoryIdCandidate }
+          : existing.category_id !== undefined
+            ? { category_id: existing.category_id }
+            : {}),
+        ...(subcategoryName
+          ? { subcategory_name: subcategoryName }
+          : existing.subcategory_name
+            ? { subcategory_name: existing.subcategory_name }
+            : {}),
+      });
+    };
+
+    const source = toObject(groupedServicesData);
+    if (!source) {
+      return map;
+    }
+
+    Object.entries(source).forEach(([categoryKey, categoryValue]) => {
+      const categoryObject = toObject(categoryValue);
+      const categoryName =
+        toLocalizedString(categoryObject?.category_name) ||
+        toLocalizedString(categoryObject?.name) ||
+        toString(categoryKey);
+      const categoryId = categoryObject?.id;
+
+      const normalizedCategoryId =
+        typeof categoryId === 'string' || typeof categoryId === 'number'
+          ? categoryId
+          : undefined;
+
+      if (Array.isArray(categoryValue)) {
+        categoryValue.forEach((service) => {
+          addService(service, categoryName, normalizedCategoryId);
+        });
+        return;
+      }
+
+      if (!categoryObject) {
+        return;
+      }
+
+      let foundNestedServiceArray = false;
+      Object.entries(categoryObject).forEach(([key, value]) => {
+        if (!Array.isArray(value)) {
+          return;
+        }
+
+        const serviceItems = value.filter((item) => {
+          const serviceObject = toObject(item);
+          return Boolean(serviceObject && ('id' in serviceObject || 'name' in serviceObject || 'slug' in serviceObject));
+        });
+
+        if (serviceItems.length === 0) {
+          return;
+        }
+
+        foundNestedServiceArray = true;
+        const normalizedSubcategoryKey = toString(key);
+        const subcategoryName =
+          normalizedSubcategoryKey &&
+          normalizedSubcategoryKey.toLowerCase() !== 'services' &&
+          normalizedSubcategoryKey.toLowerCase() !== 'data'
+            ? normalizedSubcategoryKey
+            : undefined;
+
+        serviceItems.forEach((service) => {
+          addService(service, categoryName, normalizedCategoryId, subcategoryName);
+        });
+      });
+
+      if (!foundNestedServiceArray) {
+        const servicesFromNode = categoryObject.services;
+        const servicesFromData = categoryObject.data;
+        const fallbackServices: unknown[] = Array.isArray(servicesFromNode)
+          ? servicesFromNode
+          : Array.isArray(servicesFromData)
+            ? servicesFromData
+            : [];
+
+        fallbackServices.forEach((service) => {
+          addService(service, categoryName, normalizedCategoryId);
+        });
+      }
+    });
+
+    return map;
+  }, [groupedServicesData]);
+
+  const availableApiServices = useMemo<ApiServiceOption[]>(
+    () =>
+      Array.from(serviceCatalogById.entries())
+        .map(([id, service]) => ({
+          id,
+          name: toString(service.name),
+          delivery_provider: service.delivery_provider,
+          category_name: toString(service.category_name) || 'Altele',
+          category_id: service.category_id,
+          subcategory_name: toString(service.subcategory_name),
+        }))
+        .filter((service) => Boolean(service.name)),
+    [serviceCatalogById]
+  );
+
+  const groupedAvailableApiServices = useMemo(() => {
+    const groups = new Map<string, Map<string, ApiServiceOption[]>>();
+
+    availableApiServices.forEach((service) => {
+      const categoryName = toString(service.category_name) || 'Altele';
+      const subcategoryName = toString(service.subcategory_name);
+      const categoryGroup = groups.get(categoryName) ?? new Map<string, ApiServiceOption[]>();
+      const subcategoryKey = subcategoryName || '__default__';
+      const current = categoryGroup.get(subcategoryKey) ?? [];
+      current.push(service);
+      categoryGroup.set(subcategoryKey, current);
+      groups.set(categoryName, categoryGroup);
+    });
+
+    return Array.from(groups.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category_name, subcategories]) => ({
+        category_name,
+        subcategories: Array.from(subcategories.entries())
+          .sort((a, b) => {
+            const aDefault = a[0] === '__default__';
+            const bDefault = b[0] === '__default__';
+            if (aDefault && !bDefault) return -1;
+            if (!aDefault && bDefault) return 1;
+            return a[0].localeCompare(b[0]);
+          })
+          .map(([subcategoryKey, services]) => ({
+            subcategory_name: subcategoryKey === '__default__' ? '' : subcategoryKey,
+            services: [...services].sort((a, b) => a.name.localeCompare(b.name)),
+          })),
+      }));
+  }, [availableApiServices]);
+
+  const selectedManualServices = useMemo(
+    () =>
+      manualServiceIds
+        .map(
+          (serviceId) =>
+            manualSelectedServicesMap[serviceId] ??
+            availableApiServices.find((service) => service.id === serviceId)
+        )
+        .filter((service): service is NonNullable<typeof service> => service !== undefined),
+    [manualServiceIds, manualSelectedServicesMap, availableApiServices]
+  );
+
+  useEffect(() => {
+    if (manualServiceIds.length === 0 || availableApiServices.length === 0) {
+      return;
+    }
+
+    setManualSelectedServicesMap((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      manualServiceIds.forEach((serviceId) => {
+        const currentPageService = availableApiServices.find((service) => service.id === serviceId);
+        if (!currentPageService) {
+          return;
+        }
+
+        const existing = next[serviceId];
+        if (
+          existing &&
+          existing.name === currentPageService.name &&
+          existing.delivery_provider === currentPageService.delivery_provider &&
+          existing.category_name === currentPageService.category_name &&
+          existing.subcategory_name === currentPageService.subcategory_name
+        ) {
+          return;
+        }
+
+        next[serviceId] = currentPageService;
+        changed = true;
+      });
+
+      return changed ? next : current;
+    });
+  }, [manualServiceIds, availableApiServices]);
+
+  const selectedManualServicesById = useMemo(() => {
+    const map = new Map<string, (typeof selectedManualServices)[number]>();
+    selectedManualServices.forEach((service) => {
+      map.set(service.id, service);
+    });
+    return map;
+  }, [selectedManualServices]);
+
+  const transitionTo = useCallback((nextStep: WizardStep) => {
+    setStep((currentStep) => {
+      if (STEP_TRANSITIONS[currentStep].includes(nextStep)) {
+        return nextStep;
+      }
+      return currentStep;
+    });
+  }, []);
+
+  const handleSelectProjectInputMode = useCallback((mode: ProjectInputMode) => {
+    setProjectInputMode(mode);
+    setStep('intent');
+    setBriefQuestions([]);
+    setBriefAnswer('');
+    setBriefSubscriptionError(null);
+  }, []);
+
+  const handleStartNewProject = useCallback(() => {
+    setStartOverDialogOpen(true);
+  }, []);
+
+  const handleConfirmStartNewProject = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    window.sessionStorage.removeItem(AI_BRIEF_DRAFT_STORAGE_KEY);
+    window.sessionStorage.removeItem(PROJECT_NEW_WIZARD_STATE_KEY);
+    window.sessionStorage.removeItem(PROJECT_NEW_OAUTH_SNAPSHOT_KEY);
+    window.location.assign(window.location.pathname);
+  }, []);
+
+  const handleToggleManualService = useCallback((serviceId: string, selected: boolean) => {
+    setManualServiceIds((current) => {
+      if (!selected) {
+        return current.filter((entry) => entry !== serviceId);
+      }
+
+      if (current.includes(serviceId)) {
+        return current;
+      }
+
+      return [...current, serviceId];
+    });
+    setManualSelectedServicesMap((current) => {
+      if (!selected) {
+        if (!(serviceId in current)) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[serviceId];
+        return next;
+      }
+
+      const service = availableApiServices.find((entry) => entry.id === serviceId);
+      if (!service) {
+        return current;
+      }
+
+      const existing = current[serviceId];
+      if (
+        existing &&
+        existing.name === service.name &&
+        existing.delivery_provider === service.delivery_provider &&
+        existing.category_name === service.category_name &&
+        existing.subcategory_name === service.subcategory_name
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [serviceId]: service,
+      };
+    });
+  }, [availableApiServices]);
+
+  useEffect(() => {
+    setManualProjectLines((current) => {
+      const existingByServiceId = new Map(
+        current
+          .filter((line) => Boolean(toString(line.service_id)))
+          .map((line) => [toString(line.service_id), line] as const)
+      );
+
+      const nextLines = selectedManualServices.map((service) => {
+        const existing = existingByServiceId.get(service.id);
+        const providerFromApi: DeliveryProvider = service.delivery_provider ?? 'manual_upload';
+
+        if (existing) {
+          return {
+            ...existing,
+            service_id: service.id,
+            service_name: service.name,
+            delivery_provider: providerFromApi,
+          };
+        }
+
+        const nextId = `manual-line-${manualLineCounterRef.current}`;
+        manualLineCounterRef.current += 1;
+        return createManualProjectLine(nextId, service);
+      });
+
+      const unchanged =
+        current.length === nextLines.length &&
+        current.every((line, index) => {
+          const next = nextLines[index];
+          return (
+            line.id === next.id &&
+            line.service_id === next.service_id &&
+            line.service_name === next.service_name &&
+            line.delivery_provider === next.delivery_provider &&
+            line.description === next.description &&
+            line.budget_percentage === next.budget_percentage &&
+            line.milestones === next.milestones
+          );
+        });
+
+      return unchanged ? current : nextLines;
+    });
+  }, [selectedManualServices]);
+
+  const handleManualLineFieldChange = useCallback(
+    (
+      lineId: string,
+      field: 'description' | 'budget_percentage',
+      value: string
+    ) => {
+      setManualProjectLines((current) =>
+        current.map((line) => (line.id === lineId ? { ...line, [field]: value } : line))
+      );
+    },
+    []
+  );
+
+  const handleAddManualMilestone = useCallback((lineId: string) => {
+    const nextId = `manual-milestone-${manualMilestoneCounterRef.current}`;
+    manualMilestoneCounterRef.current += 1;
+    setManualProjectLines((current) =>
+      current.map((line) =>
+        line.id === lineId
+          ? { ...line, milestones: [...line.milestones, createManualMilestone(nextId)] }
+          : line
+      )
     );
+  }, []);
+
+  const handleRemoveManualMilestone = useCallback((lineId: string, milestoneId: string) => {
+    setManualProjectLines((current) =>
+      current.map((line) => {
+        if (line.id !== lineId) {
+          return line;
+        }
+
+        return {
+          ...line,
+          milestones: line.milestones.filter((milestone) => milestone.id !== milestoneId),
+        };
+      })
+    );
+  }, []);
+
+  const handleManualMilestoneFieldChange = useCallback(
+    (
+      lineId: string,
+      milestoneId: string,
+      field: keyof Omit<ManualMilestoneForm, 'id'>,
+      value: string
+    ) => {
+      setManualProjectLines((current) =>
+        current.map((line) => {
+          if (line.id !== lineId) {
+            return line;
+          }
+
+          return {
+            ...line,
+            milestones: line.milestones.map((milestone) =>
+              milestone.id === milestoneId ? { ...milestone, [field]: value } : milestone
+            ),
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const handleContinueManualToReview = useCallback(async () => {
+    const normalizedIntent = intent.trim();
+    const normalizedTitle = toString(manualTitle) || buildProjectTitle(normalizedIntent);
+
+    if (!normalizedTitle) {
+      toast.error(t('please_fill_in_the_project_title'));
+      return;
+    }
+
+    if (selectedManualServices.length === 0) {
+      toast.error(
+        t('select_at_least_one_technology_service_from_the_api_list')
+      );
+      return;
+    }
+
+    const normalizedLines = manualProjectLines
+      .map((line) => {
+        const serviceId = toString(line.service_id);
+        const selectedService = selectedManualServicesById.get(serviceId);
+        const budgetPercentage = toNumber(line.budget_percentage) ?? 0;
+        if (!serviceId || !selectedService || budgetPercentage <= 0) {
+          return null;
+        }
+        const deliveryProvider: DeliveryProvider =
+          selectedService.delivery_provider ?? 'manual_upload';
+
+        const milestones = line.milestones
+          .map((milestone) => {
+            const milestoneTitle = toString(milestone.title);
+            const amount = toNumber(milestone.amount);
+            if (!milestoneTitle || amount === null || amount <= 0) {
+              return null;
+            }
+
+            return {
+              title: milestoneTitle,
+              ...(toString(milestone.description)
+                ? { description: toString(milestone.description) }
+                : {}),
+              ...(toNumber(milestone.percentage) !== null
+                ? { percentage: toNumber(milestone.percentage) as number }
+                : {}),
+              amount,
+            };
+          })
+          .filter(
+            (
+              milestone
+            ): milestone is NonNullable<
+              NonNullable<AiBriefResponse['final_brief']>['project_lines'][number]
+            >['milestones'][number] => milestone !== null
+          );
+
+        return {
+          service_name: selectedService.name,
+          delivery_provider: deliveryProvider,
+          description: toString(line.description),
+          budget_percentage: budgetPercentage,
+          milestones,
+        };
+      })
+      .filter(
+        (
+          line
+        ): line is NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] =>
+          line !== null
+      );
+
+    if (normalizedLines.length === 0) {
+      toast.error(
+        t('complete_at_least_one_valid_project_line_auto_selected_service_budget_percentage')
+      );
+      return;
+    }
+
+    const totalPercentage = normalizedLines.reduce(
+      (sum, line) => sum + Number(line.budget_percentage || 0),
+      0
+    );
+
+    if (totalPercentage > 100) {
+      toast.error(t('total_line_percentage_cannot_exceed_100'));
+      return;
+    }
+
+    const technologies = selectedManualServices.map((service) => service.name);
+    const specificRequirements = manualSpecificRequirements
+      .split('\n')
+      .map((entry) => toString(entry))
+      .filter(Boolean);
+    const duration = toString(manualDuration);
+    const paymentPlan = toString(manualPaymentPlan).toUpperCase();
+    const currency = toString(manualCurrency).toUpperCase() || 'USD';
+    const inferredBudget = normalizedLines.reduce(
+      (sum, line) =>
+        sum +
+        line.milestones.reduce(
+          (milestoneSum, milestone) => milestoneSum + Number(milestone.amount || 0),
+          0
+        ),
+      0
+    );
+
+    const manualBrief: NonNullable<AiBriefResponse['final_brief']> = {
+      title: normalizedTitle,
+      project_lines: normalizedLines,
+      ...(normalizedIntent ? { description: normalizedIntent } : {}),
+      ...(technologies.length > 0 ? { technologies } : {}),
+      ...(specificRequirements.length > 0 ? { specific_requirements: specificRequirements } : {}),
+      ...(duration ? { duration } : {}),
+      ...(duration ? { recommended_duration: duration } : {}),
+      ...(duration ? { project_duration: duration } : {}),
+      ...(paymentPlan ? { payment_plan: paymentPlan } : {}),
+      ...(currency ? { currency } : {}),
+    };
+
+    setBriefResult(manualBrief);
+    setBriefModularDetails(manualBrief);
+    setBriefFullDetails(null);
+    setBriefStatus('FINAL');
+    setBriefMessages([]);
+    setBriefQuestions([]);
+    setBriefAnswer('');
+    setBriefText('');
+    setBriefDebugResponseJson('');
+    setBriefPayloadTruncated(false);
+    setBriefPayloadTrimmedSections([]);
+    setRecommendation(null);
+    setSelectedServiceIndexes([]);
+    setRecommendedProviders(undefined);
+    setOtherProviders(undefined);
+    setSelectedProviders([]);
+    setBriefSubscriptionError(null);
+    if (!totalBudget.trim() && inferredBudget > 0) {
+      setTotalBudget(String(Math.round(inferredBudget)));
+    }
+    if (duration) {
+      setEditableDuration(duration);
+    }
+    if (paymentPlan) {
+      setEditablePaymentPlan(paymentPlan);
+    }
+    setLoadingManualProviders(true);
+    try {
+      const servicesPayload = selectedManualServices.map((service) => ({
+        id: service.id,
+        name: service.name,
+      }));
+
+      const recommendProvidersResponse = await aiService.recommendProviders({
+        project_title: normalizedTitle,
+        description:
+          normalizedIntent || toString(manualBrief.description) || normalizedTitle,
+        services: servicesPayload,
+        specific_requirements: specificRequirements,
+        top_per_service: 2,
+        candidate_limit: 50,
+      });
+
+      const responseRoot = toObject(recommendProvidersResponse) ?? {};
+      const responseSource = toObject(responseRoot.result) ?? responseRoot;
+      const normalizedRecommendedProviders = normalizeRecommendedProviders(
+        responseSource.recommended_providers ?? responseRoot.recommended_providers
+      );
+      const normalizedOtherProviders = normalizeOtherProvidersByService(
+        responseSource.other_providers_by_service ?? responseRoot.other_providers_by_service
+      );
+
+      setRecommendedProviders(normalizedRecommendedProviders);
+      setOtherProviders(normalizedOtherProviders);
+
+      if (normalizedRecommendedProviders) {
+        const autoSelectedProviders = Object.entries(normalizedRecommendedProviders)
+          .flatMap(([serviceName, providers]) =>
+            Array.isArray(providers)
+              ? providers.map((provider) => ({
+                  ...provider,
+                  service_name: serviceName,
+                }))
+              : []
+          )
+          .filter(
+            (provider): provider is AiBriefProvider & { service_name: string } =>
+              Boolean(provider && provider.id)
+          );
+
+        const unique = new Map<string, AiBriefProvider>();
+        autoSelectedProviders.forEach((provider) => {
+          const providerId = getProviderId(provider);
+          const serviceName = getServiceKey(
+            (provider as { service_name?: unknown }).service_name
+          );
+          if (providerId !== null) {
+            unique.set(`${serviceName}::${providerId}`, provider);
+          }
+        });
+        setSelectedProviders(Array.from(unique.values()));
+      } else {
+        setSelectedProviders([]);
+      }
+    } catch (error) {
+      setRecommendedProviders(undefined);
+      setOtherProviders(undefined);
+      setSelectedProviders([]);
+      toast.error(
+        extractErrorMessage(
+          error,
+          t('could_not_generate_provider_recommendations_for_manual_data')
+        )
+      );
+    } finally {
+      setLoadingManualProviders(false);
+      transitionTo('providers');
+    }
+  }, [
+    intent,
+    manualTitle,
+    selectedManualServices,
+    manualProjectLines,
+    manualSpecificRequirements,
+    manualDuration,
+    manualPaymentPlan,
+    manualCurrency,
+    totalBudget,
+    transitionTo,
+    selectedManualServicesById,
+    t,
+  ]);
+
+  const recommendationCards = useMemo<RecommendedCard[]>(() => {
+    if (!recommendation) {
+      return [];
+    }
+
+    return recommendation.services.map((service, index) => {
+      const serviceId = service.service_id;
+      const catalogData =
+        typeof serviceId === 'string' || typeof serviceId === 'number'
+          ? serviceCatalogById.get(String(serviceId))
+          : undefined;
+
+      return {
+        ...service,
+        description: service.description || catalogData?.description,
+        key: `${service.service_name}-${service.delivery_provider}-${index}`,
+      };
+    });
+  }, [recommendation, serviceCatalogById]);
+
+  const recommendationDisplayCards = useMemo(
+    () => recommendationCards.map((service, index) => ({ ...service, index })),
+    [recommendationCards]
+  );
+
+  const recommendedCards = useMemo(
+    () => recommendationDisplayCards.filter((service) => !isAlternativeService(service)),
+    [recommendationDisplayCards]
+  );
+
+  const alternativeCards = useMemo(
+    () => recommendationDisplayCards.filter((service) => isAlternativeService(service)),
+    [recommendationDisplayCards]
+  );
+
+  const selectedServices = useMemo(() => {
+    if (!recommendation) {
+      return [];
+    }
+
+    const indexes = new Set(selectedServiceIndexes);
+    return recommendation.services.filter((_service, index) => indexes.has(index));
+  }, [recommendation, selectedServiceIndexes]);
+
+  const wizardSteps = useMemo(
+    () => (projectInputMode === 'manual' ? MANUAL_WIZARD_STEPS : AI_WIZARD_STEPS),
+    [projectInputMode]
+  );
+
+  const stepIndex = useMemo(
+    () => wizardSteps.findIndex((wizardStep) => wizardStep.id === step),
+    [step, wizardSteps]
+  );
+  const currentStepNumber = stepIndex >= 0 ? stepIndex + 1 : null;
+
+  const budgetValue = useMemo(() => {
+    const parsed = Number(totalBudget);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [totalBudget]);
+
+  const reviewLines = useMemo(() => {
+    if (!briefResult) {
+      return [];
+    }
+
+    return briefResult.project_lines.map((line) => {
+      const percentage = Number(line.budget_percentage || 0);
+      const budgetAllocation =
+        budgetValue > 0 && percentage > 0
+          ? Number(((budgetValue * percentage) / 100).toFixed(2))
+          : 0;
+
+      return {
+        ...line,
+        budget_allocation: budgetAllocation,
+      };
+    });
+  }, [briefResult, budgetValue]);
+
+  const reviewMilestoneEntries = useMemo<ReviewMilestoneEntry[]>(() => {
+    const entries: ReviewMilestoneEntry[] = [];
+
+    reviewLines.forEach((line, lineIndex) => {
+      const serviceName = toString(line.service_name);
+      const serviceKey = getServiceKey(serviceName);
+      const milestones = Array.isArray(line.milestones) ? line.milestones : [];
+
+      milestones.forEach((milestone, milestoneIndex) => {
+        entries.push({
+          key: getMilestoneAssignmentKey(lineIndex, milestoneIndex),
+          lineIndex,
+          milestoneIndex,
+          serviceName,
+          serviceKey,
+          milestone,
+          initialAssignedProviderId: getMilestoneAssignedProviderId(milestone),
+        });
+      });
+    });
+
+    return entries;
+  }, [reviewLines]);
+
+  const reviewMilestonesByService = useMemo(() => {
+    const grouped = new Map<string, ReviewMilestoneEntry[]>();
+
+    reviewMilestoneEntries.forEach((entry) => {
+      const existing = grouped.get(entry.serviceKey) ?? [];
+      existing.push(entry);
+      grouped.set(entry.serviceKey, existing);
+    });
+
+    return grouped;
+  }, [reviewMilestoneEntries]);
+
+  const milestoneAssignmentSignature = useMemo(
+    () =>
+      reviewMilestoneEntries
+        .map(
+          (entry) =>
+            `${entry.key}:${entry.serviceKey}:${toString(entry.milestone.title)}:${toNumber(entry.milestone.amount) ?? 0}`
+        )
+        .join('|'),
+    [reviewMilestoneEntries]
+  );
+
+  const selectedProviderIdsByService = useMemo(() => {
+    const grouped = new Map<string, number[]>();
+
+    selectedProviders.forEach((provider) => {
+      const providerId = getProviderId(provider);
+      if (providerId === null) {
+        return;
+      }
+
+      const serviceKey = getServiceKey((provider as { service_name?: unknown }).service_name);
+      if (!serviceKey) {
+        return;
+      }
+
+      const existing = grouped.get(serviceKey) ?? [];
+      if (!existing.includes(providerId)) {
+        existing.push(providerId);
+        grouped.set(serviceKey, existing);
+      }
+    });
+
+    return grouped;
+  }, [selectedProviders]);
+
+  const selectedProviderIdSet = useMemo(
+    () =>
+      new Set(
+        selectedProviders
+          .map((provider) => getProviderId(provider))
+          .filter((providerId): providerId is number => providerId !== null)
+      ),
+    [selectedProviders]
+  );
+
+  useEffect(() => {
+    if (milestoneAssignmentSignatureRef.current === milestoneAssignmentSignature) {
+      return;
+    }
+
+    milestoneAssignmentSignatureRef.current = milestoneAssignmentSignature;
+    setMilestoneAssignments({});
+    setMilestoneAssignmentsInitialized(false);
+  }, [milestoneAssignmentSignature]);
+
+  useEffect(() => {
+    if (reviewMilestoneEntries.length === 0) {
+      if (Object.keys(milestoneAssignments).length > 0) {
+        setMilestoneAssignments({});
+      }
+      if (milestoneAssignmentsInitialized) {
+        setMilestoneAssignmentsInitialized(false);
+      }
+      return;
+    }
+
+    const entryByKey = new Map(reviewMilestoneEntries.map((entry) => [entry.key, entry] as const));
+
+    setMilestoneAssignments((current) => {
+      let changed = false;
+      const next: Record<string, number> = {};
+
+      Object.entries(current).forEach(([milestoneKey, providerId]) => {
+        const entry = entryByKey.get(milestoneKey);
+        if (!entry) {
+          changed = true;
+          return;
+        }
+
+        const allowedProviderIds = selectedProviderIdsByService.get(entry.serviceKey) ?? [];
+        if (!allowedProviderIds.includes(providerId)) {
+          changed = true;
+          return;
+        }
+
+        next[milestoneKey] = providerId;
+      });
+
+      if (!changed && Object.keys(current).length === Object.keys(next).length) {
+        return current;
+      }
+
+      return next;
+    });
+  }, [reviewMilestoneEntries, selectedProviderIdsByService, milestoneAssignments, milestoneAssignmentsInitialized]);
+
+  useEffect(() => {
+    if (milestoneAssignmentsInitialized) {
+      return;
+    }
+
+    if (reviewMilestoneEntries.length === 0) {
+      return;
+    }
+
+    if (selectedProviders.length === 0) {
+      return;
+    }
+
+    setMilestoneAssignments((current) => {
+      const next: Record<string, number> = { ...current };
+      let changed = false;
+
+      reviewMilestoneEntries.forEach((entry) => {
+        if (next[entry.key] !== undefined) {
+          return;
+        }
+
+        if (entry.initialAssignedProviderId !== null) {
+          const selectedIds = selectedProviderIdsByService.get(entry.serviceKey) ?? [];
+          if (selectedIds.includes(entry.initialAssignedProviderId)) {
+            next[entry.key] = entry.initialAssignedProviderId;
+            changed = true;
+          }
+        }
+      });
+
+      const groupedEntries = new Map<string, ReviewMilestoneEntry[]>();
+      reviewMilestoneEntries.forEach((entry) => {
+        const existing = groupedEntries.get(entry.serviceKey) ?? [];
+        existing.push(entry);
+        groupedEntries.set(entry.serviceKey, existing);
+      });
+
+      groupedEntries.forEach((entries, serviceKey) => {
+        const providerIds = selectedProviderIdsByService.get(serviceKey) ?? [];
+        if (providerIds.length === 0) {
+          return;
+        }
+
+        const assignmentCountByProvider = new Map<number, number>(
+          providerIds.map((providerId) => [providerId, 0] as const)
+        );
+
+        entries.forEach((entry) => {
+          const assignedProviderId = next[entry.key];
+          if (assignedProviderId !== undefined) {
+            assignmentCountByProvider.set(
+              assignedProviderId,
+              (assignmentCountByProvider.get(assignedProviderId) ?? 0) + 1
+            );
+          }
+        });
+
+        entries
+          .filter((entry) => next[entry.key] === undefined)
+          .forEach((entry) => {
+            const targetProviderId = providerIds.reduce((best, currentProviderId) => {
+              const bestCount = assignmentCountByProvider.get(best) ?? 0;
+              const currentCount = assignmentCountByProvider.get(currentProviderId) ?? 0;
+              return currentCount < bestCount ? currentProviderId : best;
+            }, providerIds[0]);
+
+            next[entry.key] = targetProviderId;
+            assignmentCountByProvider.set(
+              targetProviderId,
+              (assignmentCountByProvider.get(targetProviderId) ?? 0) + 1
+            );
+            changed = true;
+          });
+      });
+
+      return changed ? next : current;
+    });
+
+    setMilestoneAssignmentsInitialized(true);
+  }, [
+    milestoneAssignmentsInitialized,
+    reviewMilestoneEntries,
+    selectedProviders.length,
+    selectedProviderIdsByService,
+  ]);
+
+  const briefingDisplay = useMemo(() => {
+    const duration =
+      briefResult?.project_duration ||
+      briefResult?.duration ||
+      briefResult?.recommended_duration ||
+      briefModularDetails?.project_duration ||
+      briefModularDetails?.duration ||
+      briefModularDetails?.recommended_duration ||
+      briefFullDetails?.project_duration ||
+      briefFullDetails?.duration ||
+      briefFullDetails?.recommended_duration ||
+      '';
+
+    const paymentPlan =
+      briefResult?.payment_plan ||
+      briefModularDetails?.payment_plan ||
+      briefFullDetails?.payment_plan ||
+      '';
+
+    const currency =
+      briefResult?.currency ||
+      briefModularDetails?.currency ||
+      briefFullDetails?.currency ||
+      '';
+
+    const description =
+      briefResult?.description ||
+      briefModularDetails?.description ||
+      briefFullDetails?.description ||
+      '';
+
+    const overview =
+      briefModularDetails?.overview ||
+      briefFullDetails?.overview ||
+      '';
+
+    const clientGoal =
+      briefModularDetails?.client_goal ||
+      briefFullDetails?.client_goal ||
+      '';
+
+    const targetAudience =
+      briefModularDetails?.target_audience ||
+      briefFullDetails?.target_audience ||
+      '';
+
+    const specificRequirements =
+      (briefResult?.specific_requirements && briefResult.specific_requirements.length > 0
+        ? briefResult.specific_requirements
+        : briefModularDetails?.specific_requirements &&
+            briefModularDetails.specific_requirements.length > 0
+          ? briefModularDetails.specific_requirements
+          : briefFullDetails?.specific_requirements) ?? [];
+
+    const technologies =
+      (briefResult?.technologies && briefResult.technologies.length > 0
+        ? briefResult.technologies
+        : briefModularDetails?.technologies && briefModularDetails.technologies.length > 0
+          ? briefModularDetails.technologies
+          : briefFullDetails?.technologies) ?? [];
+
+    const teamStructure =
+      (briefResult?.team_structure && briefResult.team_structure.length > 0
+        ? briefResult.team_structure
+        : briefModularDetails?.team_structure && briefModularDetails.team_structure.length > 0
+          ? briefModularDetails.team_structure
+          : briefFullDetails?.team_structure) ?? [];
+
+    const milestones =
+      (briefResult?.milestones && briefResult.milestones.length > 0
+        ? briefResult.milestones
+        : briefModularDetails?.milestones && briefModularDetails.milestones.length > 0
+          ? briefModularDetails.milestones
+          : briefFullDetails?.milestones) ?? [];
+
+    return {
+      title: briefResult?.title || briefModularDetails?.title || briefFullDetails?.title || '',
+      description,
+      overview,
+      clientGoal,
+      targetAudience,
+      budget: briefResult?.budget ?? briefModularDetails?.budget ?? briefFullDetails?.budget,
+      budgetMin: briefResult?.budget_min ?? briefModularDetails?.budget_min ?? briefFullDetails?.budget_min,
+      budgetMax: briefResult?.budget_max ?? briefModularDetails?.budget_max ?? briefFullDetails?.budget_max,
+      duration,
+      paymentPlan,
+      currency,
+      technologies,
+      specificRequirements,
+      teamStructure,
+      milestones,
+    };
+  }, [briefResult, briefModularDetails, briefFullDetails]);
+
+  useEffect(() => {
+    const nextDuration = toString(briefingDisplay.duration);
+    if (nextDuration) {
+      setEditableDuration(nextDuration);
+    }
+  }, [briefingDisplay.duration]);
+
+  useEffect(() => {
+    const nextPaymentPlan = toString(briefingDisplay.paymentPlan).toUpperCase();
+    if (nextPaymentPlan) {
+      setEditablePaymentPlan(nextPaymentPlan);
+    }
+  }, [briefingDisplay.paymentPlan]);
+
+  const effectiveDuration = useMemo(
+    () => toString(editableDuration) || toString(briefingDisplay.duration),
+    [editableDuration, briefingDisplay.duration]
+  );
+
+  const effectiveDurationMonths = useMemo(
+    () => parseDurationToMonths(effectiveDuration),
+    [effectiveDuration]
+  );
+
+  const requiresMilestonesByDuration = useMemo(
+    () => (effectiveDurationMonths !== null ? effectiveDurationMonths > 3 : false),
+    [effectiveDurationMonths]
+  );
+
+  const canEditPaymentPlanByDuration = useMemo(
+    () => !requiresMilestonesByDuration,
+    [requiresMilestonesByDuration]
+  );
+
+  const effectivePaymentPlan = useMemo(() => {
+    const normalizedInput = toString(editablePaymentPlan).toUpperCase();
+    const normalizedBrief = toString(briefingDisplay.paymentPlan).toUpperCase();
+
+    if (canEditPaymentPlanByDuration) {
+      return normalizedInput || normalizedBrief;
+    }
+
+    return normalizedBrief || normalizedInput || 'MILESTONE';
+  }, [editablePaymentPlan, briefingDisplay.paymentPlan, canEditPaymentPlanByDuration]);
+
+  const linesMissingMilestones = useMemo(
+    () =>
+      reviewLines
+        .filter((line) => !Array.isArray(line.milestones) || line.milestones.length === 0)
+        .map((line) => line.service_name),
+    [reviewLines]
+  );
+
+  const briefingProjectLines = useMemo(() => {
+    if (briefModularDetails?.project_lines && briefModularDetails.project_lines.length > 0) {
+      return briefModularDetails.project_lines;
+    }
+
+    if (briefResult?.project_lines && briefResult.project_lines.length > 0) {
+      return briefResult.project_lines;
+    }
+
+    if (briefFullDetails?.project_lines && briefFullDetails.project_lines.length > 0) {
+      return briefFullDetails.project_lines;
+    }
+
+    return [];
+  }, [briefModularDetails, briefResult, briefFullDetails]);
+
+  const connectedOAuthProviders = useMemo(() => {
+    const connected = new Set<OAuthProvider>();
+    const connectedAccounts = Array.isArray(user?.connected_accounts)
+      ? (user?.connected_accounts ?? [])
+      : [];
+
+    connectedAccounts.forEach((account) => {
+      if (account?.provider === 'github' || account?.provider === 'google' || account?.provider === 'figma') {
+        connected.add(account.provider);
+      }
+    });
+
+    if (user?.github_token) {
+      connected.add('github');
+    }
+
+    return connected;
+  }, [user?.connected_accounts, user?.github_token]);
+
+  const requiredOAuthProviders = useMemo(() => {
+    const required: OAuthProvider[] = [];
+
+    briefingProjectLines.forEach((line) => {
+      const oauthProvider = mapDeliveryProviderToOAuth(line.delivery_provider);
+      if (!oauthProvider) {
+        return;
+      }
+
+      if (!required.includes(oauthProvider)) {
+        required.push(oauthProvider);
+      }
+    });
+
+    return required;
+  }, [briefingProjectLines]);
+
+  const requiredOAuthProvidersByService = useMemo(() => {
+    const grouped = new Map<OAuthProvider, string[]>();
+
+    briefingProjectLines.forEach((line) => {
+      const oauthProvider = mapDeliveryProviderToOAuth(line.delivery_provider);
+      if (!oauthProvider) {
+        return;
+      }
+
+      const currentServices = grouped.get(oauthProvider) ?? [];
+      if (!currentServices.includes(line.service_name)) {
+        currentServices.push(line.service_name);
+      }
+      grouped.set(oauthProvider, currentServices);
+    });
+
+    return grouped;
+  }, [briefingProjectLines]);
+
+  const missingOAuthProviders = useMemo(
+    () => requiredOAuthProviders.filter((provider) => !connectedOAuthProviders.has(provider)),
+    [requiredOAuthProviders, connectedOAuthProviders]
+  );
+
+  const canContinueFromConnections = useMemo(
+    () => Boolean(briefResult && briefStatus === 'FINAL') && missingOAuthProviders.length === 0,
+    [briefResult, briefStatus, missingOAuthProviders.length]
+  );
+
+  useEffect(() => {
+    if (oauthCallbackHandledRef.current) return;
+
+    const status = searchParams.get('status');
+    if (!status) return;
+
+    oauthCallbackHandledRef.current = true;
+
+    const provider = searchParams.get('provider');
+    const message = searchParams.get('message');
+
+    if (status === 'success') {
+      toast.success(message || t('provider_connected_successfully'));
+      setStep('connections');
+      void refreshUser().catch(() => {
+        // Ignore transient refresh errors after OAuth callback.
+      });
+    } else if (status === 'failed') {
+      const normalizedProvider = provider ? provider.trim() : '';
+      toast.error(
+        message ||
+          (normalizedProvider
+            ? t('provider_connection_failed_with_name', { provider: normalizedProvider })
+            : t('provider_connection_failed'))
+      );
+      setStep('connections');
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('provider');
+    url.searchParams.delete('status');
+    url.searchParams.delete('message');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [refreshUser, searchParams, t]);
+
+  const handleConnectOAuthProvider = (provider: OAuthProvider) => {
+    const redirectUrl = buildOAuthRedirectUrl(provider);
+    if (!redirectUrl) {
+      toast.error(t('oauth_backend_url_missing'));
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      const snapshot: ProjectNewOAuthSnapshot = {
+        savedAt: Date.now(),
+        step,
+        projectInputMode,
+        intent,
+        manualTitle,
+        briefStatus,
+        briefResult,
+        briefModularDetails,
+        briefFullDetails,
+        briefText,
+        briefPayloadTruncated,
+        briefPayloadTrimmedSections,
+        ...(recommendedProviders ? { recommendedProviders } : {}),
+        ...(otherProviders ? { otherProviders } : {}),
+        selectedProviders,
+        totalBudget,
+        editableDuration,
+        editablePaymentPlan,
+      };
+
+      try {
+        window.sessionStorage.setItem(
+          PROJECT_NEW_OAUTH_SNAPSHOT_KEY,
+          JSON.stringify(snapshot)
+        );
+      } catch (error) {
+        console.error('Failed to persist OAuth wizard snapshot:', error);
+      }
+    }
+
+    window.location.assign(redirectUrl);
+  };
+
+  useEffect(() => {
+    if (step !== 'connections') {
+      return;
+    }
+
+    void refreshUser().catch(() => {
+      // Keep the wizard usable even if auth refresh fails transiently.
+    });
+  }, [step, refreshUser]);
+
+  const fullBusinessAnalysis = useMemo(() => {
+    return briefFullDetails?.business_analysis ?? briefResult?.business_analysis;
+  }, [briefFullDetails, briefResult]);
+
+  const fullTargetUsers = useMemo(
+    () => normalizeFlexibleStringList(fullBusinessAnalysis?.target_users),
+    [fullBusinessAnalysis]
+  );
+
+  const fullFeatureBusinessValue = useMemo(
+    () => normalizeFlexibleStringList(fullBusinessAnalysis?.feature_business_value),
+    [fullBusinessAnalysis]
+  );
+
+  const fullTechnicalRisks = useMemo(
+    () => normalizeFlexibleStringList(briefFullDetails?.technical_risks ?? briefResult?.technical_risks),
+    [briefFullDetails, briefResult]
+  );
+
+  const fullTechStackItems = useMemo(() => {
+    const recommendedStack = briefFullDetails?.tech_stack?.recommended_stack;
+    return Array.isArray(recommendedStack) ? recommendedStack : [];
+  }, [briefFullDetails]);
+
+  const fullComplexityEstimationEntries = useMemo(
+    () => Object.entries(briefFullDetails?.complexity_estimation ?? briefResult?.complexity_estimation ?? {}),
+    [briefFullDetails, briefResult]
+  );
+
+  const fullComplexityEntries = useMemo(
+    () => Object.entries(briefFullDetails?.complexity ?? {}),
+    [briefFullDetails]
+  );
+
+  const fullTeamRecommendationEntries = useMemo(
+    () => Object.entries(briefFullDetails?.team_recommendation ?? {}),
+    [briefFullDetails]
+  );
+
+  const recommendedProviderEntries = useMemo(
+    () => Object.entries(recommendedProviders ?? {}),
+    [recommendedProviders]
+  );
+
+  const otherProvidersByServiceEntries = useMemo(
+    () => (Array.isArray(otherProviders) ? otherProviders : []),
+    [otherProviders]
+  );
+
+  const providerSelectionGroups = useMemo(() => {
+    const order: string[] = [];
+    const groups = new Map<
+      string,
+      {
+        service_name: string;
+        service_id?: string | number;
+        recommended: AiBriefProvider[];
+        others: AiBriefProvider[];
+      }
+    >();
+
+    const ensureGroup = (serviceName: unknown, serviceId?: unknown) => {
+      const normalizedServiceName = toString(serviceName);
+      if (!normalizedServiceName) {
+        return null;
+      }
+
+      const serviceKey = getServiceKey(normalizedServiceName);
+      if (!serviceKey) {
+        return null;
+      }
+
+      if (!groups.has(serviceKey)) {
+        order.push(serviceKey);
+        groups.set(serviceKey, {
+          service_name: normalizedServiceName,
+          ...(typeof serviceId === 'string' || typeof serviceId === 'number'
+            ? { service_id: serviceId }
+            : {}),
+          recommended: [],
+          others: [],
+        });
+      }
+
+      return groups.get(serviceKey) ?? null;
+    };
+
+    briefingProjectLines.forEach((line) => {
+      ensureGroup(line.service_name);
+    });
+
+    recommendedProviderEntries.forEach(([serviceName, providers]) => {
+      const group = ensureGroup(serviceName);
+      if (!group || !Array.isArray(providers)) {
+        return;
+      }
+      group.recommended = dedupeProviders([...group.recommended, ...providers]);
+    });
+
+    otherProvidersByServiceEntries.forEach((entry) => {
+      const group = ensureGroup(entry.service_name, entry.service_id);
+      if (!group) {
+        return;
+      }
+
+      const providers = Array.isArray(entry.providers?.data)
+        ? entry.providers.data
+        : [];
+
+      group.others = dedupeProviders([...group.others, ...providers]);
+    });
+
+    return order
+      .map((serviceKey) => {
+        const group = groups.get(serviceKey);
+        if (!group) {
+          return null;
+        }
+
+        const recommendedIds = new Set(
+          group.recommended
+            .map((provider) => getProviderId(provider))
+            .filter((providerId): providerId is number => providerId !== null)
+        );
+
+        const filteredOthers = group.others.filter((provider) => {
+          const providerId = getProviderId(provider);
+          if (providerId === null) {
+            return true;
+          }
+          return !recommendedIds.has(providerId);
+        });
+
+        return {
+          ...group,
+          others: filteredOthers,
+        };
+      })
+      .filter(
+        (
+          group
+        ): group is {
+          service_name: string;
+          service_id?: string | number;
+          recommended: AiBriefProvider[];
+          others: AiBriefProvider[];
+        } => group !== null
+      );
+  }, [briefingProjectLines, recommendedProviderEntries, otherProvidersByServiceEntries]);
+
+  const isProviderSelected = useCallback(
+    (serviceName: string, provider: AiBriefProvider) => {
+      const providerId = getProviderId(provider);
+      if (providerId === null) {
+        return false;
+      }
+
+      const serviceKey = getServiceKey(serviceName);
+
+      return selectedProviders.some((entry) => {
+        const entryId = getProviderId(entry);
+        if (entryId === null || entryId !== providerId) {
+          return false;
+        }
+
+        const entryServiceKey = getServiceKey((entry as { service_name?: unknown }).service_name);
+        return entryServiceKey === serviceKey || !entryServiceKey;
+      });
+    },
+    [selectedProviders]
+  );
+
+  const selectedProvidersCountByService = useMemo(() => {
+    const counts = new Map<string, number>();
+    selectedProviders.forEach((provider) => {
+      const serviceKey = getServiceKey((provider as { service_name?: unknown }).service_name);
+      if (!serviceKey) {
+        return;
+      }
+      counts.set(serviceKey, (counts.get(serviceKey) ?? 0) + 1);
+    });
+    return counts;
+  }, [selectedProviders]);
+
+  const handleToggleProvider = useCallback((serviceName: string, provider: AiBriefProvider) => {
+    const providerId = getProviderId(provider);
+    if (providerId === null) {
+      return;
+    }
+
+    const serviceKey = getServiceKey(serviceName);
+
+    setSelectedProviders((current) => {
+      const exists = current.some((entry) => {
+        const entryId = getProviderId(entry);
+        if (entryId === null || entryId !== providerId) {
+          return false;
+        }
+
+        const entryServiceKey = getServiceKey((entry as { service_name?: unknown }).service_name);
+        return entryServiceKey === serviceKey || !entryServiceKey;
+      });
+
+      if (exists) {
+        return current.filter((entry) => {
+          const entryId = getProviderId(entry);
+          if (entryId === null || entryId !== providerId) {
+            return true;
+          }
+
+          const entryServiceKey = getServiceKey((entry as { service_name?: unknown }).service_name);
+          return entryServiceKey !== serviceKey && entryServiceKey !== '';
+        });
+      }
+
+      return [
+        ...current,
+        {
+          ...provider,
+          service_name: serviceName,
+        },
+      ];
+    });
+  }, []);
+
+  const handleAssignMilestoneToProvider = useCallback(
+    (serviceName: string, milestoneKey: string, provider: AiBriefProvider) => {
+      const providerId = getProviderId(provider);
+      if (providerId === null) {
+        return;
+      }
+
+      const serviceKey = getServiceKey(serviceName);
+      const selectedForService = selectedProviderIdsByService.get(serviceKey) ?? [];
+      if (!selectedForService.includes(providerId)) {
+        return;
+      }
+
+      setMilestoneAssignments((current) => {
+        if (current[milestoneKey] === providerId) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [milestoneKey]: providerId,
+        };
+      });
+    },
+    [selectedProviderIdsByService]
+  );
+
+  const handleRemoveMilestoneAssignment = useCallback((milestoneKey: string) => {
+    setMilestoneAssignments((current) => {
+      if (!(milestoneKey in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[milestoneKey];
+      return next;
+    });
+  }, []);
+
+  const cleanupBriefSubscription = useCallback(() => {
+    const activeSubscription = briefSubscriptionRef.current;
+    if (!activeSubscription) {
+      return;
+    }
+
+    AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+      activeSubscription.channel.stopListening(eventName);
+    });
+
+    AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+      activeSubscription.channel.stopListening(eventName);
+    });
+
+    activeSubscription.echo?.leave(activeSubscription.channelName);
+
+    const privateChannelName = `private-${activeSubscription.channelName}`;
+    const echoWithLeaveChannel = activeSubscription.echo as
+      | (ReturnType<typeof getEcho> & { leaveChannel?: (channelName: string) => void })
+      | null;
+
+    if (echoWithLeaveChannel && typeof echoWithLeaveChannel.leaveChannel === 'function') {
+      echoWithLeaveChannel.leaveChannel(privateChannelName);
+    }
+
+    briefSubscriptionRef.current = null;
+  }, []);
+
+  const applyBriefResponse = useCallback((response: AiBriefResponse) => {
+    setBriefStatus(response.status);
+    setBriefPayloadTruncated(Boolean(response.payload_truncated));
+    setBriefPayloadTrimmedSections(response.payload_trimmed_sections ?? []);
+
+    if (response.status === 'CLARIFY') {
+      setBriefQuestions(response.questions ?? []);
+      return;
+    }
+
+    if (response.status === 'FINAL') {
+      const finalBrief = response.final_brief ?? response.final_brief_modular ?? null;
+      if (finalBrief) {
+        setBriefResult(finalBrief);
+      }
+
+      setBriefModularDetails(response.final_brief_modular ?? null);
+      setBriefFullDetails(response.final_brief_full ?? null);
+      setBriefText(response.final_brief_text ?? '');
+      setBriefQuestions([]);
+
+      if (response.recommended_providers) {
+        setRecommendedProviders(response.recommended_providers);
+        const autoSelectedProviders = Object.entries(response.recommended_providers)
+          .flatMap(([serviceName, providers]) =>
+            Array.isArray(providers)
+              ? providers.map((provider) => ({
+                ...provider,
+                service_name: serviceName,
+              }))
+              : []
+          )
+          .filter(
+            (provider): provider is AiBriefProvider & { service_name: string } =>
+              Boolean(provider && provider.id)
+          );
+        if (autoSelectedProviders.length > 0) {
+          const unique = new Map<string, AiBriefProvider>();
+          autoSelectedProviders.forEach((provider) => {
+            const providerId = getProviderId(provider);
+            const serviceName = getServiceKey(
+              (provider as { service_name?: unknown }).service_name
+            );
+            if (providerId !== null) {
+              unique.set(`${serviceName}::${providerId}`, provider);
+            }
+          });
+          setSelectedProviders(Array.from(unique.values()));
+        }
+      } else {
+        setRecommendedProviders(undefined);
+        setSelectedProviders([]);
+      }
+      if (response.other_providers_by_service) {
+        setOtherProviders(response.other_providers_by_service);
+      } else if (response.other_providers && Array.isArray(response.other_providers as unknown)) {
+        setOtherProviders(response.other_providers as unknown as AiBriefOtherProvidersByService);
+      } else {
+        setOtherProviders(undefined);
+      }
+
+      const autoBudget =
+        toNumber(finalBrief?.budget) ??
+        toNumber(response.final_brief_full?.budget);
+
+      if (autoBudget !== null) {
+        setTotalBudget((currentValue) =>
+          currentValue.trim() ? currentValue : String(autoBudget)
+        );
+      }
+      return;
+    }
+
+    if (response.status === 'PROCESSING') {
+      setBriefQuestions([]);
+    }
+  }, []);
+
+  const loadBriefResultById = useCallback(
+    async (briefResultId: number | string) => {
+      const response = await aiService.getBriefBuilderResult(briefResultId);
+      setBriefDebugResponseJson(toJsonDebugString(response));
+
+      const normalizedResponse = normalizeAiBriefResponse(response);
+      if (normalizedResponse) {
+        applyBriefResponse(normalizedResponse);
+      }
+    },
+    [applyBriefResponse]
+  );
+
+  useEffect(
+    () => () => {
+      cleanupBriefSubscription();
+    },
+    [cleanupBriefSubscription]
+  );
+
+  useEffect(() => {
+    if (step !== 'briefing') {
+      cleanupBriefSubscription();
+      return;
+    }
+
+    const userId = toString(user?.id);
+    if (!userId) {
+      return;
+    }
+
+    const echo = getEcho();
+    if (!echo) {
+      setBriefSubscriptionError(
+        t('realtime_channel_is_not_available_at_the_moment')
+      );
+      return;
+    }
+
+    setBriefSubscriptionError(null);
+
+    const channelName = `user.${userId}.briefs`;
+    const channel = echo.private(channelName);
+
+    const handleGenerated = (payload: unknown) => {
+      setBriefDebugResponseJson(toJsonDebugString(payload));
+      const response = normalizeAiBriefResponse(payload);
+      if (!response) {
+        const briefResultId = extractBriefResultId(payload);
+        if (briefResultId !== null) {
+          setBriefStatus('PROCESSING');
+          void loadBriefResultById(briefResultId).catch((error) => {
+            setBriefStatus('CLARIFY');
+            toast.error(
+              extractErrorMessage(
+                error,
+                t('could_not_load_the_final_brief_result')
+              )
+            );
+          });
+        }
+        return;
+      }
+
+      applyBriefResponse(response);
+
+      if (response.status === 'PROCESSING') {
+        const briefResultId = response.brief_result_id ?? extractBriefResultId(payload);
+        if (briefResultId !== null) {
+          void loadBriefResultById(briefResultId).catch((error) => {
+            setBriefStatus('CLARIFY');
+            toast.error(
+              extractErrorMessage(
+                error,
+                t('could_not_load_the_final_brief_result')
+              )
+            );
+          });
+        }
+      }
+    };
+
+    const handleFailed = (payload: unknown) => {
+      const source = toObject(payload);
+      const message =
+        toString(source?.errorMessage) ||
+        toString(source?.error_message) ||
+        toString(source?.message) ||
+        toString(source?.error) ||
+        t('brief_generation_failed');
+
+      setBriefStatus('CLARIFY');
+      toast.error(message);
+    };
+
+    AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+      channel.listen(eventName, handleGenerated);
+    });
+
+    AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+      channel.listen(eventName, handleFailed);
+    });
+
+    briefSubscriptionRef.current = {
+      channelName,
+      channel,
+      echo,
+    };
+
+    return () => {
+      cleanupBriefSubscription();
+    };
+  }, [step, user?.id, applyBriefResponse, cleanupBriefSubscription, loadBriefResultById, t]);
+
+  const requestBriefBuilder = useCallback(
+    async (messages: AiAssistantMessage[]) => {
+      if (messages.length === 0) {
+        return;
+      }
+
+      setBriefStatus('PROCESSING');
+      try {
+        const response = await aiService.buildBrief({
+          locale,
+          messages,
+        });
+        setBriefDebugResponseJson(toJsonDebugString(response));
+
+        const normalizedResponse = normalizeAiBriefResponse(response);
+        if (normalizedResponse) {
+          applyBriefResponse(normalizedResponse);
+
+          if (normalizedResponse.status === 'PROCESSING') {
+            const briefResultId =
+              normalizedResponse.brief_result_id ?? extractBriefResultId(response);
+            if (briefResultId !== null) {
+              try {
+                await loadBriefResultById(briefResultId);
+              } catch {
+                // Keep waiting for realtime event fallback.
+              }
+            }
+          }
+
+          return;
+        }
+
+        const briefResultId = extractBriefResultId(response);
+        if (briefResultId !== null) {
+          try {
+            await loadBriefResultById(briefResultId);
+          } catch {
+            // Keep waiting for realtime event fallback.
+          }
+        }
+      } catch (error) {
+        setBriefStatus('CLARIFY');
+        toast.error(
+          extractErrorMessage(
+            error,
+            t('could_not_generate_the_brief')
+          )
+        );
+      }
+    },
+    [applyBriefResponse, loadBriefResultById, locale, t]
+  );
+
+  useEffect(() => {
+    if (step !== 'briefing') {
+      return;
+    }
+
+    if (briefRequestSentRef.current) {
+      return;
+    }
+
+    if (briefMessages.length === 0) {
+      return;
+    }
+
+    briefRequestSentRef.current = true;
+    void requestBriefBuilder(briefMessages);
+  }, [briefMessages, requestBriefBuilder, step]);
+
+  const handleRequestRecommendation = async () => {
+    const normalizedIntent = intent.trim();
+    if (!normalizedIntent) {
+      toast.error(
+        t('please_complete_the_project_intent_before_continuing')
+      );
+      return;
+    }
+
+    setLoadingRecommendation(true);
+    try {
+      const response = await aiService.recommendServices({
+        brief: normalizedIntent,
+      });
+
+      const normalized = normalizeRecommendationResponse(
+        response as AiRecommendServicesResponse,
+        serviceCatalogById
+      );
+
+      if (normalized.services.length === 0) {
+        toast.error(
+          t('ai_did_not_return_services_try_adding_more_context')
+        );
+        return;
+      }
+
+      setRecommendation(normalized);
+      const preferredSelection = normalized.services
+        .map((service, index) => (isAlternativeService(service) ? -1 : index))
+        .filter((index) => index >= 0);
+      setSelectedServiceIndexes(
+        preferredSelection.length > 0
+          ? preferredSelection
+          : normalized.services.map((_service, index) => index)
+      );
+      setBriefMessages([]);
+      setBriefResult(null);
+      setBriefModularDetails(null);
+      setBriefFullDetails(null);
+      setBriefText('');
+      setBriefStatus('IDLE');
+      setBriefQuestions([]);
+      setBriefAnswer('');
+      setBriefDebugResponseJson('');
+      setBriefPayloadTruncated(false);
+      setBriefPayloadTrimmedSections([]);
+      setRecommendedProviders(undefined);
+      setOtherProviders(undefined);
+      setSelectedProviders([]);
+      setTotalBudget('');
+      setEditableDuration('');
+      setEditablePaymentPlan('');
+      briefRequestSentRef.current = false;
+      transitionTo('recommendation');
+      toast.success(t('ai_recommendation_has_been_generated'));
+    } catch (error) {
+      toast.error(
+        extractErrorMessage(
+          error,
+          t('could_not_generate_service_recommendation')
+        )
+      );
+    } finally {
+      setLoadingRecommendation(false);
+    }
+  };
+
+  const handleToggleService = (index: number) => {
+    setSelectedServiceIndexes((current) => {
+      if (current.includes(index)) {
+        return current.filter((entry) => entry !== index);
+      }
+      return [...current, index].sort((a, b) => a - b);
+    });
+  };
+
+  const handleConfirmRecommendation = () => {
+    if (selectedServices.length === 0) {
+      toast.error(
+        t('select_at_least_one_project_line')
+      );
+      return;
+    }
+
+    const initialMessages = buildInitialConversation(intent.trim(), selectedServices);
+    setBriefMessages(initialMessages);
+    setBriefQuestions([]);
+    setBriefResult(null);
+    setBriefModularDetails(null);
+    setBriefFullDetails(null);
+    setBriefText('');
+    setBriefStatus('IDLE');
+    setBriefAnswer('');
+    setBriefPayloadTruncated(false);
+    setBriefPayloadTrimmedSections([]);
+    setRecommendedProviders(undefined);
+    setOtherProviders(undefined);
+    setSelectedProviders([]);
+    setEditableDuration('');
+    setEditablePaymentPlan('');
+    briefRequestSentRef.current = false;
+    transitionTo('briefing');
+  };
+
+  const handleSendClarification = async () => {
+    const normalizedAnswer = briefAnswer.trim();
+    if (!normalizedAnswer) {
+      toast.error(t('write_an_answer_for_clarification'));
+      return;
+    }
+
+    const nextMessages = [...briefMessages, { role: 'user', content: normalizedAnswer } satisfies AiAssistantMessage];
+    setBriefMessages(nextMessages);
+    setBriefAnswer('');
+    await requestBriefBuilder(nextMessages);
+  };
+
+  const createProjectPayload = useMemo(() => {
+    if (!briefResult) {
+      return null;
+    }
+
+    const serviceIndex = new Map<string, number | string>();
+    selectedServices.forEach((service) => {
+      if (typeof service.service_id === 'string' || typeof service.service_id === 'number') {
+        serviceIndex.set(
+          `${service.service_name.toLowerCase()}::${service.delivery_provider}`,
+          service.service_id
+        );
+      }
+    });
+
+    const serviceIdByName = new Map<string, number | string>();
+    availableApiServices.forEach((service) => {
+      const numericId = toNumber(service.id);
+      serviceIdByName.set(
+        service.name.toLowerCase(),
+        numericId !== null ? numericId : service.id
+      );
+    });
+
+    const projectLines = reviewLines.map((line, index) => {
+      const serviceKey = `${line.service_name.toLowerCase()}::${line.delivery_provider}`;
+      const serviceId =
+        serviceIndex.get(serviceKey) ?? serviceIdByName.get(line.service_name.toLowerCase());
+      const milestones = (Array.isArray(line.milestones) ? line.milestones : []).map(
+        (milestone, milestoneIndex) => {
+          const milestoneKey = getMilestoneAssignmentKey(index, milestoneIndex);
+          const assignedProviderId = milestoneAssignments[milestoneKey];
+          const normalizedAssignedProviderId =
+            typeof assignedProviderId === 'number' && selectedProviderIdSet.has(assignedProviderId)
+              ? assignedProviderId
+              : null;
+
+          return {
+            ...milestone,
+            assigned_provider_id: normalizedAssignedProviderId,
+          };
+        }
+      );
+
+      return {
+        id: `line-${index + 1}`,
+        ...(typeof serviceId === 'string' || typeof serviceId === 'number'
+          ? { service_id: serviceId }
+          : {}),
+        service_name: line.service_name,
+        delivery_provider: line.delivery_provider,
+        status: 'pending',
+        price: line.budget_allocation,
+        budget_allocation: Number(line.budget_percentage || 0),
+        milestones,
+        description: line.description,
+        budget_percentage: line.budget_percentage,
+      };
+    });
+
+    const briefProjectLines = projectLines.map((line) => ({
+      ...(typeof line.service_id === 'string' || typeof line.service_id === 'number'
+        ? { service_id: line.service_id }
+        : {}),
+      service_name: line.service_name,
+      delivery_provider: line.delivery_provider,
+      description: toString(line.description),
+      budget_percentage: Number(line.budget_percentage || 0),
+      milestones: line.milestones,
+    }));
+
+    return {
+      ...(typeof user?.id === 'string' || typeof user?.id === 'number'
+        ? { clientId: user.id }
+      : {}),
+      title: buildProjectTitle(intent, briefResult.title),
+      description: toString(briefResult.description) || intent.trim(),
+      budget: budgetValue,
+      ...(briefingDisplay.currency ? { currency: briefingDisplay.currency } : {}),
+      ...(effectivePaymentPlan ? { paymentPlan: effectivePaymentPlan } : {}),
+      ...(effectiveDuration ? { duration: effectiveDuration } : {}),
+      brief: {
+        title: briefResult.title,
+        project_lines: briefProjectLines,
+        ...(effectiveDuration
+          ? {
+            duration: effectiveDuration,
+            recommended_duration: effectiveDuration,
+            project_duration: effectiveDuration,
+          }
+          : {}),
+        ...(effectivePaymentPlan ? { payment_plan: effectivePaymentPlan } : {}),
+        selected_providers: selectedProviders,
+      },
+      project_lines: projectLines,
+    };
+  }, [
+    briefResult,
+    selectedServices,
+    availableApiServices,
+    reviewLines,
+    milestoneAssignments,
+    selectedProviderIdSet,
+    intent,
+    budgetValue,
+    user?.id,
+    briefingDisplay.currency,
+    selectedProviders,
+    effectivePaymentPlan,
+    effectiveDuration,
+  ]);
+
+  const createProjectPayloadDebugJson = useMemo(
+    () => (createProjectPayload ? toJsonDebugString(createProjectPayload) : ''),
+    [createProjectPayload]
+  );
+
+  const handleCreateProject = async () => {
+    if (!briefResult || !createProjectPayload) {
+      toast.error(t('final_brief_is_not_available'));
+      return;
+    }
+
+    if (!Number.isFinite(budgetValue) || budgetValue <= 0) {
+      toast.error(
+        t('enter_a_valid_total_budget_for_line_distribution')
+      );
+      return;
+    }
+
+    if (!effectiveDuration) {
+      toast.error(t('complete_project_duration_before_creation'));
+      return;
+    }
+
+    if (!effectivePaymentPlan) {
+      toast.error(t('select_payment_plan_before_creation'));
+      return;
+    }
+
+    if (requiresMilestonesByDuration && linesMissingMilestones.length > 0) {
+      toast.error(
+        t('for_durations_over_3_months_each_line_must_include_milestones_missing_for', {
+          lines: linesMissingMilestones.join(', '),
+        })
+      );
+      return;
+    }
+
+    setCreatingProject(true);
+
+    try {
+      const response = await projectsService.createProject(createProjectPayload, {
+        language: locale,
+      });
+
+      const createdProject = projectsService.extractCreatedProject(response);
+      const data = toObject(response);
+      const nestedData = toObject(data?.data);
+      const nestedProject = toObject(data?.project);
+
+      const projectIdentifier =
+        toString(createdProject?.slug) ||
+        toString(createdProject?.id) ||
+        toString(data?.project_url) ||
+        toString(data?.slug) ||
+        toString(data?.id) ||
+        toString(nestedData?.project_url) ||
+        toString(nestedData?.slug) ||
+        toString(nestedData?.id) ||
+        toString(nestedProject?.project_url) ||
+        toString(nestedProject?.slug) ||
+        toString(nestedProject?.id);
+
+      toast.success(t('modular_project_created_successfully'));
+
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(PROJECT_NEW_WIZARD_STATE_KEY);
+        window.sessionStorage.removeItem(PROJECT_NEW_OAUTH_SNAPSHOT_KEY);
+      }
+
+      if (projectIdentifier) {
+        router.push(`/projects/${projectIdentifier}`);
+        return;
+      }
+
+      router.push('/projects');
+    } catch (error) {
+      toast.error(
+        extractErrorMessage(
+          error,
+          t('could_not_create_project')
+        )
+      );
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+
+  if (loading || userLoading) {
+    return (
+      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <TrustoraThemeStyles />
+        <Header />
+        <main className="container mx-auto flex min-h-[70vh] items-center justify-center px-4 pt-24">
+          <Card className="w-full max-w-lg">
+            <CardContent className="flex items-center gap-3 p-6">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm text-muted-foreground">
+                {t('loading_project_creation_wizard')}
+              </span>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+        <TrustoraThemeStyles />
+        <Header />
+        <main className="container mx-auto px-4 pt-24">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>
+                {t('you_need_to_be_authenticated_to_create_a_modular_project')}
+              </span>
+              <Button asChild size="sm">
+                <Link href="/auth/signin">{t('sign_in')}</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
+      style={
+        {
+          ...(currentTheme as CSSProperties),
+          backgroundColor: 'var(--bg-main)',
+          color: 'var(--text-main)',
+        } as CSSProperties
+      }
+    >
+      <TrustoraThemeStyles />
+      <style jsx global>{`
+        .trustora-wizard input,
+        .trustora-wizard textarea,
+        .trustora-wizard button[role='combobox'] {
+          background-color: var(--input-bg);
+          border-color: var(--border-color);
+          color: var(--text-main);
+        }
+        .trustora-wizard input::placeholder,
+        .trustora-wizard textarea::placeholder {
+          color: var(--text-muted);
+          opacity: 0.9;
+        }
+      `}</style>
+
+      <aside className="w-64 bg-[#0B1C2D] border-r border-[#152B42] flex flex-col justify-between hidden md:flex shrink-0 z-20">
+        <div>
+          <div className="h-20 flex items-center px-6 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <img src="/trustora-logo2.png" alt="Trustora Logo" className="w-8 h-8 object-contain rounded border border-white/10" />
+              <div className="flex flex-col">
+                <span className="font-bold text-lg tracking-tight text-white leading-none">TRUSTORA</span>
+                <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-[#1BC47D] mt-0.5">{tDashboard('hero.badge')}</span>
+              </div>
+            </div>
+          </div>
+
+          <nav className="p-4 space-y-1">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{tDashboard('quick_actions.title')}</p>
+
+            <button type="button" onClick={() => router.push('/dashboard')} className={dashboardSidebarItemClass('overview')}>
+              <LayoutDashboard size={18} />
+              {tDashboard('tabs.overview')}
+            </button>
+            {isClient && !isProvider ? (
+              <button type="button" onClick={() => router.push('/projects/new')} className={dashboardSidebarItemClass('new-project')}>
+                <Plus size={18} />
+                {tDashboard('projects.new_project')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+              className={dashboardSidebarItemClass(isProvider ? 'finance' : 'projects')}
+            >
+              <Lock size={18} />
+              {isProvider ? tDashboard('tabs.finance') : tDashboard('tabs.projects')}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+              className={dashboardSidebarItemClass(isProvider ? 'projects' : 'services')}
+            >
+              <Layers size={18} />
+              {isProvider ? tDashboard('tabs.projects') : tDashboard('tabs.services')}
+            </button>
+            <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={dashboardSidebarItemClass('messages')}>
+              <History size={18} />
+              {tDashboard('tabs.messages')}
+            </button>
+            {isProvider ? (
+              <>
+                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">
+                  {servicesTitle}
+                </p>
+                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={dashboardSidebarItemClass('services')}>
+                  <Users size={18} />
+                  {tDashboard('tabs.services')}
+                </button>
+              </>
+            ) : null}
+          </nav>
+        </div>
+
+        <div className="p-4 border-t border-white/5">
+          <button type="button" onClick={() => router.push('/dashboard?tab=settings')} className={`${dashboardSidebarItemClass('settings')} mb-2`}>
+            <Settings size={18} />
+            {tDashboard('tabs.settings')}
+          </button>
+          <div className="flex items-center gap-3 px-3 py-2 mt-2 bg-[#152B42] rounded-xl border border-white/5">
+            <div className="relative">
+              <Avatar className="w-8 h-8 border border-white/10">
+                <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
+                <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-white text-xs font-bold">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BC47D] rounded-full border-2 border-[#152B42]" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm font-bold text-white truncate">{userDisplayName}</p>
+              <p className="text-[10px] text-[#1BC47D] uppercase font-bold flex items-center gap-1">
+                <CheckCircle2 size={10} /> {isProvider ? tDashboard('hero.role.provider') : tDashboard('hero.role.client')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+      {/* --- MAIN CONTENT AREA --- */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300">
+        <header
+          className="h-20 backdrop-blur-md border-b flex items-center justify-between px-4 md:px-6 z-10 shrink-0 transition-colors duration-300"
+          style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
+        >
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text-main)' }}>{t('start_new_project')}</h1>
+            <span className="px-2.5 py-1 bg-[#1BC47D]/10 text-[#1BC47D] text-[10px] uppercase font-bold tracking-wider rounded border border-[#1BC47D]/20">
+              {t('review_create')}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+              </div>
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsDarkMode((prev) => !prev)}
+              className="relative transition-colors hover:text-[var(--text-main)]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <NotificationBell />
+            <ChatButton />
+          </div>
+        </header>
+
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <div className="px-4 md:px-6 pt-8 pb-12 border-b z-10 shrink-0" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+            <div className="max-w-7xl mx-auto">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-8">
+                <div className="space-y-1">
+                  <h2 className="flex items-center gap-2 text-2xl font-bold" style={{ color: 'var(--text-main)' }}>
+                    <Sparkles className="h-5 w-5 text-[#1BC47D]" />
+                    {t('nexora_project_lines_wizard')}
+                  </h2>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    {t('create_modular_projects_with_ai_recommendations_line_by_line_briefing_and_multi')}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleStartNewProject}
+                  className="border-[#1BC47D]/30 text-[#1BC47D] hover:bg-[#1BC47D]/10 hover:text-[#1BC47D]"
+                >
+                  {t('start_new_project')}
+                </Button>
+              </div>
+
+              <div className="relative flex justify-between items-start w-full">
+                <div className="absolute top-4 left-[16px] right-[16px] h-1 -translate-y-1/2 rounded-full overflow-hidden bg-slate-200/70">
+                  <div
+                    className="h-full bg-[#1BC47D] transition-all duration-500"
+                    style={{
+                      width:
+                        wizardSteps.length > 1 && stepIndex >= 0
+                          ? `${(stepIndex / (wizardSteps.length - 1)) * 100}%`
+                          : '0%',
+                    }}
+                  />
+                </div>
+
+                {wizardSteps.map((wizardStep, index) => {
+                  const active = step === wizardStep.id;
+                  const done = stepIndex > index;
+                  return (
+                    <div key={`progress-${wizardStep.id}`} className={`relative z-10 flex flex-col items-center transition-opacity duration-300 ${index <= stepIndex ? 'opacity-100' : 'opacity-50'}`}>
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                          done
+                            ? 'border-[#1BC47D] text-white'
+                            : active
+                              ? 'border-[#1BC47D] text-[#1BC47D]'
+                              : 'border-slate-300 text-slate-400'
+                        }`}
+                        style={{ backgroundColor: done ? '#1BC47D' : 'var(--bg-card)' }}
+                      >
+                        {done ? <CheckCircle2 size={14} /> : index + 1}
+                      </div>
+                      <div className="mt-2 w-24 text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-wider hidden md:block" style={{ color: index <= stepIndex ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                          {t(wizardStep.labelKey)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 relative pb-24">
+            <div className="max-w-7xl mx-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${step}-${projectInputMode}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                  className="trustora-wizard space-y-6"
+                >
+
+          {step === 'intent' ? (
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_1_intent')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {t('choose_your_workflow_ai_assisted_or_fully_manual')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    {t('input_mode')}
+                  </Label>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectProjectInputMode('ai')}
+                      className={`rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
+                        projectInputMode === 'ai'
+                          ? 'border-[#1BC47D] shadow-sm'
+                          : 'hover:border-[#1BC47D]/50'
+                      }`}
+                      style={{
+                        borderColor: projectInputMode === 'ai' ? '#1BC47D' : 'var(--border-color)',
+                        backgroundColor: projectInputMode === 'ai' ? 'var(--accent-light)' : 'var(--bg-card)',
+                      }}
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1BC47D]/20 text-[#1BC47D]">
+                          <Sparkles size={18} />
+                        </div>
+                        {projectInputMode === 'ai' ? <CheckCircle2 size={18} className="text-[#1BC47D]" /> : null}
+                      </div>
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>{t('ai_assistance')}</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectProjectInputMode('manual')}
+                      className={`rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
+                        projectInputMode === 'manual'
+                          ? 'border-[#0B1C2D] shadow-sm'
+                          : 'hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                      style={{
+                        borderColor: projectInputMode === 'manual'
+                          ? (isDarkMode ? '#FFFFFF' : '#0B1C2D')
+                          : 'var(--border-color)',
+                        backgroundColor: projectInputMode === 'manual'
+                          ? (isDarkMode ? 'rgba(255,255,255,0.05)' : 'var(--stat-bg)')
+                          : 'var(--bg-card)',
+                      }}
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}>
+                          <Wrench size={18} />
+                        </div>
+                        {projectInputMode === 'manual' ? (
+                          <CheckCircle2 size={18} style={{ color: isDarkMode ? '#FFFFFF' : '#0B1C2D' }} />
+                        ) : null}
+                      </div>
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>{t('manual_input')}</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="intent" className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    {t('what_do_you_want_to_build')}
+                  </Label>
+                  <Textarea
+                    id="intent"
+                    rows={7}
+                    value={intent}
+                    onChange={(event) => setIntent(event.target.value)}
+                    placeholder={t('ex_i_want_to_launch_a_saas_platform_for_clinic_management_with')}
+                    className="resize-none rounded-xl border shadow-inner"
+                    style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+                  />
+                </div>
+
+                {projectInputMode === 'manual' ? (
+                  <div
+                    className="space-y-4 rounded-2xl border p-5"
+                    style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)' }}
+                  >
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="manual-title">{t('project_title')}</Label>
+                        <Input
+                          id="manual-title"
+                          value={manualTitle}
+                          onChange={(event) => setManualTitle(event.target.value)}
+                          placeholder={t('ex_multi_location_rent_a_car_management_platform')}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="manual-duration">{t('estimated_duration')}</Label>
+                        <Input
+                          id="manual-duration"
+                          value={manualDuration}
+                          onChange={(event) => setManualDuration(event.target.value)}
+                          placeholder={t('ex_10_12_weeks')}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="manual-payment-plan">{t('payment_plan')}</Label>
+                        <Select value={manualPaymentPlan} onValueChange={(value) => setManualPaymentPlan(value)}>
+                          <SelectTrigger id="manual-payment-plan">
+                            <SelectValue placeholder={t('select_payment_plan')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_PLAN_OPTIONS.map((option) => (
+                              <SelectItem key={`manual-${option.value}`} value={option.value}>
+                                {t(option.labelKey)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="manual-currency">{t('currency')}</Label>
+                        <Input
+                          id="manual-currency"
+                          value={manualCurrency}
+                          onChange={(event) => setManualCurrency(event.target.value)}
+                          placeholder="USD"
+                        />
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label>{t('technologies_services_api_only')}</Label>
+                        <Input
+                          value={manualServiceSearch}
+                          onChange={(event) => setManualServiceSearch(event.target.value)}
+                          placeholder={t('search_by_category_or_service')}
+                        />
+                        <div className="max-h-64 overflow-auto rounded-md border border-slate-200 p-3 dark:border-[#1E2A3D]">
+                          {groupedServicesLoading ? (
+                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              {t('loading_services')}
+                            </div>
+                          ) : groupedAvailableApiServices.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3">
+                              {groupedAvailableApiServices.map((group) => (
+                                <div
+                                  key={`manual-service-category-${group.category_name}`}
+                                  className="space-y-2 rounded-md border border-slate-200 bg-slate-50/60 p-2 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                                >
+                                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                    {group.category_name}
+                                  </div>
+                                  {group.subcategories.map((subcategory) => (
+                                    <div
+                                      key={`manual-service-subcategory-${group.category_name}-${subcategory.subcategory_name || 'default'}`}
+                                      className="space-y-1"
+                                    >
+                                      {subcategory.subcategory_name ? (
+                                        <div className="text-[11px] font-medium text-slate-500 dark:text-[#8FA0B8]">
+                                          {subcategory.subcategory_name}
+                                        </div>
+                                      ) : null}
+                                      {subcategory.services.map((service) => {
+                                        const checked = manualServiceIds.includes(service.id);
+                                        return (
+                                          <label
+                                            key={`manual-service-${service.id}`}
+                                            className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                          >
+                                            <span>{service.name}</span>
+                                            <Checkbox
+                                              checked={checked}
+                                              onCheckedChange={(value) =>
+                                                handleToggleManualService(service.id, Boolean(value))
+                                              }
+                                              aria-label={t('select_item_aria', {
+                                                name: service.name,
+                                              })}
+                                            />
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                              {toString(manualServiceSearch)
+                                ? t('no_results_for_the_current_search')
+                                : t('no_services_available_in_the_api_catalog')}
+                            </p>
+                          )}
+                        </div>
+                        {groupedServicesPagination ? (
+                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            <span>
+                              {t('categories_page_of_total', {
+                                page: groupedServicesPagination.page,
+                                total: groupedServicesPagination.total_pages,
+                              })}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setGroupedServicesPage((prev) => Math.max(1, prev - 1))}
+                                disabled={groupedServicesLoading || groupedServicesPagination.page <= 1}
+                              >
+                                {t('pagination_previous_button')}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setGroupedServicesPage((prev) => prev + 1)}
+                                disabled={groupedServicesLoading || !groupedServicesPagination.has_more}
+                              >
+                                {t('pagination_next_button')}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="manual-requirements">
+                          {t('specific_requirements_one_per_line')}
+                        </Label>
+                        <Textarea
+                          id="manual-requirements"
+                          rows={4}
+                          value={manualSpecificRequirements}
+                          onChange={(event) => setManualSpecificRequirements(event.target.value)}
+                          placeholder={t('ex_nrole_based_rbac_ngdpr_compliance_nbooking_calendar')}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {t('project_lines_manual')}
+                        </h4>
+                      </div>
+                      {manualProjectLines.length === 0 ? (
+                        <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('select_at_least_one_service_from_the_list_above_first')}
+                        </p>
+                      ) : null}
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {manualProjectLines.map((line, lineIndex) => (
+                          <div
+                            key={line.id}
+                            className="space-y-3 rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                          >
+                            <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {t('line')} {lineIndex + 1}
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label>{t('service_name_auto_selected')}</Label>
+                                <Input value={line.service_name} disabled />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>{t('delivery_provider_from_api_required')}</Label>
+                                <Input value={getLocalizedProviderLabel(line.delivery_provider)} disabled />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>{t('budget_per_line')}</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={line.budget_percentage}
+                                  onChange={(event) =>
+                                    handleManualLineFieldChange(line.id, 'budget_percentage', event.target.value)
+                                  }
+                                  placeholder={t('ex_30')}
+                                />
+                              </div>
+                              <div className="space-y-2 sm:col-span-2">
+                                <Label>{t('line_description')}</Label>
+                                <Textarea
+                                  rows={3}
+                                  value={line.description}
+                                  onChange={(event) =>
+                                    handleManualLineFieldChange(line.id, 'description', event.target.value)
+                                  }
+                                  placeholder={t('short_scope_for_this_line')}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-[#1E2A3D]">
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                  {t('milestones')}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleAddManualMilestone(line.id)}
+                                >
+                                  {t('add_milestone')}
+                                </Button>
+                              </div>
+
+                              {line.milestones.length > 0 ? (
+                                <div className="space-y-2">
+                                  {line.milestones.map((milestone) => (
+                                    <div
+                                      key={milestone.id}
+                                      className="grid gap-2 rounded-md border border-slate-200 bg-white/80 p-2 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                    >
+                                      <div className="grid gap-2 sm:grid-cols-3">
+                                        <Input
+                                          value={milestone.title}
+                                          onChange={(event) =>
+                                            handleManualMilestoneFieldChange(
+                                              line.id,
+                                              milestone.id,
+                                              'title',
+                                              event.target.value
+                                            )
+                                          }
+                                          placeholder={t('milestone_title')}
+                                        />
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          value={milestone.amount}
+                                          onChange={(event) =>
+                                            handleManualMilestoneFieldChange(
+                                              line.id,
+                                              milestone.id,
+                                              'amount',
+                                              event.target.value
+                                            )
+                                          }
+                                          placeholder={t('amount')}
+                                        />
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={milestone.percentage}
+                                          onChange={(event) =>
+                                            handleManualMilestoneFieldChange(
+                                              line.id,
+                                              milestone.id,
+                                              'percentage',
+                                              event.target.value
+                                            )
+                                          }
+                                          placeholder="%"
+                                        />
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          value={milestone.description}
+                                          onChange={(event) =>
+                                            handleManualMilestoneFieldChange(
+                                              line.id,
+                                              milestone.id,
+                                              'description',
+                                              event.target.value
+                                            )
+                                          }
+                                          placeholder={t('milestone_description_optional')}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            handleRemoveManualMilestone(line.id, milestone.id)
+                                          }
+                                        >
+                                          {t('delete')}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                                  {t('there_are_no_milestones_on_this_line')}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex justify-end">
+                  {projectInputMode === 'ai' ? (
+                    <Button
+                      onClick={handleRequestRecommendation}
+                      disabled={loadingRecommendation}
+                      className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                    >
+                      {loadingRecommendation ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t('generating_recommendation')}
+                        </>
+                      ) : (
+                        <>
+                          {t('continue_to_recommendation')}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => void handleContinueManualToReview()}
+                      disabled={loadingManualProviders}
+                      className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                    >
+                      {loadingManualProviders ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t('generating_providers')}
+                        </>
+                      ) : (
+                        <>
+                          {t('continue_to_providers')}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'recommendation' && projectInputMode === 'ai' ? (
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_2_service_recommendation')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {t('confirm_the_recommended_lines_for_your_modular_project')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {recommendation?.bundle_name ? (
+                  <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300">
+                    {t('recommended_bundle')}: {recommendation.bundle_name}
+                  </Badge>
+                ) : null}
+
+                {recommendedCards.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="text-sm font-bold uppercase tracking-wider text-[#1BC47D]">
+                      {t('recommended_services')}
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {recommendedCards.map((service) => {
+                        const checked = selectedServiceIndexes.includes(service.index);
+                        const categoryName = getServiceCategoryName(service);
+
+                        return (
+                          <Card
+                            key={service.key}
+                            className={`cursor-pointer border-2 transition ${
+                              checked
+                                ? 'border-[#1BC47D] shadow-sm'
+                                : 'hover:border-[#1BC47D]/50'
+                            }`}
+                            style={{
+                              borderColor: checked ? '#1BC47D' : 'var(--border-color)',
+                              backgroundColor: checked ? 'var(--accent-light)' : 'var(--bg-card)',
+                            }}
+                            onClick={() => handleToggleService(service.index)}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-2">
+                                  <CardTitle className="text-base" style={{ color: 'var(--text-main)' }}>{service.service_name}</CardTitle>
+                                  <CardDescription className="flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                                    {getProviderIcon(service.delivery_provider)}
+                                    {getLocalizedProviderLabel(service.delivery_provider)}
+                                  </CardDescription>
+                                  {categoryName ? (
+                                    <Badge variant="outline" className="w-fit text-[10px] uppercase">
+                                      {categoryName}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() => handleToggleService(service.index)}
+                                  aria-label={t('select_item_aria', { name: service.service_name })}
+                                />
+                              </div>
+                            </CardHeader>
+                            {service.description ? (
+                              <CardContent>
+                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{service.description}</p>
+                              </CardContent>
+                            ) : null}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {alternativeCards.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                        {t('alternative_services')}
+                      </div>
+                      <Badge variant="secondary">{t('optional')}</Badge>
+                    </div>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {t('you_can_select_an_alternative_service_from_the_same_category')}
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {alternativeCards.map((service) => {
+                        const checked = selectedServiceIndexes.includes(service.index);
+                        const categoryName = getServiceCategoryName(service);
+
+                        return (
+                          <Card
+                            key={service.key}
+                            className={`cursor-pointer border-2 transition ${
+                              checked
+                                ? 'shadow-sm'
+                                : 'hover:border-[#1BC47D]/50'
+                            }`}
+                            style={{
+                              borderColor: checked ? (isDarkMode ? '#FFFFFF' : '#0B1C2D') : 'var(--border-color)',
+                              backgroundColor: checked ? 'var(--stat-bg)' : 'var(--bg-card)',
+                            }}
+                            onClick={() => handleToggleService(service.index)}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-2">
+                                  <CardTitle className="text-base" style={{ color: 'var(--text-main)' }}>{service.service_name}</CardTitle>
+                                  <CardDescription className="flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                                    {getProviderIcon(service.delivery_provider)}
+                                    {getLocalizedProviderLabel(service.delivery_provider)}
+                                  </CardDescription>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="text-[10px] uppercase">
+                                      {t('alternative')}
+                                    </Badge>
+                                    {categoryName ? (
+                                      <Badge variant="outline" className="text-[10px] uppercase">
+                                        {categoryName}
+                                      </Badge>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() => handleToggleService(service.index)}
+                                  aria-label={t('select_item_aria', { name: service.service_name })}
+                                />
+                              </div>
+                            </CardHeader>
+                            {service.description ? (
+                              <CardContent>
+                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{service.description}</p>
+                              </CardContent>
+                            ) : null}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('intent')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {t('back_to_intent')}
+                  </Button>
+                  <Button onClick={handleConfirmRecommendation} className="bg-[#1BC47D] text-white hover:bg-[#18A96B]">
+                    {t('confirm_and_continue')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'briefing' && projectInputMode === 'ai' ? (
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_3_modular_briefing')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {t('the_brief_is_built_on_the_echo_channel')}{' '}
+                  <code>user.{String(user.id)}.briefs</code>{' '}
+                  {t('and_displayed_by_project_lines')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={
+                      briefStatus === 'FINAL'
+                        ? 'border-emerald-300 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300'
+                        : briefStatus === 'PROCESSING'
+                          ? 'border-blue-300 text-blue-700 dark:border-blue-500/30 dark:text-blue-300'
+                          : 'border-amber-300 text-amber-700 dark:border-amber-500/30 dark:text-amber-300'
+                    }
+                  >
+                    {t('status')}: {briefStatus}
+                  </Badge>
+
+                  {briefStatus === 'PROCESSING' ? (
+                    <span className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-[#8FA0B8]">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('generating_modular_structure')}
+                    </span>
+                  ) : null}
+                </div>
+
+                {briefPayloadTruncated ? (
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="space-y-2">
+                      <p>
+                        {t('the_websocket_payload_was_compacted_because_of_the_broadcast_size_limit_10kb')}
+                      </p>
+                      {briefPayloadTrimmedSections.length > 0 ? (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide">
+                            {t('sections_sent_in_compact_mode')}
+                          </div>
+                          <ul className="mt-1 space-y-1 text-xs">
+                            {briefPayloadTrimmedSections.map((section, index) => (
+                              <li key={`${section}-${index}`}>• {section}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefSubscriptionError ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{briefSubscriptionError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefQuestions.length > 0 ? (
+                  <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                    <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                      {t('clarifications_required')}
+                    </h4>
+                    <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-100">
+                      {briefQuestions.map((question, index) => (
+                        <li key={`${question}-${index}`}>• {question}</li>
+                      ))}
+                    </ul>
+                    <div className="space-y-2">
+                      <Label htmlFor="clarification">{t('your_answer')}</Label>
+                      <Textarea
+                        id="clarification"
+                        rows={4}
+                        value={briefAnswer}
+                        onChange={(event) => setBriefAnswer(event.target.value)}
+                        placeholder={t('provide_the_details_needed_by_ai')}
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={() => void handleSendClarification()} className="bg-[#1BC47D] text-white hover:bg-[#18A96B]">
+                        {t('send_clarification')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {briefResult ? (
+                  <div className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {briefingDisplay.title || briefResult.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">
+                        {t('structured_preview_using_data_from')}{' '}
+                        <code>final_brief</code>, <code>final_brief_full</code>{' '}
+                        {t('and')} <code>final_brief_modular</code>.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('budget')}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {typeof briefingDisplay.budget === 'number'
+                            ? `$${briefingDisplay.budget.toLocaleString()}`
+                            : '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('duration')}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.duration || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('payment_plan')}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.paymentPlan || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('currency')}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.currency || 'USD'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/*{briefingDisplay.description ? (*/}
+                    {/*  <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm text-slate-700 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#C9D4E7]">*/}
+                    {/*    {briefingDisplay.description}*/}
+                    {/*  </div>*/}
+                    {/*) : null}*/}
+
+                    {briefingDisplay.overview || briefingDisplay.clientGoal || briefingDisplay.targetAudience ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        {briefingDisplay.overview ? (
+                          <p className="text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('overview')}:</span>{' '}
+                            {briefingDisplay.overview}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.clientGoal ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('client_goal')}:</span>{' '}
+                            {briefingDisplay.clientGoal}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.targetAudience ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('target_audience')}:</span>{' '}
+                            {briefingDisplay.targetAudience}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.technologies.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('technologies')}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {briefingDisplay.technologies.map((item, index) => (
+                            <Badge key={`${item}-${index}`} variant="outline">
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.specificRequirements.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('specific_requirements')}
+                        </div>
+                        <ul className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {briefingDisplay.specificRequirements.map((item, index) => (
+                            <li key={`${item}-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.teamStructure.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('team_structure')}
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {briefingDisplay.teamStructure.map((member, index) => (
+                            <div key={`${member.role}-${index}`} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                              <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {member.role}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {member.service || t('general')} •{' '}
+                                {member.level || t('n_a')} • x{member.count ?? 1}
+                              </div>
+                              {typeof member.estimated_cost === 'number' ? (
+                                <div className="mt-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  {t('estimated_cost')}: $
+                                  {member.estimated_cost.toLocaleString()}
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.milestones.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('milestones')}
+                        </div>
+                        <div className="space-y-2">
+                          {briefingDisplay.milestones.map((milestone, index) => (
+                            <div key={`${milestone.title}-${index}`} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                              <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {milestone.title}
+                              </div>
+                              {milestone.description ? (
+                                <p className="mt-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  {milestone.description}
+                                </p>
+                              ) : null}
+                              <div className="mt-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {typeof milestone.percentage === 'number' ? `${milestone.percentage}%` : '—'}
+                                {' • '}
+                                {typeof milestone.amount === 'number' ? `$${milestone.amount.toLocaleString()}` : '—'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {fullBusinessAnalysis ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_full_business_analysis')}
+                        </div>
+                        {toString(fullBusinessAnalysis.problem_statement) ? (
+                          <p className="text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('problem')}:</span>{' '}
+                            {toString(fullBusinessAnalysis.problem_statement)}
+                          </p>
+                        ) : null}
+                        {toString(fullBusinessAnalysis.value_proposition) ? (
+                          <p className="mt-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">
+                              {t('value_proposition')}:
+                            </span>{' '}
+                            {toString(fullBusinessAnalysis.value_proposition)}
+                          </p>
+                        ) : null}
+                        {fullTargetUsers.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                              {t('target_users')}
+                            </div>
+                            <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                              {fullTargetUsers.map((item, index) => (
+                                <li key={`${item}-${index}`}>• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {fullFeatureBusinessValue.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                              {t('feature_business_value')}
+                            </div>
+                            <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                              {fullFeatureBusinessValue.map((item, index) => (
+                                <li key={`${item}-${index}`}>• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {(fullTechStackItems.length > 0 || toString(briefFullDetails?.tech_stack?.architecture_notes)) ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_full_tech_stack')}
+                        </div>
+                        {fullTechStackItems.length > 0 ? (
+                          <div className="space-y-2">
+                            {fullTechStackItems.map((item, index) => (
+                              <div key={`${item.technology}-${index}`} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                  {item.technology}
+                                </div>
+                                {item.purpose ? (
+                                  <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                    {t('purpose')}: {item.purpose}
+                                  </div>
+                                ) : null}
+                                {item.justification ? (
+                                  <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                    {t('why')}: {item.justification}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {toString(briefFullDetails?.tech_stack?.architecture_notes) ? (
+                          <p className="mt-2 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">
+                              {t('architecture_notes')}:
+                            </span>{' '}
+                            {toString(briefFullDetails?.tech_stack?.architecture_notes)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {fullTechnicalRisks.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_full_technical_risks')}
+                        </div>
+                        <ul className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {fullTechnicalRisks.map((item, index) => (
+                            <li key={`${item}-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {(fullComplexityEstimationEntries.length > 0 || fullComplexityEntries.length > 0) ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_full_complexity')}
+                        </div>
+                        {fullComplexityEstimationEntries.length > 0 ? (
+                          <div className="mb-2">
+                            <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                              {t('complexity_estimation')}
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {fullComplexityEstimationEntries.map(([key, value]) => (
+                                <Badge key={key} variant="outline">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {fullComplexityEntries.length > 0 ? (
+                          <div>
+                            <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                              {t('complexity_by_domain')}
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {fullComplexityEntries.map(([key, value]) => (
+                                <Badge key={key} variant="outline">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {fullTeamRecommendationEntries.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_full_team_recommendation')}
+                        </div>
+                        <div className="space-y-2">
+                          {fullTeamRecommendationEntries.map(([phase, members]) => (
+                            <div key={phase} className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                              <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {phase}
+                              </div>
+                              <ul className="mt-1 space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {(Array.isArray(members) ? members : []).map((member, index) => (
+                                  <li key={`${member.role}-${index}`}>
+                                    • {member.role} x{member.count ?? 1} ({member.seniority ?? t('n_a')})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        {t('modular_project_lines')}
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {briefingProjectLines.map((line, index) => (
+                          <Card key={`${line.service_name}-${index}`} className="border-emerald-200/80 dark:border-emerald-500/20">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">{line.service_name}</CardTitle>
+                              <CardDescription className="flex items-center gap-2">
+                                {getProviderIcon(line.delivery_provider)}
+                                {getLocalizedProviderLabel(line.delivery_provider)}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                              <p className="text-slate-600 dark:text-[#A3ADC2]">
+                                {line.description || t('no_description')}
+                              </p>
+                              <div className="rounded-md border border-slate-200 bg-white/80 p-2 text-xs dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                <span className="font-semibold">
+                                  {t('budget_2')}:{' '}
+                                </span>
+                                {line.budget_percentage}
+                              </div>
+                              <div>
+                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                  {t('milestones')}
+                                </div>
+                                <ul className="space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  {line.milestones.map((milestone, milestoneIndex) => (
+                                    <li key={`${milestone.title}-${milestoneIndex}`}>
+                                      • {milestone.title} - ${milestone.amount.toLocaleString()}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {briefText ? (
+                      <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_text')}
+                        </div>
+                        <pre className="max-h-56 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
+{briefText}
+                        </pre>
+                      </div>
+                    ) : null}
+
+{/*                    {briefDebugResponseJson ? (*/}
+{/*                      <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">*/}
+{/*                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">*/}
+{/*                          {t('debug_response_json')}*/}
+{/*                        </div>*/}
+{/*                        <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">*/}
+{/*{briefDebugResponseJson}*/}
+{/*                        </pre>*/}
+{/*                      </div>*/}
+{/*                    ) : null}*/}
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('recommendation')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {t('back_to_recommendation')}
+                  </Button>
+
+                  <Button
+                    onClick={() => transitionTo('providers')}
+                    disabled={!briefResult || briefStatus !== 'FINAL'}
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                  >
+                    {t('continue_to_providers')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'providers' ? (
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_2')} {currentStepNumber ?? 4}:{' '}
+                  {t('provider_selection')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {t('for_each_service_select_recommended_providers_or_choose_alternatives_from_the_extended')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {providerSelectionGroups.length === 0 ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {t('there_are_no_provider_recommendations_yet_you_can_continue_to_connections_without')}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="space-y-4">
+                    {providerSelectionGroups.map((group, groupIndex) => {
+                      const serviceKey = getServiceKey(group.service_name);
+                      const selectedCount = selectedProvidersCountByService.get(serviceKey) ?? 0;
+                      const serviceMilestones = reviewMilestonesByService.get(serviceKey) ?? [];
+                      const unassignedMilestones = serviceMilestones.filter(
+                        (entry) => milestoneAssignments[entry.key] === undefined
+                      );
+
+                      const renderProviderCard = (
+                        provider: AiBriefProvider,
+                        tone: 'recommended' | 'other'
+                      ) => {
+                        const providerId = getProviderId(provider);
+                        const checked = isProviderSelected(group.service_name, provider);
+                        const assignedMilestones =
+                          providerId === null
+                            ? []
+                            : serviceMilestones.filter(
+                                (entry) => milestoneAssignments[entry.key] === providerId
+                              );
+                        const activeClass =
+                          tone === 'recommended'
+                            ? 'border-emerald-500 bg-emerald-50/70 dark:border-emerald-500/50 dark:bg-emerald-500/10'
+                            : 'border-blue-500 bg-blue-50/70 dark:border-blue-500/50 dark:bg-blue-500/10';
+
+                        return (
+                          <Card
+                            key={`${tone}-${group.service_name}-${providerId ?? getProviderDisplayName(provider)}`}
+                            className={`cursor-pointer border transition ${
+                              checked ? activeClass : 'border-slate-200 dark:border-[#1E2A3D]'
+                            }`}
+                            onClick={() => handleToggleProvider(group.service_name, provider)}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                  <CardTitle className="text-base">
+                                    {getProviderDisplayName(provider)}
+                                  </CardTitle>
+                                  <CardDescription>
+                                    {t('match_score')}:{' '}
+                                    {typeof provider.matchScore === 'number'
+                                      ? `${provider.matchScore}%`
+                                      : t('n_a')}
+                                  </CardDescription>
+                                  <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                    <span>
+                                      {t('rating')}:{' '}
+                                      {typeof provider.rating === 'number'
+                                        ? provider.rating.toFixed(2)
+                                        : t('n_a')}
+                                    </span>
+                                    <span>
+                                      {t('reviews')}:{' '}
+                                      {typeof provider.reviewCount === 'number'
+                                        ? provider.reviewCount
+                                        : t('n_a')}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() =>
+                                    handleToggleProvider(group.service_name, provider)
+                                  }
+                                  aria-label={t('select_item_aria', {
+                                    name: getProviderDisplayName(provider),
+                                  })}
+                                />
+                              </div>
+                            </CardHeader>
+
+                            <CardContent className="space-y-3">
+                              {Array.isArray(provider.matchReasons) &&
+                              provider.matchReasons.length > 0 ? (
+                                <ul className="space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                  {provider.matchReasons.slice(0, 3).map((reason, reasonIndex) => (
+                                    <li key={`${tone}-reason-${providerId ?? reasonIndex}-${reasonIndex}`}>
+                                      • {reason}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+
+                              {checked ? (
+                                <div className="space-y-3 rounded-md border border-slate-200/80 bg-white/70 p-2 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                                  <div className="space-y-1">
+                                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                      {t('milestones_available_for_assignment')}
+                                    </div>
+                                    {unassignedMilestones.length > 0 ? (
+                                      <div className="space-y-1">
+                                        {unassignedMilestones.map((entry) => (
+                                          <div
+                                            key={`available-${entry.key}-${providerId ?? 'unknown'}`}
+                                            className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                                          >
+                                            <span className="truncate text-slate-700 dark:text-[#C9D4E7]">
+                                              {entry.milestone.title}
+                                            </span>
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-6 w-6"
+                                              onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                handleAssignMilestoneToProvider(
+                                                  group.service_name,
+                                                  entry.key,
+                                                  provider
+                                                );
+                                              }}
+                                              aria-label={t('assign_milestone_to_provider_aria', {
+                                                milestone: entry.milestone.title,
+                                                provider: getProviderDisplayName(provider),
+                                              })}
+                                            >
+                                              <Plus className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                                        {t('no_unassigned_milestones_for_this_service')}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                      {t('assigned_milestones')}
+                                    </div>
+                                    {assignedMilestones.length > 0 ? (
+                                      <div className="space-y-1">
+                                        {assignedMilestones.map((entry) => (
+                                          <div
+                                            key={`assigned-${entry.key}-${providerId ?? 'unknown'}`}
+                                            className="flex items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs dark:border-emerald-500/40 dark:bg-emerald-500/10"
+                                          >
+                                            <span className="truncate text-emerald-800 dark:text-emerald-100">
+                                              {entry.milestone.title}
+                                            </span>
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-6 w-6 text-emerald-700 hover:text-emerald-900 dark:text-emerald-200 dark:hover:text-emerald-100"
+                                              onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                handleRemoveMilestoneAssignment(entry.key);
+                                              }}
+                                              aria-label={t('remove_milestone_assignment_aria', {
+                                                milestone: entry.milestone.title,
+                                                provider: getProviderDisplayName(provider),
+                                              })}
+                                            >
+                                              <X className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                                        {t('no_milestones_assigned_to_this_provider')}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </CardContent>
+                          </Card>
+                        );
+                      };
+
+                      return (
+                        <div
+                          key={`provider-group-${group.service_name}-${group.service_id ?? groupIndex}`}
+                          className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-base font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {group.service_name}
+                            </div>
+                            <Badge variant="outline">
+                              {t('selected')}: {selectedCount}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                              {t('recommended_providers')}
+                            </div>
+                            {group.recommended.length > 0 ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {group.recommended.map((provider) =>
+                                  renderProviderCard(provider, 'recommended')
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500 dark:text-[#8FA0B8]">
+                                {t('no_recommended_providers_for_this_service')}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                {t('other_providers')}
+                              </div>
+                              <Badge variant="secondary">{t('optional')}</Badge>
+                            </div>
+                            {group.others.length > 0 ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {group.others.map((provider) =>
+                                  renderProviderCard(provider, 'other')
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-500 dark:text-[#8FA0B8]">
+                                {t('no_other_providers_available_for_this_service')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                  <span className="font-semibold">
+                    {t('total_selected_providers')}:
+                  </span>{' '}
+                  {selectedProviders.length}
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      transitionTo(projectInputMode === 'manual' ? 'intent' : 'briefing')
+                    }
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {projectInputMode === 'manual'
+                      ? t('back_to_project_details')
+                      : t('back_to_briefing')}
+                  </Button>
+
+                  <Button
+                    onClick={() => transitionTo('connections')}
+                    disabled={!briefResult || briefStatus !== 'FINAL'}
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                  >
+                    {t('continue_to_connections')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'connections' ? (
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_2')} {currentStepNumber ?? 5}: {t('provider_connections')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {t('connect_required_delivery_providers_for_selected_services')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {requiredOAuthProviders.length === 0 ? (
+                  <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertDescription>
+                      {t('no_delivery_provider_connections_required')}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {requiredOAuthProviders.map((provider) => {
+                      const isConnected = connectedOAuthProviders.has(provider);
+                      const requiredServices = requiredOAuthProvidersByService.get(provider) ?? [];
+
+                      return (
+                        <Card
+                          key={`oauth-provider-${provider}`}
+                          className={`border transition ${
+                            isConnected
+                              ? 'border-emerald-300 bg-emerald-50/70 dark:border-emerald-500/40 dark:bg-emerald-500/10'
+                              : 'border-slate-200 dark:border-[#1E2A3D]'
+                          }`}
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                {getOAuthProviderIcon(provider)}
+                                <CardTitle className="text-base">
+                                  {getLocalizedOAuthProviderLabel(provider)}
+                                </CardTitle>
+                              </div>
+                              <Badge variant={isConnected ? 'default' : 'secondary'}>
+                                {isConnected ? t('connected') : t('not_connected')}
+                              </Badge>
+                            </div>
+                            {requiredServices.length > 0 ? (
+                              <CardDescription>
+                                {t('required_for_services')}: {requiredServices.join(', ')}
+                              </CardDescription>
+                            ) : null}
+                          </CardHeader>
+                          <CardContent>
+                            <Button
+                              type="button"
+                              variant={isConnected ? 'outline' : 'default'}
+                              className="w-full"
+                              disabled={isConnected}
+                              onClick={() => handleConnectOAuthProvider(provider)}
+                            >
+                              {isConnected ? t('connected') : t('connect_provider')}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {requiredOAuthProviders.length > 0 ? (
+                  missingOAuthProviders.length > 0 ? (
+                    <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        {t('connect_required_providers_before_review')}
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertDescription>
+                        {t('all_required_delivery_providers_are_connected')}
+                      </AlertDescription>
+                    </Alert>
+                  )
+                ) : null}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('providers')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {t('back_to_providers')}
+                  </Button>
+
+                  <Button
+                    onClick={() => transitionTo('review')}
+                    disabled={!canContinueFromConnections}
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                  >
+                    {t('continue_to_review')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {step === 'review' ? (
+            <Card className={wizardCardClass} style={wizardCardStyle}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
+                  {t('step_2')} {currentStepNumber ?? 6}: {t('review_create')}
+                </CardTitle>
+                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {t('review_budget_distribution_for_each_line_then_create_the_modular_project')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {briefPayloadTruncated ? (
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="space-y-2">
+                      <p>
+                        {t('review_data_comes_from_a_compacted_payload_broadcast_limit_10kb')}
+                      </p>
+                      {briefPayloadTrimmedSections.length > 0 ? (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide">
+                            {t('compacted_sections')}
+                          </div>
+                          <ul className="mt-1 space-y-1 text-xs">
+                            {briefPayloadTrimmedSections.map((section, index) => (
+                              <li key={`review-trimmed-${section}-${index}`}>• {section}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefResult ? (
+                  <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/80 p-4 dark:border-[#1E2A3D] dark:bg-[#0F172A]">
+                    <h4 className="text-base font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                      {t('final_summary_for_creation')}
+                    </h4>
+                    {briefingDisplay.description ? (
+                      <p className="text-sm text-slate-700 dark:text-[#C9D4E7]">
+                        {briefingDisplay.description}
+                      </p>
+                    ) : null}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('ai_budget')}
+                        </div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {typeof briefingDisplay.budget === 'number'
+                            ? `$${briefingDisplay.budget.toLocaleString()}`
+                            : '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('duration')}
+                        </div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {effectiveDuration || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('payment_plan')}
+                        </div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {effectivePaymentPlan || '—'}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('currency')}
+                        </div>
+                        <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                          {briefingDisplay.currency || 'USD'}
+                        </div>
+                      </div>
+                    </div>
+                    {(typeof briefingDisplay.budgetMin === 'number' || typeof briefingDisplay.budgetMax === 'number') ? (
+                      <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                        {t('range')}:{' '}
+                        {typeof briefingDisplay.budgetMin === 'number'
+                          ? `$${briefingDisplay.budgetMin.toLocaleString()}`
+                          : '—'}
+                        {' - '}
+                        {typeof briefingDisplay.budgetMax === 'number' ? `$${briefingDisplay.budgetMax.toLocaleString()}` : '—'}
+                      </div>
+                    ) : null}
+
+                    <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                        {t('final_contract_configuration')}
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="project-duration">{t('project_duration')}</Label>
+                          <Input
+                            id="project-duration"
+                            value={editableDuration}
+                            onChange={(event) => setEditableDuration(event.target.value)}
+                            placeholder={t('ex_2months_1month_6months')}
+                          />
+                          <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            {t('duration_is_validated_against_the_mandatory_milestones_rule_for_projects_over_3')}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-plan">{t('payment_plan')}</Label>
+                          <Select
+                            value={effectivePaymentPlan || undefined}
+                            onValueChange={(value) => setEditablePaymentPlan(value)}
+                            disabled={!canEditPaymentPlanByDuration}
+                          >
+                            <SelectTrigger id="payment-plan">
+                              <SelectValue placeholder={t('select_payment_plan')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PAYMENT_PLAN_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {t(option.labelKey)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            {canEditPaymentPlanByDuration
+                              ? t('for_durations_up_to_3_months_the_payment_plan_can_be_changed')
+                              : t('for_durations_over_3_months_the_payment_plan_cannot_be_changed_at')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {requiresMilestonesByDuration && linesMissingMilestones.length > 0 ? (
+                      <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {t('for_durations_over_3_months_milestones_are_mandatory_on_each_line')}{' '}
+                          {t('missing_for')}: {linesMissingMilestones.join(', ')}.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    {briefingDisplay.overview || briefingDisplay.clientGoal || briefingDisplay.targetAudience ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_modular')}
+                        </div>
+                        {briefingDisplay.overview ? (
+                          <p className="text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('overview')}:</span>{' '}
+                            {briefingDisplay.overview}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.clientGoal ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('client_goal')}:</span>{' '}
+                            {briefingDisplay.clientGoal}
+                          </p>
+                        ) : null}
+                        {briefingDisplay.targetAudience ? (
+                          <p className="mt-1 text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">{t('target_audience')}:</span>{' '}
+                            {briefingDisplay.targetAudience}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.technologies.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('technologies')}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {briefingDisplay.technologies.map((item, index) => (
+                            <Badge key={`${item}-review-tech-${index}`} variant="outline">
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.specificRequirements.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('specific_requirements')}
+                        </div>
+                        <ul className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {briefingDisplay.specificRequirements.map((item, index) => (
+                            <li key={`${item}-review-${index}`}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {briefingDisplay.milestones.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('milestones_plan')}
+                        </div>
+                        <div className="space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                          {briefingDisplay.milestones.map((milestone, index) => (
+                            <div key={`${milestone.title}-review-${index}`}>
+                              {index + 1}. {milestone.title}
+                              {' - '}
+                              {typeof milestone.amount === 'number'
+                                ? `$${milestone.amount.toLocaleString()}`
+                                : t('n_a')}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {briefingProjectLines.length > 0 ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_final_brief_modular_project_lines')}
+                        </div>
+                        <div className="space-y-2">
+                          {briefingProjectLines.map((line, index) => (
+                            <div
+                              key={`${line.service_name}-review-line-${index}`}
+                              className="flex flex-wrap items-center justify-between rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                            >
+                              <div className="flex items-center gap-2">
+                                {getProviderIcon(line.delivery_provider)}
+                                <span className="font-medium">{line.service_name}</span>
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                                {line.budget_percentage}% ({line.milestones.length}{' '}
+                                {t('milestones_2')})
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {(toString(fullBusinessAnalysis?.problem_statement) || fullTechnicalRisks.length > 0) ? (
+                      <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                        <div className="mb-1 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                          {t('final_brief_full')}
+                        </div>
+                        {toString(fullBusinessAnalysis?.problem_statement) ? (
+                          <p className="text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            <span className="font-semibold">
+                              {t('problem_statement')}:
+                            </span>{' '}
+                            {toString(fullBusinessAnalysis?.problem_statement)}
+                          </p>
+                        ) : null}
+                        {fullTechnicalRisks.length > 0 ? (
+                          <ul className="mt-2 space-y-1 text-sm text-slate-700 dark:text-[#C9D4E7]">
+                            {fullTechnicalRisks.map((risk, index) => (
+                              <li key={`${risk}-review-risk-${index}`}>• {risk}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <Label htmlFor="total-budget">
+                    {t('total_project_budget_usd')}
+                  </Label>
+                  <Input
+                    id="total-budget"
+                    type="number"
+                    min="0"
+                    value={totalBudget}
+                    onChange={(event) => setTotalBudget(event.target.value)}
+                    placeholder={t('ex_25000')}
+                  />
+                </div>
+
+                <div className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-[#1E2A3D]">
+                  <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                    {t('budget_distribution_by_lines')}
+                  </div>
+                  <div className="space-y-2">
+                    {reviewLines.map((line, index) => (
+                      <div
+                        key={`${line.service_name}-${index}`}
+                        className="flex flex-wrap items-center justify-between rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                      >
+                        <div className="flex items-center gap-2">
+                          {getProviderIcon(line.delivery_provider)}
+                          <span className="font-medium">{line.service_name}</span>
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-[#A3ADC2]">
+                          {line.budget_percentage}% - ${line.budget_allocation.toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+{/*                {createProjectPayloadDebugJson ? (*/}
+{/*                  <div className="space-y-2 rounded-lg border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">*/}
+{/*                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">*/}
+{/*                      {t('debug_create_payload_json_request_body')}*/}
+{/*                    </div>*/}
+{/*                    <pre className="max-h-64 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">*/}
+{/*{createProjectPayloadDebugJson}*/}
+{/*                    </pre>*/}
+{/*                  </div>*/}
+{/*                ) : null}*/}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => transitionTo('connections')}
+                    className="border transition-colors"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {t('back_to_connections')}
+                  </Button>
+
+                  <Button
+                    onClick={() => void handleCreateProject()}
+                    disabled={
+                      creatingProject ||
+                      !briefResult ||
+                      !effectiveDuration ||
+                      !effectivePaymentPlan
+                      // || (requiresMilestonesByDuration && linesMissingMilestones.length > 0)
+                    }
+                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
+                  >
+                    {creatingProject ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('creating_project')}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        {t('create_project')}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <AlertDialog open={startOverDialogOpen} onOpenChange={setStartOverDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('start_new_project')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('start_new_project_confirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('start_new_project_cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmStartNewProject}>
+              {t('start_new_project_confirm_action')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <ChatLauncher />
+    </div>
+  );
 }

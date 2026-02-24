@@ -15,12 +15,23 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { formatDeadline } from '@/lib/projects';
 import type { Locale } from '@/types/locale';
 import { getTranslations } from 'next-intl/server';
+import ProviderService from './provider-service';
 
 
 export default async function ProjectDetailClient({ id, locale }: {  id: string; locale: Locale; }) {
     const t = await getTranslations({ locale });
     const dateLocale = locale === 'en' ? enUS : ro;
-    const project = await apiClient.getProjectBySlug(id);
+    let project: any = null;
+
+    try {
+        project = await apiClient.getProjectBySlug(id);
+    } catch (error: any) {
+        const message = String(error?.message ?? '');
+        if (!/Project not found/i.test(message)) {
+            throw error;
+        }
+        project = null;
+    }
 
     if (!project) {
         return (
@@ -49,7 +60,7 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                             <span className="text-[#1BC47D]">●</span> {t('projects.detail.badge')}
                         </Badge>
                         <h1 className="text-3xl lg:text-4xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                            {project.title.replace(/^Proiect(\s+)/i, "")}
+                            {String(project.title ?? 'Project').replace(/^Proiect(\s+)/i, "")}
                         </h1>
                         <p className="mt-3 text-base text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
                             {project.description || t('projects.detail.description_fallback')}
@@ -80,7 +91,9 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                                 {t('projects.detail.stats.duration')}
                                             </div>
                                             <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                {formatDeadline(project.project_duration, locale)}
+                                                {project.project_duration
+                                                    ? formatDeadline(project.project_duration, locale)
+                                                    : '-'}
                                             </div>
                                         </div>
 
@@ -100,8 +113,8 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                                 {t('projects.detail.stats.selected_providers')}
                                             </div>
                                             <div className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                                                {project.selected_providers.length > 0
-                                                    ? project.selected_providers.length
+                                                {(project.selected_providers?.length ?? 0) > 0
+                                                    ? (project.selected_providers?.length ?? 0)
                                                     : t('projects.detail.stats.not_available')}
                                             </div>
                                         </div>
@@ -153,9 +166,13 @@ export default async function ProjectDetailClient({ id, locale }: {  id: string;
                                         </div>
                                     )}
 
-                                    {project.providers.length > 0 && (
+                                    <div className="my-6">
+                                        <ProviderService project={project} />
+                                    </div>
+
+                                    {(project.providers?.length ?? 0) > 0 && (
                                         <div className="lg:col-span-2 space-y-4">
-                                            {project.providers.map((provider: any) => (
+                                            {(project.providers ?? []).map((provider: any) => (
                                                 <ProviderCard provider={provider} key={provider.id} />
                                             ))}
                                         </div>

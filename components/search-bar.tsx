@@ -150,7 +150,10 @@ export function SearchBar({
     if (onSearch) {
       onSearch(finalQuery);
     } else {
-      router.push(`/services?search=${encodeURIComponent(finalQuery)}`);
+      const params = new URLSearchParams();
+      params.set('q', finalQuery);
+      params.set('type', 'services');
+      router.push(`/search/ai?${params.toString()}`);
     }
   };
 

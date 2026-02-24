@@ -275,13 +275,11 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 qs.set("q", query);
                 qs.set("limit", "10");
 
-                const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
                 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://Trustorabe.dacars.ro/api";
                 const response = await fetch(`${baseUrl}/companies/search?${qs.toString()}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
                     credentials: "include",
                     signal: controller.signal,

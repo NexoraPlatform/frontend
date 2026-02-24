@@ -9,9 +9,10 @@ import { PriceDisplay } from '@/components/PriceDisplay';
 
 interface ProjectCardProps {
   project: ProjectWithClient;
+  prioritizeClientImage?: boolean;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, prioritizeClientImage = false }: ProjectCardProps) {
   const locale = useLocale() as Locale;
   const t = useTranslations();
   const minBudget = project.budget_min ?? project.budget?.amount;
@@ -56,6 +57,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                     alt={project.client.name}
                     width={40}
                     height={40}
+                    priority={prioritizeClientImage}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 )}

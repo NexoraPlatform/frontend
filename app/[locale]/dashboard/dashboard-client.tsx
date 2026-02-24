@@ -4,21 +4,24 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { usePathname, useRouter } from '@/lib/navigation';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  Shield,
+  Lock,
+  CheckCircle2,
+  Layers,
+  ArrowRight,
   Briefcase,
   DollarSign,
   Star,
-  Clock,
   CheckCircle,
   AlertCircle,
   Plus,
@@ -26,38 +29,117 @@ import {
   Filter,
   ArrowUp,
   ArrowDown,
-  Eye,
   MessageSquare,
   Target,
+  Wallet,
+  Activity,
   Users,
   FileText,
   Settings,
   Bell,
-  BarChart3,
-  Zap,
-  Award,
+  LayoutDashboard,
+  History,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Edit,
-  X, Euro, Currency
+  X,
+  Moon,
+  Sun,
+  MoreHorizontal
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
-import { apiClient, DashboardStatsResponse } from '@/lib/api';
+import { apiClient, DashboardStatsResponse, RecentActivityQuick } from '@/lib/api';
 import { getEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
-import { Can } from "@/components/Can";
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
-import {
-  rapydCreatePayoutBankAction,
-  rapydGetWalletBalanceAction,
-  rapydOnboardingAction
-} from '@/app/actions/secure';
+import { NotificationBell } from '@/components/notification-bell';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
+import { ChatButton } from '@/components/chat/chat-button';
+import ChatLauncher from '@/components/chat/chat-launcher';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
+
+const theme = {
+  trustAccent: '#1BC47D',
+  success: '#21D19F',
+  warning: '#F5A623',
+  error: '#E5484D',
+};
+
+type DashboardThemeVars = {
+  '--bg-main': string;
+  '--bg-card': string;
+  '--text-main': string;
+  '--text-muted': string;
+  '--border-color': string;
+  '--header-bg': string;
+  '--input-bg': string;
+  '--stat-bg': string;
+};
+
+const themes: Record<'light' | 'dark', DashboardThemeVars> = {
+  light: {
+    '--bg-main': '#F5F7FA',
+    '--bg-card': '#FFFFFF',
+    '--text-main': '#0B1C2D',
+    '--text-muted': '#64748B',
+    '--border-color': 'rgba(226, 232, 240, 0.8)',
+    '--header-bg': 'rgba(255, 255, 255, 0.8)',
+    '--input-bg': '#F5F7FA',
+    '--stat-bg': '#F5F7FA',
+  },
+  dark: {
+    '--bg-main': '#06111A',
+    '--bg-card': '#0D1F30',
+    '--text-main': '#F8FAFC',
+    '--text-muted': '#94A3B8',
+    '--border-color': 'rgba(255, 255, 255, 0.08)',
+    '--header-bg': 'rgba(13, 31, 48, 0.8)',
+    '--input-bg': '#06111A',
+    '--stat-bg': '#152A40',
+  },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  },
+};
+
+const ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  'project.created': 'Project created',
+  'project.provider.invited': 'Provider invited',
+  'project.provider.response.submitted': 'Provider response',
+  'project.client.response.submitted': 'Client response',
+  'project.budget.updated': 'Budget updated',
+  'project.budget.accepted_by_provider': 'Budget accepted',
+  'project.budget.rejected_by_provider': 'Budget rejected',
+  'project.budget.proposed_by_provider': 'Budget proposed',
+  'project.budget.accepted_by_client': 'Budget accepted',
+  'project.budget.rejected_by_client': 'Budget rejected',
+  'project.status.accepted': 'Project accepted',
+  'project.milestone.status.updated': 'Milestone updated',
+  'project.milestones.reassigned': 'Milestones reassigned',
+  'project.deliverable.submitted': 'Deliverable submitted',
+  'project.deliverable.rejected': 'Deliverable rejected',
+  'project.payment.escrow.blocked': 'Escrow funded',
+  'project.payment.funds.released': 'Funds released',
+};
 
 interface WalletData {
   id: string;
@@ -70,11 +152,18 @@ interface WalletData {
 export default function DashboardClient() {
   const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
   const t = useTranslations();
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [overviewProjects, setOverviewProjects] = useState<any[]>([]);
+  const [loadingOverviewProjects, setLoadingOverviewProjects] = useState(false);
+  const [overviewProjectsError, setOverviewProjectsError] = useState('');
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [projectsError, setProjectsError] = useState('');
+  const [recentActivities, setRecentActivities] = useState<RecentActivityQuick[]>([]);
+  const [loadingRecentActivities, setLoadingRecentActivities] = useState(false);
+  const [recentActivitiesError, setRecentActivitiesError] = useState('');
   const roleSlugs = useMemo(() => {
     const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
     const fromRoles = (rolesList ?? []).map((role: any) => role?.slug).filter(Boolean);
@@ -111,6 +200,7 @@ export default function DashboardClient() {
   const locale = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState('overview');
   const [wallets, setWallets] = useState<WalletData[]>([]);
@@ -123,6 +213,12 @@ export default function DashboardClient() {
   const [transferAmount, setTransferAmount] = useState('');
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferLoading, setTransferLoading] = useState(false);
+  const [rapydConnecting, setRapydConnecting] = useState(false);
+  const hasRapydConnected = Boolean(user?.rapyd_wallet_id);
+
+  useEffect(() => {
+    document.title = 'Trustora | Escrow Dashboard';
+  }, []);
 
   const parseBalanceAmount = useCallback((value: unknown) => {
     if (value === null || value === undefined) return null;
@@ -161,7 +257,7 @@ export default function DashboardClient() {
     setBalanceLoading(true);
     setBalanceError(null);
     try {
-      const response = await rapydGetWalletBalanceAction(locale);
+      const response = await apiClient.rapydGetWalletBalance(locale);
 
       if (balanceRequestId.current !== requestId) return;
 
@@ -245,9 +341,15 @@ export default function DashboardClient() {
     if (userLoading) return;
 
     if (!user) {
-      router.push('/auth/signin');
+      const currentPath = pathname || '/dashboard';
+      const callbackPath = currentPath.startsWith(`/${locale}`)
+        ? currentPath
+        : `/${locale}${currentPath.startsWith('/') ? currentPath : `/${currentPath}`}`;
+      const query = searchParamsString;
+      const callbackUrl = query ? `${callbackPath}?${query}` : callbackPath;
+      router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     }
-  }, [user, userLoading, router]);
+  }, [locale, pathname, router, searchParamsString, user, userLoading]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -317,7 +419,7 @@ export default function DashboardClient() {
 
     setTransferLoading(true);
     try {
-      await rapydCreatePayoutBankAction({ amount, currency: balance?.currency, language: locale });
+      await apiClient.rapydCreatePayoutBank(amount, balance?.currency, locale);
       toast.success(t('dashboard.finance.transfer_success'));
       setTransferAmount('');
       setTransferError(null);
@@ -337,19 +439,27 @@ export default function DashboardClient() {
     setLoadingProjects(true);
     setProjectsError('');
     try {
-      let response;
+      let response: any;
       if (isProvider) {
         response = await apiClient.getProviderProjectRequests();
       } else {
         response = await apiClient.getClientProjectRequests();
       }
-      let filteredProjects = response.projects || [];
+      const projectsCollection = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.projects)
+          ? response.projects
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+      let filteredProjects = projectsCollection;
 
       // Apply search filter
       if (searchTerm) {
+        const normalizedSearchTerm = searchTerm.toLowerCase();
         filteredProjects = filteredProjects.filter((project: any) =>
-          project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          project.description.toLowerCase().includes(searchTerm.toLowerCase())
+          String(project?.title ?? '').toLowerCase().includes(normalizedSearchTerm) ||
+          String(project?.description ?? '').toLowerCase().includes(normalizedSearchTerm)
         );
       }
 
@@ -367,14 +477,23 @@ export default function DashboardClient() {
       // Apply sorting
       filteredProjects.sort((a: any, b: any) => {
         let aValue, bValue;
+        const budgetAmount = (project: any) => {
+          if (project?.budget && typeof project.budget === 'object') {
+            const amount = Number((project.budget as { amount?: unknown }).amount);
+            return Number.isFinite(amount) ? amount : 0;
+          }
+          const numeric = Number(project?.budget);
+          return Number.isFinite(numeric) ? numeric : 0;
+        };
+
         switch (sortBy) {
           case 'title':
             aValue = a.title.toLowerCase();
             bValue = b.title.toLowerCase();
             break;
           case 'budget':
-            aValue = isProvider ? a.budget : a.budget;
-            bValue = isProvider ? b.budget : b.budget;
+            aValue = budgetAmount(a);
+            bValue = budgetAmount(b);
             break;
           case 'oldest':
             aValue = new Date(a.created_at).getTime();
@@ -415,6 +534,74 @@ export default function DashboardClient() {
     }
   }, [currentPage, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
 
+  const loadOverviewProjects = useCallback(async () => {
+    if (!user) return;
+    setLoadingOverviewProjects(true);
+    setOverviewProjectsError('');
+    try {
+      let response: any;
+      if (isProvider) {
+        response = await apiClient.getProviderProjectRequests();
+      } else {
+        response = await apiClient.getClientProjectRequests();
+      }
+
+      const projectsCollection = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.projects)
+          ? response.projects
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+      const latestTwo = [...projectsCollection]
+        .sort((a: any, b: any) => {
+          const aTime = new Date(a?.created_at ?? 0).getTime();
+          const bTime = new Date(b?.created_at ?? 0).getTime();
+          return bTime - aTime;
+        })
+        .slice(0, 2);
+
+      setOverviewProjects(latestTwo);
+    } catch (error: any) {
+      setOverviewProjectsError(t('dashboard.errors.projects_load_failed', { message: error?.message ?? 'Unknown error' }));
+    } finally {
+      setLoadingOverviewProjects(false);
+    }
+  }, [isProvider, t, user]);
+
+  const loadRecentActivities = useCallback(async () => {
+    if (!user) return;
+    setLoadingRecentActivities(true);
+    setRecentActivitiesError('');
+    try {
+      const activityLanguage: 'ro' | 'en' = locale === 'ro' ? 'ro' : 'en';
+      const response = await apiClient.getRecentActivitiesQuick(activityLanguage);
+      const activitiesCollection = Array.isArray(response)
+        ? response
+        : Array.isArray((response as any)?.data)
+          ? (response as any).data
+          : [];
+      const normalizedActivities: RecentActivityQuick[] = activitiesCollection
+        .filter(
+          (activity: any): activity is RecentActivityQuick =>
+            Boolean(activity) &&
+            typeof activity.title === 'string' &&
+            typeof activity.time_ago === 'string'
+        )
+        .sort((a: RecentActivityQuick, b: RecentActivityQuick) => {
+          const aTime = new Date(a.created_at ?? 0).getTime();
+          const bTime = new Date(b.created_at ?? 0).getTime();
+          return bTime - aTime;
+        });
+      setRecentActivities(normalizedActivities.slice(0, 3));
+    } catch (error: any) {
+      setRecentActivitiesError(t('dashboard.errors.generic', { message: error?.message ?? 'Unknown error' }));
+    } finally {
+      setLoadingRecentActivities(false);
+    }
+  }, [locale, t, user]);
+
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
     try {
@@ -428,48 +615,95 @@ export default function DashboardClient() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !isProvider || activeTab !== 'projects') return;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    const echo = getEcho(token);
+    if (!user?.id) return;
+    const echo = getEcho();
     if (!echo) return;
     const channel = echo.private(`App.Models.User.${user.id}`);
     const handler = (notification: {
       type?: string;
-      data?: { type?: string; projectId?: string | number; payload?: { projectId?: string | number } };
+      data?: {
+        type?: string;
+        projectId?: string | number;
+        payload?: { projectId?: string | number; status?: string };
+      };
       projectId?: string | number;
-      payload?: { projectId?: string | number };
+      payload?: { projectId?: string | number; status?: string };
     }) => {
-      const declaredType = String(
-        notification?.data?.type ??
-          notification?.type ??
-          ''
-      );
+      const rawType = String(notification?.type ?? '').toLowerCase();
+      const declaredType = String(notification?.data?.type ?? '').toLowerCase();
+      const isBudgetAcceptedByProvider =
+        declaredType === 'budget.accepted.by_provider' ||
+        rawType.includes('provideracceptedclientbudget');
       const projectId =
         notification?.data?.projectId ??
         notification?.projectId ??
         notification?.data?.payload?.projectId ??
         notification?.payload?.projectId;
+      const payloadStatus = String(
+        notification?.data?.payload?.status ??
+        notification?.payload?.status ??
+        ''
+      ).toUpperCase();
       const isProjectEvent =
         declaredType.startsWith('project.') ||
         declaredType.startsWith('budget.');
-      const isRapydProjectEvent =
-        declaredType.startsWith('rapyd.') && Boolean(projectId);
+      const isProjectStatusUpdatedEvent =
+        declaredType === 'project.status.updated' ||
+        rawType.includes('projectstatusupdated');
+      const isProviderFinishedNotification =
+        isProjectStatusUpdatedEvent && payloadStatus === 'FINISHED';
+      const isRapydEvent = declaredType.startsWith('rapyd.');
+      const isFallbackProjectEvent = !declaredType && Boolean(projectId);
+      const shouldReloadProjectsForBothRoles =
+        isProjectEvent ||
+        isProjectStatusUpdatedEvent ||
+        isProviderFinishedNotification ||
+        isBudgetAcceptedByProvider ||
+        isFallbackProjectEvent ||
+        (isRapydEvent && Boolean(projectId));
 
-      if (!isProjectEvent && !isRapydProjectEvent) return;
-      loadProjects();
+      if (isRapydEvent && isProvider) {
+        void fetchBalance();
+      }
+
+      const shouldRefetchProjects = shouldReloadProjectsForBothRoles;
+
+      const shouldRefreshOverview =
+        activeTab === 'overview' &&
+        (isProjectEvent || isBudgetAcceptedByProvider || isRapydEvent);
+
+      if (shouldRefetchProjects) {
+        void loadProjects();
+      }
+
+      if (shouldRefreshOverview) {
+        void loadOverviewProjects();
+        void loadRecentActivities();
+        void loadStats();
+      }
     };
     channel.notification(handler);
 
     return () => {
       channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
     };
-  }, [user?.id, isProvider, activeTab, loadProjects]);
+  }, [user?.id, isProvider, activeTab, loadProjects, fetchBalance, loadOverviewProjects, loadRecentActivities, loadStats]);
 
   useEffect(() => {
     if (user && activeTab === 'overview') {
       loadStats();
     }
   }, [user, activeTab, loadStats]);
+
+  useEffect(() => {
+    if (!user || activeTab !== 'overview') return;
+    loadOverviewProjects();
+  }, [activeTab, loadOverviewProjects, user]);
+
+  useEffect(() => {
+    if (!user || activeTab !== 'overview') return;
+    loadRecentActivities();
+  }, [activeTab, loadRecentActivities, user]);
 
 
   useEffect(() => {
@@ -501,42 +735,39 @@ export default function DashboardClient() {
     };
   }, [activeTab, loadProjects]);
 
-  const handleProjectResponse = async (projectId: string, response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE', proposedBudget?: number) => {
+  const handleProjectResponse = useCallback(async (
+    projectId: string,
+    payload: {
+      response: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
+      proposedBudget?: number;
+      reason?: string;
+      refusal_scope?: 'project' | 'milestone' | 'milestones';
+      milestone_ids?: Array<string | number>;
+      suggestions_limit?: number;
+    }
+  ) => {
     try {
-      await apiClient.respondToProjectRequest(projectId, { response, proposedBudget }, locale);
+      await apiClient.respondToProjectRequest(projectId, payload, locale);
       let message = '';
-      if (response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
-      else if (response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
-      else if (response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
+      if (payload.response === 'ACCEPTED') message = t('dashboard.notifications.project_accepted');
+      else if (payload.response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
+      else if (payload.response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
       toast.success(message);
       await loadProjects();
+      await loadOverviewProjects();
+      await loadRecentActivities();
     } catch (error: any) {
       toast.error(t('dashboard.errors.generic', { message: error.message }));
     }
-  };
+  }, [loadOverviewProjects, loadProjects, loadRecentActivities, locale, t]);
 
-  const getStripeOnboardingUrl = async () => {
-    try {
-      if (!user) return;
-      const response = await apiClient.handleStripeOnboarding(user.email);
 
-      if (!response || !response.url) {
-        console.error('No URL returned from Stripe onboarding');
-        return null;
-      }
-
-      window.location.href = response.url;
-
-    } catch (error) {
-      console.error('Error fetching Stripe onboarding URL:', error);
-      return null;
-    }
-  }
 
   const getRapydOnboardingUrl = async () => {
+    setRapydConnecting(true);
     try {
       if (!user) return;
-      const response = await rapydOnboardingAction(locale);
+      const response = await apiClient.rapydOnboarding(locale);
 
       const walletId = response?.wallet_id ?? response?.data?.wallet_id;
       const contactId =
@@ -554,12 +785,26 @@ export default function DashboardClient() {
         rapyd_wallet_id: walletId,
         ...(contactId ? { rapyd_contact_id: contactId } : {}),
       });
-      refreshUser().catch(() => {});
+      refreshUser().catch(() => { });
 
-      // window.location.href = response.url;
+      const onboardingUrl =
+        (typeof response?.url === 'string' && response.url.trim()
+          ? response.url
+          : typeof response?.data?.url === 'string' && response.data.url.trim()
+            ? response.data.url
+            : null);
+
+      if (onboardingUrl && typeof window !== 'undefined') {
+        window.location.href = onboardingUrl;
+        return;
+      }
+
+      await fetchBalance();
     } catch (error) {
       console.error('Error fetching Rapyd onboarding URL:', error);
       return null;
+    } finally {
+      setRapydConnecting(false);
     }
   }
 
@@ -689,7 +934,14 @@ export default function DashboardClient() {
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>{t('dashboard.loading.dashboard')}</p>
+        </div>
+      </div>
+    );
   }
 
   // Data for overview stats
@@ -782,312 +1034,448 @@ export default function DashboardClient() {
   };
 
   const overviewStats = getOverviewStats();
+  const currentTheme = isDarkMode ? themes.dark : themes.light;
+  const sidebarItemClass = (tab: string) => `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
+    activeTab === tab
+      ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
+      : 'text-slate-400 hover:text-white hover:bg-white/5'
+  }`;
+  const projectsTitle = isProvider ? t('dashboard.projects.title.provider') : t('dashboard.projects.title.client');
+  const servicesTitle = isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client');
+  const activityItems = recentActivities.slice(0, 3);
+  const activityLabels = [
+    t('dashboard.filters.status.accepted'),
+    t('dashboard.filters.status.in_progress'),
+    t('dashboard.filters.status.completed'),
+  ];
+  const emptyActivityText = locale === 'ro' ? 'Nu există activitate recentă.' : 'No recent activity.';
+  const getActivityBadgeLabel = (activity: RecentActivityQuick, fallbackLabel: string) => {
+    const actionKey = activity.action ?? activity.type;
+    if (!actionKey) return fallbackLabel;
+    const mappedLabel = ACTIVITY_ACTION_LABELS[actionKey];
+    if (mappedLabel) return mappedLabel;
+    return actionKey.replace(/[._]/g, ' ');
+  };
+  const getActivityMeta = (activity: RecentActivityQuick) => {
+    const actorName = activity.actor?.name?.trim();
+    const actorRole = activity.actor?.role?.trim();
+    if (actorName && actorRole) return `${actorName} • ${actorRole}`;
+    if (actorName) return actorName;
+    if (actorRole) return actorRole;
+    return activity.time_ago;
+  };
+  const walletAvailableByCurrency = Array.from(
+    wallets.reduce((accumulator, wallet) => {
+      const currency = wallet.currency;
+      if (!currency) return accumulator;
+      const current = accumulator.get(currency) ?? 0;
+      accumulator.set(currency, current + (wallet.balance ?? 0));
+      return accumulator;
+    }, new Map<string, number>())
+  ).map(([currency, amount]) => ({ currency, amount }));
+  const hasManyWalletCurrencies = walletAvailableByCurrency.length > 2;
+  const userInitials = `${(user.firstName?.[0] ?? '')}${(user.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
+  const userDisplayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
+  const userAvatarSrc = user.avatar ?? user.profile_photo_url ?? user.avatar_url ?? undefined;
   // const hasOnHoldBalance = balance?.on_hold_balance !== null && balance?.on_hold_balance !== undefined;
   // const hasReceivedBalance = balance?.received_balance !== null && balance?.received_balance !== undefined;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#070C14]">
-      <Header />
-
-      <section className="pt-28 pb-10 px-6 hero-gradient">
-        <div className="max-w-6xl mx-auto">
-          {/* Welcome Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
-            <div>
-              <Badge className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-                <span className="text-[#1BC47D]">●</span> {t('dashboard.hero.badge')}
-              </Badge>
-              <h1 className="text-3xl lg:text-4xl font-bold mb-2 text-[#0B1C2D] dark:text-[#E6EDF3]">
-                {t('dashboard.hero.welcome', { name: user.firstName })}
-              </h1>
-              <p className="text-slate-500 dark:text-[#A3ADC2]">
-                {isProvider
-                  ? t('dashboard.hero.subtitle.provider')
-                  : t('dashboard.hero.subtitle.client')
-                }
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Avatar className="w-16 h-16 border border-slate-100 dark:border-[#1E2A3D]">
-                <AvatarImage src={user.avatar ?? undefined} />
-                <AvatarFallback className="text-lg bg-slate-100 text-[#0B1C2D] dark:bg-[#111B2D] dark:text-[#E6EDF3]">
-                  {user.firstName[0]}{user.lastName[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">{user.firstName} {user.lastName}</div>
-                <div className="flex items-center flex-row space-x-2">
-                  <Badge className={isProvider ? 'bg-emerald-50 text-[#0B1C2D] border border-emerald-100' : 'bg-[#E8F7F1] text-[#0B1C2D] border border-[#CFF1E3]'}>
-                    {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
-                  </Badge>
-                  {isProvider && user.rapyd_wallet_id ? (
-                      <>
-                        {balanceLoading ? (
-                          <Badge className="bg-slate-50 text-[#0B1C2D] border border-slate-100">
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            {t('dashboard.hero.balance.loading')}
-                          </Badge>
-                        ) : balanceError ? (
-                          <Badge className="bg-red-50 text-[#0B1C2D] border border-red-100" title={balanceError}>
-                            <AlertCircle className="w-3 h-3 mr-1" />
-                            {t('dashboard.hero.balance.error')}
-                          </Badge>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <Badge className={'bg-emerald-50 text-[#0B1C2D] border border-emerald-100'}>
-                              <div className="flex flex-col px-2">
-                                <div className="flex flex-row items-center space-x-2">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  {t('dashboard.hero.balance.available')}:
-                                </div>
-                                {wallets.map((item) => (
-                                  <div key={item.id} className="flex flex-row items-center space-x-2">
-                                    {item.currency === "EUR" ? (
-                                        <Euro className="w-3 h-3" />
-                                    ) : item.currency === "USD" ? (
-                                        <DollarSign className="w-3 h-3" />
-                                    ) : (
-                                        <Currency className="w-3 h-3" />
-                                    )}
-                                    {formatBalanceAmount(item.balance, item.currency)}
-                                  </div>
-                                ))}
-                              </div>
-                            </Badge>
-
-                            {/*{hasOnHoldBalance && (*/}
-                            {/*  <Badge className={'bg-red-50 text-[#0B1C2D] border border-red-100'}>*/}
-                            {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
-                            {/*    {t('dashboard.hero.balance.on_hold')}: {formatBalanceAmount(balance?.on_hold_balance, balance?.currency)}*/}
-                            {/*  </Badge>*/}
-                            {/*)}*/}
-                            {/*{hasReceivedBalance && (*/}
-                            {/*  <Badge className={'bg-yellow-50 text-[#0B1C2D] border border-yellow-100'}>*/}
-                            {/*    <CheckCircle className="w-3 h-3 mr-1" />*/}
-                            {/*    {t('dashboard.hero.balance.received')}: {formatBalanceAmount(balance?.received_balance, balance?.currency)}*/}
-                            {/*  </Badge>*/}
-                            {/*)}*/}
-                          </div>
-                        )}
-                      </>
-                  ) : !user.rapyd_wallet_id ? (
-                      <Button
-                          variant="outline"
-                          size="sm"
-                          className="ms-2 bg-stripe !text-white hover:bg-black hover:!text-white border-transparent"
-                          onClick={getRapydOnboardingUrl}
-                      >
-
-                        {t('dashboard.hero.rapyd.connect')}
-                      </Button>
-                  ) : null}
-                </div>
+    <Tabs
+      value={activeTab}
+      onValueChange={handleTabChange}
+      className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
+      style={{ ...(currentTheme as React.CSSProperties), backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' } as React.CSSProperties}
+    >
+      <aside className="w-64 bg-[#0B1C2D] border-r border-[#152B42] flex flex-col justify-between hidden md:flex shrink-0 z-20">
+        <div>
+          <div className="h-20 flex items-center px-6 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <img src="/trustora-logo2.png" alt="Trustora Logo" className="w-8 h-8 object-contain" />
+              <div className="flex flex-col">
+                <span className="font-bold text-lg tracking-tight text-white leading-none">TRUSTORA</span>
+                <span className="text-[8px] uppercase font-bold tracking-[0.2em] text-[#1BC47D] mt-0.5">{t('dashboard.hero.badge')}</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="px-6 pb-20">
-        <div className="max-w-6xl mx-auto">
-          {/* Dashboard Tabs */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className={`grid w-full grid-cols-2 sm:grid-cols-3 ${isProvider ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} rounded-2xl bg-slate-100/80 p-1 dark:bg-[#0B1220]`}>
-              <TabsTrigger value="overview" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                <BarChart3 className="hidden sm:block w-4 h-4 pe-1" />
-                <span>{t('dashboard.tabs.overview')}</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="projects"
-                className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]"
+          <nav className="p-4 space-y-1">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{t('dashboard.quick_actions.title')}</p>
+
+            <button type="button" onClick={() => handleTabChange('overview')} className={sidebarItemClass('overview')}>
+              <LayoutDashboard size={18} />
+              {t('dashboard.tabs.overview')}
+            </button>
+            {isClient && !isProvider ? (
+              <button
+                type="button"
+                onClick={() => router.push('/projects/new')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
               >
-                <Briefcase className="hidden sm:block w-4 h-4 pe-1" />
-                <span>{t('dashboard.tabs.projects')}</span>
-              </TabsTrigger>
+                <Plus size={18} />
+                {t('dashboard.projects.new_project')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => handleTabChange(isProvider ? 'finance' : 'projects')}
+              className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
+            >
+              <Lock size={18} />
+              {isProvider ? t('dashboard.tabs.finance') : t('dashboard.tabs.projects')}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange(isProvider ? 'projects' : 'services')}
+              className={sidebarItemClass(isProvider ? 'projects' : 'services')}
+            >
+              <Layers size={18} />
+              {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
+            </button>
+            <button type="button" onClick={() => handleTabChange('messages')} className={sidebarItemClass('messages')}>
+              <History size={18} />
+              {t('dashboard.tabs.messages')}
+            </button>
 
-              <TabsTrigger value="services" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                <Target className="hidden sm:block w-4 h-4 pe-1" />
-                <span>{t('dashboard.tabs.services')}</span>
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                <MessageSquare className="hidden sm:block w-4 h-4 pe-1" />
-                <span>{t('dashboard.tabs.messages')}</span>
-              </TabsTrigger>
-              {isProvider && (
-                <TabsTrigger value="finance" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                  <DollarSign className="hidden sm:block w-4 h-4 pe-1" />
-                  <span>{t('dashboard.tabs.finance')}</span>
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="settings" className="flex items-center rounded-xl data-[state=active]:bg-white data-[state=active]:text-[#0B1C2D] data-[state=active]:shadow-sm dark:data-[state=active]:bg-[#111B2D] dark:data-[state=active]:text-[#E6EDF3]">
-                <Settings className="hidden sm:block w-4 h-4 pe-1" />
-                <span>{t('dashboard.tabs.settings')}</span>
-              </TabsTrigger>
-            </TabsList>
+            {isProvider && (
+              <>
+                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">{servicesTitle}</p>
+                <button type="button" onClick={() => handleTabChange('services')} className={sidebarItemClass('services')}>
+                  <Users size={18} />
+                  {t('dashboard.tabs.services')}
+                </button>
+              </>
+            )}
+          </nav>
+        </div>
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {overviewStats.map((stat, index) => (
-                  <Card key={index} className="glass-card shadow-sm hover:shadow-md transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-slate-500 mb-1 dark:text-[#A3ADC2]">
-                            {stat.title}
-                          </p>
-                          <p className="text-2xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">{stat.value}</p>
-                          <p className="text-xs text-slate-400 mt-1 dark:text-[#6B7285]">
-                            {stat.change}
-                          </p>
-                        </div>
-                        <div className={`w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[rgba(27,196,125,0.12)] flex items-center justify-center ${stat.color}`}>
-                          <stat.icon className="w-6 h-6" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+        <div className="p-4 border-t border-white/5">
+          <button type="button" onClick={() => handleTabChange('settings')} className={`${sidebarItemClass('settings')} mb-2`}>
+            <Settings size={18} />
+            {t('dashboard.tabs.settings')}
+          </button>
+          {isProvider ? (
+            <div className="mt-3 px-3 py-3 bg-[#152B42] rounded-xl border border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-300">
+                  {t('dashboard.tabs.finance')}
+                </p>
               </div>
 
-              {/* Quick Actions */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Zap className="w-5 h-5" />
-                    <span>{t('dashboard.quick_actions.title')}</span>
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                    {isProvider
-                      ? t('dashboard.quick_actions.description.provider')
-                      : t('dashboard.quick_actions.description.client')
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid xs:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {isProvider ? (
-                      <>
-                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                          <Link href="/provider/services/select">
-                            <Plus className="w-6 h-6" />
-                            <span>{t('dashboard.quick_actions.provider.add_services')}</span>
-                          </Link>
-                        </Button>
-                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                          <Link href="/provider/profile">
-                            <Edit className="w-6 h-6" />
-                            <span>{t('dashboard.quick_actions.provider.edit_profile')}</span>
-                          </Link>
-                        </Button>
-                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                          <Link href="/tests">
-                            <Award className="w-6 h-6" />
-                            <span>{t('dashboard.quick_actions.provider.take_tests')}</span>
-                          </Link>
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                          <Link href="/projects/new">
-                            <Plus className="w-6 h-6" />
-                            <span>{t('dashboard.quick_actions.client.new_project')}</span>
-                          </Link>
-                        </Button>
-                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                          <Link href="/services">
-                            <Search className="w-6 h-6" />
-                            <span>{t('dashboard.quick_actions.client.search_services')}</span>
-                          </Link>
-                        </Button>
-                        <Button className="h-20 flex-col space-y-2" variant="outline" asChild>
-                          <Link href="/projects">
-                            <Eye className="w-6 h-6" />
-                            <span>{t('dashboard.quick_actions.client.explore_projects')}</span>
-                          </Link>
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {!hasRapydConnected ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-400">{t('dashboard.hero.balance.error')}</p>
+                  <button
+                    type="button"
+                    onClick={getRapydOnboardingUrl}
+                    disabled={rapydConnecting}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#1BC47D] px-3 py-2 text-xs font-semibold text-[#06111A] transition-colors hover:bg-[#17b672] disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {rapydConnecting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    {t('dashboard.hero.rapyd.connect')}
+                  </button>
+                </div>
+              ) : balanceLoading ? (
+                <p className="text-xs text-slate-400">{t('dashboard.hero.balance.loading')}</p>
+              ) : balanceError ? (
+                <p className="text-xs text-red-300">{balanceError}</p>
+              ) : walletAvailableByCurrency.length === 0 ? (
+                <p className="text-xs text-slate-400">{t('dashboard.hero.balance.error')}</p>
+              ) : (
+                <div className={`space-y-2 ${hasManyWalletCurrencies ? 'max-h-40 overflow-y-auto pr-1' : ''}`}>
+                  {walletAvailableByCurrency.map(({ currency, amount }) => (
+                    <div key={currency} className="rounded-lg border border-white/5 bg-[#0F2236] px-2.5 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1BC47D] mb-1">{currency}</p>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">{t('dashboard.hero.balance.available')}</span>
+                        <span className="font-semibold text-white">{formatBalanceAmount(amount, currency)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+          <div className="flex items-center gap-3 px-3 py-2 mt-2 bg-[#152B42] rounded-xl border border-white/5">
+            <div className="relative">
+              <Avatar className="w-8 h-8 border border-white/10">
+                <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
+                <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-white text-xs font-bold">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BC47D] rounded-full border-2 border-[#152B42]" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm font-bold text-white truncate">{userDisplayName}</p>
+              <p className="text-[10px] text-[#1BC47D] uppercase font-bold flex items-center gap-1">
+                <CheckCircle2 size={10} /> {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
 
-              {/* Recent Activity */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5" />
-                    <span>{t('dashboard.activity.title')}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {isProvider ? (
-                      <>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{t('dashboard.activity.provider.completed_project.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.completed_project.meta')}</p>
-                          </div>
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300">
+        <header
+          className="h-20 backdrop-blur-md border-b flex items-center justify-between px-8 z-10 shrink-0 transition-colors duration-300"
+          style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
+        >
+          <div className="flex items-center gap-4 w-96">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder={t('dashboard.filters.search_placeholder')}
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none transition-colors border"
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-main)'
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+              </div>
+              <div
+                className="rounded-lg border"
+                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+              >
+                <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+              </div>
+            </div>
+            <button
+              onClick={() => setIsDarkMode((prev) => !prev)}
+              className="relative transition-colors hover:text-[var(--text-main)]"
+              style={{ color: 'var(--text-muted)' }}
+              title="Toggle Light/Dark Mode"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <div className="relative">
+              <NotificationBell />
+            </div>
+            <div className="relative">
+              <ChatButton />
+            </div>
+
+            <div className="w-px h-6 transition-colors duration-300" style={{ backgroundColor: 'var(--border-color)' }} />
+
+            <button
+              type="button"
+              onClick={() => {
+                if (isProvider) {
+                  handleTabChange('finance');
+                } else {
+                  router.push('/projects/new');
+                }
+              }}
+              className="bg-[#1BC47D] hover:bg-[#18A96B] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-md shadow-[#1BC47D]/20 flex items-center gap-2"
+            >
+              <Wallet size={16} /> {isProvider ? t('dashboard.tabs.finance') : t('dashboard.projects.new_project')}
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-8 relative">
+          <div className="absolute inset-0 pointer-events-none opacity-[0.02] z-0" style={{ backgroundImage: 'radial-gradient(var(--text-main) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+
+          <motion.div
+            className="max-w-6xl mx-auto relative z-10"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.div variants={fadeUp} className="mb-8 md:hidden">
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => handleTabChange('overview')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'overview' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'overview' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.overview')}</button>
+                {isClient && !isProvider ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push('/projects/new')}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold border"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-main)' }}
+                  >
+                    {t('dashboard.projects.new_project')}
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => handleTabChange('projects')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'projects' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'projects' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.projects')}</button>
+                <button type="button" onClick={() => handleTabChange('services')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'services' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'services' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.services')}</button>
+                <button type="button" onClick={() => handleTabChange('messages')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'messages' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'messages' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.messages')}</button>
+                {isProvider && <button type="button" onClick={() => handleTabChange('finance')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'finance' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'finance' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.finance')}</button>}
+                <button type="button" onClick={() => handleTabChange('settings')} className="px-3 py-2 rounded-lg text-xs font-semibold border" style={{ borderColor: 'var(--border-color)', backgroundColor: activeTab === 'settings' ? `${theme.trustAccent}20` : 'var(--bg-card)', color: activeTab === 'settings' ? theme.trustAccent : 'var(--text-main)' }}>{t('dashboard.tabs.settings')}</button>
+              </div>
+            </motion.div>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6 m-0">
+              <motion.div variants={fadeUp} className="mb-8">
+                <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>{t('dashboard.tabs.overview')}</h1>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {isProvider ? t('dashboard.hero.subtitle.provider') : t('dashboard.hero.subtitle.client')}
+                </p>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                {overviewStats.slice(0, 3).map((stat, index) => {
+                  const Icon = index === 0 ? Lock : index === 1 ? AlertCircle : CheckCircle2;
+                  const leftColor = index === 0 ? theme.trustAccent : index === 1 ? theme.warning : '#64748B';
+                  return (
+                    <div
+                      key={index}
+                      className="p-6 rounded-2xl border shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] relative overflow-hidden transition-colors duration-300"
+                      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+                    >
+                      <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: leftColor }} />
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{stat.title}</p>
+                          <p className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-main)' }}>
+                            {stat.value}
+                          </p>
                         </div>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                            <Bell className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_request.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_request.meta')}</p>
-                          </div>
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${leftColor}20`, color: leftColor }}>
+                          <Icon size={20} />
                         </div>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                            <Star className="w-4 h-4 text-yellow-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{t('dashboard.activity.provider.new_review.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.provider.new_review.meta')}</p>
-                          </div>
-                        </div>
-                      </>
+                      </div>
+                      <div
+                        className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors duration-300"
+                        style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                      >
+                        <Shield size={14} style={{ color: theme.trustAccent }} /> {stat.change}
+                      </div>
+                    </div>
+                  );
+                })}
+              </motion.div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <motion.div variants={fadeUp} className="xl:col-span-2 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-main)' }}>
+                      <Layers size={18} style={{ color: theme.trustAccent }} /> {projectsTitle}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('projects')}
+                      className="text-sm font-semibold transition-colors flex items-center gap-1"
+                      style={{ color: theme.trustAccent }}
+                    >
+                      {t('dashboard.tabs.projects')} <ArrowRight size={14} />
+                    </button>
+                  </div>
+
+                  <div
+                    className="border rounded-2xl shadow-sm overflow-hidden transition-colors duration-300"
+                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+                  >
+                    {loadingOverviewProjects ? (
+                      <div className="flex items-center justify-center py-14">
+                        <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                      </div>
+                    ) : overviewProjectsError ? (
+                      <div className="p-4">
+                        <Alert variant="destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{overviewProjectsError}</AlertDescription>
+                        </Alert>
+                      </div>
+                    ) : overviewProjects.length === 0 ? (
+                      <div className="p-10 text-center">
+                        <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-main)' }}>
+                          {isProvider ? t('dashboard.projects.empty.title.provider') : t('dashboard.projects.empty.title.client')}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          {isProvider ? t('dashboard.projects.empty.description.provider') : t('dashboard.projects.empty.description.client')}
+                        </p>
+                      </div>
                     ) : (
-                      <>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{t('dashboard.activity.client.project_accepted.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.project_accepted.meta')}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                            <DollarSign className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{t('dashboard.activity.client.budget_proposal.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.budget_proposal.meta')}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                            <Plus className="w-4 h-4 text-purple-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{t('dashboard.activity.client.new_project.title')}</p>
-                            <p className="text-xs text-muted-foreground">{t('dashboard.activity.client.new_project.meta')}</p>
-                          </div>
-                        </div>
-                      </>
+                      <div className="p-4 md:p-6 space-y-4">
+                        {overviewProjects.map((project) => (
+                          <ProjectRequestCard
+                            key={project.id}
+                            project={project}
+                            onResponse={handleProjectResponse}
+                            onRefresh={loadOverviewProjects}
+                          />
+                        ))}
+                      </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </motion.div>
+
+                <motion.div variants={fadeUp} className="xl:col-span-1 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-main)' }}>
+                      <Activity size={18} style={{ color: theme.trustAccent }} /> {t('dashboard.activity.title')}
+                    </h2>
+                    <button className="transition-colors hover:text-[#1BC47D]" style={{ color: 'var(--text-muted)' }}><MoreHorizontal size={18} /></button>
+                  </div>
+
+                  <div
+                    className="border rounded-2xl shadow-sm p-6 transition-colors duration-300"
+                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+                  >
+                    <div className="space-y-4">
+                      {loadingRecentActivities ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                        </div>
+                      ) : activityItems.length === 0 ? (
+                        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+                          {emptyActivityText}
+                        </p>
+                      ) : (
+                        activityItems.map((item, index) => {
+                          const labelColor = index === 0 ? theme.trustAccent : 'var(--text-muted)';
+                          return (
+                            <div key={`${item.title}-${index}`} className="p-3 rounded-xl border" style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)' }}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold uppercase" style={{ color: labelColor }}>
+                                  {getActivityBadgeLabel(item, activityLabels[index] ?? t('dashboard.activity.title'))}
+                                </span>
+                                <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{item.time_ago}</span>
+                              </div>
+                              <p className="text-sm font-bold mb-1" style={{ color: 'var(--text-main)' }}>{item.title}</p>
+                              <p className="text-xs font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
+                                {getActivityMeta(item)}
+                              </p>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                    {recentActivitiesError ? (
+                      <p className="mt-3 text-xs" style={{ color: '#F5A623' }}>
+                        {recentActivitiesError}
+                      </p>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('messages')}
+                      className="w-full mt-6 py-2.5 border rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 hover:opacity-80"
+                      style={{ backgroundColor: 'var(--stat-bg)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+                    >
+                      {t('dashboard.tabs.messages')} <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
             </TabsContent>
 
             {/* Projects Tab */}
@@ -1221,7 +1609,7 @@ export default function DashboardClient() {
                       </p>
                     </div>
 
-                    {isClient && (
+                    {isClient && !isProvider && (
                       <Button asChild className="btn-primary">
                         <Link href="/projects/new">
                           <Plus className="w-4 h-4 mr-2" />
@@ -1254,14 +1642,14 @@ export default function DashboardClient() {
                             : t('dashboard.projects.empty.description.client')
                           }
                         </p>
-                        <Can roles={['client']}>
+                        {isClient && !isProvider && (
                           <Button asChild className="btn-primary">
                             <Link href="/projects/new">
                               <Plus className="w-4 h-4 mr-2" />
                               {t('dashboard.projects.empty.cta')}
                             </Link>
                           </Button>
-                        </Can>
+                        )}
                       </CardContent>
                     </Card>
                   ) : (
@@ -1354,10 +1742,28 @@ export default function DashboardClient() {
                       <span>{t('dashboard.finance.title')}</span>
                     </CardTitle>
                     <CardDescription className="text-slate-500 dark:text-[#A3ADC2]">
-                      {t('dashboard.finance.wallet_balance')}: {formatBalanceAmount(balance?.balance, balance?.currency)}
+                      {hasRapydConnected
+                        ? `${t('dashboard.finance.wallet_balance')}: ${formatBalanceAmount(balance?.balance, balance?.currency)}`
+                        : t('dashboard.hero.rapyd.connect')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {!hasRapydConnected ? (
+                      <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
+                        <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-4">
+                          {t('dashboard.hero.balance.error')}
+                        </p>
+                        <Button
+                          type="button"
+                          className="bg-[#1BC47D] hover:bg-[#159c63] text-[#06111A]"
+                          onClick={getRapydOnboardingUrl}
+                          disabled={rapydConnecting}
+                        >
+                          {rapydConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          {t('dashboard.hero.rapyd.connect')}
+                        </Button>
+                      </div>
+                    ) : (
                     <div className="grid gap-6 lg:grid-cols-2">
                       <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-5 shadow-sm dark:border-slate-800/70 dark:bg-[#0B1220]/60">
                         <div className="text-sm font-medium text-slate-500 dark:text-[#A3ADC2]">
@@ -1454,6 +1860,7 @@ export default function DashboardClient() {
                         </Button>
                       </div>
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1461,11 +1868,10 @@ export default function DashboardClient() {
 
             {/* Settings Tab */}
             <SettingsComponent />
-          </Tabs>
+          </motion.div>
         </div>
-      </section>
-
-      <Footer />
-    </div>
+      </main>
+      {user ? <ChatLauncher /> : null}
+    </Tabs>
   );
 }

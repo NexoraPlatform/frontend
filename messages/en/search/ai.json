@@ -1,0 +1,58 @@
+{
+  "ai": {
+    "aria_label": "AI smart search",
+    "badge": "AI Search",
+    "title": "Context-aware AI search",
+    "subtitle": "Search services, projects, and providers in the correct AI namespace.",
+    "brief_label": "Describe your brief",
+    "brief_hint": "Use complete sentences with scope, constraints, stack, and budget expectations for stronger matching.",
+    "submit": "Search",
+    "char_count": "{count} chars",
+    "strength": {
+      "label": "Search strength",
+      "weak": "Weak",
+      "medium": "Medium",
+      "strong": "Strong"
+    },
+    "initial_state": "Describe what you need and run an AI search.",
+    "results_meta": "{count} results for \"{query}\" in {namespace}.",
+    "match_score": "{score}% Match",
+    "broadening_title": "Broadening search...",
+    "broadening_description": "We found a narrow set of results, so we are expanding semantic similarity and related intent.",
+    "generic_error": "Unable to run AI search right now.",
+    "error_title": "Search request failed",
+    "empty_title": "No matches yet",
+    "empty_description": "Try rephrasing your prompt or searching a different namespace.",
+    "fallback": {
+      "projects_to_services": "No projects found. Search services with the same prompt"
+    },
+    "service": {
+      "featured": "Featured",
+      "providers": "{count} providers",
+      "provider_avatar_alt": "Provider avatar"
+    },
+    "namespaces": {
+      "placeholder": "Select namespace",
+      "services": "Services",
+      "projects": "Projects",
+      "providers": "Providers",
+      "provider_profiles": "Provider Profiles"
+    },
+    "services": {
+      "placeholder": "Describe the service you need...",
+      "context": "Search for experts and service offerings"
+    },
+    "projects": {
+      "placeholder": "Describe your project requirements...",
+      "context": "Find similar projects and briefs"
+    },
+    "providers": {
+      "placeholder": "Describe the provider profile you need...",
+      "context": "Search for providers that match your requirements"
+    },
+    "provider_profiles": {
+      "placeholder": "Describe the provider profile you need...",
+      "context": "Search in detailed provider profile vectors"
+    }
+  }
+}
