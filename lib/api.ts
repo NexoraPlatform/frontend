@@ -1,4 +1,4 @@
-import { apiFetch, FetchError } from '@/lib/fetch-client';
+import { apiFetch, FetchError, type ApiFetchOptions } from '@/lib/fetch-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
@@ -34,6 +34,49 @@ export type ProviderRoleMilestonePayload = {
   milestones: MilestoneEntry[];
 };
 
+export type MilestoneStatusInput =
+  | 'pending'
+  | 'work_in_progress'
+  | 'in_progress'
+  | 'work in progress'
+  | 'finished'
+  | 'paid'
+  | (string & {});
+
+export type MarkProjectMilestonePayload = {
+  milestone: number | string;
+  language?: string;
+  currency?: string;
+  status?: MilestoneStatusInput;
+};
+
+export type ProjectRespondPayload = {
+  response: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
+  proposedBudget?: number;
+  reason?: string;
+  refusal_scope?: 'project' | 'milestone' | 'milestones';
+  milestone_ids?: Array<string | number>;
+  suggestions_limit?: number;
+};
+
+export type ProjectProviderBudgetResponsePayload = {
+  response: 'ACCEPTED' | 'REJECTED';
+  reason?: string;
+  [key: string]: unknown;
+};
+
+export type ReplacementSuggestionsQuery = {
+  milestone_ids?: Array<string | number>;
+  exclude_provider_id?: string | number;
+  limit?: number;
+};
+
+export type ReassignProjectMilestonesPayload = {
+  provider_id: string | number;
+  milestone_ids: Array<string | number>;
+  language?: string;
+};
+
 export type CreateProjectPayload = {
   title: string;
   description: string;
@@ -58,6 +101,352 @@ export type GenerateProjectInformationResponse = {
   milestone_count?: number;
   milestones?: ProviderRoleMilestonePayload[];
   notes?: string;
+};
+
+type BudgetPayload = {
+  amount: number | null;
+  currency: string;
+  original_usd?: number | null;
+};
+
+const toFiniteNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const normalizeMilestoneStatusInput = (
+  value: unknown
+): 'pending' | 'work_in_progress' | 'finished' | 'paid' | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'PENDING') {
+    return 'pending';
+  }
+
+  if (
+    normalized === 'WORK_IN_PROGRESS' ||
+    normalized === 'IN_PROGRESS' ||
+    normalized === 'WORK IN PROGRESS'
+  ) {
+    return 'work_in_progress';
+  }
+
+  if (normalized === 'FINISHED' || normalized === 'COMPLETED') {
+    return 'finished';
+  }
+
+  if (normalized === 'PAID') {
+    return 'paid';
+  }
+
+  return null;
+};
+
+const asObject = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const asArray = <T = unknown>(value: unknown): T[] => {
+  return Array.isArray(value) ? (value as T[]) : [];
+};
+
+const normalizeBudgetPayload = (value: unknown): BudgetPayload => {
+  const budgetObject = asObject(value);
+
+  if (budgetObject) {
+    const amount = toFiniteNumber(budgetObject.amount);
+    const originalUsd = toFiniteNumber(budgetObject.original_usd);
+    const currencyRaw = budgetObject.currency;
+    const currency =
+      typeof currencyRaw === 'string' && currencyRaw.trim() ? currencyRaw : 'USD';
+
+    return {
+      amount,
+      currency,
+      ...(originalUsd !== null ? { original_usd: originalUsd } : {}),
+    };
+  }
+
+  const amount = toFiniteNumber(value);
+  return {
+    amount,
+    currency: 'USD',
+    ...(amount !== null ? { original_usd: amount } : {}),
+  };
+};
+
+const normalizeProjectLineMilestone = (value: unknown) => {
+  const milestone = asObject(value) ?? {};
+  const amount = toFiniteNumber(milestone.amount) ?? 0;
+  const proposedAmount = toFiniteNumber(
+    milestone.proposed_amount ?? milestone.proposedAmount
+  );
+  const percentage = toFiniteNumber(milestone.percentage) ?? 0;
+  const budgetStatusRaw =
+    typeof milestone.budget_status === 'string'
+      ? milestone.budget_status
+      : typeof milestone.budgetStatus === 'string'
+        ? milestone.budgetStatus
+        : '';
+  const budgetStatus = budgetStatusRaw.trim().toUpperCase() || 'PENDING';
+
+  return {
+    ...milestone,
+    amount,
+    proposed_amount: proposedAmount,
+    percentage,
+    budget_status: budgetStatus,
+    status:
+      (typeof milestone.status === 'string' && milestone.status) || 'PENDING',
+  };
+};
+
+const normalizeProjectDeliverable = (value: unknown) => {
+  const deliverable = asObject(value) ?? {};
+  const metaData = asObject(deliverable.meta_data);
+
+  return {
+    ...deliverable,
+    meta_data: metaData ?? {},
+  };
+};
+
+const normalizeProjectLine = (value: unknown) => {
+  const line = asObject(value) ?? {};
+  const milestones = asArray(line.milestones).map(normalizeProjectLineMilestone);
+  const deliverables = asArray(line.deliverables).map(normalizeProjectDeliverable);
+
+  const price = toFiniteNumber(line.price);
+  const rawBudgetAllocation = toFiniteNumber(line.budget_allocation);
+  const rawBudgetPercentage = toFiniteNumber(line.budget_percentage);
+  const budgetPercentage =
+    rawBudgetPercentage ??
+    (rawBudgetAllocation !== null && rawBudgetAllocation <= 100
+      ? rawBudgetAllocation
+      : 0);
+  const budgetAllocationAmount =
+    price ??
+    (rawBudgetAllocation !== null && rawBudgetAllocation > 100
+      ? rawBudgetAllocation
+      : 0);
+  const lineBudgetStatusRaw =
+    typeof line.budget_status === 'string'
+      ? line.budget_status
+      : typeof line.budgetStatus === 'string'
+        ? line.budgetStatus
+        : '';
+  const lineMilestoneBudgetStatuses = milestones
+    .map((milestone) => String((milestone as Record<string, unknown>)?.budget_status ?? '').trim().toUpperCase())
+    .filter(Boolean);
+  const derivedLineBudgetStatus = (() => {
+    if (lineMilestoneBudgetStatuses.includes('PROPOSED')) return 'PROPOSED';
+    if (lineMilestoneBudgetStatuses.includes('REJECTED')) return 'REJECTED';
+    if (
+      lineMilestoneBudgetStatuses.length > 0 &&
+      lineMilestoneBudgetStatuses.every((status) => status === 'ACCEPTED')
+    ) {
+      return 'ACCEPTED';
+    }
+    return 'PENDING';
+  })();
+
+  return {
+    ...line,
+    price: price ?? 0,
+    budget_allocation: budgetAllocationAmount,
+    budget_percentage: budgetPercentage,
+    budget_status: lineBudgetStatusRaw.trim().toUpperCase() || derivedLineBudgetStatus,
+    milestones,
+    deliverables,
+  };
+};
+
+const extractProjectsCollection = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  const payload = asObject(value);
+  if (!payload) {
+    return [];
+  }
+
+  if (Array.isArray(payload.projects)) {
+    return payload.projects;
+  }
+
+  const data = payload.data;
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  const nestedData = asObject(data);
+  if (nestedData && Array.isArray(nestedData.projects)) {
+    return nestedData.projects;
+  }
+
+  return [];
+};
+
+const extractProjectEntity = (value: unknown): Record<string, unknown> | null => {
+  const payload = asObject(value);
+  if (!payload) {
+    return null;
+  }
+
+  if ('id' in payload || 'slug' in payload || 'project_lines' in payload) {
+    return payload;
+  }
+
+  const data = asObject(payload.data);
+  if (data && ('id' in data || 'slug' in data || 'project_lines' in data)) {
+    return data;
+  }
+
+  const project = asObject(payload.project);
+  if (project && ('id' in project || 'slug' in project || 'project_lines' in project)) {
+    return project;
+  }
+
+  const nestedProject = data ? asObject(data.project) : null;
+  if (nestedProject) {
+    return nestedProject;
+  }
+
+  return null;
+};
+
+const normalizeProjectEntity = (value: unknown) => {
+  const project = asObject(value);
+  if (!project) {
+    return value;
+  }
+
+  const budget = normalizeBudgetPayload(project.budget);
+  const projectLines = asArray(project.project_lines).map(normalizeProjectLine);
+  const projectLineMilestones = asArray(project.project_line_milestones);
+  const projectDeliverables = asArray(project.project_deliverables);
+
+  const normalizedProjectLineMilestones =
+    projectLineMilestones.length > 0
+      ? projectLineMilestones.map(normalizeProjectLineMilestone)
+      : projectLines.flatMap((line) =>
+        asArray(asObject(line)?.milestones).map(normalizeProjectLineMilestone)
+      );
+
+  const normalizedProjectDeliverables =
+    projectDeliverables.length > 0
+      ? projectDeliverables.map(normalizeProjectDeliverable)
+      : projectLines.flatMap((line) =>
+        asArray(asObject(line)?.deliverables).map(normalizeProjectDeliverable)
+      );
+
+  const title =
+    typeof project.title === 'string' && project.title.trim()
+      ? project.title
+      : 'Untitled project';
+  const description =
+    typeof project.description === 'string' ? project.description : '';
+  const createdAt =
+    typeof project.created_at === 'string' && project.created_at
+      ? project.created_at
+      : new Date().toISOString();
+  const status =
+    typeof project.status === 'string' && project.status
+      ? project.status
+      : 'PENDING';
+
+  return {
+    ...project,
+    title,
+    description,
+    created_at: createdAt,
+    status,
+    budget,
+    budget_value: budget.amount,
+    project_lines: projectLines,
+    project_line_milestones: normalizedProjectLineMilestones,
+    project_deliverables: normalizedProjectDeliverables,
+    providers: asArray(project.providers),
+    selected_providers: asArray(project.selected_providers),
+    existing_services: asArray(project.existing_services),
+    custom_services: asArray(project.custom_services),
+    milestones: asArray(project.milestones),
+  };
+};
+
+const normalizePublicProjectEntity = (value: unknown) => {
+  const normalized = asObject(normalizeProjectEntity(value)) ?? {};
+  const normalizedBudget = normalizeBudgetPayload(normalized.budget);
+  const technologies = asArray(normalized.technologies)
+    .map((item) => String(item ?? '').trim())
+    .filter(Boolean);
+  const deadline =
+    (typeof normalized.deadline === 'string' && normalized.deadline) ||
+    (typeof normalized.project_duration === 'string' && normalized.project_duration) ||
+    '1month';
+  const budgetType = String(normalized.budget_type ?? 'fixed').toLowerCase() === 'hourly'
+    ? 'hourly'
+    : 'fixed';
+
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const clientRaw = asObject(normalized.client) as any;
+  const client = clientRaw
+    ? {
+      name: String(clientRaw.name || ''),
+      location: String(clientRaw.location || ''),
+      rating: toFiniteNumber(clientRaw.rating) ?? 0,
+      total_reviews: toFiniteNumber(clientRaw.total_reviews) ?? 0,
+      ...(typeof clientRaw.avatar_url === 'string' ? { avatar_url: clientRaw.avatar_url } : {}),
+    }
+    : undefined;
+
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const milestones = Array.isArray(normalized.milestones) ? (normalized.milestones as any[]) : undefined;
+
+  return {
+    id: String(normalized.id ?? ''),
+    title:
+      (typeof normalized.title === 'string' && normalized.title.trim()) ||
+      'Untitled project',
+    description:
+      (typeof normalized.description === 'string' && normalized.description) || '',
+    category:
+      (typeof normalized.category === 'string' && normalized.category) || 'General',
+    technologies,
+    budget: {
+      ...normalizedBudget,
+      amount: normalizedBudget.amount ?? 0,
+      original_usd: normalizedBudget.original_usd ?? 0,
+    },
+    budget_min: toFiniteNumber(normalized.budget_min) ?? normalizedBudget.amount ?? undefined,
+    budget_max: toFiniteNumber(normalized.budget_max) ?? normalizedBudget.amount ?? undefined,
+    budget_type: budgetType,
+    deadline,
+    offers_count: toFiniteNumber(normalized.offers_count) ?? 0,
+    is_recommended: Boolean(normalized.is_recommended),
+    created_at: typeof normalized.created_at === 'string' ? normalized.created_at : new Date().toISOString(),
+    ...(typeof normalized.payment_plan === 'string' ? { payment_plan: normalized.payment_plan } : {}),
+    ...(typeof normalized.milestone_count === 'number' ? { milestone_count: normalized.milestone_count } : {}),
+    ...(milestones ? { milestones } : {}),
+    ...(client ? { client } : {}),
+  } as any;
 };
 
 export type StatsChangeType = 'increase' | 'decrease' | 'neutral';
@@ -131,8 +520,19 @@ export interface ActivityFeedResponse {
 }
 
 export interface RecentActivityQuick {
+  id?: number;
+  type?: string;
+  action?: string;
   title: string;
+  project_id?: number | null;
+  actor?: {
+    id?: number | string;
+    name?: string;
+    role?: string;
+  };
+  payload?: Record<string, unknown>;
   time_ago: string;
+  created_at?: string;
 }
 
 export interface AuditLog {
@@ -171,13 +571,14 @@ export class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: ApiFetchOptions = {}
   ): Promise<T> {
     try {
       const response = await apiFetch<T | null>(endpoint, {
         ...options,
         method: options.method || 'GET',
         body: options.body as any,
+        withCredentials: true,
       });
       return (response ?? ({} as T)) as T;
     } catch (error) {
@@ -507,6 +908,10 @@ export class ApiClient {
     return this.request<any>(`/services/${id}`);
   }
 
+  async getDeliveryProviders() {
+    return this.request<any>('/general/delivery-providers');
+  }
+
   async createService(serviceData: any) {
     return this.request<any>('/admin/services', {
       method: 'POST',
@@ -525,8 +930,26 @@ export class ApiClient {
     return this.request<any>(`/services/category/${categoryId}`);
   }
 
-  async getServicesGroupedByCategory() {
-    return this.request<any>('/services/categories/grouped');
+  async getServicesGroupedByCategory(params?: { page?: number; limit?: number; search?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (typeof params.page === 'number' && Number.isFinite(params.page) && params.page > 0) {
+        searchParams.set('page', String(params.page));
+      }
+      if (typeof params.limit === 'number' && Number.isFinite(params.limit) && params.limit > 0) {
+        searchParams.set('limit', String(params.limit));
+      }
+      if (typeof params.search === 'string' && params.search.trim().length > 0) {
+        searchParams.set('search', params.search.trim());
+      }
+    }
+
+    const query = searchParams.toString();
+    const endpoint = query
+      ? `/services/categories/grouped?${query}`
+      : '/services/categories/grouped';
+
+    return this.request<any>(endpoint);
   }
 
   async deleteService(id: string) {
@@ -1166,11 +1589,34 @@ export class ApiClient {
       }
     });
 
-    return this.request<any>(`/projects?${searchParams.toString()}`);
+    const query = searchParams.toString();
+    const response = await this.request<any>(`/projects${query ? `?${query}` : ''}`);
+    const projects = extractProjectsCollection(response);
+
+    if (projects.length > 0) {
+      if (Array.isArray(response)) {
+        return projects.map(normalizeProjectEntity);
+      }
+
+      const payload = asObject(response);
+      if (payload && Array.isArray(payload.projects)) {
+        return {
+          ...payload,
+          projects: projects.map(normalizeProjectEntity),
+        };
+      }
+
+      return projects.map(normalizeProjectEntity);
+    }
+
+    const maybeProject = extractProjectEntity(response);
+    return maybeProject ? normalizeProjectEntity(maybeProject) : response;
   }
 
   async getProjectBySlug(slug: string) {
-    return this.request<any>(`/projects/slug/${slug}`);
+    const response = await this.request<any>(`/projects/slug/${slug}`);
+    const project = extractProjectEntity(response);
+    return project ? normalizeProjectEntity(project) : response;
   }
 
   async getPublicProjects(params?: {
@@ -1204,54 +1650,128 @@ export class ApiClient {
     }
 
     const query = searchParams.toString();
-    return this.request<any>(`/projects${query ? `?${query}` : ''}`);
+    const response = await this.request<any>(`/projects${query ? `?${query}` : ''}`);
+    const projects = extractProjectsCollection(response);
+
+    if (projects.length > 0) {
+      return projects.map(normalizePublicProjectEntity);
+    }
+
+    if (Array.isArray(response)) {
+      return response.map(normalizePublicProjectEntity);
+    }
+
+    return [];
   }
 
   async getProviderProjectRequests() {
-    return this.request<any>('/projects/requests', {
+    const response = await this.request<any>('/projects/requests', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
+    const payload = asObject(response);
+    if (payload && payload.success === false) {
+      const message =
+        (typeof payload.message === 'string' && payload.message) ||
+        (typeof payload.error === 'string' && payload.error) ||
+        'Failed to load project requests.';
+      throw new Error(message);
+    }
+    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
+
+    return {
+      ...(payload ?? {}),
+      projects,
+    };
   }
 
-  async respondToProjectRequest(projectId: string, response: {
-    response: 'ACCEPTED' | 'REJECTED' | 'NEW_PROPOSE';
-    proposedBudget?: number;
-  }, language?: string) {
+  async respondToProjectRequest(projectId: string, response: ProjectRespondPayload, language?: string) {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
+    const payload: Record<string, unknown> = {
+      response: response.response,
+      ...(response.proposedBudget !== undefined ? { proposedBudget: response.proposedBudget } : {}),
+      ...(response.reason ? { reason: response.reason } : {}),
+      ...(response.refusal_scope ? { refusal_scope: response.refusal_scope } : {}),
+      ...(Array.isArray(response.milestone_ids) && response.milestone_ids.length > 0
+        ? { milestone_ids: response.milestone_ids.map((id) => String(id)) }
+        : {}),
+      ...(typeof response.suggestions_limit === 'number' ? { suggestions_limit: response.suggestions_limit } : {}),
+    };
     return this.request<any>(`/projects/${projectId}/respond${qs ? `?${qs}` : ''}`, {
       method: 'POST',
-      body: JSON.stringify(response),
+      body: JSON.stringify(payload),
       headers: {
         'Content-Type': 'application/json',
       },
     });
   }
 
-  async markMilestoneAsComplete(projectId: number, milestone: number, language?: string) {
+  async markProjectMilestone(projectId: number | string, payload: MarkProjectMilestonePayload) {
+    const normalizedStatus = normalizeMilestoneStatusInput(payload?.status);
     const params = new URLSearchParams();
-    if (language) params.set('language', language);
-    const qs = params.toString();
-    return this.request<any>(`/projects/${projectId}/markMilestone${qs ? `?${qs}` : ''}`, {
+
+
+    const response = await this.request<any>(`/projects/${projectId}/markMilestone`, {
       method: 'POST',
-      body: JSON.stringify({ milestone: milestone }),
+      body: JSON.stringify({
+        milestone: String(payload.milestone),
+        ...(normalizedStatus ? { status: normalizedStatus } : {}),
+      }),
       headers: {
         'Content-Type': 'application/json',
       }
-    })
+    });
+
+    const responsePayload = asObject(response);
+    if (responsePayload && asObject(responsePayload.data)) {
+      return {
+        ...responsePayload,
+        data: normalizeProjectEntity(responsePayload.data),
+      };
+    }
+
+    const project = extractProjectEntity(response);
+    return project ? normalizeProjectEntity(project) : response;
+  }
+
+  async markMilestoneAsComplete(
+    projectId: number | string,
+    milestone: number | string,
+    language?: string,
+    status?: MilestoneStatusInput
+  ) {
+    return this.markProjectMilestone(projectId, {
+      milestone,
+      ...(language ? { language } : {}),
+      ...(status ? { status } : {}),
+    });
   }
 
   async getClientProjectRequests() {
-    return this.request<any>('/projects/my-requests', {
+    const response = await this.request<any>('/projects/my-requests', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
+    const payload = asObject(response);
+    if (payload && payload.success === false) {
+      const message =
+        (typeof payload.message === 'string' && payload.message) ||
+        (typeof payload.error === 'string' && payload.error) ||
+        'Failed to load project requests.';
+      throw new Error(message);
+    }
+    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
+
+    return {
+      ...(payload ?? {}),
+      projects,
+    };
   }
 
   async githubInitiate() {
@@ -1281,15 +1801,59 @@ export class ApiClient {
     })
   }
 
-  async respondToBudgetProposal(projectId: string, providerId: string, response: {
-    response: 'ACCEPTED' | 'REJECTED';
-  }, language?: string) {
+  async respondToBudgetProposal(
+    projectId: string,
+    providerId: string,
+    response: ProjectProviderBudgetResponsePayload,
+    language?: string
+  ) {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
     return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(response),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  async getReplacementProviderSuggestions(projectId: string | number, query?: ReplacementSuggestionsQuery) {
+    const params = new URLSearchParams();
+    if (query) {
+      if (Array.isArray(query.milestone_ids) && query.milestone_ids.length > 0) {
+        query.milestone_ids.forEach((id) => {
+          params.append('milestone_ids[]', String(id));
+        });
+      }
+      if (query.exclude_provider_id !== undefined && query.exclude_provider_id !== null) {
+        params.set('exclude_provider_id', String(query.exclude_provider_id));
+      }
+      if (typeof query.limit === 'number' && Number.isFinite(query.limit)) {
+        params.set('limit', String(query.limit));
+      }
+    }
+    const qs = params.toString();
+    return this.request<any>(
+      `/projects/${projectId}/replacement-provider-suggestions${qs ? `?${qs}` : ''}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  }
+
+  async reassignProjectMilestones(projectId: string | number, payload: ReassignProjectMilestonesPayload) {
+    return this.request<any>(`/projects/${projectId}/milestones/reassign`, {
+      method: 'POST',
+      body: JSON.stringify({
+        provider_id: payload.provider_id,
+        milestone_ids: payload.milestone_ids.map((id) => String(id)),
+        ...(payload.language ? { language: payload.language } : {}),
+      }),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -1310,17 +1874,30 @@ export class ApiClient {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
-    return this.request<any>(`/projects${qs ? `?${qs}` : ''}`, {
+    const response = await this.request<any>(`/projects${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(projectData),
       headers: {
         'Content-Type': 'application/json',
       }
     });
+
+    const payload = asObject(response);
+    if (payload && asObject(payload.data)) {
+      return {
+        ...payload,
+        data: normalizeProjectEntity(payload.data),
+      };
+    }
+
+    const project = extractProjectEntity(response);
+    return project ? normalizeProjectEntity(project) : response;
   }
 
   async getProject(id: string) {
-    return this.request<any>(`/projects/${id}`);
+    const response = await this.request<any>(`/projects/${id}`);
+    const project = extractProjectEntity(response);
+    return project ? normalizeProjectEntity(project) : response;
   }
 
   async updateProject(id: string, projectData: any) {
@@ -1337,7 +1914,26 @@ export class ApiClient {
   }
 
   async getClientProjects(clientId: string, limit?: number) {
-    return this.request<any>(`/projects/client/${clientId}/${limit}`);
+    const endpoint = limit !== undefined && limit !== null
+      ? `/projects/client/${clientId}/${limit}`
+      : `/projects/client/${clientId}`;
+    const response = await this.request<any>(endpoint);
+    const projects = extractProjectsCollection(response).map(normalizeProjectEntity);
+
+    if (projects.length > 0) {
+      const payload = asObject(response);
+      if (payload && Array.isArray(payload.projects)) {
+        return {
+          ...payload,
+          projects,
+        };
+      }
+
+      return projects;
+    }
+
+    const project = extractProjectEntity(response);
+    return project ? normalizeProjectEntity(project) : response;
   }
 
   async getSuggestedProviders(
@@ -1471,11 +2067,19 @@ export class ApiClient {
     })
   }
 
-  async rapydCheckoutSession(projectId: string | number, currency: string, countryCode: string, milestoneId?: string, language?: string) {
+  async rapydCheckoutSession(
+    projectId: string | number,
+    currency: string,
+    countryCode: string,
+    milestoneId?: string | number,
+    language?: string
+  ) {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
-    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneId ? `/${milestoneId}` : ''}${qs ? `?${qs}` : ''}`, {
+    const milestoneSegment =
+      milestoneId !== undefined && milestoneId !== null ? `/${milestoneId}` : '';
+    return this.request<any>(`/rapyd/checkout/${projectId}${milestoneSegment}${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1484,17 +2088,36 @@ export class ApiClient {
     })
   }
 
-  async rapydReleasePayment(projectId: string | number, milestoneId?: string, language?: string) {
+  async rapydReleasePayment(
+    projectId: string | number,
+    milestoneId?: string | number,
+    language?: string
+  ) {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
-    return this.request<any>(`/rapyd/escrow/release${qs ? `?${qs}` : ''}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ project_id: projectId, milestone_id: milestoneId }),
-    });
+    const requestBody = {
+      project_id: projectId,
+      ...(milestoneId !== undefined && milestoneId !== null ? { milestone_id: String(milestoneId) } : {}),
+    };
+
+    try {
+      return await this.request<any>(`/rapyd/release${qs ? `?${qs}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+    } catch {
+      return this.request<any>(`/rapyd/escrow/release${qs ? `?${qs}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+    }
   }
 
   async rapydGetWalletBalance(language?: string) {
@@ -1528,12 +2151,16 @@ export class ApiClient {
   }
 
   async updateUserLanguage(language: string) {
-    return this.request<any>(`/users/language`, {
+    const params = new URLSearchParams();
+    params.set('language', language);
+
+    return this.request<any>(`/users/language?${params.toString()}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ lang: language }),
+      skipDefaultParams: true,
     });
   }
 
@@ -1689,8 +2316,14 @@ export class ApiClient {
     return this.request<ActivityPageResponse>(`/activities?page=${page}`);
   }
 
-  async getRecentActivitiesQuick() {
-    return this.request<RecentActivityQuick[]>('/activities/recent');
+  async getRecentActivitiesQuick(language?: 'ro' | 'en') {
+    const params = new URLSearchParams();
+    if (language) {
+      params.set('language', language);
+    }
+    const query = params.toString();
+    const endpoint = query ? `/activities/recent?${query}` : '/activities/recent';
+    return this.request<RecentActivityQuick[]>(endpoint);
   }
 
   // Audit Logs

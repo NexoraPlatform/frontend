@@ -5,6 +5,7 @@
 
 import { http } from '@/lib/fetch-client';
 import { ensureCsrfCookie } from '@/lib/csrf';
+import type { ConnectedAccount } from '@/types/integration';
 
 export type LoginCredentials = {
     email: string;
@@ -53,11 +54,23 @@ export const authService = {
      * Get current authenticated user
      */
     async getMe(): Promise<any> {
-        return http.get('/auth/me');
+        return http.get('/auth/me', {
+            params: { include: 'connected_accounts' },
+        });
     },
 
     async me(): Promise<any> {
-        return http.get('/auth/me');
+        return http.get('/auth/me', {
+            params: { include: 'connected_accounts' },
+        });
+    },
+
+    async getConnectedAccounts(): Promise<ConnectedAccount[]> {
+        const response = await http.get<any>('/auth/me', {
+            params: { include: 'connected_accounts' },
+        });
+        const user = response?.user ?? response;
+        return Array.isArray(user?.connected_accounts) ? user.connected_accounts : [];
     },
 
     /**

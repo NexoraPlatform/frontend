@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Github } from "lucide-react";
-import { apiClient } from "@/lib/api"; // API client
+import { toast } from 'sonner';
+import { buildOAuthRedirectUrl } from '@/lib/backend-url';
 
 export default function GithubConnect({ isConnected }: { isConnected: boolean }) {
     const [loading, setLoading] = useState(false);
@@ -10,14 +11,13 @@ export default function GithubConnect({ isConnected }: { isConnected: boolean })
     const handleConnect = async () => {
         setLoading(true);
         try {
-            // 1. Cerem URL-ul de la Laravel
-            const response = await apiClient.githubInitiate();
-            const redirectUrl = response.url;
-
-            // 2. Redirectăm browserul utilizatorului către GitHub
-            if (redirectUrl) {
-                window.location.href = redirectUrl;
+            const redirectUrl = buildOAuthRedirectUrl('github');
+            if (!redirectUrl) {
+                toast.error('NEXT_PUBLIC_BACKEND_URL is not configured');
+                setLoading(false);
+                return;
             }
+            window.location.href = redirectUrl;
         } catch (error) {
             console.error("Failed to init GitHub auth", error);
             setLoading(false);

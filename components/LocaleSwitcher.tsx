@@ -60,8 +60,7 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
                                 event.preventDefault();
                                 if (isCurrent) return;
                                 if (user) {
-                                    const updatedUser = await setUserLanguage(nextLocale);
-                                    if (!updatedUser) return;
+                                    await setUserLanguage(nextLocale);
                                 }
                                 router.replace(normalizedPathname, { locale: nextLocale });
                             }}

@@ -604,6 +604,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         privateChannelRef.current = ch;
 
         ch.notification((raw: RawLaravelNotification) => {
+            const rawType = String(raw?.type ?? '').toLowerCase();
+            const notificationType = String(raw?.data?.type ?? '').toLowerCase();
             const n = normalize(raw);
             setNotifications(prev => {
                 if (prev.find(x => x.id === n.id)) return prev;
@@ -611,13 +613,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             });
             if (!n.isRead) setUnreadCount(prev => prev + 1);
             showNotificationToast(n);
+
+            if (
+                notificationType === 'budget.accepted.by_provider' ||
+                rawType.includes('provideracceptedclientbudget')
+            ) {
+                void refresh();
+            }
         });
 
         return () => {
             try { (echo as any).leave?.(channelName); } catch {}
             privateChannelRef.current = null;
         };
-    }, [showNotificationToast, user]);
+    }, [refresh, showNotificationToast, user]);
 
     const readPushStatus = useCallback(async () => {
         if (!isWebPushSupported) return;

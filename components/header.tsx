@@ -56,13 +56,14 @@ const ChatButton = dynamic(
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isThemeMounted, setIsThemeMounted] = useState(false);
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const basicAuthEnabled =
     process.env.NEXT_PUBLIC_BASIC_AUTH_ENABLED === 'true' ||
     process.env.NEXT_PUBLIC_BASIC_AUTH === 'true' ||
     process.env.BASIC_AUTH_ENABLED === 'true' ||
     process.env.BASIC_AUTH === 'true';
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const t = useTranslations();
@@ -143,6 +144,15 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    setIsThemeMounted(true);
+  }, []);
+
+  const activeTheme = isThemeMounted ? (resolvedTheme ?? theme ?? 'light') : 'light';
+  const isDarkTheme = activeTheme === 'dark';
+  const themeToggleLabel = `${changeThemeToText} ${isDarkTheme ? lightText : darkText}`;
+  const currentThemeLabel = isDarkTheme ? darkText : lightText;
+
 
   const handleLogout = () => {
     void logout();
@@ -152,9 +162,9 @@ export function Header() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
       className={cn("w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105", className)}
-      aria-label={`${t('common.change_theme')} ${theme === 'dark' ? t('common.light') : t('common.dark')}`}
+      aria-label={isThemeMounted ? themeToggleLabel : changeThemeToText}
     >
       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -215,9 +225,9 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
                 className="w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
-                aria-label={`${changeThemeToText} ${theme === 'dark' ? lightText : darkText}`}
+                aria-label={isThemeMounted ? themeToggleLabel : changeThemeToText}
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -463,7 +473,7 @@ export function Header() {
                   <SearchBar className="lg:hidden" />
                   <div className="flex items-center justify-between px-4 py-2 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
                     <span className="text-sm font-medium text-muted-foreground">
-                      {theme === 'dark' ? t('common.dark') : t('common.light')}
+                      {currentThemeLabel}
                     </span>
                     <ThemeToggle />
                   </div>

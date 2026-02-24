@@ -40,11 +40,14 @@
     },
     "milestones": {
       "title": "Milestone-uri proiect",
-      "mark_complete": "Marchează milestone ca finalizat",
+      "mark_complete": "Actualizează statusul milestone-ului",
+      "start_work": "Începe lucrul",
+      "mark_finished": "Marchează ca finalizat",
       "paid": "Plătit",
       "finished": "Finalizat",
       "rejected": "Refuzat",
-      "pending": "În lucru",
+      "pending": "În așteptare",
+      "work_in_progress": "În lucru",
       "payment_status": {
         "pending": "Plată în așteptare",
         "escrow": "Plată securizată",
@@ -54,14 +57,23 @@
     },
     "status": {
       "pending": "În așteptare",
+      "work_in_progress": "În lucru",
+      "awaiting_budget_approval": "Se așteaptă aprobarea bugetului",
       "accepted": "Acceptat",
       "rejected": "Respins",
       "budget_proposed": "Buget propus"
     },
     "actions": {
       "secure_payment": "Securizează plata",
+      "find_replacement": "Caută înlocuitor",
       "view_details": "Vezi detalii",
       "messages": "Mesaje"
+    },
+    "replacement": {
+      "title": "Prestatori de înlocuire",
+      "assign": "Atribuie prestatorul",
+      "no_suggestions": "Nu au fost găsiți prestatori de înlocuire pentru acest milestone.",
+      "no_milestone": "Selectează un milestone pentru a încărca sugestii."
     },
     "release": {
       "button": "Eliberează fondurile",

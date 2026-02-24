@@ -82,8 +82,13 @@ export function useAdminCategories() {
   return useApi(() => apiClient.getAllCategories(), []);
 }
 
-export function useGetServicesGroupedByCategory() {
-    return useApi(() => apiClient.getServicesGroupedByCategory(), []);
+export function useGetServicesGroupedByCategory(
+  params?: { page?: number; limit?: number; search?: string }
+) {
+    return useApi(
+      () => apiClient.getServicesGroupedByCategory(params),
+      [JSON.stringify(params)]
+    );
 }
 
 export function useProviders(params?: any) {

@@ -39,6 +39,7 @@ type RequestBody =
 export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   body?: RequestBody;
   params?: Record<string, ParamValue>;
+  withCredentials?: boolean;
   baseURL?: string;
   parseAs?: 'auto' | 'json' | 'text' | 'response';
   skipAuthHandling?: boolean;
@@ -428,7 +429,8 @@ const requestWithRetry = async (
     const retryHeaders = new Headers(options.headers);
     const xsrfToken = getCookieValue('XSRF-TOKEN');
     if (xsrfToken) {
-      retryHeaders.set('X-XSRF-TOKEN', decodeURIComponent(xsrfToken));
+      const decodedXsrfToken = decodeURIComponent(xsrfToken);
+      retryHeaders.set('X-XSRF-TOKEN', decodedXsrfToken);
     }
     return fetch(url, { ...options, headers: retryHeaders });
   }
@@ -456,6 +458,7 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       body,
       headers: customHeaders,
       baseURL,
+      withCredentials,
       parseAs = 'auto',
       skipAuthHandling,
       skipCsrfRetry,
@@ -480,12 +483,55 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       incoming.forEach((value, key) => headers.set(key, value));
     }
 
+    const requestMethod = String(requestInit.method ?? 'GET').toUpperCase();
+    const shouldAttachCsrf =
+      requestMethod !== 'GET' &&
+      requestMethod !== 'HEAD' &&
+      requestMethod !== 'OPTIONS' &&
+      requestMethod !== 'TRACE';
+
+    if (isBrowser && shouldAttachCsrf) {
+      try {
+        await ensureCsrfCookie();
+      } catch {
+        // Continue and let backend return a structured error if session/csrf is unavailable.
+      }
+    }
+
     const parsedBody = parseBodyIfNeeded(body, headers);
 
     if (isBrowser) {
       const xsrfToken = getCookieValue('XSRF-TOKEN');
-      if (xsrfToken && !headers.has('X-XSRF-TOKEN')) {
-        headers.set('X-XSRF-TOKEN', decodeURIComponent(xsrfToken));
+      const decodedXsrfToken = xsrfToken ? decodeURIComponent(xsrfToken) : null;
+      if (decodedXsrfToken) {
+        if (!headers.has('X-XSRF-TOKEN')) {
+          headers.set('X-XSRF-TOKEN', decodedXsrfToken);
+        }
+      }
+
+      if (process.env.NODE_ENV !== 'production' && shouldAttachCsrf) {
+        const shouldLogCsrfDebug =
+          endpoint.includes('/users/active') ||
+          endpoint.includes('/broadcasting/auth') ||
+          endpoint.includes('/ai/');
+
+        if (shouldLogCsrfDebug) {
+          const laravelSession = getCookieValue('laravel_session');
+          console.log('[apiFetch] CSRF request debug', {
+            endpoint,
+            method: requestMethod,
+            url,
+            hasXsrfCookie: Boolean(xsrfToken),
+            xsrfToken: decodedXsrfToken ?? null,
+            hasLaravelSession: Boolean(laravelSession),
+            laravelSessionPreview: laravelSession ? `${laravelSession.slice(0, 16)}...` : null,
+            hasHeaderXXsrf: headers.has('X-XSRF-TOKEN'),
+            credentials:
+              requestInit.credentials ??
+              (withCredentials === true ? 'include' : withCredentials === false ? 'omit' : 'include'),
+            withCredentials: withCredentials ?? null,
+          });
+        }
       }
     }
 
@@ -499,7 +545,9 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
       url,
       {
         ...requestInit,
-        credentials: requestInit.credentials ?? 'include',
+        credentials:
+          requestInit.credentials ??
+          (withCredentials === true ? 'include' : withCredentials === false ? 'omit' : 'include'),
         headers,
         body: parsedBody,
       },
@@ -634,7 +682,6 @@ const buildBrief = async (
         hasLaravelSession: Boolean(laravelSession),
         briefHeaderKeys: Object.keys(briefHeaders),
         hasXXsrfHeader: Boolean(briefHeaders['X-XSRF-TOKEN']),
-        hasCsrfHeader: false,
         hasLaravelSessionHeader: false,
       });
 

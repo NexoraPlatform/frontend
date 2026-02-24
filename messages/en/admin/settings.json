@@ -50,7 +50,7 @@
     "payments": {
       "methods_title": "Payment Methods",
       "methods_desc": "Enable or disable payment methods",
-      "stripe_label": "Stripe",
+      "stripe_label": "Rapyd",
       "stripe_desc": "Credit and debit cards",
       "paypal_label": "PayPal",
       "paypal_desc": "Payments via PayPal",

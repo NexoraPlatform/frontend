@@ -36,10 +36,17 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
   const cookieHeader = req.headers.get('cookie') ?? '';
   if (cookieHeader) {
     headers.set('Cookie', cookieHeader);
+    // Non-standard request header mirror requested for backend compatibility.
+    headers.set('Set-Cookie', cookieHeader);
     const xsrfToken = extractXsrfToken(cookieHeader);
     if (xsrfToken) {
       headers.set('X-XSRF-TOKEN', xsrfToken);
     }
+  }
+
+  const incomingXsrfHeader = req.headers.get('x-xsrf-token');
+  if (incomingXsrfHeader && !headers.has('X-XSRF-TOKEN')) {
+    headers.set('X-XSRF-TOKEN', incomingXsrfHeader);
   }
 
   const origin = resolveAppOrigin(req);

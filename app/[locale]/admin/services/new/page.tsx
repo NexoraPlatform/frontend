@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useMemo, useCallback} from 'react';
+import {useState, useMemo, useCallback, useEffect} from 'react';
 import { useRouter } from '@/lib/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/lib/navigation';
@@ -12,28 +12,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, AlertCircle, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Plus, AlertCircle, Loader2, X, Check, ChevronsUpDown } from 'lucide-react';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { InputAdornment, TextField } from "@mui/material";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 export default function NewServicePage() {
+  type DeliveryProviderOption = {
+    value: string;
+    label: string;
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
     description: '',
     requirements: '',
     category_id: '',
+    delivery_provider: '',
     skills: [] as string[],
     tags: [] as string[]
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingDeliveryProviders, setLoadingDeliveryProviders] = useState(true);
   const [error, setError] = useState('');
   const [newSkill, setNewSkill] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
+  const [deliveryProviderOptions, setDeliveryProviderOptions] = useState<DeliveryProviderOption[]>([]);
+  const [deliveryProviderOpen, setDeliveryProviderOpen] = useState(false);
 
   const router = useRouter();
     const locale = useLocale();
@@ -56,6 +75,10 @@ export default function NewServicePage() {
   const requirementsPlaceholder = t('admin.services.requirements_placeholder');
   const categoryLabel = t('admin.services.category_label');
   const categoryPlaceholder = t('admin.services.category_placeholder');
+  const deliveryProviderLabel = 'Delivery Provider';
+  const deliveryProviderPlaceholder = 'Select delivery provider';
+  const deliveryProviderSearchPlaceholder = 'Search delivery provider...';
+  const deliveryProviderEmpty = 'No delivery provider found.';
   const skillsTagsTitle = t('admin.services.skills_tags_title');
   const skillsTagsDescription = t('admin.services.skills_tags_description');
   const skillsLabel = t('admin.services.skills_label');
@@ -69,10 +92,49 @@ export default function NewServicePage() {
   const cancelLabel = t('admin.services.cancel');
   const categoryLoadError = t('admin.services.category_load_error');
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDeliveryProviders = async () => {
+      setLoadingDeliveryProviders(true);
+      try {
+        const response = await apiClient.getDeliveryProviders();
+        const providers = Array.isArray(response?.data) ? response.data : [];
+        const normalized = providers
+          .filter((provider: any) => provider?.value && provider?.label)
+          .map((provider: any) => ({
+            value: String(provider.value),
+            label: String(provider.label),
+          }));
+
+        if (!mounted) return;
+        setDeliveryProviderOptions(normalized);
+      } catch (err) {
+        if (!mounted) return;
+        setError((prev) => prev || 'Failed to load delivery providers');
+      } finally {
+        if (mounted) {
+          setLoadingDeliveryProviders(false);
+        }
+      }
+    };
+
+    void loadDeliveryProviders();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    if (!formData.delivery_provider) {
+      setError('Delivery provider is required');
+      setLoading(false);
+      return;
+    }
 
     try {
       const serviceData = {
@@ -171,6 +233,10 @@ export default function NewServicePage() {
 
 
   const categoryOptions = useMemo(() => buildCategoryOptions(categoriesData || []), [buildCategoryOptions, categoriesData]);
+  const selectedDeliveryProvider = useMemo(
+      () => deliveryProviderOptions.find((option) => option.value === formData.delivery_provider) ?? null,
+      [deliveryProviderOptions, formData.delivery_provider],
+  );
 
   return (
     <>
@@ -297,6 +363,61 @@ export default function NewServicePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="delivery_provider">{deliveryProviderLabel}</Label>
+                <Popover open={deliveryProviderOpen} onOpenChange={setDeliveryProviderOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="delivery_provider"
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={deliveryProviderOpen}
+                      className="w-full justify-between bg-white/80 dark:bg-slate-900/60"
+                      disabled={loadingDeliveryProviders}
+                    >
+                      <span className="truncate">
+                        {selectedDeliveryProvider?.label
+                          || (formData.delivery_provider || '')
+                          || (loadingDeliveryProviders ? 'Loading delivery providers...' : deliveryProviderPlaceholder)}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={deliveryProviderSearchPlaceholder} />
+                      <CommandList className="max-h-[260px] overflow-y-auto">
+                        <CommandEmpty>{deliveryProviderEmpty}</CommandEmpty>
+                        <CommandGroup>
+                          {deliveryProviderOptions.map((provider) => (
+                            <CommandItem
+                              key={provider.value}
+                              value={`${provider.label} ${provider.value}`}
+                              onSelect={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  delivery_provider: provider.value,
+                                }));
+                                setDeliveryProviderOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.delivery_provider === provider.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {provider.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>

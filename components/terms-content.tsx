@@ -77,8 +77,8 @@ function TermsContentRo({ className, headingClassName }: Omit<TermsContentProps,
         </ul>
         <h4 className="font-semibold text-slate-900 dark:text-white">3.2. Verificarea Identității (KYC/KYB)</h4>
         <p>
-          Conform structurii noastre de securitate și a integrării cu Stripe Connect (vizibilă în codul sursă la
-          dashboard/stripe/onboard), toți utilizatorii trebuie să parcurgă procesul de verificare a identității.
+          Conform structurii noastre de securitate și a integrării cu Rapyd Connect (vizibilă în codul sursă la
+          dashboard/Rapyd/onboard), toți utilizatorii trebuie să parcurgă procesul de verificare a identității.
         </p>
       </section>
 
@@ -97,11 +97,11 @@ function TermsContentRo({ className, headingClassName }: Omit<TermsContentProps,
       <section className="space-y-2">
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">5. PLĂȚI ȘI ESCROW</h3>
         <p>
-          Trustora utilizează un mecanism de escrow integrat cu Stripe pentru a proteja ambele părți. Clientul depune
+          Trustora utilizează un mecanism de escrow integrat cu Rapyd pentru a proteja ambele părți. Clientul depune
           fondurile într-un cont escrow, iar Furnizorul primește plata după aprobarea livrabilelor.
         </p>
         <p>
-          Nu stocăm datele complete ale cardurilor; acestea sunt procesate direct de Stripe, conform standardelor PCI DSS.
+          Nu stocăm datele complete ale cardurilor; acestea sunt procesate direct de Rapyd, conform standardelor PCI DSS.
         </p>
       </section>
 
@@ -224,8 +224,8 @@ function TermsContentEn({ className, headingClassName }: Omit<TermsContentProps,
         </ul>
         <h4 className="font-semibold text-slate-900 dark:text-white">3.2. Identity Verification (KYC/KYB)</h4>
         <p>
-          According to our security structure and Stripe Connect integration (visible in source code at
-          dashboard/stripe/onboard), all users must complete the identity verification process.
+          According to our security structure and Rapyd Connect integration (visible in source code at
+          dashboard/Rapyd/onboard), all users must complete the identity verification process.
         </p>
       </section>
 
@@ -244,10 +244,10 @@ function TermsContentEn({ className, headingClassName }: Omit<TermsContentProps,
       <section className="space-y-2">
         <h3 className="text-base font-semibold text-slate-900 dark:text-white">5. PAYMENTS AND ESCROW</h3>
         <p>
-          Trustora uses a Stripe-integrated escrow mechanism to protect both parties. The Client deposits funds into an
+          Trustora uses a Rapyd-integrated escrow mechanism to protect both parties. The Client deposits funds into an
           escrow account, and the Provider is paid after deliverables approval.
         </p>
-        <p>We do not store full card data; payments are processed directly by Stripe under PCI DSS standards.</p>
+        <p>We do not store full card data; payments are processed directly by Rapyd under PCI DSS standards.</p>
       </section>
 
       <section className="space-y-2">

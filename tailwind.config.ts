@@ -1,4 +1,9 @@
 import type { Config } from 'tailwindcss';
+import * as tailwindcssAnimateModule from 'tailwindcss-animate';
+
+const tailwindcssAnimate =
+  (tailwindcssAnimateModule as { default?: unknown }).default ?? tailwindcssAnimateModule;
+const tailwindcssAnimatePlugin = tailwindcssAnimate as NonNullable<Config['plugins']>[number];
 
 const config: Config = {
   mode: 'jit',
@@ -88,6 +93,6 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimatePlugin],
 };
 export default config;
