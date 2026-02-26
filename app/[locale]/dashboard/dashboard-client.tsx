@@ -50,7 +50,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { ProjectRequestCard } from '@/components/project-request-card';
 import { apiClient, DashboardStatsResponse, RecentActivityQuick } from '@/lib/api';
-import { getEcho } from '@/lib/echo';
+import { ensureEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
@@ -616,9 +616,14 @@ export default function DashboardClient() {
 
   useEffect(() => {
     if (!user?.id) return;
-    const echo = getEcho();
-    if (!echo) return;
-    const channel = echo.private(`App.Models.User.${user.id}`);
+    let cancelled = false;
+    let channel:
+      | {
+          notification: (callback: (notification: any) => void) => void;
+          stopListening: (event: string) => void;
+        }
+      | null = null;
+
     const handler = (notification: {
       type?: string;
       data?: {
@@ -682,10 +687,18 @@ export default function DashboardClient() {
         void loadStats();
       }
     };
-    channel.notification(handler);
+
+    void (async () => {
+      const echo = await ensureEcho();
+      if (!echo || cancelled) return;
+      const privateChannel = echo.private(`App.Models.User.${user.id}`);
+      channel = privateChannel;
+      privateChannel.notification(handler);
+    })();
 
     return () => {
-      channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+      cancelled = true;
+      channel?.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
     };
   }, [user?.id, isProvider, activeTab, loadProjects, fetchBalance, loadOverviewProjects, loadRecentActivities, loadStats]);
 

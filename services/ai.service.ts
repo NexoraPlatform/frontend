@@ -53,7 +53,7 @@ export interface AiRecommendProvidersResponse {
   [key: string]: unknown;
 }
 
-const buildAiRequestOptions = async (label: string) => {
+const buildAiRequestOptions = async () => {
   if (typeof window === 'undefined') {
     return {
       headers: {
@@ -68,15 +68,6 @@ const buildAiRequestOptions = async (label: string) => {
 
   await ensureCsrfCookie();
   const xsrfToken = getXsrfToken();
-  const hasLaravelSession = document.cookie.includes('laravel_session=');
-  const hasXsrfCookie = document.cookie.includes('XSRF-TOKEN=');
-
-  console.log(`[aiService:${label}] CSRF debug`, {
-    hasXsrfToken: Boolean(xsrfToken),
-    xsrfToken: xsrfToken ?? null,
-    hasLaravelSession,
-    hasXsrfCookie,
-  });
 
   return {
     headers: {
@@ -95,7 +86,7 @@ const getAiApiBaseUrl = () =>
 
 export const aiService = {
   async recommendServices(payload: { brief: string }) {
-    const requestOptions = await buildAiRequestOptions('recommendServices');
+    const requestOptions = await buildAiRequestOptions();
     return http.post<AiRecommendServicesResponse | Record<string, unknown>>(
       '/api/ai/recommend-services',
       payload,
@@ -104,7 +95,7 @@ export const aiService = {
   },
 
   async recommendProviders(payload: AiRecommendProvidersPayload) {
-    const requestOptions = await buildAiRequestOptions('recommendProviders');
+    const requestOptions = await buildAiRequestOptions();
     return http.post<AiRecommendProvidersResponse | Record<string, unknown>>(
       '/api/ai/recommend-providers',
       payload,
@@ -113,7 +104,7 @@ export const aiService = {
   },
 
   async buildBrief(payload: AiBriefBuilderPayload) {
-    const requestOptions = await buildAiRequestOptions('buildBrief');
+    const requestOptions = await buildAiRequestOptions();
     return http.post<AiBriefResponse | Record<string, unknown>>(
       '/api/ai/brief-builder',
       payload,
@@ -122,7 +113,7 @@ export const aiService = {
   },
 
   async getBriefBuilderResult(id: number | string) {
-    const requestOptions = await buildAiRequestOptions('getBriefBuilderResult');
+    const requestOptions = await buildAiRequestOptions();
     return http.get<AiBriefResponse | AiBriefBuilderResultEnvelope | Record<string, unknown>>(
       `/api/ai/brief-builder/${encodeURIComponent(String(id))}`,
       requestOptions

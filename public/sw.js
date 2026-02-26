@@ -28,9 +28,24 @@
         event.waitUntil(self.registration.showNotification(title, options));
     });
 
+    const sanitizeNotificationLink = (value) => {
+        if (typeof value !== 'string') return '/';
+        const target = value.trim();
+        if (!target || target.startsWith('//')) return '/';
+        if (target.startsWith('/')) return target;
+        try {
+            const parsed = new URL(target);
+            if (parsed.origin !== self.location.origin) return '/';
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '/';
+            return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        } catch {
+            return '/';
+        }
+    };
+
     self.addEventListener('notificationclick', (event) => {
         event.notification.close();
-        const link = event.notification.data?.link || '/';
+        const link = sanitizeNotificationLink(event.notification.data?.link || '/');
 
         event.waitUntil((async () => {
             const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
