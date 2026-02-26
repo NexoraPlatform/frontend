@@ -117,10 +117,6 @@ const nextConfig = {
     ],
   },
 
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
-
   // TypeScript configuration
   typescript: {
     ignoreBuildErrors: false,

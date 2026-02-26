@@ -69,7 +69,7 @@ export function IconSearchDropdown({
                 // doar dacă ai whitelist explicit → trimite param; altfel lasă backend-ul să caute în toate
                 if (collectionsKey) qs.set('collections', collectionsKey);
 
-                const url = `http://127.0.0.1:8000/api/general/search/icons?${qs.toString()}`;
+                const url = `/api/general/search/icons?${qs.toString()}`;
                 const res = await fetch(url);
                 const data = await res.json();
 

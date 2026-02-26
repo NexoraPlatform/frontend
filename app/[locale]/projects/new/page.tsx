@@ -62,7 +62,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { useGetServicesGroupedByCategory } from '@/hooks/use-api';
 import { buildOAuthRedirectUrl } from '@/lib/backend-url';
-import { getEcho } from '@/lib/echo';
+import { ensureEcho, getEcho } from '@/lib/echo';
 import { Link, usePathname, useRouter } from '@/lib/navigation';
 import { aiService, type AiRecommendServicesResponse, type RecommendedServiceCandidate } from '@/services/ai.service';
 import { projectsService } from '@/services/projects';
@@ -4149,18 +4149,7 @@ export default function NewProjectPage() {
       return;
     }
 
-    const echo = getEcho();
-    if (!echo) {
-      setBriefSubscriptionError(
-        t('realtime_channel_is_not_available_at_the_moment')
-      );
-      return;
-    }
-
-    setBriefSubscriptionError(null);
-
-    const channelName = `user.${userId}.briefs`;
-    const channel = echo.private(channelName);
+    let cancelled = false;
 
     const handleGenerated = (payload: unknown) => {
       setBriefDebugResponseJson(toJsonDebugString(payload));
@@ -4213,21 +4202,39 @@ export default function NewProjectPage() {
       toast.error(message);
     };
 
-    AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
-      channel.listen(eventName, handleGenerated);
-    });
+    void (async () => {
+      const echo = await ensureEcho();
+      if (!echo || cancelled) {
+        if (!cancelled) {
+          setBriefSubscriptionError(
+            t('realtime_channel_is_not_available_at_the_moment')
+          );
+        }
+        return;
+      }
 
-    AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
-      channel.listen(eventName, handleFailed);
-    });
+      setBriefSubscriptionError(null);
 
-    briefSubscriptionRef.current = {
-      channelName,
-      channel,
-      echo,
-    };
+      const channelName = `user.${userId}.briefs`;
+      const channel = echo.private(channelName);
+
+      AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
+        channel.listen(eventName, handleGenerated);
+      });
+
+      AI_BRIEF_FAILED_EVENT_NAMES.forEach((eventName) => {
+        channel.listen(eventName, handleFailed);
+      });
+
+      briefSubscriptionRef.current = {
+        channelName,
+        channel,
+        echo,
+      };
+    })();
 
     return () => {
+      cancelled = true;
       cleanupBriefSubscription();
     };
   }, [step, user?.id, applyBriefResponse, cleanupBriefSubscription, loadBriefResultById, t]);

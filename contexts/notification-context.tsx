@@ -6,14 +6,13 @@ import React, {
 import { useAuth } from '@/contexts/auth-context';
 import Echo from 'laravel-echo';
 import type { Channel } from 'laravel-echo';
-import Pusher from 'pusher-js';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
-import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
-import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
+import { sanitizeNavigationTarget } from '@/lib/navigation-security';
+import { createEchoClient } from '@/lib/echo';
+import { ensurePusherClientConfig } from '@/lib/pusher-config';
 
 type RawLaravelNotification = {
     id: string;
@@ -326,14 +325,15 @@ function resolveNotificationActor(data: any, currentUserId?: string | number): N
     return normalized[0];
 }
 
-function resolveNotificationLink(n: AppNotification): string | null {
+export function resolveNotificationLink(n: Pick<AppNotification, 'type' | 'data'>): string {
     const link = n.data?.link;
     const redirectUrl = n.data?.payload?.redirectUrl;
     const resolvedLink =
         (typeof link === 'string' && link.length > 0 && link) ||
         (typeof redirectUrl === 'string' && redirectUrl.length > 0 && redirectUrl) ||
         null;
-    if (resolvedLink) return resolvedLink;
+    const safeLink = sanitizeNavigationTarget(resolvedLink);
+    if (safeLink) return safeLink;
     const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
     const groupId = n.data?.groupId ?? n.data?.payload?.groupId;
     if (n.type === 'MESSAGE') {
@@ -380,42 +380,21 @@ function getNotificationPermission(): NotificationPermission {
 }
 
 let echoSingleton: Echo<any> | null = null;
-function getOrCreateEcho(): Echo<any> {
+let echoSingletonInitPromise: Promise<Echo<any> | null> | null = null;
+async function getOrCreateEcho(): Promise<Echo<any> | null> {
     if (echoSingleton) return echoSingleton;
-    disablePusherUnloadListener(Pusher);
-    (window as any).Pusher = Pusher;
-    echoSingleton = new Echo({
-        broadcaster: 'pusher',
-        key: process.env.PUSHER_KEY!,
-        cluster: process.env.PUSHER_CLUSTER!,
-        authEndpoint: `/api/broadcasting/auth`,
-        authorizer: (channel: any) => ({
-            authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
-                ensureCsrfCookie()
-                    .then(() => {
-                        const xsrfToken = getXsrfToken();
-                        return http.post(
-                            '/api/broadcasting/auth',
-                            {
-                                socket_id: socketId,
-                                channel_name: channel.name,
-                            },
-                            {
-                                skipAuthHandling: true,
-                                ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
-                            }
-                        );
-                    })
-                    .then((response) => callback(null, response))
-                    .catch((error) =>
-                        callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
-                    );
-            },
-        }),
-        forceTLS: true,
-        enableStats: false,
+    if (echoSingletonInitPromise) return echoSingletonInitPromise;
+
+    echoSingletonInitPromise = (async () => {
+        const pusherConfig = await ensurePusherClientConfig();
+        if (!pusherConfig) return null;
+        echoSingleton = createEchoClient(pusherConfig);
+        return echoSingleton;
+    })().finally(() => {
+        echoSingletonInitPromise = null;
     });
-    return echoSingleton;
+
+    return echoSingletonInitPromise;
 }
 
 const INITIAL_LIMIT = 10;
@@ -537,7 +516,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 }
             }
             if (link && typeof window !== 'undefined') {
-                window.location.href = link;
+                window.location.assign(link);
             }
         };
 
@@ -598,32 +577,44 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (!user) return;
-        const echo = getOrCreateEcho();
-        const channelName = `App.Models.User.${user.id}`;
-        const ch = echo.private(channelName);
-        privateChannelRef.current = ch;
+        let cancelled = false;
+        let localEcho: Echo<any> | null = null;
+        let channelName = '';
 
-        ch.notification((raw: RawLaravelNotification) => {
-            const rawType = String(raw?.type ?? '').toLowerCase();
-            const notificationType = String(raw?.data?.type ?? '').toLowerCase();
-            const n = normalize(raw);
-            setNotifications(prev => {
-                if (prev.find(x => x.id === n.id)) return prev;
-                return [n, ...prev].slice(0, 200);
+        void (async () => {
+            const echo = await getOrCreateEcho();
+            if (!echo || cancelled) return;
+
+            localEcho = echo;
+            channelName = `App.Models.User.${user.id}`;
+            const ch = echo.private(channelName);
+            privateChannelRef.current = ch;
+
+            ch.notification((raw: RawLaravelNotification) => {
+                const rawType = String(raw?.type ?? '').toLowerCase();
+                const notificationType = String(raw?.data?.type ?? '').toLowerCase();
+                const n = normalize(raw);
+                setNotifications(prev => {
+                    if (prev.find(x => x.id === n.id)) return prev;
+                    return [n, ...prev].slice(0, 200);
+                });
+                if (!n.isRead) setUnreadCount(prev => prev + 1);
+                showNotificationToast(n);
+
+                if (
+                    notificationType === 'budget.accepted.by_provider' ||
+                    rawType.includes('provideracceptedclientbudget')
+                ) {
+                    void refresh();
+                }
             });
-            if (!n.isRead) setUnreadCount(prev => prev + 1);
-            showNotificationToast(n);
-
-            if (
-                notificationType === 'budget.accepted.by_provider' ||
-                rawType.includes('provideracceptedclientbudget')
-            ) {
-                void refresh();
-            }
-        });
+        })();
 
         return () => {
-            try { (echo as any).leave?.(channelName); } catch {}
+            cancelled = true;
+            if (localEcho && channelName) {
+                try { (localEcho as any).leave?.(channelName); } catch {}
+            }
             privateChannelRef.current = null;
         };
     }, [refresh, showNotificationToast, user]);

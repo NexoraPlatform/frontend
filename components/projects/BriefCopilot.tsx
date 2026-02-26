@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
-import { getEcho } from '@/lib/echo';
+import { ensureEcho, getEcho } from '@/lib/echo';
 import { FetchError, fetchClient } from '@/lib/fetch-client';
 import { aiService } from '@/services/ai.service';
 import { cn } from '@/lib/utils';
@@ -1081,7 +1081,7 @@ export default function BriefCopilot({
       setQuickReplies([]);
 
       cleanupBriefSubscription();
-      const echo = getEcho();
+      const echo = await ensureEcho();
       if (!echo) {
         setIsLoading(false);
         setError(t('client.project_requests.brief_copilot.errors.generic'));
