@@ -114,7 +114,7 @@ export default function SelectTestsPageClient() {
         }, 3000);
 
         (async function () {
-            const cal = await getCalApi({ apiKey: process.env.NEXT_PUBLIC_CAL_API_KEY } as any);
+            const cal = await getCalApi({ apiKey: process.env.CAL_API_KEY } as any);
             cal("ui", { "styles": { "branding": { "brandColor": "#000000" } }, "hideEventTypeDetails": false, "layout": "month_view" });
         })();
 

@@ -31,7 +31,7 @@ export default function OneSignalInit() {
         }
 
         const initOneSignal = async () => {
-            const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+            const appId = process.env.ONESIGNAL_APP_ID;
             if (!appId) {
                 return;
             }

@@ -15,8 +15,8 @@ export function getEcho(_token?: string | null): Echo<any> | null {
 
   echoInstance = new Echo({
     broadcaster: 'pusher',
-    key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
-    cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    key: process.env.PUSHER_KEY!,
+    cluster: process.env.PUSHER_CLUSTER!,
     authEndpoint: `/api/broadcasting/auth`,
     authorizer: (channel: any) => ({
       authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
