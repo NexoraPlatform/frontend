@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const currencyIcons: Record<Currency, string> = {
 
 export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
   const { currency, setCurrency } = useCurrency();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -51,7 +53,9 @@ export function CurrencySwitcher({ className }: CurrencySwitcherProps) {
               key={nextCurrency}
               onSelect={(event) => {
                 event.preventDefault();
+                if (isCurrent) return;
                 setCurrency(nextCurrency as Currency);
+                router.refresh();
               }}
               aria-current={isCurrent ? 'true' : undefined}
               className={cn(

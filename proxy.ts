@@ -1,13 +1,23 @@
 // proxy.ts
 import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
+import {
+  chain,
+  chainMatch,
+  continued,
+  isPageRequest,
+  nextSafe,
+} from '@next-safe/middleware';
+import type { NextMiddleware } from 'next/server';
 import { auth } from '@/auth';
 import {
   checkRequirement,
   type AccessUser,
-  type AccessRole,
   type Requirement,
 } from '@/lib/access';
+import { enforceApiRateLimit } from '@/lib/server/rate-limit';
+import { fetchLaravelUserFromCookieHeader } from '@/lib/auth/laravel-session';
+import { normalizeAuthUser } from '@/lib/auth/user';
 import { defaultLocale } from '@/lib/i18n';
 import { locales, localePrefix } from '@/lib/navigation';
 
@@ -216,6 +226,12 @@ export const proxy = auth(async (req) => {
     pathname.includes('manifest.json') ||
     pathname.startsWith('/favicon')
   ) {
+    if (pathname.startsWith('/api')) {
+      const rateLimitResponse = await enforceApiRateLimit(req);
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
+    }
     return NextResponse.next();
   }
 
@@ -242,10 +258,22 @@ export const proxy = auth(async (req) => {
   const normalizedPath =
     pathWithoutLocale !== '/' ? pathWithoutLocale.replace(/\/+$/, '') : pathWithoutLocale;
 
-  // req.auth is the session object
   const session = (req as any).auth;
-  const user = session?.user as AccessUser | null | undefined; // Cast to our AccessUser
-  // Treat only validated session data as authenticated to avoid stale-cookie false positives.
+  const sessionUser = session?.user as AccessUser | null | undefined;
+  let user: AccessUser | null = null;
+
+  if (sessionUser) {
+    const cookieHeader = req.headers.get('cookie') ?? '';
+    if (!cookieHeader.includes('laravel_session=')) {
+      user = sessionUser;
+    } else {
+      const requestOrigin = req.headers.get('origin');
+      const rawUser = await fetchLaravelUserFromCookieHeader(cookieHeader, requestOrigin);
+      user = (normalizeAuthUser(rawUser) as AccessUser | null) ?? null;
+    }
+  }
+
+  // Treat only validated backend session data as authenticated.
   const isAuthenticated = Boolean(user);
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
@@ -371,7 +399,31 @@ export const proxy = auth(async (req) => {
   return baseResponse;
 });
 
-export default proxy;
+const securityHeadersMiddleware = chainMatch(isPageRequest)(
+  nextSafe({
+    // CSP stays managed by existing config to avoid regressions with scripts/services.
+    disableCsp: true,
+    frameOptions: 'DENY',
+    contentTypeOptions: 'nosniff',
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    permissionsPolicy: false,
+    xssProtection: false,
+  }),
+);
+
+const proxiedMiddleware = proxy as unknown as NextMiddleware;
+const securedMiddleware = chain(continued(proxiedMiddleware), securityHeadersMiddleware);
+
+export default ((...args: Parameters<NextMiddleware>) => {
+  const [req, evt] = args;
+
+  // Unit tests invoke middleware with only `req`; keep legacy behavior there.
+  if (args.length < 2 || !evt) {
+    return proxiedMiddleware(req, evt as any);
+  }
+
+  return securedMiddleware(req, evt);
+}) as NextMiddleware;
 
 export const config = {
   matcher: [
