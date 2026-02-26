@@ -3,6 +3,7 @@ import Pusher from 'pusher-js';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 import { FetchError, http } from '@/lib/fetch-client';
 import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
+import { ensurePusherClientConfig } from '@/lib/pusher-config';
 
 function normalizeMessage(raw: any): any {
     const sender = raw.sender || {};
@@ -77,7 +78,7 @@ export class ChatService {
         return ChatService.instance;
     }
 
-    connect(userId: string, _token?: string) {
+    async connect(userId: string, _token?: string) {
         if (this.echo) {
             const pusher = (this.echo as any)?.connector?.pusher;
             const state = pusher?.connection?.state;
@@ -86,13 +87,19 @@ export class ChatService {
             }
         }
 
+        const pusherConfig = await ensurePusherClientConfig();
+        if (!pusherConfig) {
+            this.emit('disconnected');
+            return false;
+        }
+
         disablePusherUnloadListener(Pusher);
         (window as any).Pusher = Pusher;
 
         this.echo = new Echo({
             broadcaster: 'pusher',
-            key: process.env.PUSHER_KEY!,
-            cluster: process.env.PUSHER_CLUSTER!,
+            key: pusherConfig.key,
+            cluster: pusherConfig.cluster,
             authEndpoint: `/api/broadcasting/auth`,
             authorizer: (channel: any) => ({
                 authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {

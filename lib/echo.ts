@@ -3,20 +3,24 @@ import Pusher from 'pusher-js';
 import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
 import { http } from '@/lib/fetch-client';
 import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
+import { ensurePusherClientConfig, getPusherClientConfig } from '@/lib/pusher-config';
 
 let echoInstance: Echo<any> | null = null;
+let echoInitPromise: Promise<Echo<any> | null> | null = null;
 
 export function getEcho(_token?: string | null): Echo<any> | null {
   if (typeof window === 'undefined') return null;
   if (echoInstance) return echoInstance;
+  const pusherConfig = getPusherClientConfig();
+  if (!pusherConfig) return null;
 
   disablePusherUnloadListener(Pusher);
   (window as any).Pusher = Pusher;
 
   echoInstance = new Echo({
     broadcaster: 'pusher',
-    key: process.env.PUSHER_KEY!,
-    cluster: process.env.PUSHER_CLUSTER!,
+    key: pusherConfig.key,
+    cluster: pusherConfig.cluster,
     authEndpoint: `/api/broadcasting/auth`,
     authorizer: (channel: any) => ({
       authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
@@ -48,6 +52,22 @@ export function getEcho(_token?: string | null): Echo<any> | null {
   (window as any).Echo = echoInstance;
 
   return echoInstance;
+}
+
+export async function ensureEcho(_token?: string | null): Promise<Echo<any> | null> {
+  if (typeof window === 'undefined') return null;
+  if (echoInstance) return echoInstance;
+  if (echoInitPromise) return echoInitPromise;
+
+  echoInitPromise = (async () => {
+    const pusherConfig = await ensurePusherClientConfig();
+    if (!pusherConfig) return null;
+    return getEcho();
+  })().finally(() => {
+    echoInitPromise = null;
+  });
+
+  return echoInitPromise;
 }
 
 export function disconnectEcho() {

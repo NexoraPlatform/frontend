@@ -35,7 +35,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import { getEcho } from '@/lib/echo';
+import { ensureEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
@@ -515,9 +515,14 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
     useEffect(() => {
         if (!user?.id) return;
-        const echo = getEcho();
-        if (!echo) return;
-        const channel = echo.private(`App.Models.User.${user.id}`);
+        let cancelled = false;
+        let channel:
+            | {
+                notification: (callback: (notification: any) => void) => void;
+                stopListening: (event: string) => void;
+            }
+            | null = null;
+
         const handler = (notification: {
             type?: string;
             data?: {
@@ -591,10 +596,18 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
             ) return;
             loadProjects();
         };
-        channel.notification(handler);
+
+        void (async () => {
+            const echo = await ensureEcho();
+            if (!echo || cancelled) return;
+            const privateChannel = echo.private(`App.Models.User.${user.id}`);
+            channel = privateChannel;
+            privateChannel.notification(handler);
+        })();
 
         return () => {
-            channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+            cancelled = true;
+            channel?.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
         };
     }, [user?.id, loadProjects]);
 

@@ -195,8 +195,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
         try {
             setLoading(true);
-            await chatService.connect(user.id);
-            setIsConnected(true);
+            const connected = await chatService.connect(user.id);
+            setIsConnected(Boolean(connected));
+            if (!connected) {
+                return;
+            }
 
             if (!listenersReadyRef.current) {
                 setupEventListeners();

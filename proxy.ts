@@ -199,6 +199,15 @@ export const proxy = auth(async (req) => {
     return NextResponse.next();
   }
 
+  if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
+    return new NextResponse('Authentication required.', {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="Trustora"',
+      },
+    });
+  }
+
   // Ignore static files and API
   if (
     pathname.startsWith('/api') ||
@@ -208,15 +217,6 @@ export const proxy = auth(async (req) => {
     pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
-  }
-
-  if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
-    return new NextResponse('Authentication required.', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="Trustora"',
-      },
-    });
   }
 
   // SECURITY: Use platform-specific headers for geo-location (harder to spoof)
@@ -375,6 +375,7 @@ export default proxy;
 
 export const config = {
   matcher: [
+    '/api/:path*',
     '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|non-critical\\.css|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|avif)|_error).*)',
   ],
 };

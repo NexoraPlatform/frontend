@@ -19,6 +19,7 @@ import {
 
 import { useNotifications } from '@/contexts/notification-context';
 import type { AppNotification } from '@/contexts/notification-context';
+import { sanitizeNavigationTarget } from '@/lib/navigation-security';
 
 export function NotificationBell() {
     const router = useRouter();
@@ -109,7 +110,8 @@ export function NotificationBell() {
             (typeof link === 'string' && link.length > 0 && link) ||
             (typeof redirectUrl === 'string' && redirectUrl.length > 0 && redirectUrl) ||
             null;
-        if (resolvedLink) return resolvedLink;
+        const safeLink = sanitizeNavigationTarget(resolvedLink);
+        if (safeLink) return safeLink;
         const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
         const groupId = n.data?.groupId ?? n.data?.payload?.groupId;
         if (n.type === 'MESSAGE') {
@@ -126,10 +128,6 @@ export function NotificationBell() {
     const onClickNotification = async (n: AppNotification) => {
         if (!n.isRead) await markAsRead(n.id);
         const target = navigateFor(n);
-        if (target.startsWith('http://') || target.startsWith('https://')) {
-            window.location.href = target;
-            return;
-        }
         router.push(target);
     };
 

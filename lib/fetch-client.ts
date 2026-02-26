@@ -508,31 +508,6 @@ export const createApiFetch = (config: ApiFetchConfig = {}) => {
           headers.set('X-XSRF-TOKEN', decodedXsrfToken);
         }
       }
-
-      if (process.env.NODE_ENV !== 'production' && shouldAttachCsrf) {
-        const shouldLogCsrfDebug =
-          endpoint.includes('/users/active') ||
-          endpoint.includes('/broadcasting/auth') ||
-          endpoint.includes('/ai/');
-
-        if (shouldLogCsrfDebug) {
-          const laravelSession = getCookieValue('laravel_session');
-          console.log('[apiFetch] CSRF request debug', {
-            endpoint,
-            method: requestMethod,
-            url,
-            hasXsrfCookie: Boolean(xsrfToken),
-            xsrfToken: decodedXsrfToken ?? null,
-            hasLaravelSession: Boolean(laravelSession),
-            laravelSessionPreview: laravelSession ? `${laravelSession.slice(0, 16)}...` : null,
-            hasHeaderXXsrf: headers.has('X-XSRF-TOKEN'),
-            credentials:
-              requestInit.credentials ??
-              (withCredentials === true ? 'include' : withCredentials === false ? 'omit' : 'include'),
-            withCredentials: withCredentials ?? null,
-          });
-        }
-      }
     }
 
     if (parsedBody instanceof FormData) {
@@ -632,20 +607,8 @@ const buildBrief = async (
   locale?: string,
   availableServices?: AiBriefAvailableService[]
 ): Promise<AiBriefBuilderResponse> => {
-  console.log('[buildBrief] called', {
-    messageCount: Array.isArray(messages) ? messages.length : 0,
-    locale: locale ?? null,
-    availableServicesCount: Array.isArray(availableServices) ? availableServices.length : 0,
-  });
-
   if (isBrowser) {
-    try {
-      await ensureCsrfCookie();
-      console.log('[buildBrief] ensureCsrfCookie ok');
-    } catch (error) {
-      console.error('[buildBrief] ensureCsrfCookie failed', error);
-      throw error;
-    }
+    await ensureCsrfCookie();
   }
 
   const normalizedMessages = normalizeBriefMessages(messages);
@@ -666,53 +629,11 @@ const buildBrief = async (
       };
 
       const xsrfToken = isBrowser ? getCookieValue('XSRF-TOKEN') : null;
-      const laravelSession = isBrowser ? getCookieValue('laravel_session') : null;
       const briefHeaders: Record<string, string> = {};
 
       if (xsrfToken) {
         const decodedXsrfToken = decodeURIComponent(xsrfToken);
         briefHeaders['X-XSRF-TOKEN'] = decodedXsrfToken;
-      }
-
-      const decodedXsrfToken = xsrfToken ? decodeURIComponent(xsrfToken) : null;
-      console.log('[buildBrief] csrf/session debug', {
-        attempt,
-        hasXsrfToken: Boolean(xsrfToken),
-        xsrfTokenPreview: decodedXsrfToken ? `${decodedXsrfToken.slice(0, 16)}...` : null,
-        hasLaravelSession: Boolean(laravelSession),
-        briefHeaderKeys: Object.keys(briefHeaders),
-        hasXXsrfHeader: Boolean(briefHeaders['X-XSRF-TOKEN']),
-        hasLaravelSessionHeader: false,
-      });
-
-      if (isBrowser && attempt === 0) {
-        try {
-          const authProbeHeaders: Record<string, string> = {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          };
-          if (decodedXsrfToken) {
-            authProbeHeaders['X-XSRF-TOKEN'] = decodedXsrfToken;
-          }
-
-          const authProbeResponse = await fetch(
-            `${API_BASE_URL.replace(/\/+$/, '')}/auth/me`,
-            {
-              method: 'GET',
-              credentials: 'include',
-              headers: authProbeHeaders,
-              cache: 'no-store',
-            }
-          );
-          const authProbeBody = await authProbeResponse.text();
-          console.log('[buildBrief] auth/me probe', {
-            status: authProbeResponse.status,
-            ok: authProbeResponse.ok,
-            bodyPreview: authProbeBody.slice(0, 200),
-          });
-        } catch (probeError) {
-          console.error('[buildBrief] auth/me probe failed', probeError);
-        }
       }
 
       return await withTimeout(
@@ -746,15 +667,6 @@ const buildBrief = async (
           error.data,
           error.url
         );
-      }
-
-      if (error instanceof FetchError && error.status === 401) {
-        console.error('[buildBrief] 401 details', {
-          url: error.url,
-          status: error.status,
-          message: error.message,
-          data: error.data,
-        });
       }
 
       throw error;

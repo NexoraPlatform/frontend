@@ -58,9 +58,6 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
   const forwardedHeaders = [
     'user-agent',
     'accept-language',
-    'x-forwarded-for',
-    'x-forwarded-proto',
-    'x-forwarded-host',
   ];
   forwardedHeaders.forEach((name) => {
     const value = req.headers.get(name);
