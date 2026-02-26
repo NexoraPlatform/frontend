@@ -39,13 +39,17 @@ vi.mock('next-intl/middleware', () => ({
   default: () => () => null,
 }));
 
+vi.mock('@/lib/navigation', () => ({
+  locales: ['en', 'ro'],
+  localePrefix: 'always',
+}));
+
 vi.mock('@/auth', () => ({
   auth: (handler: any) => handler,
 }));
 
 describe('proxy', () => {
   const baseUrl = 'https://example.com';
-
   beforeEach(() => {
     process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL = 'false';
     process.env.EARLY_ACCESS_FUNNEL = 'false';
@@ -67,10 +71,16 @@ describe('proxy', () => {
     const url = new URL(baseUrl + path);
     (url as any).clone = () => new URL(url.toString());
     const headers = new Headers(opts?.headers);
+    const cookies = {
+      get: (_name: string) => undefined,
+      has: (_name: string) => false,
+      getAll: () => [] as Array<{ name: string; value: string }>,
+    };
     return {
       url: url.toString(),
       nextUrl: url as any,
       headers,
+      cookies,
       auth: opts?.auth,
     } as any;
   };

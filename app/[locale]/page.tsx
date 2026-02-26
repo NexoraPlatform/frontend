@@ -1,5 +1,12 @@
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import {
+  HomeFinalCtaSkeleton,
+  HomeHeroSkeleton,
+  HomeMessagingSkeleton,
+  HomePillarsSkeleton,
+  HomeVisualSkeleton,
+} from "@/components/loading/homepage-sections-skeleton";
 import { TrustoraFinalCtaSection } from "@/components/trustora/final-cta-section";
 import { TrustoraHeroSection } from "@/components/trustora/hero-section";
 import { TrustoraMessagingSection } from "@/components/trustora/messaging-section";
@@ -15,6 +22,7 @@ import {
 import type { Locale } from "@/types/locale";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 
 export const revalidate = 86400;
 
@@ -117,32 +125,42 @@ export default async function Home({ params }: HomePageProps) {
             <h2 id="trustora-home-hero-heading" className="sr-only">
               {pageTitle}
             </h2>
-            <TrustoraHeroSection locale={locale} />
+            <Suspense fallback={<HomeHeroSkeleton />}>
+              <TrustoraHeroSection locale={locale} />
+            </Suspense>
           </section>
 
           <section aria-labelledby="trustora-home-pillars-heading">
             <h2 id="trustora-home-pillars-heading" className="sr-only">
               {pillarsHeading}
             </h2>
-            <TrustoraPillarsSection locale={locale} />
+            <Suspense fallback={<HomePillarsSkeleton />}>
+              <TrustoraPillarsSection locale={locale} />
+            </Suspense>
           </section>
 
           <section aria-labelledby="trustora-home-messaging-heading">
             <h2 id="trustora-home-messaging-heading" className="sr-only">
               {messagingHeading}
             </h2>
-            <TrustoraMessagingSection locale={locale} />
+            <Suspense fallback={<HomeMessagingSkeleton />}>
+              <TrustoraMessagingSection locale={locale} />
+            </Suspense>
           </section>
 
           <section aria-labelledby="trustora-home-visual-heading">
             <h2 id="trustora-home-visual-heading" className="sr-only">
               {visualHeading}
             </h2>
-            <TrustoraVisualLanguageSection locale={locale} />
+            <Suspense fallback={<HomeVisualSkeleton />}>
+              <TrustoraVisualLanguageSection locale={locale} />
+            </Suspense>
           </section>
 
           <aside aria-label={finalCtaTitle}>
-            <TrustoraFinalCtaSection locale={locale} />
+            <Suspense fallback={<HomeFinalCtaSkeleton />}>
+              <TrustoraFinalCtaSection locale={locale} />
+            </Suspense>
           </aside>
         </article>
       </main>

@@ -48,8 +48,9 @@ import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Form } from '@/components/ui/form';
 import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
 import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
+import * as v from 'valibot';
 
 type Languages = {
     id: number;
@@ -59,6 +60,58 @@ type Languages = {
     flag: string;
     timezone: string;
 }
+
+const providerProfileValidationSchema = v.object({
+    firstName: v.pipe(
+        v.string(),
+        v.trim(),
+        v.minLength(1, 'Prenumele este obligatoriu'),
+    ),
+    lastName: v.pipe(
+        v.string(),
+        v.trim(),
+        v.minLength(1, 'Numele este obligatoriu'),
+    ),
+    email: v.pipe(
+        v.string(),
+        v.trim(),
+        v.minLength(1, 'Adresa de email este obligatoriu'),
+    ),
+    phone: v.pipe(
+        v.string(),
+        v.trim(),
+        v.minLength(1, 'Numarul de telefon este obligatoriu'),
+    ),
+    bio: v.pipe(
+        v.string(),
+        v.trim(),
+        v.minLength(1, 'Descrierea este obligatoriu'),
+    ),
+    availability: v.object({
+        status: v.pipe(
+            v.string(),
+            v.trim(),
+            v.minLength(1, 'Statusul curent este obligatoriu'),
+        ),
+        hoursPerWeek: v.pipe(
+            v.union([v.string(), v.number()]),
+            v.check(
+                (value) => Boolean(value),
+                'Ore pe saptamana este obligatoriu',
+            ),
+        ),
+    }),
+});
+
+const providerProfileErrorPathMap: Record<string, string> = {
+    firstName: 'firstName',
+    lastName: 'lastName',
+    email: 'email',
+    phone: 'phone',
+    bio: 'bio',
+    'availability.status': 'availability_status',
+    'availability.hoursPerWeek': 'hours_per_week',
+};
 
 export default function ProviderProfileEditPage() {
     const t = useTranslations();
@@ -77,7 +130,7 @@ export default function ProviderProfileEditPage() {
     const [zoom, setZoom] = useState(1);
     const { data: languages } = useGetLanguages();
     const billingForm = useForm<BillingDetailsFormValues>({
-        resolver: zodResolver(billingDetailsSchema),
+        resolver: valibotResolver(billingDetailsSchema),
         defaultValues: {
             company_name: '',
             tax_id: '',
@@ -177,31 +230,49 @@ export default function ProviderProfileEditPage() {
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const validate = () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!profileData.firstName.trim()) {
-            newErrors.firstName = 'Prenumele este obligatoriu';
+        const validation = v.safeParse(providerProfileValidationSchema, {
+            firstName: profileData.firstName,
+            lastName: profileData.lastName,
+            email: profileData.email,
+            phone: profileData.phone,
+            bio: profileData.bio,
+            availability: {
+                status: profileData.availability.status,
+                hoursPerWeek: profileData.availability.hoursPerWeek,
+            },
+        });
+
+        if (validation.success) {
+            setErrors({});
+            return true;
         }
-        if (!profileData.lastName.trim()) {
-            newErrors.lastName = 'Numele este obligatoriu';
-        }
-        if (!profileData.email.trim()) {
-            newErrors.email = 'Adresa de email este obligatoriu';
-        }
-        if (!profileData.phone.trim()) {
-            newErrors.phone = 'Numarul de telefon este obligatoriu';
-        }
-        if (!profileData.bio.trim()) {
-            newErrors.bio = 'Descrierea este obligatoriu';
-        }
-        if (!profileData.availability.status.trim()) {
-            newErrors.availability_status = 'Statusul curent este obligatoriu';
-        }
-        if (!profileData.availability.hoursPerWeek) {
-            newErrors.hours_per_week = 'Ore pe saptamana este obligatoriu';
-        }
-        // alte validări...
+
+        const newErrors = validation.issues.reduce<{ [key: string]: string }>(
+            (acc, issue) => {
+                const dotPath = issue.path
+                    ?.map((item) =>
+                        typeof item.key === 'string' ||
+                        typeof item.key === 'number'
+                            ? String(item.key)
+                            : '',
+                    )
+                    .filter(Boolean)
+                    .join('.');
+                const mappedKey = dotPath
+                    ? providerProfileErrorPathMap[dotPath]
+                    : undefined;
+
+                if (mappedKey && !acc[mappedKey]) {
+                    acc[mappedKey] = issue.message;
+                }
+
+                return acc;
+            },
+            {},
+        );
+
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return false;
     };
 
     const [newLanguage, setNewLanguage] = useState({ name: '', level: 'Basic', flag: '' });

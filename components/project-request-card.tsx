@@ -1422,7 +1422,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 return (
                                                     <div
                                                         key={milestoneId ?? index}
-                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? 'bg-green-300' : ''}`}
+                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm gap-2 ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? 'bg-green-300' : ''}`}
                                                     >
                                                         <div className="flex items-center justify-between gap-6">
                                                             <span>{milestone.title}</span>

@@ -20,7 +20,7 @@ import { TermsContent } from '@/components/terms-content';
 import { Form } from '@/components/ui/form';
 import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
 import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
 
 export default function SignUpPage() {
@@ -36,7 +36,7 @@ export default function SignUpPage() {
     agreeToTerms: false
   });
   const billingForm = useForm<BillingDetailsFormValues>({
-    resolver: zodResolver(billingDetailsSchema),
+    resolver: valibotResolver(billingDetailsSchema),
     defaultValues: {
       company_name: '',
       tax_id: '',

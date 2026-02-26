@@ -1,9 +1,9 @@
 // types/user-forms.ts
-import { z } from 'zod';
+import * as v from 'valibot';
 import type { ConnectedAccount } from '@/types/auth';
 
-const emptyToUndefined = (value: unknown) =>
-    typeof value === 'string' && value.trim() === '' ? undefined : value;
+const emptyToUndefined = (value: string) =>
+    value.trim() === '' ? undefined : value;
 
 export type BaseUser = {
     id?: number;
@@ -58,56 +58,75 @@ export type ClientFormData = BaseUser & {
 
 export type AnyFormData = AdminFormData | ProviderFormData | ClientFormData;
 
-const billingDetailsBaseSchema = z.object({
-    company_name: z.preprocess(emptyToUndefined, z.string().optional()),
-    tax_id: z.preprocess(emptyToUndefined, z.string().optional()),
-    trade_registry_number: z.preprocess(emptyToUndefined, z.string().optional()),
-    billing_address: z.preprocess(emptyToUndefined, z.string().optional()),
-    billing_city: z.preprocess(emptyToUndefined, z.string().optional()),
-    billing_state: z.preprocess(emptyToUndefined, z.string().optional()),
-    billing_postal_code: z.preprocess(emptyToUndefined, z.string().optional()),
-});
-
-const billingDetailsRefinement = (data: {
-    company_name?: string;
-    tax_id?: string;
-    billing_address?: string;
-}, ctx: z.RefinementCtx) => {
-    if (data.company_name) {
-        if (!data.tax_id) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['tax_id'],
-                message: 'Tax ID is required when company name is provided',
-            });
-        }
-        if (!data.billing_address) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['billing_address'],
-                message: 'Billing address is required when company name is provided',
-            });
-        }
-    }
-};
-
-export const billingDetailsSchema = billingDetailsBaseSchema.superRefine(
-    billingDetailsRefinement,
+const optionalBillingStringSchema = v.optional(
+    v.pipe(
+        v.string(),
+        v.transform(emptyToUndefined),
+        v.union([v.string(), v.undefined()]),
+    ),
 );
 
-export const userSchema = z
-    .object({
-        firstName: z.string().min(1, 'First name is required'),
-        lastName: z.string().min(1, 'Last name is required'),
-        email: z.string().email('Valid email is required'),
-        role: z.enum(['ADMIN', 'PROVIDER', 'CLIENT']),
-        phone: z.string().min(1, 'Phone number is required'),
-        password: z.string().optional(),
-        confirm_password: z.string().optional(),
-    })
-    .merge(billingDetailsBaseSchema)
-    .superRefine(billingDetailsRefinement);
+const billingDetailsEntries = {
+    company_name: optionalBillingStringSchema,
+    tax_id: optionalBillingStringSchema,
+    trade_registry_number: optionalBillingStringSchema,
+    billing_address: optionalBillingStringSchema,
+    billing_city: optionalBillingStringSchema,
+    billing_state: optionalBillingStringSchema,
+    billing_postal_code: optionalBillingStringSchema,
+};
 
-export type UserFormValues = z.infer<typeof userSchema>;
+const billingDetailsBaseSchema = v.object(billingDetailsEntries);
 
-export type BillingDetailsFormValues = z.infer<typeof billingDetailsSchema>;
+export const billingDetailsSchema = v.pipe(
+    billingDetailsBaseSchema,
+    v.forward(
+        v.check(
+            (data) => !data.company_name || Boolean(data.tax_id),
+            'Tax ID is required when company name is provided',
+        ),
+        ['tax_id'],
+    ),
+    v.forward(
+        v.check(
+            (data) => !data.company_name || Boolean(data.billing_address),
+            'Billing address is required when company name is provided',
+        ),
+        ['billing_address'],
+    ),
+);
+
+const userBaseSchema = v.object({
+    firstName: v.pipe(v.string(), v.minLength(1, 'First name is required')),
+    lastName: v.pipe(v.string(), v.minLength(1, 'Last name is required')),
+    email: v.pipe(v.string(), v.email('Valid email is required')),
+    role: v.picklist(['ADMIN', 'PROVIDER', 'CLIENT']),
+    phone: v.pipe(v.string(), v.minLength(1, 'Phone number is required')),
+    password: v.optional(v.string()),
+    confirm_password: v.optional(v.string()),
+    ...billingDetailsEntries,
+});
+
+export const userSchema = v.pipe(
+    userBaseSchema,
+    v.forward(
+        v.check(
+            (data) => !data.company_name || Boolean(data.tax_id),
+            'Tax ID is required when company name is provided',
+        ),
+        ['tax_id'],
+    ),
+    v.forward(
+        v.check(
+            (data) => !data.company_name || Boolean(data.billing_address),
+            'Billing address is required when company name is provided',
+        ),
+        ['billing_address'],
+    ),
+);
+
+export type UserFormValues = v.InferOutput<typeof userSchema>;
+
+export type BillingDetailsFormValues = v.InferOutput<
+    typeof billingDetailsSchema
+>;

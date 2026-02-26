@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { CURRENCY_STORAGE_KEY, DEFAULT_CURRENCY, supportedCurrencies } from '@/lib/currency';
 import type { Currency } from '@/lib/currency';
 
@@ -26,12 +26,32 @@ const getInitialCurrency = (): Currency => {
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>(getInitialCurrency);
+
+  const syncCurrencyQueryParam = useCallback((nextCurrency: Currency) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set('currency', nextCurrency);
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+      );
+    } catch {
+      // Ignore URL sync issues and keep runtime currency state.
+    }
+  }, []);
+
   const setCurrency = useCallback((nextCurrency: Currency) => {
     setCurrencyState(nextCurrency);
     if (typeof window !== 'undefined') {
       localStorage.setItem(CURRENCY_STORAGE_KEY, nextCurrency);
     }
-  }, []);
+    syncCurrencyQueryParam(nextCurrency);
+  }, [syncCurrencyQueryParam]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -60,5 +80,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [currency, setCurrency]
   );
 
-  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
+  return (
+    <CurrencyContext.Provider value={value}>
+      <Fragment key={currency}>{children}</Fragment>
+    </CurrencyContext.Provider>
+  );
 }
