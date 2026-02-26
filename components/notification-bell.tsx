@@ -17,9 +17,8 @@ import {
     Rocket, Package, MessageSquare, Cog, DollarSign
 } from 'lucide-react';
 
-import { useNotifications } from '@/contexts/notification-context';
+import { resolveNotificationLink, useNotifications } from '@/contexts/notification-context';
 import type { AppNotification } from '@/contexts/notification-context';
-import { sanitizeNavigationTarget } from '@/lib/navigation-security';
 
 export function NotificationBell() {
     const router = useRouter();
@@ -103,31 +102,9 @@ export function NotificationBell() {
         }
     };
 
-    const navigateFor = (n: AppNotification) => {
-        const link = n.data?.link;
-        const redirectUrl = n.data?.payload?.redirectUrl;
-        const resolvedLink =
-            (typeof link === 'string' && link.length > 0 && link) ||
-            (typeof redirectUrl === 'string' && redirectUrl.length > 0 && redirectUrl) ||
-            null;
-        const safeLink = sanitizeNavigationTarget(resolvedLink);
-        if (safeLink) return safeLink;
-        const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
-        const groupId = n.data?.groupId ?? n.data?.payload?.groupId;
-        if (n.type === 'MESSAGE') {
-            if (groupId) return `/dashboard?tab=messages&groupId=${encodeURIComponent(String(groupId))}`;
-            return '/dashboard?tab=messages';
-        }
-        if (projectId) return `/projects/${projectId}`;
-        if (n.type === 'PAYMENT') return '/dashboard?tab=finance';
-        if (n.type === 'PROJECT_ADDED') return '/projects';
-        if (n.type === 'ORDER_UPDATE') return '/dashboard?tab=orders';
-        return '/dashboard';
-    };
-
     const onClickNotification = async (n: AppNotification) => {
         if (!n.isRead) await markAsRead(n.id);
-        const target = navigateFor(n);
+        const target = resolveNotificationLink(n);
         router.push(target);
     };
 

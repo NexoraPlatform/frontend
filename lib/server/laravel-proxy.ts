@@ -69,6 +69,14 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
   return headers;
 };
 
+export const mergeProxySearchParams = (req: Request, targetUrl: URL) => {
+  const source = new URL(req.url).searchParams;
+  for (const [key, value] of source.entries()) {
+    targetUrl.searchParams.set(key, value);
+  }
+  return targetUrl;
+};
+
 const isLocalDevelopmentRequest = (req?: Request | null) => {
   if (!req) return process.env.NODE_ENV !== 'production';
   try {
@@ -115,4 +123,16 @@ export const appendSetCookie = (from: Response, to: NextResponse, req?: Request 
   setCookies.forEach((cookie) => {
     to.headers.append('Set-Cookie', normalizeSetCookieForProxy(cookie, req));
   });
+};
+
+export const buildProxyTextResponse = async (response: Response, req?: Request | null) => {
+  const contentType = response.headers.get('content-type');
+  const nextResponse = new NextResponse(await response.text(), {
+    status: response.status,
+    headers: {
+      'Content-Type': contentType && contentType.length > 0 ? contentType : 'application/json',
+    },
+  });
+  appendSetCookie(response, nextResponse, req);
+  return nextResponse;
 };

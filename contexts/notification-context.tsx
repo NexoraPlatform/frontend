@@ -6,15 +6,12 @@ import React, {
 import { useAuth } from '@/contexts/auth-context';
 import Echo from 'laravel-echo';
 import type { Channel } from 'laravel-echo';
-import Pusher from 'pusher-js';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
-import { disablePusherUnloadListener } from '@/lib/pusher-runtime';
-import { http } from '@/lib/fetch-client';
-import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 import { sanitizeNavigationTarget } from '@/lib/navigation-security';
+import { createEchoClient } from '@/lib/echo';
 import { ensurePusherClientConfig } from '@/lib/pusher-config';
 
 type RawLaravelNotification = {
@@ -328,7 +325,7 @@ function resolveNotificationActor(data: any, currentUserId?: string | number): N
     return normalized[0];
 }
 
-function resolveNotificationLink(n: AppNotification): string | null {
+export function resolveNotificationLink(n: Pick<AppNotification, 'type' | 'data'>): string {
     const link = n.data?.link;
     const redirectUrl = n.data?.payload?.redirectUrl;
     const resolvedLink =
@@ -391,39 +388,7 @@ async function getOrCreateEcho(): Promise<Echo<any> | null> {
     echoSingletonInitPromise = (async () => {
         const pusherConfig = await ensurePusherClientConfig();
         if (!pusherConfig) return null;
-        disablePusherUnloadListener(Pusher);
-        (window as any).Pusher = Pusher;
-        echoSingleton = new Echo({
-            broadcaster: 'pusher',
-            key: pusherConfig.key,
-            cluster: pusherConfig.cluster,
-            authEndpoint: `/api/broadcasting/auth`,
-            authorizer: (channel: any) => ({
-                authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
-                    ensureCsrfCookie()
-                        .then(() => {
-                            const xsrfToken = getXsrfToken();
-                            return http.post(
-                                '/api/broadcasting/auth',
-                                {
-                                    socket_id: socketId,
-                                    channel_name: channel.name,
-                                },
-                                {
-                                    skipAuthHandling: true,
-                                    ...(xsrfToken ? { headers: { 'X-XSRF-TOKEN': xsrfToken } } : {}),
-                                }
-                            );
-                        })
-                        .then((response) => callback(null, response))
-                        .catch((error) =>
-                            callback(error instanceof Error ? error : new Error('Broadcast auth failed'))
-                        );
-                },
-            }),
-            forceTLS: true,
-            enableStats: false,
-        });
+        echoSingleton = createEchoClient(pusherConfig);
         return echoSingleton;
     })().finally(() => {
         echoSingletonInitPromise = null;
