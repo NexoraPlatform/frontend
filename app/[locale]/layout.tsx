@@ -42,10 +42,10 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   const messages = await getMessages({ locale });
   const initialUser = null;
-  const rawGtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
+  const rawGtmId = process.env.GTM_ID?.trim();
   const gtmId = rawGtmId && /^[A-Za-z0-9_-]+$/.test(rawGtmId) ? rawGtmId : null;
   const isProduction = process.env.NODE_ENV === "production";
-  const shouldLoadOneSignal = isProduction && Boolean(process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID);
+  const shouldLoadOneSignal = isProduction && Boolean(process.env.ONESIGNAL_APP_ID);
   const shouldLoadGtm = isProduction && Boolean(gtmId);
 
   const globalJsonLd = serializeJsonLd(buildGlobalKnowledgeGraph());
