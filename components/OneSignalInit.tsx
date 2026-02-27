@@ -54,7 +54,7 @@ export default function OneSignalInit() {
                 if (!oneSignalInitPromise.current) {
                     oneSignalInitPromise.current = OneSignal.init({
                         appId,
-                        allowLocalhostAsSecureOrigin: true, // CRITIC pentru localhost
+                        allowLocalhostAsSecureOrigin: process.env.NODE_ENV !== 'production',
                         notifyButton: {
                             enable: true,
                             showCredit: false,
@@ -81,14 +81,12 @@ export default function OneSignalInit() {
                 await oneSignalInitPromise.current;
 
                 oneSignalInitialized.current = true;
-                console.log("OneSignal Initialized Successfully");
 
                 // 3. Ascultăm evenimentul de abonare
                 OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
                     if (event.current.optedIn) {
                         const onesignalId = OneSignal.User.PushSubscription.id;
                         if (onesignalId) {
-                            console.log("OneSignal ID:", onesignalId);
                             // Încercăm să trimitem tokenul la backend dacă avem user logat
                             // Nota: Dacă userul nu e logat la abonare, tokenul se va trimite la login
                             try {
