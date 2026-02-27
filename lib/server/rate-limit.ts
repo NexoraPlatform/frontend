@@ -133,6 +133,7 @@ const upstashEnabled =
     process.env.UPSTASH_REDIS_REST_URL?.trim() &&
     process.env.UPSTASH_REDIS_REST_TOKEN?.trim(),
   );
+const failOpenOnProviderError = process.env.UPSTASH_RATE_LIMIT_FAIL_OPEN === 'true';
 
 let redis: Redis | null = null;
 if (upstashEnabled) {
@@ -230,7 +231,15 @@ export async function enforceApiRateLimit(
       },
     );
   } catch {
-    // Fail-open on provider/network issues to avoid breaking live flows.
-    return null;
+    if (failOpenOnProviderError) {
+      // Optional backward-compatible behavior.
+      return null;
+    }
+
+    // Fail closed by default when provider is enabled but unavailable.
+    return NextResponse.json(
+      { message: 'Rate limiting is temporarily unavailable. Please retry shortly.' },
+      { status: 503 },
+    );
   }
 }

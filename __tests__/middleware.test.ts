@@ -108,6 +108,17 @@ describe('proxy', () => {
     expect(res.headers.get('WWW-Authenticate')).toContain('Basic');
   });
 
+  it('fails closed when basic auth is enabled but credentials are missing', async () => {
+    process.env.BASIC_AUTH_ENABLED = 'true';
+    process.env.BASIC_AUTH_USERS = '';
+    process.env.BASIC_AUTH_PASSWORDS = '';
+
+    const req = makeReq('/ro/services');
+    const res: any = await proxy(req);
+    expect(res.status).toBe(401);
+    expect(res.headers.get('WWW-Authenticate')).toContain('Basic');
+  });
+
   it('accepts valid basic auth credentials', async () => {
     process.env.BASIC_AUTH_ENABLED = 'true';
     process.env.BASIC_AUTH_USERS = 'admin';

@@ -53,6 +53,7 @@ import { apiClient, DashboardStatsResponse, RecentActivityQuick } from '@/lib/ap
 import { ensureEcho } from '@/lib/echo';
 import { toast } from 'sonner';
 import { Link } from '@/lib/navigation';
+import { sanitizeExternalRedirectUrl } from '@/lib/navigation-security';
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
 import { NotificationBell } from '@/components/notification-bell';
@@ -62,6 +63,12 @@ import { ChatButton } from '@/components/chat/chat-button';
 import ChatLauncher from '@/components/chat/chat-launcher';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
+const RAPYD_REDIRECT_ALLOWED_HOSTS = (
+  process.env.NEXT_PUBLIC_RAPYD_REDIRECT_ALLOWED_HOSTS || 'rapyd.net'
+)
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 const theme = {
   trustAccent: '#1BC47D',
@@ -808,8 +815,19 @@ export default function DashboardClient() {
             : null);
 
       if (onboardingUrl && typeof window !== 'undefined') {
-        window.location.href = onboardingUrl;
-        return;
+        const safeOnboardingUrl = sanitizeExternalRedirectUrl(
+          onboardingUrl,
+          RAPYD_REDIRECT_ALLOWED_HOSTS
+        );
+
+        if (safeOnboardingUrl) {
+          window.location.href = safeOnboardingUrl;
+          return;
+        }
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Blocked unsafe Rapyd onboarding redirect URL', onboardingUrl);
+        }
       }
 
       await fetchBalance();
