@@ -313,7 +313,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
             setServices(services);
             setReviews(reviews);
         } catch (error: any) {
-            console.log(error)
+            console.error(error)
             setError('Nu s-au putut încărca datele prestatorului');
         } finally {
             setLoading(false);

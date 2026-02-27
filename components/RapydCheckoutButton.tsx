@@ -116,7 +116,9 @@ export default function RapydCheckoutButton({
                     instance.closeToolkit();
                 }
             } catch (error) {
-                console.warn('Failed to close Rapyd checkout toolkit:', error);
+                if (process.env.NODE_ENV !== 'production') {
+                    console.warn('Failed to close Rapyd checkout toolkit:', error);
+                }
             } finally {
                 checkoutInstance.current = null;
             }
@@ -126,7 +128,6 @@ export default function RapydCheckoutButton({
     // 1. Inițializăm Event Listeners pentru Rapyd
     useEffect(() => {
         const handleSuccess = (event: any) => {
-            console.log('Rapyd Success:', event.detail);
             toast.success('Plata a fost efectuată cu succes!');
             if (typeof onSuccess === 'function') {
                 onSuccess();

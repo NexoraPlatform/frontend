@@ -13,7 +13,8 @@ const nextConfig = {
   compiler: {
     // Remove console logs in production
     removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn']
+      // Keep only hard runtime errors in production output.
+      exclude: ['error']
     } : false,
 
     // React optimizations
@@ -143,6 +144,14 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
+          ...(isDev
+            ? []
+            : [
+                {
+                  key: 'Strict-Transport-Security',
+                  value: 'max-age=31536000; includeSubDomains; preload',
+                },
+              ]),
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
@@ -165,6 +174,8 @@ const nextConfig = {
                 https://onesignal.com
                 https://api.onesignal.com
                 https://cdn.cookie-script.com
+                https://applepay.cdn-apple.com
+                https://cdnjs.cloudflare.com
                 https://backend.trustora.ro
                 https://sandboxcheckouttoolkit.rapyd.net;
               style-src 'self' 'unsafe-inline'
@@ -195,7 +206,6 @@ const nextConfig = {
               frame-ancestors 'none';
               base-uri 'self';
               form-action 'self';
-              sandbox allow-forms allow-scripts allow-same-origin allow-popups allow-downloads;
             `.replace(/\s+/g, ' ').trim(),
           },
           {

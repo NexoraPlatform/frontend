@@ -166,7 +166,8 @@ function getBasicAuthCredentials() {
 
 function isBasicAuthAuthorized(request: any) {
   const credentials = getBasicAuthCredentials();
-  if (credentials.length === 0) return true;
+  // Fail closed if auth is enabled but credentials are missing/misconfigured.
+  if (credentials.length === 0) return false;
 
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Basic ')) return false;

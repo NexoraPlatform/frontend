@@ -12,7 +12,12 @@ export function getPusherClientConfig(): PusherClientConfig | null {
 }
 
 function warnPusherDisabled(message: string) {
-  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test' || hasWarnedMissingConfig) {
+  if (
+    typeof window === 'undefined' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.NODE_ENV === 'production' ||
+    hasWarnedMissingConfig
+  ) {
     return;
   }
   hasWarnedMissingConfig = true;

@@ -668,7 +668,6 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         const response = await apiClient.generateProjectContract(projectId, clientId, providerId);
         setContractResponse(response);
         setOpenContractDialog(true);
-        console.log(response);
     };
 
     const handleReleaseFunds = useCallback(async (projectId: string, milestoneId?: string) => {

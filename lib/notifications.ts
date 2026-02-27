@@ -15,7 +15,9 @@ export class NotificationService {
 
     async initialize(): Promise<boolean> {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn('Push notifications not supported');
+            if (process.env.NODE_ENV !== 'production') {
+                console.warn('Push notifications not supported');
+            }
             return false;
         }
 
@@ -26,7 +28,9 @@ export class NotificationService {
             // Request notification permission
             const permission = await this.requestPermission();
             if (permission !== 'granted') {
-                console.warn('Notification permission denied');
+                if (process.env.NODE_ENV !== 'production') {
+                    console.warn('Notification permission denied');
+                }
                 return false;
             }
 
