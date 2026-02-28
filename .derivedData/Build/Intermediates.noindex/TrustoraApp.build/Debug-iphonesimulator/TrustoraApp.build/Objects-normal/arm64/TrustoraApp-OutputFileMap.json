@@ -1,0 +1,89 @@
+{
+  "" : {
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraApp-primary.dia",
+    "emit-module-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraApp-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraApp-primary-emit-module.dia",
+    "pch" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraApp-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraApp-primary.swiftdeps"
+  },
+  "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/ContentView.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/MultiCurrency.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/MultiCurrency~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/TrustoraAPIClient.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAPIClient~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/TrustoraAppApp.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAppApp~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/TrustoraAuth.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuth~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/TrustoraAuthFlowView.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraAuthFlowView~partial.swiftmodule"
+  },
+  "/Users/arsene/react/t1/TrustoraApp/TrustoraApp/TrustoraDashboardView.swift" : {
+    "const-values" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.swiftconstvalues",
+    "dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.d",
+    "diagnostics" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.dia",
+    "index-unit-output-path" : "/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.o",
+    "llvm-bc" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.bc",
+    "object" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.o",
+    "swift-dependencies" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView.swiftdeps",
+    "swiftmodule" : "/Users/arsene/react/t1/.derivedData/Build/Intermediates.noindex/TrustoraApp.build/Debug-iphonesimulator/TrustoraApp.build/Objects-normal/arm64/TrustoraDashboardView~partial.swiftmodule"
+  }
+}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { ChevronDown, Heart, Loader2, Share2 } from 'lucide-react';
+import { Heart, Loader2, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -50,13 +50,12 @@ type Category = {
   name: LocalizedText;
 };
 
-type Technology = {
+type GroupedServiceItem = {
   id?: number | string;
   name?: LocalizedText;
   category_id?: number | string;
   categoryId?: number | string;
-  category?: string;
-  parent_category?: string;
+  category?: ServiceCategory | string;
 };
 
 const ITEMS_PER_PAGE = 12;
@@ -71,39 +70,16 @@ function getLocalizedText(value: LocalizedText | null | undefined, locale: Local
   return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
 }
 
-function extractTechnologiesFromServices(services: Service[], locale: Locale): Technology[] {
-  const uniqueTechs = new Map<string, Technology>();
-
-  services.forEach((service) => {
-    const serviceName = getLocalizedText(service.name, locale);
-    const skills = service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? [];
-    const tags = service.tags ?? [];
-    const categoryName =
-      typeof service.category === 'string'
-        ? service.category
-        : service.category
-          ? getLocalizedText(service.category.name, locale) || String(service.category?.name ?? '')
-          : '';
-
-    [serviceName, ...skills, ...tags].forEach((name) => {
-      const normalized = name?.trim();
-      if (!normalized) {
-        return;
-      }
-      const key = `${categoryName}::${normalized}`;
-      if (!uniqueTechs.has(key)) {
-        uniqueTechs.set(key, { name: normalized, category: categoryName || undefined });
-      }
-    });
-  });
-
-  return Array.from(uniqueTechs.values());
-}
-
-function normalizeServicesByCategoryResponse(response: Record<string, Technology[]>): Service[] {
+function normalizeServicesByCategoryResponse(
+  response: Record<string, GroupedServiceItem[]>
+): Service[] {
   return Object.entries(response).flatMap(([category, services]) =>
     (services || []).map((service, index) => {
-      const categoryName = service.category ?? category;
+      const categoryValue = service.category;
+      const categoryName =
+        typeof categoryValue === 'string'
+          ? categoryValue
+          : categoryValue?.name ?? category;
       const categoryIdRaw = service.category_id ?? service.categoryId ?? category;
       const categoryId =
         typeof categoryIdRaw === 'number'
@@ -130,9 +106,9 @@ function normalizeServicesByCategoryResponse(response: Record<string, Technology
         isFeatured: false,
         providers: [],
         category:
-          typeof service.category === 'string' || !service.category
+          typeof categoryValue === 'string' || !categoryValue
             ? fallbackCategory
-            : service.category,
+            : categoryValue,
         tags: [],
         skills: [],
       };
@@ -141,7 +117,7 @@ function normalizeServicesByCategoryResponse(response: Record<string, Technology
 }
 
 function isServicesResponse(
-  response: ServicesResponse | Service[] | Record<string, Technology[]> | null | undefined
+  response: ServicesResponse | Service[] | Record<string, GroupedServiceItem[]> | null | undefined
 ): response is ServicesResponse {
   if (!response || typeof response !== 'object') {
     return false;
@@ -160,7 +136,7 @@ function getServicesFromResponse(
   response:
     | ServicesResponse
     | Service[]
-    | Record<string, Technology[]>
+    | Record<string, GroupedServiceItem[]>
     | null
     | undefined
 ): Service[] {
@@ -176,17 +152,44 @@ function getServicesFromResponse(
   return normalizeServicesByCategoryResponse(response);
 }
 
+function dedupeServices(items: Service[]): Service[] {
+  const seen = new Set<number>();
+
+  return items.filter((service) => {
+    if (seen.has(service.id)) {
+      return false;
+    }
+
+    seen.add(service.id);
+    return true;
+  });
+}
+
+function mergeUniqueServices(existing: Service[], incoming: Service[]): Service[] {
+  if (existing.length === 0) {
+    return dedupeServices(incoming);
+  }
+
+  const seen = new Set(existing.map((service) => service.id));
+  const uniqueIncoming = incoming.filter((service) => {
+    if (seen.has(service.id)) {
+      return false;
+    }
+
+    seen.add(service.id);
+    return true;
+  });
+
+  return [...existing, ...uniqueIncoming];
+}
+
 export default function ServicesPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations();
   const { currency } = useCurrency();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [technologies, setTechnologies] = useState<Technology[]>([]);
-  const [allTechnologies, setAllTechnologies] = useState<Technology[]>([]);
-
   const [selectedServiceType, setSelectedServiceType] = useState('All');
-  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>(['All']);
 
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -200,44 +203,11 @@ export default function ServicesPage() {
   const addLabel = t('services.actions.add');
   const shareLabel = t('services.actions.share');
 
-  const fetchAllServices = useCallback(async () => {
-    const firstResponse: ServicesResponse = await apiClient.getServices({
-      page: 1,
-      limit: ITEMS_PER_PAGE,
-    });
-    const firstPageServices = getServicesFromResponse(firstResponse);
-    const totalPages = firstResponse?.totalPages ?? 1;
-
-    if (totalPages <= 1) {
-      return firstPageServices;
-    }
-
-    const remainingPages = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, index) =>
-        apiClient.getServices({ page: index + 2, limit: ITEMS_PER_PAGE })
-      )
-    );
-
-    const remainingServices = remainingPages.flatMap((pageResponse) =>
-      getServicesFromResponse(pageResponse)
-    );
-
-    return [...firstPageServices, ...remainingServices];
-  }, []);
-
   useEffect(() => {
     const initializeFilters = async () => {
       try {
-        const [categoriesResponse, servicesList] = await Promise.all([
-          apiClient.getCategories(),
-          fetchAllServices(),
-        ]);
-
+        const categoriesResponse = await apiClient.getCategories();
         setCategories(categoriesResponse || []);
-        const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
-        setAllTechnologies(extractedTechnologies);
-        setTechnologies(extractedTechnologies);
-
       } catch (error) {
         console.error('Failed to load filters:', error);
       } finally {
@@ -246,7 +216,7 @@ export default function ServicesPage() {
     };
 
     initializeFilters();
-  }, [fetchAllServices, locale]);
+  }, []);
 
   const loadServices = useCallback(
     async (pageNum: number, isReset = false) => {
@@ -257,15 +227,11 @@ export default function ServicesPage() {
       try {
         const response: ServicesResponse = await apiClient.getServices({
           categoryId: selectedServiceType !== 'All' ? selectedServiceType : undefined,
-          skills:
-            selectedTechnologies.length > 0 && !selectedTechnologies.includes('All')
-              ? selectedTechnologies
-              : undefined,
           page: pageNum + 1,
           limit: ITEMS_PER_PAGE,
         });
 
-        const newServices = response?.services || [];
+        const newServices = dedupeServices(response?.services || []);
 
         if (newServices.length < ITEMS_PER_PAGE) {
           setHasMore(false);
@@ -274,7 +240,7 @@ export default function ServicesPage() {
         if (isReset) {
           setServices(newServices);
         } else {
-          setServices((prev) => [...prev, ...newServices]);
+          setServices((prev) => mergeUniqueServices(prev, newServices));
         }
       } catch (error) {
         console.error('Failed to load services:', error);
@@ -283,7 +249,7 @@ export default function ServicesPage() {
         isLoadingRef.current = false;
       }
     },
-    [selectedServiceType, selectedTechnologies]
+    [selectedServiceType]
   );
 
   useEffect(() => {
@@ -307,7 +273,7 @@ export default function ServicesPage() {
     setPage(0);
     setHasMore(true);
     loadServices(0, true);
-  }, [selectedServiceType, selectedTechnologies, currency, loadServices]);
+  }, [selectedServiceType, currency, loadServices]);
 
   useEffect(() => {
     if (page > 0) {
@@ -315,37 +281,8 @@ export default function ServicesPage() {
     }
   }, [page, loadServices]);
 
-  const handleServiceTypeChange = async (serviceType: string) => {
+  const handleServiceTypeChange = (serviceType: string) => {
     setSelectedServiceType(serviceType);
-    setSelectedTechnologies(['All']);
-
-    if (serviceType === 'All') {
-      setTechnologies(allTechnologies);
-      return;
-    }
-
-    try {
-      const servicesResponse = await apiClient.getServicesByCategoryId(serviceType);
-      const servicesList = getServicesFromResponse(servicesResponse);
-      setTechnologies(extractTechnologiesFromServices(servicesList, locale));
-    } catch (error) {
-      console.error('Failed to update technologies:', error);
-    }
-  };
-
-  const handleTechnologiesUpdate = async () => {
-    const servicesList =
-      selectedServiceType === 'All'
-        ? await fetchAllServices()
-        : getServicesFromResponse(
-          await apiClient.getServicesByCategoryId(selectedServiceType)
-        );
-
-    const extractedTechnologies = extractTechnologiesFromServices(servicesList, locale);
-    setTechnologies(extractedTechnologies);
-    if (selectedServiceType === 'All') {
-      setAllTechnologies(extractedTechnologies);
-    }
   };
 
   const handleWishlistToggle = (serviceId: number) => {
@@ -399,20 +336,11 @@ export default function ServicesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <FilterSidebar
               serviceTypes={serviceTypeOptions}
-              technologies={technologies}
               selectedServiceType={selectedServiceType}
-              selectedTechnologies={selectedTechnologies}
               onServiceTypeChange={handleServiceTypeChange}
-              onTechnologiesChange={setSelectedTechnologies}
-              onTechnologiesUpdate={handleTechnologiesUpdate}
               labels={{
                 filterTitle: t('services.filters.title'),
                 serviceTypeLabel: t('services.filters.service_type'),
-                technologiesLabel: t('services.filters.technologies'),
-                allLabel: t('services.filters.all'),
-                showMoreLabel: t('services.filters.show_more'),
-                showLessLabel: t('services.filters.show_less'),
-                otherCategoryLabel: t('services.filters.other'),
               }}
               locale={locale}
             />
@@ -462,92 +390,20 @@ export default function ServicesPage() {
 
 function FilterSidebar({
   serviceTypes,
-  technologies,
   selectedServiceType,
-  selectedTechnologies,
   onServiceTypeChange,
-  onTechnologiesChange,
-  onTechnologiesUpdate,
   labels,
   locale,
 }: {
   serviceTypes: Category[];
-  technologies: Technology[];
   selectedServiceType: string;
-  selectedTechnologies: string[];
   onServiceTypeChange: (type: string) => void;
-  onTechnologiesChange: (techs: string[]) => void;
-  onTechnologiesUpdate: () => Promise<void>;
   labels: {
     filterTitle: string;
     serviceTypeLabel: string;
-    technologiesLabel: string;
-    allLabel: string;
-    showMoreLabel: string;
-    showLessLabel: string;
-    otherCategoryLabel: string;
   };
   locale: Locale;
 }) {
-  const [expandedTechs, setExpandedTechs] = useState(false);
-  const [isUpdatingTechs, setIsUpdatingTechs] = useState(false);
-
-  const INITIAL_TECH_DISPLAY = 6;
-  const visibleTechs = expandedTechs ? technologies : technologies.slice(0, INITIAL_TECH_DISPLAY);
-  const hasMoreTechs = technologies.length > INITIAL_TECH_DISPLAY;
-  const groupedTechs = useMemo(() => {
-    const grouped = new Map<string, Technology[]>();
-
-    visibleTechs.forEach((tech) => {
-      const category = tech.category ?? labels.otherCategoryLabel;
-      const items = grouped.get(category) ?? [];
-      items.push(tech);
-      grouped.set(category, items);
-    });
-
-    return Array.from(grouped.entries());
-  }, [labels.otherCategoryLabel, visibleTechs]);
-
-  const techListRef = useRef<HTMLDivElement>(null);
-  const showMoreButtonRef = useRef<HTMLButtonElement>(null);
-
-  const handleTechToggle = (tech: string) => {
-    if (tech === 'All') {
-      onTechnologiesChange(['All']);
-      return;
-    }
-
-    const updated = selectedTechnologies.includes(tech)
-      ? selectedTechnologies.filter((t) => t !== tech)
-      : [...selectedTechnologies.filter((t) => t !== 'All'), tech];
-
-    onTechnologiesChange(updated.length > 0 ? updated : ['All']);
-  };
-
-  const handleShowMore = async () => {
-    if (!expandedTechs) {
-      setIsUpdatingTechs(true);
-      try {
-        await onTechnologiesUpdate();
-      } finally {
-        setIsUpdatingTechs(false);
-      }
-      setExpandedTechs(true);
-      return;
-    }
-    setExpandedTechs(false);
-  };
-
-  useEffect(() => {
-    if (!expandedTechs || !techListRef.current) return;
-    const lastItem = techListRef.current.querySelector('label:last-of-type');
-    if (lastItem) {
-      lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      return;
-    }
-    showMoreButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [expandedTechs]);
-
   return (
     <div className="w-full lg:w-80 bg-white dark:bg-[#0B1220] rounded-xl border border-slate-200 dark:border-[#1E2A3D] p-6 h-fit lg:sticky lg:top-24">
       <h3 className="text-lg font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-6">{labels.filterTitle}</h3>
@@ -568,59 +424,6 @@ function FilterSidebar({
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-bold text-[#0B1C2D] dark:text-[#E6EDF3] mb-4">
-            {labels.technologiesLabel}
-          </label>
-          <div ref={techListRef} className="space-y-2 mb-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedTechnologies.includes('All')}
-                onChange={() => handleTechToggle('All')}
-                className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
-              />
-              <span className="text-sm text-slate-700 dark:text-[#E6EDF3]">{labels.allLabel}</span>
-            </label>
-            {groupedTechs.map(([category, techs]) => (
-              <div key={category} className="space-y-2">
-                <p className="text-xs font-semibold text-slate-500 dark:text-[#6B7285] uppercase tracking-wide mt-4">
-                  {category}
-                </p>
-                {techs.map((tech) => {
-                  const name = getLocalizedText(tech.name ?? '', locale) || String(tech.id ?? '');
-                  return (
-                    <label key={name} className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedTechnologies.includes(name)}
-                        onChange={() => handleTechToggle(name)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#1BC47D] focus:ring-[#1BC47D] cursor-pointer"
-                      />
-                      <span className="text-sm text-slate-700 dark:text-[#E6EDF3]">{name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          {hasMoreTechs && (
-            <button
-              ref={showMoreButtonRef}
-              onClick={handleShowMore}
-              disabled={isUpdatingTechs}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-[#1BC47D] border border-[#1BC47D]/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-[rgba(27,196,125,0.1)] transition-colors disabled:opacity-50"
-            >
-              {expandedTechs ? labels.showLessLabel : labels.showMoreLabel}
-              <ChevronDown
-                size={16}
-                className={`transition-transform ${expandedTechs ? 'rotate-180' : ''}`}
-              />
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -647,14 +450,8 @@ function ServiceCard({
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const t = useTranslations('services.results');
   const providerCount = service.providers?.length || 0;
-  const technologies = [
-    ...(service.skills?.map((skill) => getLocalizedText(skill, locale)) ?? []),
-    ...(service.tags ?? []),
-  ].filter(Boolean);
-  const uniqueTechnologies = Array.from(new Set(technologies));
   const remainingProviders = Math.max(0, providerCount - 3);
   const serviceType = service.isFeatured ? t('recommended') : t('standard');
-  const moreLabel = t('more_label', { count: uniqueTechnologies.length - 3 });
 
   // For the bold count, we use the raw template and split as before to avoid Intl errors
   // while maintaining the exact styling.
@@ -691,19 +488,6 @@ function ServiceCard({
         <p className="text-sm text-slate-600 dark:text-[#A3ADC2] mb-4 line-clamp-2 leading-relaxed">
           {getLocalizedText(service.description, locale)}
         </p>
-
-        <div className="flex flex-wrap gap-2 mb-6">
-          {uniqueTechnologies.slice(0, 3).map((tech) => (
-            <span key={tech} className="text-xs bg-emerald-50 dark:bg-[rgba(27,196,125,0.1)] text-emerald-700 dark:text-[#1BC47D] px-2 py-1 rounded">
-              {tech}
-            </span>
-          ))}
-          {uniqueTechnologies.length > 3 && (
-            <span className="text-xs text-slate-500 dark:text-[#A3ADC2]">
-              {moreLabel}
-            </span>
-          )}
-        </div>
 
         <div className="mb-6 pb-6 border-b border-slate-200 dark:border-[#1E2A3D]">
           <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-3">
