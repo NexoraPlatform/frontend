@@ -153,7 +153,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         bank_currency: "",
     });
 
-    const { user, userLoading } = useAuth();
+    const { user, userLoading, refreshUser } = useAuth();
 
     // State-uri pentru gestionarea dropdown-urilor (ISO Codes)
     const [selectedCountryIso, setSelectedCountryIso] = useState("");
@@ -180,6 +180,18 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
     const [currencyError, setCurrencyError] = useState("");
     const [selectedCurrency, setSelectedCurrency] = useState<CurrencyOption | null>(null);
     const currencyRequestId = useRef(0);
+
+    const resolveStateIso = (countryIso: string, stateValue?: string | null) => {
+        const raw = String(stateValue ?? "").trim();
+        if (!countryIso || !raw) return "";
+        const countryStates = State.getStatesOfCountry(countryIso);
+        const byIso = countryStates.find((item) => item.isoCode === raw);
+        if (byIso) return byIso.isoCode;
+        const byName = countryStates.find(
+            (item) => item.name.toLowerCase() === raw.toLowerCase()
+        );
+        return byName?.isoCode ?? raw;
+    };
 
     // Memoizare liste
     const countries = useMemo(() => Country.getAllCountries(), []);
@@ -211,6 +223,8 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
 
         if (user) {
             const company = user.company ?? null;
+            const companyCountryIso = company?.company_country ?? '';
+            const normalizedCounty = resolveStateIso(companyCountryIso, company?.company_county);
 
             setFormDataCompany({
                 company_id: company?.id,
@@ -219,9 +233,9 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 email: user.email,
                 company_address: company?.company_address ?? '',
                 company_city: company?.company_city ?? '',
-                state: company?.company_county ?? '',
+                company_county: normalizedCounty,
                 company_zip: company?.company_zip ?? '',
-                company_country: company?.company_country ?? '',
+                company_country: companyCountryIso,
                 company_bank_iban: company?.company_bank_iban ?? '',
                 company_bank_name: company?.company_bank_name ?? '',
                 company_bank_bic: company?.company_bank_bic ?? '',
@@ -230,15 +244,15 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 bank_currency: company?.bank_currency ?? '',
             });
 
-            if (company?.company_country) {
-                const countryData = Country.getCountryByCode(company.company_country);
-                setSelectedCountryIso(company.company_country);
+            if (companyCountryIso) {
+                const countryData = Country.getCountryByCode(companyCountryIso);
+                setSelectedCountryIso(companyCountryIso);
                 setSelectedCountryName(countryData?.name);
                 setSelectedCountryFlag(countryData?.flag);
             }
 
-            if (company?.company_county) {
-                setSelectedStateIso(company.company_county);
+            if (normalizedCounty) {
+                setSelectedStateIso(normalizedCounty);
             }
 
             if (company?.bank_currency) {
@@ -403,6 +417,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 bank_currency: formDataCompany.bank_currency || selectedCurrency?.code || "",
             };
             const updateInfo = await apiClient.updateUserCompanyDetails(payload);
+            await refreshUser();
             if (updateInfo?.success) {
                 toast.success(t('dashboard.settings.profile.success'));
             }
@@ -492,13 +507,13 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         setFormDataCompany((prev: any) => ({
             ...prev,
             company_country: isoCode,
-            company_county: firstStateName,
+            company_county: firstStateIso,
             company_city: firstCityName,
-            company_zip: prev.postcode,
+            company_zip: prev.company_zip,
             id_type: suggestedIdType // Auto-select
         }));
 
-        if (formDataCompany.postcode && !validateZip(formDataCompany.company_zip, isoCode)) {
+        if (formDataCompany.company_zip && !validateZip(formDataCompany.company_zip, isoCode)) {
             setPostalCodeError(t('dashboard.settings.profile.errors.invalid_zip'));
         } else {
             setPostalCodeError("");

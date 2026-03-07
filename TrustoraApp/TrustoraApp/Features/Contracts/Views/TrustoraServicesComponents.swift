@@ -146,7 +146,7 @@ struct ServiceProviderAvatar: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.white)
+                .fill(TrustoraTheme.surface)
                 .frame(width: 32, height: 32)
 
             if let avatarURL = provider.avatarURL,

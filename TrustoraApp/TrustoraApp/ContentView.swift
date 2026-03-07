@@ -18,6 +18,9 @@ struct ContentView: View {
     @State private var isGuestBottomMenuOpen = false
     @State private var isAuthenticatedBottomMenuOpen = false
     @State private var isDashboardPresented = false
+    @State private var isAdminDashboardPresented = false
+    @State private var isProviderPublicProfilePresented = false
+    @State private var isProviderEditProfilePresented = false
     @State private var activeAuthMode: TrustoraAuthMode?
     @State private var newsletterEmail = ""
     @State private var currentPage: RootPage = .home
@@ -26,6 +29,7 @@ struct ContentView: View {
     @StateObject private var authSession = AuthSessionStore()
     @AppStorage("trustora.app.language") private var appLanguageRaw = AppLanguage.system.rawValue
     @AppStorage(AppCurrency.storageKey) private var appCurrencyRaw = AppCurrency.defaultCurrency.rawValue
+    @AppStorage(AppThemeMode.storageKey) private var appThemeRaw = AppThemeMode.system.rawValue
 
     private let trustoraGreen = TrustoraTheme.accent
     private let midnightBlue = TrustoraTheme.primary
@@ -65,6 +69,11 @@ struct ContentView: View {
     private var appCurrency: AppCurrency {
         get { AppCurrency(rawValue: appCurrencyRaw) ?? .defaultCurrency }
         set { appCurrencyRaw = newValue.rawValue }
+    }
+
+    private var appTheme: AppThemeMode {
+        get { AppThemeMode(rawValue: appThemeRaw) ?? .system }
+        set { appThemeRaw = newValue.rawValue }
     }
 
     private var resolvedLanguageCode: String {
@@ -120,6 +129,66 @@ struct ContentView: View {
         }
 
         isDashboardPresented = true
+    }
+
+    private func openAdminDashboard() {
+        if isAuthenticatedBottomMenuOpen {
+            isAuthenticatedBottomMenuOpen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                isAdminDashboardPresented = true
+            }
+            return
+        }
+
+        if isHeaderMenuOpen {
+            isHeaderMenuOpen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                isAdminDashboardPresented = true
+            }
+            return
+        }
+
+        isAdminDashboardPresented = true
+    }
+
+    private func openProviderProfile() {
+        if isAuthenticatedBottomMenuOpen {
+            isAuthenticatedBottomMenuOpen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                isProviderPublicProfilePresented = true
+            }
+            return
+        }
+
+        if isHeaderMenuOpen {
+            isHeaderMenuOpen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                isProviderPublicProfilePresented = true
+            }
+            return
+        }
+
+        isProviderPublicProfilePresented = true
+    }
+
+    private func openEditProviderProfile() {
+        if isAuthenticatedBottomMenuOpen {
+            isAuthenticatedBottomMenuOpen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                isProviderEditProfilePresented = true
+            }
+            return
+        }
+
+        if isHeaderMenuOpen {
+            isHeaderMenuOpen = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                isProviderEditProfilePresented = true
+            }
+            return
+        }
+
+        isProviderEditProfilePresented = true
     }
 
     private func openServices() {
@@ -302,10 +371,60 @@ struct ContentView: View {
                     }
                 )
             }
+            .fullScreenCover(isPresented: $isAdminDashboardPresented) {
+                TrustoraAdminDashboardView(
+                    authSession: authSession,
+                    appLanguageRaw: $appLanguageRaw,
+                    appCurrencyRaw: $appCurrencyRaw,
+                    strings: { key in
+                        s(key)
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $isProviderPublicProfilePresented) {
+                TrustoraProviderPublicProfileView(
+                    authSession: authSession,
+                    appLanguageRaw: $appLanguageRaw,
+                    strings: { key in
+                        s(key)
+                    }
+                )
+            }
+            .fullScreenCover(isPresented: $isProviderEditProfilePresented) {
+                TrustoraProviderProfileView(
+                    authSession: authSession,
+                    appLanguageRaw: $appLanguageRaw,
+                    strings: { key in
+                        s(key)
+                    }
+                )
+            }
             .task {
                 await authSession.bootstrap()
+                await syncRealtimeSession()
+            }
+            .onChange(of: authSession.user?.id) {
+                Task {
+                    await syncRealtimeSession()
+                }
+            }
+            .onChange(of: authSession.accessToken) {
+                Task {
+                    await syncRealtimeSession()
+                }
             }
         }
+
+    private func syncRealtimeSession() async {
+        guard let userID = authSession.user?.id,
+              let token = authSession.accessToken
+        else {
+            await TrustoraRealtimeService.shared.stop()
+            return
+        }
+
+        await TrustoraRealtimeService.shared.start(userID: userID, bearerToken: token)
+    }
 
     @ViewBuilder
     private var activePageContent: some View {
@@ -415,9 +534,6 @@ struct ContentView: View {
                         .transition(.opacity.combined(with: .move(edge: .leading)))
                 }
                 Spacer()
-
-                currencyMenuButton
-                languageMenuButton
                 headerMenuButton
             }
             .padding(.horizontal, 20)
@@ -459,11 +575,11 @@ struct ContentView: View {
             .foregroundStyle(midnightBlue)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.65))
+            .background(TrustoraTheme.surface.opacity(0.78))
             .clipShape(RoundedRectangle(cornerRadius: 11))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
-                    .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
             )
         }
         .accessibilityLabel(s("settings.language"))
@@ -486,14 +602,41 @@ struct ContentView: View {
             .foregroundStyle(midnightBlue)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.65))
+            .background(TrustoraTheme.surface.opacity(0.78))
             .clipShape(RoundedRectangle(cornerRadius: 11))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
-                    .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
             )
         }
         .accessibilityLabel(s("settings.currency"))
+    }
+
+    private var themeMenuButton: some View {
+        Menu {
+            Picker(selection: $appThemeRaw, label: EmptyView()) {
+                ForEach(AppThemeMode.allCases) { theme in
+                    Text(s(theme.titleKey)).tag(theme.rawValue)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: appTheme.iconName)
+                    .font(.system(size: 12, weight: .bold))
+                Text(s(appTheme.shortTitleKey))
+                    .font(.system(size: 11, weight: .bold))
+            }
+            .foregroundStyle(midnightBlue)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(TrustoraTheme.surface.opacity(0.78))
+            .clipShape(RoundedRectangle(cornerRadius: 11))
+            .overlay(
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
+            )
+        }
+        .accessibilityLabel(s("settings.theme"))
     }
 
     private var headerMenuButton: some View {
@@ -504,11 +647,11 @@ struct ContentView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(midnightBlue)
                 .frame(width: 32, height: 32)
-                .background(Color.white.opacity(0.65))
+                .background(TrustoraTheme.surface.opacity(0.78))
                 .clipShape(RoundedRectangle(cornerRadius: 11))
                 .overlay(
                     RoundedRectangle(cornerRadius: 11)
-                        .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                        .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
                 )
         }
         .buttonStyle(.plain)
@@ -643,7 +786,7 @@ struct ContentView: View {
         .padding(.bottom, 36)
         .background(
             LinearGradient(
-                colors: [lightBackground, Color.white],
+                colors: [lightBackground, TrustoraTheme.surface],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -690,7 +833,7 @@ struct ContentView: View {
                 .foregroundStyle(Color(hex: 0x64748B))
             }
             .padding(14)
-            .background(Color.white)
+            .background(TrustoraTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
@@ -726,7 +869,7 @@ struct ContentView: View {
             }
         }
         .padding(18)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
@@ -800,7 +943,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 30)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
     }
 
     private var visualSection: some View {
@@ -842,7 +985,7 @@ struct ContentView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
         .padding(.vertical, 34)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
     }
 
     private var finalCTASection: some View {
@@ -938,7 +1081,7 @@ struct ContentView: View {
                     .autocorrectionDisabled()
                     .padding(.horizontal, 12)
                     .padding(.vertical, 12)
-                    .background(Color.white)
+                    .background(TrustoraTheme.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
@@ -1111,18 +1254,10 @@ struct ContentView: View {
                 if let user = authSession.user {
                     AuthAvatarView(user: user, size: 36)
                 } else {
-                    ZStack {
-                        Circle()
-                            .fill(Color(hex: 0xF8FAFC))
-
-                        Circle()
-                            .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
-
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(midnightBlue)
-                    }
-                    .frame(width: 38, height: 38)
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(midnightBlue)
+                        .frame(width: 38, height: 38)
                 }
 
                 if authSession.user != nil {
@@ -1145,12 +1280,12 @@ struct ContentView: View {
     }
 
     private func bottomNavigationForegroundColor(isActive: Bool) -> Color {
-        return isActive ? Color(hex: 0x071A12) : Color(hex: 0x334155)
+        return isActive ? TrustoraTheme.accentButtonText : TrustoraTheme.secondaryText
     }
 
     private func bottomNavigationDivider(hidden: Bool = false) -> some View {
         Rectangle()
-            .fill(Color(hex: 0xE2E8F0))
+            .fill(TrustoraTheme.border)
             .frame(width: 1, height: 34)
             .padding(.vertical, 14)
             .opacity(hidden ? 0 : 1)
@@ -1169,20 +1304,26 @@ struct ContentView: View {
 
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(Color(hex: 0x64748B))
+                            .foregroundStyle(TrustoraTheme.tertiaryText)
                         Text(s("common.search_bar.placeholder"))
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color(hex: 0x64748B))
+                            .foregroundStyle(TrustoraTheme.tertiaryText)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 11)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(hex: 0xF8FAFC))
+                    .background(TrustoraTheme.mutedSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                            .stroke(TrustoraTheme.border, lineWidth: 1)
                     )
+
+                    HStack(spacing: 10) {
+                        languageMenuButton
+                        currencyMenuButton
+                        themeMenuButton
+                    }
 
                     VStack(spacing: 10) {
                         ForEach(navigationItems, id: \.key) { item in
@@ -1231,7 +1372,7 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(s("common.contact_title"))
                             .font(.system(size: 13, weight: .black))
-                            .foregroundStyle(Color(hex: 0x0F172A))
+                            .foregroundStyle(TrustoraTheme.primaryText)
 
                         ContactCard(icon: "envelope.fill", text: "contact@trustora.ro")
                         ContactCard(icon: "phone.fill", text: "+40 123 456 789")
@@ -1254,7 +1395,7 @@ struct ContentView: View {
 
                 Text(s("auth.signin.subtitle"))
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(hex: 0x64748B))
+                    .foregroundStyle(TrustoraTheme.tertiaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button {
@@ -1335,14 +1476,31 @@ struct ContentView: View {
                             }
                             .buttonStyle(.plain)
 
-                            MenuLinkRow(icon: "person.crop.circle.fill", title: s("navigation.profile"))
-
                             if user.hasRole("provider") {
-                                MenuLinkRow(icon: "person.crop.circle.badge.checkmark", title: s("navigation.edit_profile"))
+                                Button {
+                                    openProviderProfile()
+                                } label: {
+                                    MenuLinkRow(icon: "person.crop.circle.fill", title: s("navigation.profile"))
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    openEditProviderProfile()
+                                } label: {
+                                    MenuLinkRow(icon: "person.crop.circle.badge.checkmark", title: s("navigation.edit_profile"))
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                MenuLinkRow(icon: "person.crop.circle.fill", title: s("navigation.profile"))
                             }
 
                             if (user.isSuperuser ?? false) || user.hasRole("admin") {
-                                MenuLinkRow(icon: "lock.shield.fill", title: s("navigation.admin_panel"))
+                                Button {
+                                    openAdminDashboard()
+                                } label: {
+                                    MenuLinkRow(icon: "lock.shield.fill", title: s("navigation.admin_panel"))
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
 

@@ -46,6 +46,22 @@ export type Requirement = {
     superOverrides?: boolean;   // default true: superuser bypasses non-super-only rules
 };
 
+const SUPER_ROLE_ALIASES = new Set(['superuser', 'superadmin', 'superadministrator', 'root']);
+
+function normalizeRoleAlias(role: string): string {
+    return role.toLowerCase().trim().replace(/[\s_-]+/g, '');
+}
+
+function isTruthyFlag(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'true' || normalized === '1' || normalized === 'yes';
+    }
+    return false;
+}
+
 export function getRoleSlugs(user: AccessUser | null): string[] {
     const rolesFromArray = user?.roles?.length
         ? user.roles
@@ -92,10 +108,18 @@ export function hasPermission(user: AccessUser | null, permissions: string[]): b
 
 export function isSuperUser(user: AccessUser | null): boolean {
     if (!user) return false;
-    if (user.is_superuser) return true;
-    // consider having the "superuser" role slug as superuser too
+    const flagCandidates = [
+        user.is_superuser,
+        (user as any).isSuperuser,
+        (user as any).is_super_admin,
+        (user as any).isSuperAdmin,
+        (user as any).superuser,
+        (user as any).super_admin,
+    ];
+    if (flagCandidates.some(isTruthyFlag)) return true;
+    // consider common super role aliases from different backends
     const roles = getRoleSlugs(user);
-    return roles.includes('superuser');
+    return roles.some((role) => SUPER_ROLE_ALIASES.has(normalizeRoleAlias(role)));
 }
 
 /**

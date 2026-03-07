@@ -1,10 +1,8 @@
 "use client";
 
-import {useState, useEffect, useRef, useCallback} from 'react';
+import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +32,16 @@ import {
     Calendar,
     Target,
     Eye,
+    LayoutDashboard,
+    Layers,
+    Lock,
+    History,
+    FileText,
+    Users,
+    CheckCircle2,
+    Settings,
+    Moon,
+    Sun,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages, useProviderProfile} from "@/hooks/use-api";
@@ -42,11 +50,9 @@ import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/components/ui/cropImage';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import apiClient from "@/lib/api";
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
-import { Form } from '@/components/ui/form';
-import { BillingDetailsForm } from '@/components/forms/BillingDetailsForm';
+import { FetchError } from '@/lib/fetch-client';
 import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-forms';
 import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
@@ -59,6 +65,275 @@ type Languages = {
     locale: string;
     flag: string;
     timezone: string;
+};
+
+type WeekDay =
+    | 'monday'
+    | 'tuesday'
+    | 'wednesday'
+    | 'thursday'
+    | 'friday'
+    | 'saturday'
+    | 'sunday';
+
+type WorkingHour = {
+    start: string;
+    end: string;
+    enabled: boolean;
+};
+
+type WorkingHours = Record<WeekDay, WorkingHour>;
+
+type AvailabilityState = {
+    status: string;
+    hoursPerWeek: number | '';
+    timezone: string;
+    workingHours: WorkingHours;
+    responseTime: string;
+};
+
+type ProfileLanguage = {
+    name: string;
+    level: string;
+    flag: string;
+};
+
+type ProfileCertification = {
+    name: string;
+    issuer: string;
+    date: string;
+    credentialId: string;
+    verified: boolean;
+};
+
+type ProfileEducation = {
+    degree: string;
+    institution: string;
+    attended_from: string;
+    attended_to: string;
+    study_area: string;
+};
+
+type ProfileWorkHistory = {
+    title: string;
+    position: string;
+    company: string;
+    city: string;
+    country: string;
+    start_date: string;
+    end_date: string;
+    description: string;
+    current_working: boolean;
+};
+
+type ProfilePortfolio = {
+    title: string;
+    description: string;
+    image: string;
+    technologies: string[];
+    url: string;
+    role: string;
+};
+
+type ProfileDataState = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    bio: string;
+    company: string;
+    website: string;
+    location: string;
+    avatar: string;
+    availability: AvailabilityState;
+    languages: ProfileLanguage[];
+    skills: Array<{
+        name: string;
+        level: string;
+        years: number;
+    }>;
+    certifications: ProfileCertification[];
+    education: ProfileEducation[];
+    workHistory: ProfileWorkHistory[];
+    portfolio: ProfilePortfolio[];
+};
+
+const WEEK_DAYS: WeekDay[] = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+];
+
+const DAY_LABELS: Record<WeekDay, string> = {
+    monday: 'Luni',
+    tuesday: 'Marți',
+    wednesday: 'Miercuri',
+    thursday: 'Joi',
+    friday: 'Vineri',
+    saturday: 'Sâmbătă',
+    sunday: 'Duminică',
+};
+
+type DashboardThemeVars = {
+    '--bg-main': string;
+    '--bg-card': string;
+    '--text-main': string;
+    '--text-muted': string;
+    '--border-color': string;
+    '--header-bg': string;
+    '--input-bg': string;
+};
+
+const dashboardThemes: Record<'light' | 'dark', DashboardThemeVars> = {
+    light: {
+        '--bg-main': '#F5F7FA',
+        '--bg-card': '#FFFFFF',
+        '--text-main': '#0B1C2D',
+        '--text-muted': '#64748B',
+        '--border-color': 'rgba(226, 232, 240, 0.8)',
+        '--header-bg': 'rgba(255, 255, 255, 0.8)',
+        '--input-bg': '#F5F7FA',
+    },
+    dark: {
+        '--bg-main': '#06111A',
+        '--bg-card': '#0D1F30',
+        '--text-main': '#F8FAFC',
+        '--text-muted': '#94A3B8',
+        '--border-color': 'rgba(255, 255, 255, 0.08)',
+        '--header-bg': 'rgba(13, 31, 48, 0.8)',
+        '--input-bg': '#06111A',
+    },
+};
+
+function createDefaultWorkingHours(): WorkingHours {
+    return {
+        monday: { start: '09:00', end: '18:00', enabled: true },
+        tuesday: { start: '09:00', end: '18:00', enabled: true },
+        wednesday: { start: '09:00', end: '18:00', enabled: true },
+        thursday: { start: '09:00', end: '18:00', enabled: true },
+        friday: { start: '09:00', end: '18:00', enabled: true },
+        saturday: { start: '10:00', end: '14:00', enabled: false },
+        sunday: { start: '10:00', end: '14:00', enabled: false },
+    };
+}
+
+function normalizeAvailabilityStatus(value: unknown): AvailabilityState['status'] {
+    if (typeof value !== 'string') {
+        return 'AVAILABLE';
+    }
+
+    const normalized = value.trim().toUpperCase();
+    if (normalized === 'AVAILABLE' || normalized === 'BUSY' || normalized === 'UNAVAILABLE') {
+        return normalized;
+    }
+
+    return 'AVAILABLE';
+}
+
+function normalizeResponseTime(value: unknown): AvailabilityState['responseTime'] {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return '2';
+        }
+
+        const digits = trimmed.match(/\d+/)?.[0];
+        if (digits) {
+            return digits;
+        }
+    }
+
+    return '2';
+}
+
+function toTimeValue(value: unknown, fallback: string): string {
+    if (typeof value !== 'string') {
+        return fallback;
+    }
+
+    const trimmed = value.trim();
+    return trimmed ? trimmed.slice(0, 5) : fallback;
+}
+
+function buildAvailabilityState(providerProfile: any): AvailabilityState {
+    const defaultWorkingHours = createDefaultWorkingHours();
+    const profile = providerProfile?.profile ?? {};
+    const workingHours = WEEK_DAYS.reduce((acc, day) => {
+        const defaultHours = defaultWorkingHours[day];
+        const enabledValue = profile[`working_${day}_enabled`];
+
+        acc[day] = {
+            start: toTimeValue(profile[`working_${day}_from`], defaultHours.start),
+            end: toTimeValue(profile[`working_${day}_to`], defaultHours.end),
+            enabled: enabledValue === true || enabledValue === 1 || enabledValue === '1',
+        };
+
+        return acc;
+    }, {} as WorkingHours);
+
+    return {
+        status: normalizeAvailabilityStatus(profile.availability ?? profile.availability_status),
+        hoursPerWeek:
+            typeof profile.working_hours_per_week === 'number'
+                ? profile.working_hours_per_week
+                : Number.isFinite(Number(profile.working_hours_per_week))
+                    ? Number(profile.working_hours_per_week)
+                    : '',
+        timezone:
+            (typeof profile.timezone === 'string' && profile.timezone.trim()) ||
+            (typeof providerProfile?.timezone === 'string' && providerProfile.timezone.trim()) ||
+            'Europe/Bucharest',
+        workingHours,
+        responseTime: normalizeResponseTime(profile.answer_hour ?? profile.avg_response_time_minutes),
+    };
+}
+
+function buildAvailabilityPayload(availability: AvailabilityState): AvailabilityState {
+    const defaults = createDefaultWorkingHours();
+    const workingHours = WEEK_DAYS.reduce((acc, day) => {
+        const current = availability.workingHours?.[day];
+        const fallback = defaults[day];
+
+        acc[day] = {
+            start: toTimeValue(current?.start, fallback.start),
+            end: toTimeValue(current?.end, fallback.end),
+            enabled: Boolean(current?.enabled),
+        };
+
+        return acc;
+    }, {} as WorkingHours);
+
+    return {
+        status: normalizeAvailabilityStatus(availability.status),
+        hoursPerWeek:
+            typeof availability.hoursPerWeek === 'number' && Number.isFinite(availability.hoursPerWeek)
+                ? availability.hoursPerWeek
+                : '',
+        timezone: availability.timezone || 'Europe/Bucharest',
+        workingHours,
+        responseTime: normalizeResponseTime(availability.responseTime),
+    };
+}
+
+function deriveLanguageFlag(languageName: string, availableLanguages?: Languages[] | null): string {
+    const normalizedName = languageName.trim().toLowerCase();
+    if (!normalizedName) {
+        return '';
+    }
+
+    const matchedLanguage = availableLanguages?.find(
+        (item) => item.name.trim().toLowerCase() === normalizedName,
+    );
+
+    return matchedLanguage?.flag || '';
 }
 
 const providerProfileValidationSchema = v.object({
@@ -120,8 +395,13 @@ export default function ProviderProfileEditPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const router = useRouter();
-    const { data: providerProfile, loading: profileLoading } = useProviderProfile(!userLoading && Boolean(user));
+    const {
+        data: providerProfile,
+        loading: profileLoading,
+        refetch: refetchProviderProfile,
+    } = useProviderProfile(!userLoading && Boolean(user));
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -142,7 +422,7 @@ export default function ProviderProfileEditPage() {
         },
     });
 
-    const [profileData, setProfileData] = useState({
+    const [profileData, setProfileData] = useState<ProfileDataState>({
         // Basic Info
         firstName: '',
         lastName: '',
@@ -156,74 +436,30 @@ export default function ProviderProfileEditPage() {
 
         // Availability
         availability: {
-            status: 'available',
+            status: 'AVAILABLE',
             hoursPerWeek: 40,
             timezone: 'Europe/Bucharest',
-            workingHours: {
-                monday: { start: '09:00', end: '18:00', enabled: true },
-                tuesday: { start: '09:00', end: '18:00', enabled: true },
-                wednesday: { start: '09:00', end: '18:00', enabled: true },
-                thursday: { start: '09:00', end: '18:00', enabled: true },
-                friday: { start: '09:00', end: '18:00', enabled: true },
-                saturday: { start: '10:00', end: '14:00', enabled: false },
-                sunday: { start: '10:00', end: '14:00', enabled: false }
-            },
-            responseTime: '2 ore'
+            workingHours: createDefaultWorkingHours(),
+            responseTime: '2'
         },
 
         // Languages
-        languages: [] as Array<{
-            name: string;
-            level: string;
-            flag: string;
-        }>,
+        languages: [],
 
         // Skills
-        skills: [] as Array<{
-            name: string;
-            level: string;
-            years: number;
-        }>,
+        skills: [],
 
         // Certifications
-        certifications: [] as Array<{
-            name: string;
-            issuer: string;
-            date: string;
-            credentialId: string;
-            verified: boolean;
-        }>,
+        certifications: [],
 
         // Education
-        education: [] as Array<{
-            degree: string;
-            institution: string;
-            attended_from: string;
-            attended_to: string;
-            study_area: string;
-        }>,
+        education: [],
 
         // Work History
-        workHistory: [] as Array<{
-            position: string;
-            company: string;
-            city: string;
-            country: string;
-            start_date: string;
-            end_date: string;
-            description: string;
-            current_working: boolean;
-        }>,
+        workHistory: [],
 
         // Portfolio
-        portfolio: [] as Array<{
-            title: string;
-            description: string;
-            image: string;
-            technologies: string[];
-            url: string;
-            role: string;
-        }>
+        portfolio: []
     });
 
 
@@ -283,7 +519,7 @@ export default function ProviderProfileEditPage() {
         degree: '', institution: '', attended_from: '', attended_to: '', study_area: ''
     });
     const [newWork, setNewWork] = useState({
-        position: '', company: '', city: '', country: '', start_date: '', end_date: '', description: '', current_working: false
+        title: '', position: '', company: '', city: '', country: '', start_date: '', end_date: '', description: '', current_working: false
     });
     const [newPortfolio, setNewPortfolio] = useState({
         title: '', description: '', image: '', role: '', technologies: [] as string[], url: ''
@@ -301,67 +537,22 @@ export default function ProviderProfileEditPage() {
                 phone: providerProfile.phone || '',
                 bio: providerProfile.profile?.bio || '',
                 company: providerProfile?.company || '',
-                website: providerProfile.profile?.website || '',
+                website: providerProfile.profile?.website || providerProfile?.website || '',
                 location: providerProfile.profile?.location || '',
                 avatar: providerProfile?.avatar || '',
 
                 // Availability
-                availability: {
-                    status: providerProfile.profile?.availability || 'available',
-                    hoursPerWeek: providerProfile.profile?.working_hours_per_week || '',
-                    timezone: providerProfile?.timezone || 'Europe/Bucharest',
-                    workingHours: {
-                        monday: {
-                            start: providerProfile.profile?.working_monday_from || '',
-                            end: providerProfile.profile?.working_monday_to || '',
-                            enabled: providerProfile.profile?.working_monday_enabled || false
-                        },
-                        tuesday: {
-                            start: providerProfile.profile?.working_tuesday_from || '',
-                            end: providerProfile.profile?.working_tuesday_to || '',
-                            enabled: providerProfile.profile?.working_tuesday_enabled || false
-                        },
-                        wednesday: {
-                            start: providerProfile.profile?.working_wednesday_from || '',
-                            end: providerProfile.profile?.working_wednesday_to || '',
-                            enabled: providerProfile.profile?.working_wednesday_enabled || false
-                        },
-                        thursday: {
-                            start: providerProfile.profile?.working_thursday_from || '',
-                            end: providerProfile.profile?.working_thursday_to || '',
-                            enabled: providerProfile.profile?.working_thursday_enabled || false
-                        },
-                        friday: {
-                            start: providerProfile.profile?.working_friday_from || '',
-                            end: providerProfile.profile?.working_friday_to || '',
-                            enabled: providerProfile.profile?.working_friday_enabled || false
-                        },
-                        saturday: {
-                            start: providerProfile.profile?.working_saturday_from || '',
-                            end: providerProfile.profile?.working_saturday_to || '',
-                            enabled: providerProfile.profile?.working_saturday_enabled || false
-                        },
-                        sunday: {
-                            start: providerProfile.profile?.working_sunday_from || '',
-                            end: providerProfile.profile?.working_sunday_to || '',
-                            enabled: providerProfile.profile?.working_sunday_enabled || false
-                        }
-                    },
-                    responseTime: providerProfile.profile?.answer_hour || '2'
-                },
+                availability: buildAvailabilityState(providerProfile),
 
                 // Languages
                 languages: (providerProfile.languages || []).map((lang: any) => ({
-                    name: lang.language || '',
-                    level: lang.proficiency || '',
+                    name: lang.language || lang.name || '',
+                    level: lang.proficiency || lang.level || 'Basic',
+                    flag: deriveLanguageFlag(lang.language || lang.name || '', languages),
                 })),
 
                 // Skills
-                skills: [] as Array<{
-                    name: string;
-                    level: string;
-                    years: number;
-                }>,
+                skills: [],
 
                 // Certifications
                 certifications: (providerProfile?.certifications ?? []).map((cert: any) => ({
@@ -373,7 +564,7 @@ export default function ProviderProfileEditPage() {
                 })),
 
                 // Education
-                education: (providerProfile?.education || []).map((edu: any) => ({
+                education: (providerProfile?.education || providerProfile?.educations || []).map((edu: any) => ({
                     degree: edu?.degree || '',
                     institution: edu?.institution || '',
                     attended_from: edu?.attended_from || '',
@@ -381,7 +572,8 @@ export default function ProviderProfileEditPage() {
                     study_area: edu?.study_area || '',
                 })),
                 // Work History
-                workHistory: (providerProfile.work_history || []).map((work: any) => ({
+                workHistory: (providerProfile.work_history || providerProfile.workHistory || []).map((work: any) => ({
+                    title: work.title || '',
                     position: work.position || '',
                     company: work.company || '',
                     city: work.city || '',
@@ -389,16 +581,16 @@ export default function ProviderProfileEditPage() {
                     start_date: work.start_date || '',
                     end_date: work.end_date || '',
                     description: work.description || '',
-                    current_working: work.current_working || ''
+                    current_working: Boolean(work.current_working)
                 })),
 
                 // Portfolio
-                portfolio: (providerProfile.portfolio || []).map((item: any) => ({
-                    title: item.project_title || '',
+                portfolio: (providerProfile.portfolio || providerProfile.portfolios || []).map((item: any) => ({
+                    title: item.project_title || item.title || '',
                     description: item.description || '',
                     image: item.image || '',
                     role: item.role || '',
-                    technologies: item.technologies_used || [],
+                    technologies: item.technologies_used || item.technologies || [],
                     url: item.url || '',
                 }))
 
@@ -426,7 +618,7 @@ export default function ProviderProfileEditPage() {
         } catch (error: any) {
             setError('Nu s-au putut încărca datele profilului');
         }
-    }, [providerProfile, billingForm]);
+    }, [providerProfile, billingForm, languages]);
 
     useEffect(() => {
         if (userLoading || profileLoading) {
@@ -451,6 +643,24 @@ export default function ProviderProfileEditPage() {
         });
     }
 
+    function dataUrlToFile(dataUrl: string, fileName: string): File {
+        const [metadata, base64Payload] = dataUrl.split(',');
+
+        if (!metadata || !base64Payload) {
+            throw new Error('Imaginea decupată are un format invalid.');
+        }
+
+        const mimeType = metadata.match(/data:(.*?);base64/)?.[1] || 'image/png';
+        const binary = window.atob(base64Payload);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+
+        return new File([bytes], fileName, { type: mimeType });
+    }
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -467,24 +677,24 @@ export default function ProviderProfileEditPage() {
     const handleUpload = async () => {
         if (!imageSrc || !croppedAreaPixels) return;
 
-        const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-
-        // Convertim base64 în Blob
-        const blob = await fetch(croppedImage as string).then(r => r.blob());
-
-        // Convertim Blob în File (pentru a trimite cu uploadAvatar)
-        const file = new File([blob], 'avatar_' + user?.firstName + '-' + user?.lastName + '.jpg', { type: 'image/jpeg' });
-
         try {
-            const response = await apiClient.uploadAvatar(file); // apel metoda ta
+            const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+            const safeFirstName = user?.firstName?.trim() || 'user';
+            const safeLastName = user?.lastName?.trim() || 'avatar';
+            const file = dataUrlToFile(
+                String(croppedImage),
+                `avatar_${safeFirstName}-${safeLastName}.png`,
+            );
 
-            // Exemplu: răspunsul conține URL-ul imaginii salvate în Laravel
+            const response = await apiClient.uploadAvatar(file);
+
             const imageUrl = response.url || null;
 
             setProfileData((prev: any) => ({ ...prev, avatar: imageUrl }));
             setShowCrop(false);
-        } catch (error) {
-            console.error('Eroare la încărcarea avatarului:', error);
+            setImageSrc('');
+        } catch (error: any) {
+            setError(error?.message || 'Eroare la încărcarea avatarului.');
         }
     };
 
@@ -495,22 +705,26 @@ export default function ProviderProfileEditPage() {
         setSuccess('');
 
         try {
-            const billingValid = await billingForm.trigger();
-            if (!billingValid) {
-                setError('Completează câmpurile de facturare obligatorii.');
-                setSaving(false);
-                return;
-            }
             const billingValues = billingForm.getValues();
             // Save profile data
             await apiClient.updateProviderProfile({
                 ...profileData,
+                availability: buildAvailabilityPayload(profileData.availability),
                 ...billingValues,
             });
+            await refetchProviderProfile();
             setSuccess('Profilul a fost actualizat cu succes!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (error: any) {
-            setError(error.message || 'A apărut o eroare la salvare');
+            if (error instanceof FetchError) {
+                setError(
+                    error.status === 422
+                        ? 'Verifică datele introduse. Unele câmpuri nu respectă validarea backend.'
+                        : error.message || 'A apărut o eroare la salvare',
+                );
+            } else {
+                setError(error.message || 'A apărut o eroare la salvare');
+            }
         } finally {
             setSaving(false);
         }
@@ -520,7 +734,10 @@ export default function ProviderProfileEditPage() {
         if (newLanguage.name && newLanguage.level) {
             setProfileData(prev => ({
                 ...prev,
-                languages: [...prev.languages, { ...newLanguage }]
+                languages: [
+                    ...prev.languages,
+                    { ...newLanguage, flag: deriveLanguageFlag(newLanguage.name, languages) },
+                ]
             }));
             setNewLanguage({ name: '', level: 'Basic', flag: '' });
         }
@@ -573,7 +790,7 @@ export default function ProviderProfileEditPage() {
                 ...prev,
                 workHistory: [...prev.workHistory, { ...newWork }]
             }));
-            setNewWork({ position: '', company: '', city: '', country: '', start_date: '', end_date: '', description: '', current_working: false });
+            setNewWork({ title: '', position: '', company: '', city: '', country: '', start_date: '', end_date: '', description: '', current_working: false });
         }
     };
 
@@ -601,13 +818,6 @@ export default function ProviderProfileEditPage() {
         }));
     };
 
-    type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
-    type WorkingHour = {
-        start: string;
-        end: string;
-        enabled: boolean;
-    };
-
     type WorkingHourField = keyof WorkingHour;
     const updateWorkingHours = (day: WeekDay, field: WorkingHourField, value: any) => {
         setProfileData(prev => ({
@@ -627,8 +837,14 @@ export default function ProviderProfileEditPage() {
 
     if (loading || userLoading) {
         return (
-            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin" />
+            <div
+                className="flex h-screen items-center justify-center"
+                style={{
+                    backgroundColor: dashboardThemes.light['--bg-main'],
+                    color: dashboardThemes.light['--text-main'],
+                }}
+            >
+                <Loader2 className="h-8 w-8 animate-spin text-[#1BC47D]" />
             </div>
         );
     }
@@ -643,65 +859,244 @@ export default function ProviderProfileEditPage() {
         { value: 'BUSY', label: 'Ocupat' },
         { value: 'UNAVAILABLE', label: 'Indisponibil' }
     ];
+    const timezoneOptions: string[] = Array.from(
+        new Set<string>(
+            (languages || [])
+                .map((lang: Languages) => lang.timezone)
+                .filter((timezone: string): timezone is string => Boolean(timezone)),
+        ),
+    );
+    const trustBadges = Array.isArray(providerProfile?.profile?.badges)
+        ? providerProfile.profile.badges.filter((badge: unknown): badge is string => typeof badge === 'string' && badge.trim().length > 0)
+        : [];
+    const nameHasChanged =
+        providerProfile &&
+        (
+            profileData.firstName.trim() !== String(providerProfile.firstName || '').trim() ||
+            profileData.lastName.trim() !== String(providerProfile.lastName || '').trim()
+        );
+    const roleSlugs = useMemo(() => {
+        const rolesList = Array.isArray(user?.roles) ? user.roles : [];
+        const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
+        const fromRoleSlugs = (Array.isArray(user?.role_slugs) ? user.role_slugs : []) ?? [];
+        const fromSingleRole = user?.role ? [user.role] : [];
+        return Array.from(
+            new Set(
+                [...fromRoles, ...fromRoleSlugs, ...fromSingleRole]
+                    .filter(Boolean)
+                    .map((slug) => String(slug).toLowerCase()),
+            ),
+        );
+    }, [user?.roles, user?.role_slugs, user?.role]);
+    // This page is provider-only; keep provider dashboard menu behavior even if role payload is partial.
+    const isProviderFromRoute = true;
+    const isProvider = isProviderFromRoute || roleSlugs.includes('provider');
+    const isClient = roleSlugs.includes('client');
+    const currentTheme = isDarkMode ? dashboardThemes.dark : dashboardThemes.light;
+    const userInitials = `${(user.firstName?.[0] ?? '')}${(user.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
+    const userDisplayName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email;
+    const userAvatarSrc = user.avatar ?? user.profile_photo_url ?? user.avatar_url ?? undefined;
+    const activeDashboardMenuItem = 'edit-profile';
+    const sidebarItemClass = (item: string) => `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
+        activeDashboardMenuItem === item
+            ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+    }`;
+    const servicesTitle = isProvider ? t('dashboard.services.title.provider') : t('dashboard.services.title.client');
+    const headerControlStyle = {
+        borderColor: 'var(--border-color)',
+        backgroundColor: 'var(--input-bg)',
+        color: 'var(--text-main)',
+    };
 
     return (
-        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-            <TrustoraThemeStyles />
-            <Header />
+        <div
+            className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
+            style={{ ...currentTheme, backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' }}
+        >
+            <aside className="z-20 hidden w-64 shrink-0 flex-col justify-between border-r border-[#152B42] bg-[#0B1C2D] md:flex">
+                <div>
+                    <div className="flex h-20 items-center border-b border-white/5 px-6">
+                        <div className="flex items-center gap-3">
+                            <img src="/trustora-logo2.png" alt="Trustora Logo" className="h-8 w-8 object-contain" />
+                            <div className="flex flex-col">
+                                <span className="leading-none text-lg font-bold tracking-tight text-white">TRUSTORA</span>
+                                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.2em] text-[#1BC47D]">{t('dashboard.hero.badge')}</span>
+                            </div>
+                        </div>
+                    </div>
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold">Editează Profilul</h1>
-                        <p className="text-muted-foreground">
+                    <nav className="space-y-1 p-4">
+                        <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{t('dashboard.quick_actions.title')}</p>
+
+                        <button type="button" onClick={() => router.push('/dashboard?tab=overview')} className={sidebarItemClass('overview')}>
+                            <LayoutDashboard size={18} />
+                            {t('dashboard.tabs.overview')}
+                        </button>
+                        {isClient && !isProvider ? (
+                            <button
+                                type="button"
+                                onClick={() => router.push('/projects/new')}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
+                            >
+                                <Plus size={18} />
+                                {t('dashboard.projects.new_project')}
+                            </button>
+                        ) : null}
+                        <button
+                            type="button"
+                            onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+                            className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
+                        >
+                            <Lock size={18} />
+                            {isProvider ? t('dashboard.tabs.finance') : t('dashboard.tabs.projects')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+                            className={sidebarItemClass(isProvider ? 'projects' : 'services')}
+                        >
+                            <Layers size={18} />
+                            {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
+                        </button>
+                        <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={sidebarItemClass('messages')}>
+                            <History size={18} />
+                            {t('dashboard.tabs.messages')}
+                        </button>
+                        {isProvider ? (
+                            <button
+                                type="button"
+                                onClick={() => router.push('/provider/profile')}
+                                className={sidebarItemClass('edit-profile')}
+                            >
+                                <FileText size={18} />
+                                {t('navigation.edit_profile')}
+                            </button>
+                        ) : null}
+
+                        {isProvider && (
+                            <>
+                                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">{servicesTitle}</p>
+                                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={sidebarItemClass('services')}>
+                                    <Users size={18} />
+                                    {t('dashboard.tabs.services')}
+                                </button>
+                            </>
+                        )}
+                    </nav>
+                </div>
+
+                <div className="p-4 border-t border-white/5">
+                    <button type="button" onClick={() => router.push('/dashboard?tab=settings')} className={`${sidebarItemClass('settings')} mb-2`}>
+                        <Settings size={18} />
+                        {t('dashboard.tabs.settings')}
+                    </button>
+                    <div className="flex items-center gap-3 px-3 py-2 mt-2 bg-[#152B42] rounded-xl border border-white/5">
+                        <div className="relative">
+                            <Avatar className="w-8 h-8 border border-white/10">
+                                <AvatarImage src={userAvatarSrc} alt={userDisplayName} />
+                                <AvatarFallback className="bg-gradient-to-tr from-[#1BC47D] to-[#0B1C2D] text-white text-xs font-bold">
+                                    {userInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#1BC47D] rounded-full border-2 border-[#152B42]" />
+                        </div>
+                        <div className="overflow-hidden">
+                            <p className="text-sm font-bold text-white truncate">{userDisplayName}</p>
+                            <p className="text-[10px] text-[#1BC47D] uppercase font-bold flex items-center gap-1">
+                                <CheckCircle2 size={10} /> {isProvider ? t('dashboard.hero.role.provider') : t('dashboard.hero.role.client')}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main className="relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300">
+                <header
+                    className="z-10 flex h-20 shrink-0 items-center justify-between border-b px-4 backdrop-blur-md md:px-8"
+                    style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
+                >
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-bold md:text-3xl">Editează Profilul</h1>
+                        <p className="text-sm md:text-base" style={{ color: 'var(--text-muted)' }}>
                             Completează informațiile pentru a atrage mai mulți clienți
                         </p>
                     </div>
-                    <div className="flex space-x-3">
-                        <Button variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>
-                            <Eye className="w-4 h-4 mr-2" />
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsDarkMode((prev) => !prev)}
+                            className="rounded-lg border px-2 py-2 transition-colors hover:bg-white/5"
+                            style={headerControlStyle}
+                            title="Toggle Light/Dark Mode"
+                        >
+                            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                        </button>
+                        <Button
+                            variant="outline"
+                            className="hidden sm:inline-flex"
+                            onClick={() => router.push(`/provider/${user.profile_url}`)}
+                        >
+                            <Eye className="mr-2 h-4 w-4" />
                             Previzualizare
                         </Button>
                         <Button className="btn-primary" onClick={handleSave} disabled={saving}>
                             {saving ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Se salvează...
                                 </>
                             ) : (
                                 <>
-                                    <Save className="w-4 h-4 mr-2" />
+                                    <Save className="mr-2 h-4 w-4" />
                                     Salvează
                                 </>
                             )}
                         </Button>
                     </div>
-                </div>
+                </header>
 
-                {error && (
-                    <Alert variant="destructive" className="mb-6">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
+                <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
+                    <div
+                        className="mb-6 rounded-xl border p-3 md:hidden"
+                        style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
+                    >
+                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            Navigare rapidă
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=overview')}>Dashboard</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=projects')}>Proiecte</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>Previzualizare</Button>
+                        </div>
+                    </div>
 
-                {success && (
-                    <Alert className="mb-6 border-green-200 bg-green-50">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <AlertDescription className="text-green-800">{success}</AlertDescription>
-                    </Alert>
-                )}
+                    {error && (
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
 
-                {/* Profile Edit Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-6 glass-card p-1">
-                        <TabsTrigger value="basic">Informații de Bază</TabsTrigger>
-                        <TabsTrigger value="availability">Disponibilitate</TabsTrigger>
-                        <TabsTrigger value="languages">Limbi & Certificări</TabsTrigger>
-                        <TabsTrigger value="experience">Experiență</TabsTrigger>
-                        <TabsTrigger value="education">Educație</TabsTrigger>
-                        <TabsTrigger value="portfolio">Portofoliu</TabsTrigger>
+                    {success && (
+                        <Alert className="mb-6 border-green-200 bg-green-50">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-green-800">{success}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {/* Profile Edit Tabs */}
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <TabsList
+                        className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border p-1 md:grid-cols-3 xl:grid-cols-6"
+                        style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
+                    >
+                        <TabsTrigger className="rounded-lg data-[state=active]:bg-[#1BC47D]/10 data-[state=active]:text-[#1BC47D]" value="basic">Informații de Bază</TabsTrigger>
+                        <TabsTrigger className="rounded-lg data-[state=active]:bg-[#1BC47D]/10 data-[state=active]:text-[#1BC47D]" value="availability">Disponibilitate</TabsTrigger>
+                        <TabsTrigger className="rounded-lg data-[state=active]:bg-[#1BC47D]/10 data-[state=active]:text-[#1BC47D]" value="languages">Limbi & Certificări</TabsTrigger>
+                        <TabsTrigger className="rounded-lg data-[state=active]:bg-[#1BC47D]/10 data-[state=active]:text-[#1BC47D]" value="experience">Experiență</TabsTrigger>
+                        <TabsTrigger className="rounded-lg data-[state=active]:bg-[#1BC47D]/10 data-[state=active]:text-[#1BC47D]" value="education">Educație</TabsTrigger>
+                        <TabsTrigger className="rounded-lg data-[state=active]:bg-[#1BC47D]/10 data-[state=active]:text-[#1BC47D]" value="portfolio">Portofoliu</TabsTrigger>
                     </TabsList>
 
                     {/* Basic Information */}
@@ -742,6 +1137,10 @@ export default function ProviderProfileEditPage() {
 
                                 <Dialog open={showCrop} onOpenChange={setShowCrop}>
                                     <DialogContent className="max-w-[400px]">
+                                        <DialogTitle>Decupează poza de profil</DialogTitle>
+                                        <DialogDescription>
+                                            Ajustează cadrul imaginii și salvează avatarul actualizat.
+                                        </DialogDescription>
                                         <div className="relative w-full h-72 bg-gray-100">
                                             {imageSrc && (
                                                 <Cropper
@@ -785,6 +1184,15 @@ export default function ProviderProfileEditPage() {
                                     </div>
                                 </div>
 
+                                {nameHasChanged && (
+                                    <Alert className="border-amber-200 bg-amber-50">
+                                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                                        <AlertDescription className="text-amber-900">
+                                            Schimbarea numelui poate regenera URL-ul public al profilului provider.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
                                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>Email <span className="text-red-500">*</span></Label>
@@ -825,16 +1233,7 @@ export default function ProviderProfileEditPage() {
                                     </p>
                                 </div>
 
-                                <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <Label htmlFor="company">Companie</Label>
-                                        <Input
-                                            id="company"
-                                            value={profileData.company}
-                                            onChange={(e) => setProfileData(prev => ({ ...prev, company: e.target.value }))}
-                                            placeholder="Numele companiei"
-                                        />
-                                    </div>
+                                <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="website">Website</Label>
                                         <Input
@@ -860,17 +1259,75 @@ export default function ProviderProfileEditPage() {
                         <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle className="flex items-center space-x-2">
-                                    <Briefcase className="w-5 h-5" />
-                                    <span>{t('common.billing.section_title')}</span>
+                                    <CheckCircle className="w-5 h-5" />
+                                    <span>Metadate de Încredere</span>
                                 </CardTitle>
                                 <CardDescription>
-                                    {t('common.billing.section_description')}
+                                    Aceste valori sunt generate de sistem și sunt afișate doar în regim read-only.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <Form {...billingForm}>
-                                    <BillingDetailsForm showTitle={false} />
-                                </Form>
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Rating</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.rating ?? '-'}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Review-uri</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.reviewCount ?? providerProfile?.review_count ?? 0}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Job Success Score</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.profile?.job_success_score ?? '-'}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Proiecte finalizate</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.profile?.total_projects_completed ?? 0}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Rată de răspuns</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.profile?.response_rate ?? '-'}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Timp mediu de răspuns</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.profile?.avg_response_time_minutes ?? '-'}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">KYC</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.profile?.kyc_status ?? '-'}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Verificare test</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.testVerified ? 'Da' : 'Nu'}</p>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Verificare apel</p>
+                                        <p className="text-xl font-semibold">{providerProfile?.callVerified ? 'Da' : 'Nu'}</p>
+                                    </div>
+                                </div>
+
+                                {typeof providerProfile?.profile?.total_earned_cents === 'number' && (
+                                    <div className="rounded-lg border p-4">
+                                        <p className="text-sm text-muted-foreground">Total câștigat</p>
+                                        <p className="text-xl font-semibold">
+                                            {(providerProfile.profile.total_earned_cents / 100).toLocaleString('ro-RO', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {trustBadges.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-muted-foreground">Badge-uri</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {trustBadges.map((badge: string) => (
+                                                <Badge key={badge} variant="outline">{badge}</Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -918,7 +1375,10 @@ export default function ProviderProfileEditPage() {
                                                 value={profileData.availability.hoursPerWeek}
                                                 onChange={(e) => setProfileData(prev => ({
                                                     ...prev,
-                                                    availability: { ...prev.availability, hoursPerWeek: parseInt(e.target.value) }
+                                                    availability: {
+                                                        ...prev.availability,
+                                                        hoursPerWeek: e.target.value === '' ? '' : parseInt(e.target.value, 10),
+                                                    }
                                                 }))}
                                                 min="1"
                                                 max="80"
@@ -960,8 +1420,8 @@ export default function ProviderProfileEditPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {languages?.map((lang: Languages) => (
-                                                    <SelectItem key={lang.id} value={lang.timezone}>{lang.timezone}</SelectItem>
+                                                {timezoneOptions.map((timezone) => (
+                                                    <SelectItem key={timezone} value={timezone}>{timezone}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -982,28 +1442,10 @@ export default function ProviderProfileEditPage() {
                                 <CardContent>
                                     <div className="space-y-4">
                                         {Object.entries(profileData.availability.workingHours).map(([day, hours]) => {
-                                            type WeekDay =
-                                                | 'monday'
-                                                | 'tuesday'
-                                                | 'wednesday'
-                                                | 'thursday'
-                                                | 'friday'
-                                                | 'saturday'
-                                                | 'sunday';
-                                            const dayNames: Record<WeekDay, string> = {
-                                                monday: 'Luni',
-                                                tuesday: 'Marți',
-                                                wednesday: 'Miercuri',
-                                                thursday: 'Joi',
-                                                friday: 'Vineri',
-                                                saturday: 'Sâmbătă',
-                                                sunday: 'Duminică'
-                                            };
-
                                             return (
                                                 <div key={day} className="flex items-center space-x-4">
                                                     <div className="w-20 text-sm font-medium">
-                                                        {dayNames[day as WeekDay]}
+                                                        {DAY_LABELS[day as WeekDay]}
                                                     </div>
                                                     <Switch
                                                         checked={hours.enabled}
@@ -1050,8 +1492,14 @@ export default function ProviderProfileEditPage() {
                                     <div className="grid grid-cols-2 gap-2">
                                         <Select
                                             value={newLanguage.name}
-                                            onValueChange={(value) => setNewLanguage(prev => ({ ...prev, flag: value }))}
-                                            >
+                                            onValueChange={(value) =>
+                                                setNewLanguage((prev) => ({
+                                                    ...prev,
+                                                    name: value,
+                                                    flag: deriveLanguageFlag(value, languages),
+                                                }))
+                                            }
+                                        >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selectează o limbă" />
                                             </SelectTrigger>
@@ -1079,6 +1527,10 @@ export default function ProviderProfileEditPage() {
                                             <Plus className="w-4 h-4" />
                                         </Button>
                                     </div>
+
+                                    <p className="text-sm text-muted-foreground">
+                                        Steagul este derivat local din limba selectată. Backend-ul nu păstrează `languages.flag` ca sursă de adevăr.
+                                    </p>
 
                                     <div className="space-y-2">
                                         {profileData.languages.map((language, index) => (
@@ -1196,7 +1648,7 @@ export default function ProviderProfileEditPage() {
                                                 <div>
                                                     <div className="font-medium">{cert.name}</div>
                                                     <div className="text-sm text-muted-foreground">
-                                                        {cert.issuer} • {new Date(cert.date).toLocaleDateString('ro-RO')}
+                                                        {cert.issuer} • {cert.date ? new Date(cert.date).toLocaleDateString('ro-RO') : 'Fără dată'}
                                                     </div>
                                                 </div>
                                                 <Button variant="ghost" size="sm" onClick={() => removeCertification(index)}>
@@ -1218,9 +1670,25 @@ export default function ProviderProfileEditPage() {
                                     <Briefcase className="w-5 h-5" />
                                     <span>Experiență Profesională</span>
                                 </CardTitle>
+                                <CardDescription>
+                                    Persistența pentru `work_experience` rămâne fragilă în backend-ul actual. Formularul este complet, dar salvează cu prudență și verifică rezultatul după submit.
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-2 gap-2">
+                                <Alert className="border-amber-200 bg-amber-50">
+                                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                                    <AlertDescription className="text-amber-900">
+                                        Backend-ul poate trata inconsistent `work_experience`. După salvare, profilul este reîncărcat tocmai pentru a confirma ce a persistat.
+                                    </AlertDescription>
+                                </Alert>
+
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                    <Input
+                                        className="!h-14"
+                                        placeholder="Titlu profesional"
+                                        value={newWork.title}
+                                        onChange={(e) => setNewWork(prev => ({ ...prev, title: e.target.value }))}
+                                    />
                                     <Input
                                         className="!h-14"
                                         placeholder="Poziție"
@@ -1233,15 +1701,33 @@ export default function ProviderProfileEditPage() {
                                         value={newWork.company}
                                         onChange={(e) => setNewWork(prev => ({ ...prev, company: e.target.value }))}
                                     />
+                                    <Input
+                                        className="!h-14"
+                                        placeholder="Oraș"
+                                        value={newWork.city}
+                                        onChange={(e) => setNewWork(prev => ({ ...prev, city: e.target.value }))}
+                                    />
+                                    <Input
+                                        className="!h-14"
+                                        placeholder="Țară"
+                                        value={newWork.country}
+                                        onChange={(e) => setNewWork(prev => ({ ...prev, country: e.target.value }))}
+                                    />
                                     <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                        <DatePicker label={'De la data de'} openTo="day"
-                                                    defaultValue={newWork.start_date ? dayjs(newWork.start_date) : dayjs()}
-                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, start_date: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
+                                        <DatePicker
+                                            label={'De la data de'}
+                                            openTo="day"
+                                            value={newWork.start_date ? dayjs(newWork.start_date) : null}
+                                            onChange={(val) => setNewWork(prev => ({ ...prev, start_date: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
                                         />
-                                        <DatePicker label={'Pana la'} openTo="day"
-                                                    defaultValue={newWork.end_date ? dayjs(newWork.end_date) : dayjs()}
-                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, end_date: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
-                                        />
+                                        {!newWork.current_working && (
+                                            <DatePicker
+                                                label={'Până la'}
+                                                openTo="day"
+                                                value={newWork.end_date ? dayjs(newWork.end_date) : null}
+                                                onChange={(val) => setNewWork(prev => ({ ...prev, end_date: val ? dayjs(val).format('YYYY-MM-DD') : '' }))}
+                                            />
+                                        )}
                                     </LocalizationProvider>
                                     <Textarea
                                         placeholder="Descriere"
@@ -1250,7 +1736,22 @@ export default function ProviderProfileEditPage() {
                                         className="!h-14 min-h-[120px] col-span-2"
                                         rows={2}
                                     />
-                                    <div></div>
+                                    <div className="col-span-2 flex items-center justify-between rounded-lg border p-3">
+                                        <div>
+                                            <p className="font-medium">Încă lucrez aici</p>
+                                            <p className="text-sm text-muted-foreground">Dacă activezi acest câmp, data de final nu mai este necesară.</p>
+                                        </div>
+                                        <Switch
+                                            checked={newWork.current_working}
+                                            onCheckedChange={(checked) =>
+                                                setNewWork((prev) => ({
+                                                    ...prev,
+                                                    current_working: checked,
+                                                    end_date: checked ? '' : prev.end_date,
+                                                }))
+                                            }
+                                        />
+                                    </div>
                                     <Button onClick={addWork} size="sm" className="col-span-2">
                                         <Plus className="w-4 h-4" />
                                     </Button>
@@ -1261,6 +1762,9 @@ export default function ProviderProfileEditPage() {
                                         <div key={index} className="border rounded-lg p-4">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
+                                                    {work.title && (
+                                                        <p className="text-sm font-medium text-muted-foreground">{work.title}</p>
+                                                    )}
                                                     <h3 className="font-semibold">{work.position}</h3>
                                                     <p className="text-blue-600">{work.company}</p>
                                                     <p className="text-blue-600">{work.city} {work.country}</p>
@@ -1286,6 +1790,9 @@ export default function ProviderProfileEditPage() {
                                     <GraduationCap className="w-5 h-5" />
                                     <span>Educație</span>
                                 </CardTitle>
+                                <CardDescription>
+                                    Perioadele se introduc la nivel de lună și an, în format `YYYY-MM`.
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-2 gap-2">
@@ -1302,13 +1809,19 @@ export default function ProviderProfileEditPage() {
                                         onChange={(e) => setNewEducation(prev => ({ ...prev, institution: e.target.value }))}
                                     />
                                     <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                        <DatePicker label={'De la data de'} views={['month', 'year']} openTo="year"
-                                                    defaultValue={newEducation.attended_from ? dayjs(newEducation.attended_from) : dayjs()}
-                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, attended_to: val ? dayjs(val).format('YYYY-MM') : '' }))}
+                                        <DatePicker
+                                            label={'De la data de'}
+                                            views={['month', 'year']}
+                                            openTo="year"
+                                            value={newEducation.attended_from ? dayjs(newEducation.attended_from) : null}
+                                            onChange={(val) => setNewEducation(prev => ({ ...prev, attended_from: val ? dayjs(val).format('YYYY-MM') : '' }))}
                                         />
-                                        <DatePicker label={'Pana la'} views={['month', 'year']} openTo="year"
-                                                    defaultValue={newEducation.attended_to ? dayjs(newEducation.attended_to) : dayjs()}
-                                                    onChange={(val) => setNewEducation(prev => ({ ...prev, attended_to: val ? dayjs(val).format('YYYY-MM') : '' }))}
+                                        <DatePicker
+                                            label={'Până la'}
+                                            views={['month', 'year']}
+                                            openTo="year"
+                                            value={newEducation.attended_to ? dayjs(newEducation.attended_to) : null}
+                                            onChange={(val) => setNewEducation(prev => ({ ...prev, attended_to: val ? dayjs(val).format('YYYY-MM') : '' }))}
                                         />
                                     </LocalizationProvider>
 
@@ -1385,6 +1898,20 @@ export default function ProviderProfileEditPage() {
                                         onChange={(e) => setNewPortfolio(prev => ({ ...prev, description: e.target.value }))}
                                         rows={1}
                                     />
+                                    <Input
+                                        className="col-span-2"
+                                        placeholder="Tehnologii (separate prin virgulă)"
+                                        value={newPortfolio.technologies.join(', ')}
+                                        onChange={(e) =>
+                                            setNewPortfolio((prev) => ({
+                                                ...prev,
+                                                technologies: e.target.value
+                                                    .split(',')
+                                                    .map((technology) => technology.trim())
+                                                    .filter(Boolean),
+                                            }))
+                                        }
+                                    />
                                     <Button onClick={addPortfolio} size="sm">
                                         <Plus className="w-4 h-4" />
                                     </Button>
@@ -1402,14 +1929,36 @@ export default function ProviderProfileEditPage() {
                                                     />
                                                 )}
                                             </div>
-                                            <div className="p-3">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <h4 className="font-medium">{project.title}</h4>
-                                                        <p className="text-sm text-muted-foreground">{project.description}</p>
-                                                    </div>
-                                                    <Button variant="ghost" size="sm" onClick={() => removePortfolio(index)}>
-                                                        <X className="w-4 h-4" />
+                                                <div className="p-3">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1">
+                                                            <h4 className="font-medium">{project.title}</h4>
+                                                            {project.role && (
+                                                                <p className="text-sm text-blue-600">{project.role}</p>
+                                                            )}
+                                                            <p className="text-sm text-muted-foreground">{project.description}</p>
+                                                            {project.technologies.length > 0 && (
+                                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                                    {project.technologies.map((technology) => (
+                                                                        <Badge key={`${project.title}-${technology}`} variant="outline">
+                                                                            {technology}
+                                                                        </Badge>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {project.url && (
+                                                                <a
+                                                                    href={project.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="mt-3 inline-block text-sm font-medium text-blue-600 hover:underline"
+                                                                >
+                                                                    Vezi proiectul
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                        <Button variant="ghost" size="sm" onClick={() => removePortfolio(index)}>
+                                                            <X className="w-4 h-4" />
                                                     </Button>
                                                 </div>
                                             </div>
@@ -1421,8 +1970,7 @@ export default function ProviderProfileEditPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-
-            <Footer />
+            </main>
         </div>
     );
 }

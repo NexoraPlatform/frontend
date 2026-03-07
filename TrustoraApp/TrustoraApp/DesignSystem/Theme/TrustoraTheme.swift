@@ -1,16 +1,35 @@
 import SwiftUI
 
 enum TrustoraTheme {
-    static let accent = Color(hex: 0x1BC47D)
-    static let primary = Color(hex: 0x0B1C2D)
-    static let background = Color(hex: 0xF5F7FA)
-    static let surface = Color.white
-    static let mutedSurface = Color(hex: 0xF8FAFC)
-    static let primaryText = Color(hex: 0x0F172A)
-    static let secondaryText = Color(hex: 0x334155)
-    static let tertiaryText = Color(hex: 0x64748B)
-    static let border = Color(hex: 0xE2E8F0)
-    static let accentButtonText = Color(hex: 0x071A12)
+    static let accent = adaptive(light: 0x1BC47D, dark: 0x1BC47D)
+    static let primary = adaptive(light: 0x0B1C2D, dark: 0xE2E8F0)
+    static let background = adaptive(light: 0xF5F7FA, dark: 0x0B1220)
+    static let surface = adaptive(light: 0xFFFFFF, dark: 0x111827)
+    static let mutedSurface = adaptive(light: 0xF8FAFC, dark: 0x1B2638)
+    static let primaryText = adaptive(light: 0x0F172A, dark: 0xF1F5F9)
+    static let secondaryText = adaptive(light: 0x334155, dark: 0xCBD5E1)
+    static let tertiaryText = adaptive(light: 0x64748B, dark: 0x94A3B8)
+    static let border = adaptive(light: 0xE2E8F0, dark: 0x334155)
+    static let accentButtonText = adaptive(light: 0x071A12, dark: 0x04120C)
+
+    private static func adaptive(light: UInt, dark: UInt) -> Color {
+#if canImport(UIKit)
+        return Color(
+            uiColor: UIColor { traits in
+                let isDark = traits.userInterfaceStyle == .dark
+                let hex = isDark ? dark : light
+                return UIColor(
+                    red: CGFloat((hex >> 16) & 0xFF) / 255,
+                    green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255,
+                    alpha: 1
+                )
+            }
+        )
+#else
+        return Color(hex: light)
+#endif
+    }
 }
 
 enum TrustoraTypography {
@@ -44,4 +63,3 @@ enum TrustoraMetrics {
     static let cardRadius: CGFloat = 18
     static let compactCardRadius: CGFloat = 14
 }
-

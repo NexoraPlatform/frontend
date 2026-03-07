@@ -12,6 +12,8 @@ import type { NextMiddleware } from 'next/server';
 import { auth } from '@/auth';
 import {
   checkRequirement,
+  getRoleSlugs,
+  isSuperUser,
   type AccessUser,
   type Requirement,
 } from '@/lib/access';
@@ -190,14 +192,8 @@ function isBasicAuthAuthorized(request: any) {
 
 function isAdminUser(user: AccessUser | null) {
   if (!user) return false;
-  if (user.is_superuser) return true;
-  return Array.isArray(user.roles)
-    ? user.roles.some((role) =>
-      typeof role === 'string'
-        ? role.toLowerCase() === 'admin'
-        : role.slug?.toLowerCase() === 'admin'
-    )
-    : false;
+  if (isSuperUser(user)) return true;
+  return getRoleSlugs(user).includes('admin');
 }
 
 // ---- Proxy Main ----
@@ -264,17 +260,19 @@ export const proxy = auth(async (req) => {
   let user: AccessUser | null = null;
 
   if (sessionUser) {
+    // Start from signed NextAuth session user and upgrade with backend data when available.
+    user = sessionUser;
     const cookieHeader = req.headers.get('cookie') ?? '';
-    if (!cookieHeader.includes('laravel_session=')) {
-      user = sessionUser;
-    } else {
+    if (cookieHeader.includes('laravel_session=')) {
       const requestOrigin = req.headers.get('origin');
       const rawUser = await fetchLaravelUserFromCookieHeader(cookieHeader, requestOrigin);
-      user = (normalizeAuthUser(rawUser) as AccessUser | null) ?? null;
+      const normalizedBackendUser = (normalizeAuthUser(rawUser) as AccessUser | null) ?? null;
+      if (normalizedBackendUser) {
+        user = normalizedBackendUser;
+      }
     }
   }
 
-  // Treat only validated backend session data as authenticated.
   const isAuthenticated = Boolean(user);
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;

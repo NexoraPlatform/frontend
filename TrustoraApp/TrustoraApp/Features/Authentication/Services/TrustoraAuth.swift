@@ -76,6 +76,8 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
         let companyBankBIC: String?
         let companyBankName: String?
         let bankCurrency: String?
+        let createdAt: String?
+        let updatedAt: String?
 
         enum CodingKeys: String, CodingKey {
             case id
@@ -91,6 +93,63 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             case companyBankBIC = "company_bank_bic"
             case companyBankName = "company_bank_name"
             case bankCurrency = "bank_currency"
+            case createdAt = "created_at"
+            case updatedAt = "updated_at"
+        }
+    }
+
+    struct AccessPermission: Codable, Equatable, Identifiable {
+        let id: String
+        let slug: String
+        let name: String?
+
+        nonisolated init(json: [String: Any]) {
+            id = TrustoraAuthUser.stringValue(from: json["id"]) ?? UUID().uuidString
+            slug = (TrustoraAuthUser.stringValue(from: json["slug"]) ?? TrustoraAuthUser.stringValue(from: json["name"]) ?? "").lowercased()
+            name = TrustoraAuthUser.stringValue(from: json["name"])
+        }
+    }
+
+    struct AccessRole: Codable, Equatable, Identifiable {
+        let id: String
+        let slug: String
+        let name: String?
+        let permissions: [AccessPermission]
+
+        nonisolated init(json: [String: Any]) {
+            id = TrustoraAuthUser.stringValue(from: json["id"]) ?? UUID().uuidString
+            slug = (TrustoraAuthUser.stringValue(from: json["slug"]) ?? TrustoraAuthUser.stringValue(from: json["name"]) ?? "").lowercased()
+            name = TrustoraAuthUser.stringValue(from: json["name"])
+            permissions = TrustoraAuthUser.dictionaryArray(from: json["permissions"])
+                .map(AccessPermission.init)
+                .filter { !$0.slug.isEmpty }
+        }
+    }
+
+    struct ConnectedAccount: Codable, Equatable, Identifiable {
+        let id: String
+        let provider: String
+        let providerID: String?
+        let expiresAt: String?
+        let createdAt: String?
+        let updatedAt: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case provider
+            case providerID = "provider_id"
+            case expiresAt = "expires_at"
+            case createdAt = "created_at"
+            case updatedAt = "updated_at"
+        }
+
+        nonisolated init(json: [String: Any]) {
+            id = TrustoraAuthUser.stringValue(from: json["id"]) ?? UUID().uuidString
+            provider = (TrustoraAuthUser.stringValue(from: json["provider"]) ?? "").lowercased()
+            providerID = TrustoraAuthUser.stringValue(from: json["provider_id"])
+            expiresAt = TrustoraAuthUser.stringValue(from: json["expires_at"])
+            createdAt = TrustoraAuthUser.stringValue(from: json["created_at"])
+            updatedAt = TrustoraAuthUser.stringValue(from: json["updated_at"])
         }
     }
 
@@ -98,14 +157,52 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
     let email: String
     let firstName: String
     let lastName: String
+    let emailVerifiedAt: String?
     let phone: String?
     let role: String?
+    let roleSlugsPayload: [String]?
+    let permissionSlugs: [String]?
+    let companyID: String?
     let companyName: String?
     let company: Company?
     let avatar: String?
+    let countryCode: String?
+    let website: String?
+    let location: String?
+    let language: String?
+    let bio: String?
+    let rating: String?
+    let reviewCount: Int?
+    let status: String?
+    let lastLoginAt: String?
+    let lastActiveAt: String?
+    let timezone: String?
+    let createdAt: String?
+    let updatedAt: String?
+    let testVerified: Bool?
+    let callVerified: Bool?
+    let stripeAccountID: String?
+    var rapydWalletID: String?
+    var rapydContactID: String?
+    let rapydBeneficiaryID: String?
+    let rapydSenderID: String?
+    let payoutMethodType: String?
+    let isOnline: Bool?
+    let lastSeen: String?
+    let onesignalPlayerID: String?
+    let profileURL: String?
+    let githubToken: String?
+    let githubRefreshToken: String?
+    let githubNickname: String?
+    let oldestWorkExperience: String?
+    let nextAvailableJob: String?
     let roles: [String]?
+    let roleDetails: [AccessRole]?
     let permissions: [String]?
+    let connectedAccounts: [ConnectedAccount]?
+    let userPermissionsPayload: String?
     let isSuperuser: Bool?
+    let rawPayload: String?
 
     var displayName: String {
         let name = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespacesAndNewlines)
@@ -114,6 +211,12 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
 
     var roleSlugs: [String] {
         let normalizedRoles = roles?.map { $0.lowercased() } ?? []
+        let fromPayload = roleSlugsPayload?.map { $0.lowercased() } ?? []
+        let combined = Array(Set(normalizedRoles + fromPayload))
+        if !combined.isEmpty {
+            return combined
+        }
+
         if !normalizedRoles.isEmpty {
             return normalizedRoles
         }
@@ -129,23 +232,80 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
         roleSlugs.contains(roleSlug.lowercased())
     }
 
-    static func from(jsonObject: Any?) -> TrustoraAuthUser? {
+    func updatingRapydIdentifiers(walletID: String?, contactID: String?) -> TrustoraAuthUser {
+        let normalizedWalletID = walletID?.nilIfEmpty
+        let normalizedContactID = contactID?.nilIfEmpty
+
+        var updated = self
+        if normalizedWalletID != nil {
+            updated.rapydWalletID = normalizedWalletID
+        }
+        if normalizedContactID != nil {
+            updated.rapydContactID = normalizedContactID
+        }
+        return updated
+    }
+
+    nonisolated static func from(jsonObject: Any?) -> TrustoraAuthUser? {
         guard let dictionary = jsonObject as? [String: Any] else {
             return nil
         }
 
+        let rawPayload = jsonString(from: dictionary)
         let fullName = stringValue(from: dictionary["name"]) ?? ""
         let fullNameParts = fullName.split(separator: " ", omittingEmptySubsequences: true)
         let inferredFirstName = fullNameParts.first.map(String.init) ?? ""
         let inferredLastName = fullNameParts.dropFirst().joined(separator: " ")
 
+        let companyObject = dictionary["company"] as? [String: Any]
+        let parsedCompany = company(from: dictionary, nested: companyObject)
+
         let id = stringValue(from: dictionary["id"]) ?? stringValue(from: dictionary["user_id"]) ?? UUID().uuidString
         let email = stringValue(from: dictionary["email"]) ?? ""
         let firstName = stringValue(from: dictionary["firstName"]) ?? stringValue(from: dictionary["first_name"]) ?? inferredFirstName
         let lastName = stringValue(from: dictionary["lastName"]) ?? stringValue(from: dictionary["last_name"]) ?? inferredLastName
-
-        let companyObject = dictionary["company"] as? [String: Any]
-        let parsedCompany = company(from: dictionary, nested: companyObject)
+        let emailVerifiedAt = stringValue(from: dictionary["email_verified_at"])
+        let rapydWalletID =
+            stringValue(from: dictionary["rapyd_wallet_id"]) ??
+            stringValue(from: dictionary["wallet_id"])
+        let rapydContactID =
+            stringValue(from: dictionary["rapyd_contact_id"]) ??
+            stringValue(from: dictionary["contact_id"])
+        let companyID = stringValue(from: dictionary["company_id"]) ?? stringValue(from: companyObject?["id"])
+        let countryCode = stringValue(from: dictionary["country_code"])
+        let website = stringValue(from: dictionary["website"])
+        let location = stringValue(from: dictionary["location"])
+        let language = stringValue(from: dictionary["language"])
+        let bio = stringValue(from: dictionary["bio"])
+        let rating = stringValue(from: dictionary["rating"])
+        let reviewCount = intValue(from: dictionary["reviewCount"]) ?? intValue(from: dictionary["review_count"])
+        let status = stringValue(from: dictionary["status"])
+        let lastLoginAt = stringValue(from: dictionary["last_login_at"])
+        let lastActiveAt = stringValue(from: dictionary["last_active_at"])
+        let timezone = stringValue(from: dictionary["timezone"])
+        let createdAt = stringValue(from: dictionary["created_at"])
+        let updatedAt = stringValue(from: dictionary["updated_at"])
+        let testVerified = boolValue(from: dictionary["testVerified"]) ?? boolValue(from: dictionary["test_verified"])
+        let callVerified = boolValue(from: dictionary["callVerified"]) ?? boolValue(from: dictionary["call_verified"])
+        let stripeAccountID = stringValue(from: dictionary["stripe_account_id"])
+        let rapydBeneficiaryID = stringValue(from: dictionary["rapyd_beneficiary_id"])
+        let rapydSenderID = stringValue(from: dictionary["rapyd_sender_id"])
+        let payoutMethodType = stringValue(from: dictionary["payout_method_type"])
+        let isOnline = boolValue(from: dictionary["is_online"])
+        let lastSeen = stringValue(from: dictionary["last_seen"])
+        let onesignalPlayerID = stringValue(from: dictionary["onesignal_player_id"])
+        let profileURL = stringValue(from: dictionary["profile_url"])
+        let githubToken = stringValue(from: dictionary["github_token"])
+        let githubRefreshToken = stringValue(from: dictionary["github_refresh_token"])
+        let githubNickname = stringValue(from: dictionary["github_nickname"])
+        let oldestWorkExperience = stringValue(from: dictionary["oldest_work_experience"])
+        let nextAvailableJob = stringValue(from: dictionary["next_available_job"])
+        let roleSlugsFromPayload = stringArray(from: dictionary["role_slugs"])
+        let permissionSlugs = stringArray(from: dictionary["permission_slugs"])
+        let connectedAccounts = dictionaryArray(from: dictionary["connected_accounts"])
+            .map(ConnectedAccount.init)
+            .filter { !$0.provider.isEmpty }
+        let userPermissionsPayload = jsonString(from: dictionary["user_permissions"])
 
         var companyName = stringValue(from: dictionary["company_name"])
         if companyName == nil {
@@ -160,6 +320,9 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             .compactMap { roleObject in
                 stringValue(from: roleObject["slug"]) ?? stringValue(from: roleObject["name"])
             }
+        let roleDetails = dictionaryArray(from: dictionary["roles"])
+            .map(AccessRole.init)
+            .filter { !$0.slug.isEmpty }
 
         let rolesFromStringArray: [String] = (dictionary["roles"] as? [String] ?? [])
 
@@ -174,14 +337,14 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             .compactMap { permissionObject in
                 stringValue(from: permissionObject["slug"]) ?? stringValue(from: permissionObject["name"])
             }
-        let permissionsFromStringArray: [String] = (dictionary["permissions"] as? [String] ?? [])
+        let permissionsFromStringArray: [String] = stringArray(from: dictionary["permissions"])
         let combinedPermissions = Array(
-            Set((permissionFromRoleObjects + permissionsFromRootObjectArray + permissionsFromStringArray)
+            Set((permissionFromRoleObjects + permissionsFromRootObjectArray + permissionsFromStringArray + permissionSlugs)
                 .map { $0.lowercased() })
         )
 
         let combinedRoles = Array(
-            Set((rolesFromObjectArray + rolesFromStringArray).map { $0.lowercased() })
+            Set((rolesFromObjectArray + rolesFromStringArray + roleSlugsFromPayload).map { $0.lowercased() })
         )
         let primaryRole = combinedRoles.first
             ?? stringValue(from: dictionary["role"])
@@ -192,18 +355,56 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             email: email,
             firstName: firstName,
             lastName: lastName,
+            emailVerifiedAt: emailVerifiedAt,
             phone: stringValue(from: dictionary["phone"]),
             role: primaryRole,
+            roleSlugsPayload: roleSlugsFromPayload.isEmpty ? nil : roleSlugsFromPayload,
+            permissionSlugs: permissionSlugs.isEmpty ? nil : permissionSlugs,
+            companyID: companyID,
             companyName: companyName,
             company: parsedCompany,
-            avatar: stringValue(from: dictionary["avatar"]),
+            avatar: stringValue(from: dictionary["avatar"]) ?? stringValue(from: dictionary["profile_photo_url"]),
+            countryCode: countryCode,
+            website: website,
+            location: location,
+            language: language,
+            bio: bio,
+            rating: rating,
+            reviewCount: reviewCount,
+            status: status,
+            lastLoginAt: lastLoginAt,
+            lastActiveAt: lastActiveAt,
+            timezone: timezone,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            testVerified: testVerified,
+            callVerified: callVerified,
+            stripeAccountID: stripeAccountID,
+            rapydWalletID: rapydWalletID,
+            rapydContactID: rapydContactID,
+            rapydBeneficiaryID: rapydBeneficiaryID,
+            rapydSenderID: rapydSenderID,
+            payoutMethodType: payoutMethodType,
+            isOnline: isOnline,
+            lastSeen: lastSeen,
+            onesignalPlayerID: onesignalPlayerID,
+            profileURL: profileURL,
+            githubToken: githubToken,
+            githubRefreshToken: githubRefreshToken,
+            githubNickname: githubNickname,
+            oldestWorkExperience: oldestWorkExperience,
+            nextAvailableJob: nextAvailableJob,
             roles: combinedRoles.isEmpty ? nil : combinedRoles,
+            roleDetails: roleDetails.isEmpty ? nil : roleDetails,
             permissions: combinedPermissions.isEmpty ? nil : combinedPermissions,
-            isSuperuser: boolValue(from: dictionary["is_superuser"])
+            connectedAccounts: connectedAccounts.isEmpty ? nil : connectedAccounts,
+            userPermissionsPayload: userPermissionsPayload,
+            isSuperuser: boolValue(from: dictionary["is_superuser"]),
+            rawPayload: rawPayload
         )
     }
 
-    private static func company(from dictionary: [String: Any], nested: [String: Any]?) -> Company? {
+    nonisolated private static func company(from dictionary: [String: Any], nested: [String: Any]?) -> Company? {
         let companyID = stringValue(from: nested?["id"]) ?? stringValue(from: dictionary["company_id"])
         let companyName = stringValue(from: nested?["name"]) ?? stringValue(from: dictionary["company_name"])
         let idType = stringValue(from: nested?["id_type"]) ?? stringValue(from: dictionary["id_type"])
@@ -217,6 +418,8 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
         let bic = stringValue(from: nested?["company_bank_bic"]) ?? stringValue(from: dictionary["company_bank_bic"])
         let bankName = stringValue(from: nested?["company_bank_name"]) ?? stringValue(from: dictionary["company_bank_name"])
         let bankCurrency = stringValue(from: nested?["bank_currency"]) ?? stringValue(from: dictionary["bank_currency"])
+        let createdAt = stringValue(from: nested?["created_at"])
+        let updatedAt = stringValue(from: nested?["updated_at"])
 
         let hasData = [
             companyID,
@@ -232,6 +435,8 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             bic,
             bankName,
             bankCurrency,
+            createdAt,
+            updatedAt,
         ].contains { value in
             guard let value else { return false }
             return !value.isEmpty
@@ -254,11 +459,13 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             companyBankIBAN: iban,
             companyBankBIC: bic,
             companyBankName: bankName,
-            bankCurrency: bankCurrency
+            bankCurrency: bankCurrency,
+            createdAt: createdAt,
+            updatedAt: updatedAt
         )
     }
 
-    private static func stringValue(from value: Any?) -> String? {
+    nonisolated private static func stringValue(from value: Any?) -> String? {
         if let string = value as? String {
             return string.trimmingCharacters(in: .whitespacesAndNewlines)
         }
@@ -268,7 +475,7 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
         return nil
     }
 
-    private static func boolValue(from value: Any?) -> Bool? {
+    nonisolated private static func boolValue(from value: Any?) -> Bool? {
         if let bool = value as? Bool {
             return bool
         }
@@ -286,6 +493,54 @@ struct TrustoraAuthUser: Codable, Identifiable, Equatable {
             }
         }
         return nil
+    }
+
+    nonisolated private static func intValue(from value: Any?) -> Int? {
+        if let int = value as? Int {
+            return int
+        }
+        if let number = value as? NSNumber {
+            return number.intValue
+        }
+        if let string = value as? String {
+            return Int(string.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return nil
+    }
+
+    nonisolated private static func stringArray(from value: Any?) -> [String] {
+        guard let array = value as? [Any] else {
+            return []
+        }
+
+        return array.compactMap { element in
+            stringValue(from: element)
+        }
+    }
+
+    nonisolated private static func dictionaryArray(from value: Any?) -> [[String: Any]] {
+        guard let array = value as? [Any] else {
+            return []
+        }
+
+        return array.compactMap { element in
+            element as? [String: Any]
+        }
+    }
+
+    nonisolated private static func jsonString(from value: Any?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        guard JSONSerialization.isValidJSONObject(value),
+              let data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]),
+              let string = String(data: data, encoding: .utf8)
+        else {
+            return nil
+        }
+
+        return string
     }
 }
 
@@ -355,7 +610,7 @@ final class TrustoraAuthService {
         let object = try await requestObject(
             path: "auth/mobile/me",
             method: "GET",
-            queryItems: [],
+            queryItems: [URLQueryItem(name: "include", value: "connected_accounts")],
             bodyData: nil,
             bearerToken: bearerToken
         )
@@ -599,6 +854,16 @@ final class AuthSessionStore: ObservableObject {
         }
     }
 
+    func updateRapydIdentifiers(walletID: String?, contactID: String?) {
+        guard let currentUser = user else { return }
+        let updatedUser = currentUser.updatingRapydIdentifiers(walletID: walletID, contactID: contactID)
+        user = updatedUser
+
+        if let userData = try? JSONEncoder().encode(updatedUser) {
+            userDefaults.set(userData, forKey: cachedUserKey)
+        }
+    }
+
     private func refreshProfile() async throws {
         guard let token = accessToken else { return }
         let remoteSession = try await authService.me(bearerToken: token)
@@ -682,11 +947,11 @@ enum TrustoraKeychainTokenStore {
 }
 
 extension String {
-    var trimmed: String {
+    nonisolated var trimmed: String {
         trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    var nilIfEmpty: String? {
+    nonisolated var nilIfEmpty: String? {
         let value = trimmed
         return value.isEmpty ? nil : value
     }

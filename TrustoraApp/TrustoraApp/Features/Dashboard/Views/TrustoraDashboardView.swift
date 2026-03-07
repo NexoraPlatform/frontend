@@ -1,8 +1,23 @@
 import SwiftUI
+import Combine
+
+private enum CompanyLocationPickerKind: String, Identifiable {
+    case country
+    case county
+    case city
+
+    var id: String { rawValue }
+}
+
+private struct CompanyPickerOption: Identifiable {
+    let id: String
+    let value: String
+    let title: String
+    let subtitle: String?
+}
 
 struct TrustoraDashboardView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
 
     @ObservedObject var authSession: AuthSessionStore
     @Binding var appLanguageRaw: String
@@ -16,7 +31,11 @@ struct TrustoraDashboardView: View {
     @State private var ownershipTransferCandidate: DashboardCompanyUser?
     @State private var showCompanyInformationSheet = false
     @State private var showCompanyManagersSheet = false
+    @State private var showProviderProfileSheet = false
+    @State private var showCreateProjectSheet = false
     @State private var companyMembersSearchTerm = ""
+    @State private var activeCompanyLocationPicker: CompanyLocationPickerKind?
+    @State private var subscribedRealtimeChatGroupID: String?
 
     private let trustoraGreen = TrustoraTheme.accent
     private let midnightBlue = TrustoraTheme.primary
@@ -50,6 +69,73 @@ struct TrustoraDashboardView: View {
             resolvedLanguageCode,
             appCurrency.rawValue,
         ].joined(separator: "|")
+    }
+
+    private var realtimeChatEventsPublisher: AnyPublisher<Notification, Never> {
+        Publishers.MergeMany(
+            NotificationCenter.default.publisher(for: .trustoraRealtimeChatMessageSent),
+            NotificationCenter.default.publisher(for: .trustoraRealtimeChatMessageUpdated),
+            NotificationCenter.default.publisher(for: .trustoraRealtimeChatGroupCreated)
+        )
+        .eraseToAnyPublisher()
+    }
+
+    private var realtimePresenceEventsPublisher: AnyPublisher<Notification, Never> {
+        Publishers.MergeMany(
+            NotificationCenter.default.publisher(for: .trustoraRealtimeChatUserJoined),
+            NotificationCenter.default.publisher(for: .trustoraRealtimeChatUserLeft),
+            NotificationCenter.default.publisher(for: .trustoraRealtimePresenceHere),
+            NotificationCenter.default.publisher(for: .trustoraRealtimePresenceJoining),
+            NotificationCenter.default.publisher(for: .trustoraRealtimePresenceLeaving)
+        )
+        .eraseToAnyPublisher()
+    }
+
+    private var hasRapydConnected: Bool {
+        authSession.user?.rapydWalletID?.nilIfEmpty != nil
+    }
+
+    private var hasPhoneForRapyd: Bool {
+        authSession.user?.phone?.nilIfEmpty != nil
+    }
+
+    private var hasCompanyForRapyd: Bool {
+        guard let company = authSession.user?.company else {
+            return false
+        }
+
+        return company.id?.nilIfEmpty != nil || company.name?.nilIfEmpty != nil
+    }
+
+    private var canConnectRapyd: Bool {
+        hasPhoneForRapyd && hasCompanyForRapyd
+    }
+
+    private var rapydRequirementsMessage: String? {
+        if hasPhoneForRapyd && hasCompanyForRapyd {
+            return nil
+        }
+
+        if !hasPhoneForRapyd && !hasCompanyForRapyd {
+            return s("dashboard.finance.rapyd.requirements.phone_company")
+        }
+
+        if !hasPhoneForRapyd {
+            return s("dashboard.finance.rapyd.requirements.phone")
+        }
+
+        return s("dashboard.finance.rapyd.requirements.company")
+    }
+
+    @MainActor
+    private func refreshFinanceAfterRapydConnection(token: String) async {
+        await viewModel.loadFinance(token: token, language: resolvedLanguageCode)
+
+        // Backend may persist wallet linkage with a slight delay.
+        if viewModel.wallets.isEmpty {
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            await viewModel.loadFinance(token: token, language: resolvedLanguageCode)
+        }
     }
 
     private var dashboardScrollBottomPadding: CGFloat {
@@ -119,8 +205,29 @@ struct TrustoraDashboardView: View {
             viewModel.currentPage = 1
         }
         .onChange(of: viewModel.activeTab) {
+            syncRealtimeChatPresenceSubscription()
             Task {
                 await loadDataForActiveTab()
+            }
+        }
+        .onChange(of: viewModel.selectedChatGroupID) {
+            syncRealtimeChatPresenceSubscription()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .trustoraRealtimeUserNotification)) { notification in
+            handleRealtimeUserNotification(notification)
+        }
+        .onReceive(realtimeChatEventsPublisher) { notification in
+            handleRealtimeChatNotification(notification)
+        }
+        .onReceive(realtimePresenceEventsPublisher) { _ in
+            handleRealtimePresenceNotification()
+        }
+        .onDisappear {
+            let previousGroupID = subscribedRealtimeChatGroupID
+            subscribedRealtimeChatGroupID = nil
+            guard let previousGroupID else { return }
+            Task {
+                await TrustoraRealtimeService.shared.unsubscribeChatGroupPresence(previousGroupID)
             }
         }
         .alert(
@@ -185,6 +292,35 @@ struct TrustoraDashboardView: View {
         }) {
             companyManagersSheet
         }
+        .fullScreenCover(isPresented: $showProviderProfileSheet) {
+            TrustoraProviderProfileView(
+                authSession: authSession,
+                appLanguageRaw: $appLanguageRaw,
+                strings: strings
+            )
+        }
+        .fullScreenCover(isPresented: $showCreateProjectSheet) {
+            TrustoraCreateProjectView(
+                authSession: authSession,
+                appLanguageRaw: $appLanguageRaw,
+                appCurrencyRaw: $appCurrencyRaw,
+                strings: strings
+            ) { _ in
+                Task {
+                    guard let token = authSession.accessToken else { return }
+                    await viewModel.loadProjects(
+                        token: token,
+                        language: resolvedLanguageCode,
+                        currency: appCurrency
+                    )
+                    await viewModel.loadOverview(
+                        token: token,
+                        language: resolvedLanguageCode,
+                        currency: appCurrency
+                    )
+                }
+            }
+        }
     }
 
     private var header: some View {
@@ -197,11 +333,11 @@ struct TrustoraDashboardView: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(midnightBlue)
                         .frame(width: 32, height: 32)
-                        .background(Color.white.opacity(0.72))
+                        .background(TrustoraTheme.surface.opacity(0.82))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                                .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
                         )
                 }
                 .buttonStyle(.plain)
@@ -236,7 +372,7 @@ struct TrustoraDashboardView: View {
         .padding(.bottom, 8)
         .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
-            Divider().overlay(Color(hex: 0xE2E8F0))
+            Divider().overlay(TrustoraTheme.border)
         }
     }
 
@@ -257,11 +393,11 @@ struct TrustoraDashboardView: View {
             .foregroundStyle(midnightBlue)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.65))
+            .background(TrustoraTheme.surface.opacity(0.78))
             .clipShape(RoundedRectangle(cornerRadius: 11))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
-                    .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
             )
         }
         .accessibilityLabel(s("settings.language"))
@@ -284,11 +420,11 @@ struct TrustoraDashboardView: View {
             .foregroundStyle(midnightBlue)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.65))
+            .background(TrustoraTheme.surface.opacity(0.78))
             .clipShape(RoundedRectangle(cornerRadius: 11))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
-                    .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
             )
         }
         .accessibilityLabel(s("settings.currency"))
@@ -446,7 +582,11 @@ struct TrustoraDashboardView: View {
             await viewModel.loadChatGroups(token: token)
         case .finance:
             if viewModel.isProvider {
-                await viewModel.loadFinance(token: token, language: resolvedLanguageCode)
+                if hasRapydConnected {
+                    await viewModel.loadFinance(token: token, language: resolvedLanguageCode)
+                } else {
+                    viewModel.clearFinanceState()
+                }
             }
         case .settings:
             await viewModel.loadSettings(
@@ -455,6 +595,171 @@ struct TrustoraDashboardView: View {
                 language: resolvedLanguageCode
             )
         }
+    }
+
+    private func syncRealtimeChatPresenceSubscription() {
+        let nextGroupID: String?
+        if viewModel.activeTab == .messages {
+            nextGroupID = normalizedString(viewModel.selectedChatGroupID)
+        } else {
+            nextGroupID = nil
+        }
+
+        guard nextGroupID != subscribedRealtimeChatGroupID else {
+            return
+        }
+
+        let previousGroupID = subscribedRealtimeChatGroupID
+        subscribedRealtimeChatGroupID = nextGroupID
+
+        Task {
+            if let previousGroupID {
+                await TrustoraRealtimeService.shared.unsubscribeChatGroupPresence(previousGroupID)
+            }
+            if let nextGroupID {
+                await TrustoraRealtimeService.shared.subscribeChatGroupPresence(nextGroupID)
+            }
+        }
+    }
+
+    private func handleRealtimeUserNotification(_ notification: Notification) {
+        guard let token = authSession.accessToken else {
+            return
+        }
+
+        let payloadRaw = notification.userInfo?["payload"] ?? notification.userInfo ?? [:]
+        let payload = dictionaryValue(payloadRaw) ?? [:]
+        let data = dictionaryValue(payload["data"]) ?? [:]
+        let dataPayload = dictionaryValue(data["payload"]) ?? [:]
+        let payloadPayload = dictionaryValue(payload["payload"]) ?? [:]
+
+        let rawType = normalizedString(payload["type"])?.lowercased() ?? ""
+        let declaredType = normalizedString(data["type"])?.lowercased() ?? ""
+        let projectID = firstNonEmptyString(
+            data["projectId"],
+            data["project_id"],
+            payload["projectId"],
+            payload["project_id"],
+            dataPayload["projectId"],
+            dataPayload["project_id"],
+            payloadPayload["projectId"],
+            payloadPayload["project_id"]
+        )
+        let payloadStatus = (firstNonEmptyString(
+            dataPayload["status"],
+            payloadPayload["status"]
+        ) ?? "").uppercased()
+
+        let isBudgetAcceptedByProvider =
+            declaredType == "budget.accepted.by_provider" ||
+            rawType.contains("provideracceptedclientbudget")
+        let isProjectEvent =
+            declaredType.hasPrefix("project.") ||
+            declaredType.hasPrefix("budget.")
+        let isProjectStatusUpdatedEvent =
+            declaredType == "project.status.updated" ||
+            rawType.contains("projectstatusupdated")
+        let isProviderFinishedNotification =
+            isProjectStatusUpdatedEvent && payloadStatus == "FINISHED"
+        let isRapydEvent = declaredType.hasPrefix("rapyd.")
+        let isFallbackProjectEvent = declaredType.isEmpty && projectID != nil
+
+        let shouldRefetchProjects =
+            isProjectEvent ||
+            isProjectStatusUpdatedEvent ||
+            isProviderFinishedNotification ||
+            isBudgetAcceptedByProvider ||
+            isFallbackProjectEvent ||
+            (isRapydEvent && projectID != nil)
+
+        let shouldRefreshOverview =
+            viewModel.activeTab == .overview &&
+            (isProjectEvent || isBudgetAcceptedByProvider || isRapydEvent)
+
+        Task {
+            if isRapydEvent && viewModel.isProvider {
+                await viewModel.loadFinance(token: token, language: resolvedLanguageCode)
+            }
+
+            if shouldRefetchProjects {
+                await viewModel.loadProjects(
+                    token: token,
+                    language: resolvedLanguageCode,
+                    currency: appCurrency
+                )
+            }
+
+            if shouldRefreshOverview {
+                await viewModel.loadOverview(
+                    token: token,
+                    language: resolvedLanguageCode,
+                    currency: appCurrency
+                )
+            }
+        }
+    }
+
+    private func handleRealtimeChatNotification(_ notification: Notification) {
+        guard let token = authSession.accessToken else {
+            return
+        }
+
+        let payloadRaw = notification.userInfo?["payload"] ?? notification.userInfo ?? [:]
+        let payload = dictionaryValue(payloadRaw) ?? [:]
+        let message = dictionaryValue(payload["message"]) ?? payload
+        let targetGroupID = firstNonEmptyString(
+            message["groupId"],
+            message["group_id"],
+            payload["groupId"],
+            payload["group_id"]
+        )
+
+        Task {
+            await viewModel.loadChatGroups(token: token)
+            if let targetGroupID,
+               viewModel.activeTab == .messages,
+               viewModel.selectedChatGroupID == targetGroupID
+            {
+                await viewModel.markSelectedGroupAsRead(token: token)
+            }
+        }
+    }
+
+    private func handleRealtimePresenceNotification() {
+        guard let token = authSession.accessToken else {
+            return
+        }
+        guard viewModel.activeTab == .messages else {
+            return
+        }
+
+        Task {
+            await viewModel.loadChatGroups(token: token)
+        }
+    }
+
+    private func dictionaryValue(_ value: Any?) -> [String: Any]? {
+        value as? [String: Any]
+    }
+
+    private func normalizedString(_ value: Any?) -> String? {
+        if let string = value as? String {
+            let normalized = string.trimmingCharacters(in: .whitespacesAndNewlines)
+            return normalized.isEmpty ? nil : normalized
+        }
+        if let number = value as? NSNumber {
+            return number.stringValue
+        }
+        return nil
+    }
+
+    private func firstNonEmptyString(_ values: Any?...) -> String? {
+        for value in values {
+            if let normalized = normalizedString(value) {
+                return normalized
+            }
+        }
+        return nil
     }
 
     private var overviewContent: some View {
@@ -496,7 +801,7 @@ struct TrustoraDashboardView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
-                        .background(Color.white)
+                        .background(TrustoraTheme.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
@@ -557,6 +862,25 @@ struct TrustoraDashboardView: View {
 
     private var projectsContent: some View {
         VStack(spacing: 12) {
+            if !viewModel.isProvider {
+                HStack {
+                    Spacer()
+
+                    Button {
+                        showCreateProjectSheet = true
+                    } label: {
+                        Label(s("project.new.actions.open"), systemImage: "plus")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundStyle(Color(hex: 0x04120C))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(trustoraGreen)
+                            .clipShape(RoundedRectangle(cornerRadius: 11))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
             VStack(spacing: 10) {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
@@ -570,7 +894,7 @@ struct TrustoraDashboardView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 11)
-                .background(Color.white)
+                .background(TrustoraTheme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -619,7 +943,7 @@ struct TrustoraDashboardView: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(midnightBlue)
                             .frame(width: 38, height: 38)
-                            .background(Color.white)
+                            .background(TrustoraTheme.surface)
                             .clipShape(RoundedRectangle(cornerRadius: 11))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 11)
@@ -650,7 +974,7 @@ struct TrustoraDashboardView: View {
                 }
             }
             .padding(12)
-            .background(Color.white)
+            .background(TrustoraTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
@@ -827,7 +1151,7 @@ struct TrustoraDashboardView: View {
                             .font(.system(size: 13, weight: .medium))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
-                            .background(Color.white)
+                            .background(TrustoraTheme.surface)
                             .clipShape(RoundedRectangle(cornerRadius: 11))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 11)
@@ -877,34 +1201,54 @@ struct TrustoraDashboardView: View {
             } else {
                 sectionCard(
                     title: s("dashboard.finance.title"),
-                    subtitle: viewModel.selectedWallet == nil
+                    subtitle: !hasRapydConnected
+                        ? s("dashboard.hero.rapyd.connect")
+                        : viewModel.selectedWallet == nil
                         ? s("dashboard.hero.balance.error")
                         : sf("dashboard.finance.wallet_balance_value", [
                             "amount": formatAmount(value: viewModel.selectedWallet?.balance, currency: viewModel.selectedWallet?.currency),
                         ])
                 ) {
                     VStack(spacing: 12) {
-                        if viewModel.isLoadingFinance {
-                            loadingCard(text: s("dashboard.hero.balance.loading"))
-                        } else if let financeError = viewModel.financeError, !financeError.isEmpty {
-                            errorCard(text: sf("dashboard.errors.generic", ["message": financeError]))
-                        } else if viewModel.wallets.isEmpty {
+                        if !hasRapydConnected {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text(s("dashboard.hero.balance.error"))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(Color(hex: 0x64748B))
 
+                                if let requirementsMessage = rapydRequirementsMessage {
+                                    Text(requirementsMessage)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Color(hex: 0xB45309))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+
+                                if let financeError = viewModel.financeError, !financeError.isEmpty {
+                                    errorCard(text: sf("dashboard.errors.generic", ["message": financeError]))
+                                }
+                                
                                 Button {
                                     Task {
                                         guard let token = authSession.accessToken else {
                                             return
                                         }
 
-                                        if let onboardingURL = await viewModel.connectRapyd(
+                                        guard canConnectRapyd else {
+                                            return
+                                        }
+
+                                        if let onboarding = await viewModel.connectRapyd(
                                             token: token,
                                             language: resolvedLanguageCode
                                         ) {
-                                            openURL(onboardingURL)
+                                            if onboarding.walletID != nil || onboarding.contactID != nil {
+                                                authSession.updateRapydIdentifiers(
+                                                    walletID: onboarding.walletID,
+                                                    contactID: onboarding.contactID
+                                                )
+                                            }
+
+                                            await refreshFinanceAfterRapydConnection(token: token)
                                         }
                                     }
                                 } label: {
@@ -926,7 +1270,73 @@ struct TrustoraDashboardView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
                                 .buttonStyle(.plain)
-                                .disabled(viewModel.isRapydConnecting)
+                                .disabled(viewModel.isRapydConnecting || !canConnectRapyd)
+                            }
+                        } else if viewModel.isLoadingFinance {
+                            loadingCard(text: s("dashboard.hero.balance.loading"))
+                        } else if let financeError = viewModel.financeError, !financeError.isEmpty {
+                            errorCard(text: sf("dashboard.errors.generic", ["message": financeError]))
+                        } else if viewModel.wallets.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(s("dashboard.hero.balance.error"))
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Color(hex: 0x64748B))
+
+                                if let requirementsMessage = rapydRequirementsMessage {
+                                    Text(requirementsMessage)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Color(hex: 0xB45309))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+
+                                if let financeError = viewModel.financeError, !financeError.isEmpty {
+                                    errorCard(text: sf("dashboard.errors.generic", ["message": financeError]))
+                                }
+
+                                Button {
+                                    Task {
+                                        guard let token = authSession.accessToken else {
+                                            return
+                                        }
+
+                                        guard canConnectRapyd else {
+                                            return
+                                        }
+
+                                        if let onboarding = await viewModel.connectRapyd(
+                                            token: token,
+                                            language: resolvedLanguageCode
+                                        ) {
+                                            if onboarding.walletID != nil || onboarding.contactID != nil {
+                                                authSession.updateRapydIdentifiers(
+                                                    walletID: onboarding.walletID,
+                                                    contactID: onboarding.contactID
+                                                )
+                                            }
+
+                                            await refreshFinanceAfterRapydConnection(token: token)
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        if viewModel.isRapydConnecting {
+                                            ProgressView().tint(Color(hex: 0x071A12))
+                                        } else {
+                                            Image(systemName: "link.badge.plus")
+                                                .font(.system(size: 13, weight: .black))
+                                        }
+
+                                        Text(s("dashboard.hero.rapyd.connect"))
+                                            .font(.system(size: 14, weight: .bold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(trustoraGreen)
+                                    .foregroundStyle(Color(hex: 0x071A12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(viewModel.isRapydConnecting || !canConnectRapyd)
                             }
                         } else {
                             VStack(spacing: 12) {
@@ -983,7 +1393,7 @@ struct TrustoraDashboardView: View {
                                             .font(.system(size: 14, weight: .semibold))
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 11)
-                                            .background(Color.white)
+                                            .background(TrustoraTheme.surface)
                                             .clipShape(RoundedRectangle(cornerRadius: 11))
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 11)
@@ -997,7 +1407,7 @@ struct TrustoraDashboardView: View {
                                                 .font(.system(size: 12, weight: .bold))
                                                 .foregroundStyle(midnightBlue)
                                                 .frame(width: 56, height: 42)
-                                                .background(Color.white)
+                                                .background(TrustoraTheme.surface)
                                                 .clipShape(RoundedRectangle(cornerRadius: 11))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 11)
@@ -1065,6 +1475,29 @@ struct TrustoraDashboardView: View {
                             }
 
                             Spacer(minLength: 0)
+
+                            if viewModel.isProvider {
+                                Button {
+                                    showProviderProfileSheet = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 12, weight: .bold))
+                                        Text(s("navigation.edit_profile"))
+                                            .font(.system(size: 12, weight: .bold))
+                                    }
+                                    .foregroundStyle(midnightBlue)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(TrustoraTheme.surface)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                         .padding(12)
                         .background(Color(hex: 0xF8FAFC))
@@ -1178,6 +1611,14 @@ struct TrustoraDashboardView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .task {
+            await viewModel.loadLocationOptionsIfNeeded()
+        }
+        .sheet(item: $activeCompanyLocationPicker, onDismiss: {
+            activeCompanyLocationPicker = nil
+        }) { picker in
+            companyLocationPickerSheet(for: picker)
+        }
     }
 
     private var companyManagersSheet: some View {
@@ -1280,22 +1721,55 @@ struct TrustoraDashboardView: View {
                     text: $viewModel.companyForm.idNumber,
                     placeholder: s("dashboard.settings.profile.placeholders.id_code")
                 )
-                settingsTextField(
+                settingsSelectableField(
                     title: s("dashboard.settings.profile.country"),
-                    text: $viewModel.companyForm.companyCountry,
+                    value: viewModel.selectedCountryDisplayName,
                     placeholder: s("dashboard.settings.profile.placeholders.country"),
-                    textInputAutocapitalization: .characters
+                    disabled: viewModel.isLoadingLocations,
+                    action: {
+                        Task {
+                            await viewModel.loadLocationOptionsIfNeeded()
+                            activeCompanyLocationPicker = .country
+                        }
+                    }
                 )
-                settingsTextField(
-                    title: s("dashboard.settings.profile.state"),
-                    text: $viewModel.companyForm.companyCounty,
-                    placeholder: s("dashboard.settings.profile.placeholders.state")
-                )
-                settingsTextField(
-                    title: s("dashboard.settings.profile.city"),
-                    text: $viewModel.companyForm.companyCity,
-                    placeholder: s("dashboard.settings.profile.placeholders.city")
-                )
+
+                if viewModel.locationStates.isEmpty {
+                    settingsTextField(
+                        title: s("dashboard.settings.profile.state"),
+                        text: $viewModel.companyForm.companyCounty,
+                        placeholder: s("dashboard.settings.profile.placeholders.state")
+                    )
+                } else {
+                    settingsSelectableField(
+                        title: s("dashboard.settings.profile.state"),
+                        value: viewModel.selectedCountyDisplayName,
+                        placeholder: s("dashboard.settings.profile.placeholders.state"),
+                        disabled: viewModel.companyForm.companyCountry.trimmed.isEmpty,
+                        action: {
+                            activeCompanyLocationPicker = .county
+                        }
+                    )
+                }
+
+                if viewModel.locationCities.isEmpty {
+                    settingsTextField(
+                        title: s("dashboard.settings.profile.city"),
+                        text: $viewModel.companyForm.companyCity,
+                        placeholder: s("dashboard.settings.profile.placeholders.city"),
+                        disabled: viewModel.companyForm.companyCounty.trimmed.isEmpty
+                    )
+                } else {
+                    settingsSelectableField(
+                        title: s("dashboard.settings.profile.city"),
+                        value: viewModel.companyForm.companyCity,
+                        placeholder: s("dashboard.settings.profile.placeholders.city"),
+                        disabled: viewModel.companyForm.companyCounty.trimmed.isEmpty,
+                        action: {
+                            activeCompanyLocationPicker = .city
+                        }
+                    )
+                }
                 settingsTextField(
                     title: s("dashboard.settings.profile.zip"),
                     text: $viewModel.companyForm.companyZip,
@@ -1328,6 +1802,15 @@ struct TrustoraDashboardView: View {
                     placeholder: s("dashboard.settings.profile.placeholders.bic"),
                     textInputAutocapitalization: .characters
                 )
+            }
+
+            if viewModel.isLoadingLocations {
+                Text(s("dashboard.loading.dashboard"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color(hex: 0x64748B))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let locationError = viewModel.locationOptionsError, !locationError.isEmpty {
+                errorCard(text: sf("dashboard.errors.generic", ["message": locationError]))
             }
 
             settingsTextField(
@@ -1681,7 +2164,7 @@ struct TrustoraDashboardView: View {
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(trustoraGreen)
                 .frame(width: 44, height: 44)
-                .background(Color.white)
+                .background(TrustoraTheme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -1709,7 +2192,7 @@ struct TrustoraDashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -1717,11 +2200,52 @@ struct TrustoraDashboardView: View {
         )
     }
 
+    private func settingsSelectableField(
+        title: String,
+        value: String,
+        placeholder: String,
+        disabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color(hex: 0x334155))
+
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    Text(value.isEmpty ? placeholder : value)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(value.isEmpty ? Color(hex: 0x94A3B8) : midnightBlue)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color(hex: 0x64748B))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 9)
+                .background(Color(hex: 0xF8FAFC))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(disabled)
+            .opacity(disabled ? 0.62 : 1)
+        }
+    }
+
     private func settingsTextField(
         title: String,
         text: Binding<String>,
         placeholder: String,
-        textInputAutocapitalization: TextInputAutocapitalization = .never
+        textInputAutocapitalization: TextInputAutocapitalization = .never,
+        disabled: Bool = false
     ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title)
@@ -1730,6 +2254,7 @@ struct TrustoraDashboardView: View {
             TextField(placeholder, text: text)
                 .textInputAutocapitalization(textInputAutocapitalization)
                 .autocorrectionDisabled()
+                .disabled(disabled)
                 .font(.system(size: 12, weight: .medium))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 9)
@@ -1739,6 +2264,92 @@ struct TrustoraDashboardView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
                 )
+                .opacity(disabled ? 0.62 : 1)
+        }
+    }
+
+    private func companyLocationPickerSheet(for picker: CompanyLocationPickerKind) -> some View {
+        let options = pickerOptions(for: picker)
+        let configuration: (title: String, placeholder: String, emptyText: String, selectedValue: String)
+
+        switch picker {
+        case .country:
+            configuration = (
+                title: s("dashboard.settings.profile.country"),
+                placeholder: s("dashboard.settings.profile.picker.search_country"),
+                emptyText: s("dashboard.settings.profile.picker.no_country"),
+                selectedValue: viewModel.companyForm.companyCountry
+            )
+        case .county:
+            configuration = (
+                title: s("dashboard.settings.profile.state"),
+                placeholder: s("dashboard.settings.profile.picker.search_state"),
+                emptyText: s("dashboard.settings.profile.picker.no_state"),
+                selectedValue: viewModel.companyForm.companyCounty
+            )
+        case .city:
+            configuration = (
+                title: s("dashboard.settings.profile.city"),
+                placeholder: s("dashboard.settings.profile.picker.search_city"),
+                emptyText: s("dashboard.settings.profile.picker.no_city"),
+                selectedValue: viewModel.companyForm.companyCity
+            )
+        }
+
+        return NavigationStack {
+            CompanySearchPickerSheet(
+                title: configuration.title,
+                closeLabel: s("dashboard.actions.close"),
+                searchPlaceholder: configuration.placeholder,
+                emptyText: configuration.emptyText,
+                options: options,
+                selectedValue: configuration.selectedValue
+            ) { option in
+                switch picker {
+                case .country:
+                    Task {
+                        await viewModel.selectCompanyCountry(option.value)
+                    }
+                case .county:
+                    Task {
+                        await viewModel.selectCompanyCounty(option.value)
+                    }
+                case .city:
+                    viewModel.selectCompanyCity(option.value)
+                }
+            }
+        }
+    }
+
+    private func pickerOptions(for picker: CompanyLocationPickerKind) -> [CompanyPickerOption] {
+        switch picker {
+        case .country:
+            return viewModel.locationCountries.map { country in
+                CompanyPickerOption(
+                    id: country.isoCode,
+                    value: country.isoCode,
+                    title: country.flag.isEmpty ? country.name : "\(country.flag) \(country.name)",
+                    subtitle: country.isoCode
+                )
+            }
+        case .county:
+            return viewModel.locationStates.map { state in
+                CompanyPickerOption(
+                    id: state.id,
+                    value: state.isoCode,
+                    title: state.name,
+                    subtitle: state.isoCode
+                )
+            }
+        case .city:
+            return viewModel.locationCities.map { city in
+                CompanyPickerOption(
+                    id: city.id,
+                    value: city.name,
+                    title: city.name,
+                    subtitle: nil
+                )
+            }
         }
     }
 
@@ -1785,7 +2396,7 @@ struct TrustoraDashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -1942,7 +2553,7 @@ struct TrustoraDashboardView: View {
                             }
                         }
                         .padding(10)
-                        .background(Color.white)
+                        .background(TrustoraTheme.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
@@ -2212,7 +2823,7 @@ struct TrustoraDashboardView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(isMine ? trustoraGreen.opacity(0.26) : Color.white)
+            .background(isMine ? trustoraGreen.opacity(0.26) : TrustoraTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
@@ -2237,7 +2848,7 @@ struct TrustoraDashboardView: View {
         .foregroundStyle(midnightBlue)
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 11))
         .overlay(
             RoundedRectangle(cornerRadius: 11)
@@ -2255,7 +2866,7 @@ struct TrustoraDashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -2313,7 +2924,7 @@ struct TrustoraDashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -2629,6 +3240,123 @@ struct TrustoraDashboardView: View {
             text = text.replacingOccurrences(of: "{\(name)}", with: value)
         }
         return text
+    }
+}
+
+private struct CompanySearchPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let title: String
+    let closeLabel: String
+    let searchPlaceholder: String
+    let emptyText: String
+    let options: [CompanyPickerOption]
+    let selectedValue: String
+    let onSelect: (CompanyPickerOption) -> Void
+
+    @State private var searchTerm = ""
+
+    private var filteredOptions: [CompanyPickerOption] {
+        let query = searchTerm.trimmed.lowercased()
+        guard !query.isEmpty else {
+            return options
+        }
+
+        return options.filter { option in
+            option.title.lowercased().contains(query)
+            || option.value.lowercased().contains(query)
+            || (option.subtitle?.lowercased().contains(query) ?? false)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Color(hex: 0x64748B))
+
+                TextField(searchPlaceholder, text: $searchTerm)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color(hex: 0xF8FAFC))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
+            if filteredOptions.isEmpty {
+                Text(emptyText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color(hex: 0x64748B))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .padding(.horizontal, 16)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredOptions) { option in
+                            Button {
+                                onSelect(option)
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 10) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(option.title)
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundStyle(Color(hex: 0x0B1C2D))
+                                            .lineLimit(1)
+
+                                        if let subtitle = option.subtitle, !subtitle.isEmpty {
+                                            Text(subtitle)
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundStyle(Color(hex: 0x64748B))
+                                                .lineLimit(1)
+                                        }
+                                    }
+
+                                    Spacer(minLength: 0)
+
+                                    if option.value.caseInsensitiveCompare(selectedValue) == .orderedSame {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 15, weight: .bold))
+                                            .foregroundStyle(Color(hex: 0x1BC47D))
+                                    }
+                                }
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(hex: 0xF8FAFC))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+            }
+        }
+        .background(TrustoraTheme.background.ignoresSafeArea())
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(closeLabel) {
+                    dismiss()
+                }
+                .font(.system(size: 13, weight: .bold))
+            }
+        }
     }
 }
 

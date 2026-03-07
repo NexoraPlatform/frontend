@@ -32,8 +32,13 @@ describe('lib/access', () => {
 
   it('isSuperUser returns true for super flags or role', () => {
     expect(isSuperUser({ is_superuser: true } as AccessUser)).toBe(true);
+    expect(isSuperUser({ isSuperuser: true } as any)).toBe(true);
+    expect(isSuperUser({ is_super_admin: true } as any)).toBe(true);
     expect(isSuperUser({ role: 'superuser' } as AccessUser)).toBe(true);
     expect(isSuperUser({ roles: [{ slug: 'SuperUser' }] } as AccessUser)).toBe(true);
+    expect(isSuperUser({ roles: [{ slug: 'SUPER ADMINISTRATOR' }] } as any)).toBe(true);
+    expect(isSuperUser({ role_slugs: ['super_admin'] } as AccessUser)).toBe(true);
+    expect(isSuperUser({ roles: [{ slug: 'super-admin' }] } as AccessUser)).toBe(true);
     expect(isSuperUser({ roles: [{ slug: 'admin' }] } as AccessUser)).toBe(false);
   });
 

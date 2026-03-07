@@ -62,15 +62,15 @@ struct MenuLinkRow: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Color(hex: 0x94A3B8))
+                .foregroundStyle(TrustoraTheme.tertiaryText)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
-        .background(Color(hex: 0xF8FAFC))
+        .background(TrustoraTheme.mutedSurface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                .stroke(TrustoraTheme.border, lineWidth: 1)
         )
     }
 }
@@ -101,11 +101,11 @@ struct FooterLinkRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                .stroke(TrustoraTheme.border, lineWidth: 1)
         )
     }
 }
@@ -118,13 +118,13 @@ struct FooterIconButton: View {
         Button(action: {}) {
             Image(systemName: icon)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Color(hex: 0x0F172A))
+                .foregroundStyle(TrustoraTheme.primaryText)
                 .frame(width: 40, height: 40)
-                .background(Color.white)
+                .background(TrustoraTheme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                        .stroke(TrustoraTheme.border, lineWidth: 1)
                 )
         }
         .accessibilityLabel(accessibilityLabel)
@@ -151,11 +151,11 @@ struct ContactCard: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                .stroke(TrustoraTheme.border, lineWidth: 1)
         )
     }
 }
@@ -194,7 +194,7 @@ struct AuthAvatarView: View {
         .clipShape(RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
-                .stroke(Color.white.opacity(0.72), lineWidth: 1)
+                .stroke(TrustoraTheme.border.opacity(0.75), lineWidth: 1)
         )
     }
 
@@ -237,11 +237,11 @@ struct PillarCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(hex: 0xE2E8F0), lineWidth: 1)
+                .stroke(TrustoraTheme.border, lineWidth: 1)
         )
     }
 }
@@ -292,7 +292,7 @@ struct MessagingCard: View {
                 .padding(.top, 2)
         }
         .padding(18)
-        .background(dark ? Color(hex: 0x0B1C2D) : Color.white)
+        .background(dark ? Color(hex: 0x0B1C2D) : TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
@@ -322,11 +322,11 @@ struct VisualNodeCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
-        .background(Color.white)
+        .background(TrustoraTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(highlighted ? Color(hex: 0x1BC47D) : Color(hex: 0xE2E8F0), lineWidth: highlighted ? 2 : 1)
+                .stroke(highlighted ? Color(hex: 0x1BC47D) : TrustoraTheme.border, lineWidth: highlighted ? 2 : 1)
         )
         .shadow(color: highlighted ? Color(hex: 0x1BC47D).opacity(0.18) : .clear, radius: 12, x: 0, y: 6)
     }
@@ -335,7 +335,7 @@ struct VisualNodeCard: View {
 struct BottomNavigationTrackSurface: View {
     var body: some View {
         Capsule()
-            .fill(Color.white)
+            .fill(TrustoraTheme.surface)
             .overlay(surfaceStroke)
             .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
     }
@@ -344,7 +344,7 @@ struct BottomNavigationTrackSurface: View {
         Capsule()
             .stroke(
                 LinearGradient(
-                    colors: [Color.white.opacity(0.72), Color.white.opacity(0.16)],
+                    colors: [TrustoraTheme.border.opacity(0.7), TrustoraTheme.border.opacity(0.2)],
                     startPoint: .top,
                     endPoint: .bottom
                 ),

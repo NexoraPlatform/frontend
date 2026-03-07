@@ -59,11 +59,11 @@ struct AuthBenefitPill: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
-        .background(Color.white.opacity(0.86))
+        .background(TrustoraTheme.surface.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: 0xD9E4EF), lineWidth: 1)
+                .stroke(TrustoraTheme.border, lineWidth: 1)
         )
     }
 }
@@ -84,7 +84,7 @@ struct AuthIconField: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(hex: 0x64748B))
+                    .foregroundStyle(TrustoraTheme.tertiaryText)
                     .frame(width: 16)
 
                 TextField(placeholder, text: $text)
@@ -96,11 +96,11 @@ struct AuthIconField: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 11)
-            .background(Color.white)
+            .background(TrustoraTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(hex: 0xCBD5E1), lineWidth: 1)
+                    .stroke(TrustoraTheme.border, lineWidth: 1)
             )
         }
     }
@@ -122,7 +122,7 @@ struct AuthSecureIconField: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(hex: 0x64748B))
+                    .foregroundStyle(TrustoraTheme.tertiaryText)
                     .frame(width: 16)
 
                 Group {
@@ -142,18 +142,18 @@ struct AuthSecureIconField: View {
                 } label: {
                     Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color(hex: 0x64748B))
+                        .foregroundStyle(TrustoraTheme.tertiaryText)
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 11)
-            .background(Color.white)
+            .background(TrustoraTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(hex: 0xCBD5E1), lineWidth: 1)
+                    .stroke(TrustoraTheme.border, lineWidth: 1)
             )
         }
     }

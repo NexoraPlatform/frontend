@@ -132,11 +132,11 @@ struct TrustoraServicesView: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(midnightBlue)
                         .frame(width: 32, height: 32)
-                        .background(Color.white.opacity(0.72))
+                        .background(TrustoraTheme.surface.opacity(0.82))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                                .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
                         )
                 }
                 .buttonStyle(.plain)
@@ -153,7 +153,7 @@ struct TrustoraServicesView: View {
         .padding(.bottom, 8)
         .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
-            Divider().overlay(Color(hex: 0xE2E8F0))
+            Divider().overlay(TrustoraTheme.border)
         }
     }
 
@@ -332,11 +332,11 @@ struct TrustoraServicesView: View {
             .foregroundStyle(midnightBlue)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.65))
+            .background(TrustoraTheme.surface.opacity(0.78))
             .clipShape(RoundedRectangle(cornerRadius: 11))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
-                    .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
             )
         }
     }
@@ -358,11 +358,11 @@ struct TrustoraServicesView: View {
             .foregroundStyle(midnightBlue)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.65))
+            .background(TrustoraTheme.surface.opacity(0.78))
             .clipShape(RoundedRectangle(cornerRadius: 11))
             .overlay(
                 RoundedRectangle(cornerRadius: 11)
-                    .stroke(Color.white.opacity(0.82), lineWidth: 0.8)
+                    .stroke(TrustoraTheme.border.opacity(0.9), lineWidth: 0.8)
             )
         }
     }

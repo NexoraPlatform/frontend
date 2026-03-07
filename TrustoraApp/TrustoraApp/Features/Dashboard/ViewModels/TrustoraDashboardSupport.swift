@@ -155,6 +155,11 @@ final class TrustoraDashboardViewModel: ObservableObject {
     @Published var currencyOptions: [DashboardCurrencyOption] = []
     @Published var isLoadingCurrencies = false
     @Published var currencySearchError: String?
+    @Published var locationCountries: [TrustoraLocationCountry] = []
+    @Published var locationStates: [TrustoraLocationState] = []
+    @Published var locationCities: [TrustoraLocationCity] = []
+    @Published var isLoadingLocations = false
+    @Published var locationOptionsError: String?
 
     @Published var companyManagers: [DashboardCompanyUser] = []
     @Published var companyMembers: [DashboardCompanyUser] = []
@@ -169,6 +174,35 @@ final class TrustoraDashboardViewModel: ObservableObject {
     private var companySearchTask: Task<Void, Never>?
     private var currencySearchTask: Task<Void, Never>?
     private var managerSearchTask: Task<Void, Never>?
+
+    var selectedCountry: TrustoraLocationCountry? {
+        let selectedISO = companyForm.companyCountry.trimmed.uppercased()
+        guard !selectedISO.isEmpty else { return nil }
+        return locationCountries.first(where: { $0.isoCode == selectedISO })
+    }
+
+    var selectedCountryDisplayName: String {
+        if let selectedCountry {
+            if selectedCountry.flag.isEmpty {
+                return selectedCountry.name
+            }
+            return "\(selectedCountry.flag) \(selectedCountry.name)"
+        }
+        return companyForm.companyCountry.trimmed
+    }
+
+    var selectedCountyDisplayName: String {
+        let selectedCounty = companyForm.companyCounty.trimmed
+        guard !selectedCounty.isEmpty else { return "" }
+
+        if let state = locationStates.first(where: {
+            $0.isoCode.caseInsensitiveCompare(selectedCounty) == .orderedSame
+        }) {
+            return state.name
+        }
+
+        return selectedCounty
+    }
 
     var isProvider: Bool {
         roleSlugs.contains("provider")
@@ -320,11 +354,10 @@ final class TrustoraDashboardViewModel: ObservableObject {
         await loadServices(token: token, language: language, currency: currency, providerID: isProvider ? user?.id : nil)
         await loadChatGroups(token: token)
 
-        if isProvider {
+        if isProvider, hasRapydConnection(user: user) {
             await loadFinance(token: token, language: language)
         } else {
-            wallets = []
-            selectedWalletID = nil
+            clearFinanceState()
         }
 
         if activeTab == .settings {
@@ -747,8 +780,9 @@ final class TrustoraDashboardViewModel: ObservableObject {
         isLoadingFinance = false
     }
 
-    func connectRapyd(token: String, language: String) async -> URL? {
+    func connectRapyd(token: String, language: String) async -> DashboardRapydOnboarding? {
         isRapydConnecting = true
+        financeError = nil
         defer { isRapydConnecting = false }
 
         do {
@@ -756,11 +790,26 @@ final class TrustoraDashboardViewModel: ObservableObject {
                 language: language,
                 bearerToken: token
             )
-            return response.url
+            guard response.walletID?.nilIfEmpty != nil else {
+                financeError = "Invalid Rapyd onboarding response."
+                return nil
+            }
+
+            return response
+        } catch let networkError as TrustoraNetworkError {
+            financeError = networkError.localizedDescription
+            return nil
         } catch {
             financeError = error.localizedDescription
             return nil
         }
+    }
+
+    func clearFinanceState() {
+        wallets = []
+        selectedWalletID = nil
+        financeError = nil
+        isLoadingFinance = false
     }
 
     func applyWalletSelection(_ walletID: String) {
@@ -833,8 +882,155 @@ final class TrustoraDashboardViewModel: ObservableObject {
         companySearchError = nil
         currencySearchTerm = companyForm.bankCurrency
         currencySearchError = nil
+        locationOptionsError = nil
         companyManagerSearchTerm = ""
         companyManagerSearchResults = []
+    }
+
+    private func hasRapydConnection(user: TrustoraAuthUser?) -> Bool {
+        user?.rapydWalletID?.nilIfEmpty != nil
+    }
+
+    func loadLocationOptionsIfNeeded() async {
+        guard !isLoadingLocations else { return }
+
+        if locationCountries.isEmpty {
+            isLoadingLocations = true
+            defer { isLoadingLocations = false }
+
+            do {
+                locationCountries = try TrustoraLocationCatalog.shared.allCountries()
+                locationOptionsError = nil
+            } catch {
+                locationCountries = []
+                locationStates = []
+                locationCities = []
+                locationOptionsError = error.localizedDescription
+                return
+            }
+        }
+
+        await syncLocationSelectionsFromCurrentForm()
+    }
+
+    func selectCompanyCountry(_ isoCode: String) async {
+        await loadLocationOptionsIfNeeded()
+        let normalizedISO = isoCode.trimmed.uppercased()
+        guard !normalizedISO.isEmpty else { return }
+
+        companyForm.companyCountry = normalizedISO
+        if let suggestedType = TrustoraCompanyIdentificationTypes.byCountryISO[normalizedISO] {
+            companyForm.idType = suggestedType
+        }
+
+        do {
+            locationStates = try TrustoraLocationCatalog.shared.states(of: normalizedISO)
+            if let firstState = locationStates.first {
+                companyForm.companyCounty = firstState.isoCode
+                locationCities = try TrustoraLocationCatalog.shared.cities(
+                    of: normalizedISO,
+                    stateISO: firstState.isoCode
+                )
+                companyForm.companyCity = locationCities.first?.name ?? ""
+            } else {
+                companyForm.companyCounty = ""
+                companyForm.companyCity = ""
+                locationCities = []
+            }
+
+            locationOptionsError = nil
+        } catch {
+            locationStates = []
+            locationCities = []
+            locationOptionsError = error.localizedDescription
+        }
+    }
+
+    func selectCompanyCounty(_ isoCode: String) async {
+        let countryISO = companyForm.companyCountry.trimmed.uppercased()
+        let normalizedCounty = isoCode.trimmed.uppercased()
+        guard !countryISO.isEmpty, !normalizedCounty.isEmpty else { return }
+
+        companyForm.companyCounty = normalizedCounty
+
+        do {
+            locationCities = try TrustoraLocationCatalog.shared.cities(
+                of: countryISO,
+                stateISO: normalizedCounty
+            )
+            if let firstCity = locationCities.first {
+                companyForm.companyCity = firstCity.name
+            } else {
+                companyForm.companyCity = ""
+            }
+            locationOptionsError = nil
+        } catch {
+            locationCities = []
+            locationOptionsError = error.localizedDescription
+        }
+    }
+
+    func selectCompanyCity(_ cityName: String) {
+        companyForm.companyCity = cityName.trimmed
+    }
+
+    private func syncLocationSelectionsFromCurrentForm() async {
+        let rawCountry = companyForm.companyCountry.trimmed
+        guard !rawCountry.isEmpty else {
+            locationStates = []
+            locationCities = []
+            return
+        }
+
+        do {
+            guard let normalizedCountry = try TrustoraLocationCatalog.shared.country(matching: rawCountry) else {
+                locationStates = []
+                locationCities = []
+                return
+            }
+
+            companyForm.companyCountry = normalizedCountry.isoCode
+            locationStates = try TrustoraLocationCatalog.shared.states(of: normalizedCountry.isoCode)
+
+            if locationStates.isEmpty {
+                locationCities = []
+                return
+            }
+
+            let normalizedState = try TrustoraLocationCatalog.shared.normalizeStateISO(
+                countryISO: normalizedCountry.isoCode,
+                stateValue: companyForm.companyCounty
+            )
+
+            let hasMatchingState = locationStates.contains(where: {
+                $0.isoCode.caseInsensitiveCompare(normalizedState) == .orderedSame
+            })
+
+            let resolvedState = hasMatchingState ? normalizedState : (locationStates.first?.isoCode ?? "")
+            companyForm.companyCounty = resolvedState
+
+            locationCities = try TrustoraLocationCatalog.shared.cities(
+                of: normalizedCountry.isoCode,
+                stateISO: resolvedState
+            )
+
+            if locationCities.isEmpty {
+                return
+            }
+
+            let currentCity = companyForm.companyCity.trimmed
+            let hasMatchingCity = locationCities.contains(where: {
+                $0.name.caseInsensitiveCompare(currentCity) == .orderedSame
+            })
+
+            if !hasMatchingCity {
+                companyForm.companyCity = locationCities.first?.name ?? ""
+            }
+        } catch {
+            locationStates = []
+            locationCities = []
+            locationOptionsError = error.localizedDescription
+        }
     }
 
     func loadSettings(
@@ -845,6 +1041,7 @@ final class TrustoraDashboardViewModel: ObservableObject {
         resetCompanyForm(user: user)
         companySettingsError = nil
         companySettingsSuccess = false
+        await loadLocationOptionsIfNeeded()
 
         guard let companyID = user?.company?.id?.nilIfEmpty else {
             companyManagers = []
@@ -913,11 +1110,18 @@ final class TrustoraDashboardViewModel: ObservableObject {
         companyForm.name = company.name
         companyForm.idNumber = company.taxID ?? company.tradeRegistryNumber ?? companyForm.idNumber
         companyForm.companyCountry = company.companyCountry ?? companyForm.companyCountry
+        if let countryISO = company.companyCountry?.trimmed.uppercased(),
+           let suggestedType = TrustoraCompanyIdentificationTypes.byCountryISO[countryISO] {
+            companyForm.idType = suggestedType
+        }
         companyForm.companyCity = company.companyCity ?? companyForm.companyCity
         companyForm.companyZip = company.companyZip ?? companyForm.companyZip
         companyForm.companyAddress = company.companyAddress ?? companyForm.companyAddress
         companySearchTerm = company.name
         companySearchResults = []
+        Task {
+            await syncLocationSelectionsFromCurrentForm()
+        }
     }
 
     func scheduleCurrencySearch() {

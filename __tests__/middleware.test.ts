@@ -230,6 +230,27 @@ describe('proxy', () => {
     expect(res.url).toContain('/ro/access-denied');
   });
 
+  it('allows superuser aliases on /admin', async () => {
+    const req = makeReq('/ro/admin', {
+      headers: { 'x-vercel-ip-country': 'RO' },
+      auth: { user: { id: '1', role_slugs: ['super_admin'] } },
+    });
+    const res: any = await proxy(req);
+    expect(res.type).toBe('next');
+  });
+
+  it('keeps session user as fallback when laravel user fetch is unavailable', async () => {
+    const req = makeReq('/ro/admin', {
+      headers: {
+        'x-vercel-ip-country': 'RO',
+        cookie: 'laravel_session=test; XSRF-TOKEN=test',
+      },
+      auth: { user: { id: '1', isSuperAdmin: true } },
+    });
+    const res: any = await proxy(req);
+    expect(res.type).toBe('next');
+  });
+
   it('redirects authenticated users away from auth pages', async () => {
     const req = makeReq('/ro/auth/signin', {
       headers: { 'x-vercel-ip-country': 'RO' },

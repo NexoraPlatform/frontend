@@ -46,7 +46,12 @@
     "transfer_success": "Transfer inițiat cu succes.",
     "transfer_error": "Transfer eșuat: {message}",
     "insufficient_balance": "Suma depășește soldul disponibil.",
-    "invalid_amount": "Introdu o sumă validă."
+    "invalid_amount": "Introdu o sumă validă.",
+    "requirements": {
+      "phone": "numărul de telefon",
+      "company": "datele companiei",
+      "missing": "Completează {items} înainte să conectezi contul Rapyd."
+    }
   },
   "loading": {
     "dashboard": "Se încarcă dashboard-ul...",

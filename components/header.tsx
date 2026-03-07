@@ -18,6 +18,7 @@ import dynamic from 'next/dynamic';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { Can } from "@/components/Can";
+import { getRoleSlugs, isSuperUser } from '@/lib/access';
 
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
@@ -105,9 +106,8 @@ export function Header() {
   const userInitials =
     `${userFirstName.charAt(0)}${userLastName.charAt(0)}`.toUpperCase() || 'U';
 
-  const isAdminUser =
-    user?.is_superuser ||
-    user?.roles?.some((role: any) => role?.slug?.toLowerCase() === 'admin');
+  const roleSlugs = getRoleSlugs((user as any) ?? null);
+  const isAdminUser = isSuperUser((user as any) ?? null) || roleSlugs.includes('admin');
   const showAdminBanner = isAdminUser && (earlyAccessEnabled || basicAuthEnabled);
 
   const bannerContent = showAdminBanner ? (

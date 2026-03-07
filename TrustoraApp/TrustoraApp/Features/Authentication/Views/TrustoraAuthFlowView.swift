@@ -90,7 +90,7 @@ struct TrustoraAuthFlowView: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(TrustoraTheme.primaryText)
                             .frame(width: 30, height: 30)
-                            .background(Color.white.opacity(0.82), in: Circle())
+                            .background(TrustoraTheme.surface.opacity(0.88), in: Circle())
                     }
                 }
             }
@@ -106,7 +106,7 @@ struct TrustoraAuthFlowView: View {
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(
             Capsule()
-                .stroke(Color.white.opacity(0.7), lineWidth: 1)
+                .stroke(TrustoraTheme.border.opacity(0.8), lineWidth: 1)
         )
     }
 
@@ -205,7 +205,7 @@ struct TrustoraAuthFlowView: View {
 
                 HStack(spacing: 4) {
                     Text(s("auth.signin.no_account"))
-                        .foregroundStyle(Color(hex: 0x64748B))
+                        .foregroundStyle(TrustoraTheme.tertiaryText)
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
                             mode = .signUp
@@ -221,11 +221,11 @@ struct TrustoraAuthFlowView: View {
                 .frame(maxWidth: .infinity)
             }
             .padding(16)
-            .background(Color.white.opacity(0.9))
+            .background(TrustoraTheme.surface.opacity(0.92))
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color(hex: 0xD7E3EE), lineWidth: 1)
+                    .stroke(TrustoraTheme.border, lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
         }
@@ -302,7 +302,7 @@ struct TrustoraAuthFlowView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 11)
-                        .background(Color.white)
+                        .background(TrustoraTheme.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
@@ -447,7 +447,7 @@ struct TrustoraAuthFlowView: View {
 
                 HStack(spacing: 4) {
                     Text(s("auth.signup.has_account"))
-                        .foregroundStyle(Color(hex: 0x64748B))
+                        .foregroundStyle(TrustoraTheme.tertiaryText)
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
                             mode = .signIn
@@ -463,11 +463,11 @@ struct TrustoraAuthFlowView: View {
                 .frame(maxWidth: .infinity)
             }
             .padding(16)
-            .background(Color.white.opacity(0.92))
+            .background(TrustoraTheme.surface.opacity(0.94))
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color(hex: 0xD7E3EE), lineWidth: 1)
+                    .stroke(TrustoraTheme.border, lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
         }

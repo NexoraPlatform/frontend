@@ -46,7 +46,12 @@
     "transfer_success": "Transfer initiated successfully.",
     "transfer_error": "Transfer failed: {message}",
     "insufficient_balance": "Amount exceeds available balance.",
-    "invalid_amount": "Enter a valid amount."
+    "invalid_amount": "Enter a valid amount.",
+    "requirements": {
+      "phone": "phone number",
+      "company": "company details",
+      "missing": "Complete {items} before connecting your Rapyd account."
+    }
   },
   "loading": {
     "dashboard": "Loading dashboard...",
