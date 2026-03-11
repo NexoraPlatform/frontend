@@ -109,7 +109,6 @@ export default async function Home({ params }: HomePageProps) {
         role="main"
         aria-label={mainContentLabel}
         id="main-content"
-        className="pt-8"
         itemProp="mainContentOfPage"
       >
         <article itemScope itemType="https://schema.org/Service" className="contents">
@@ -121,14 +120,16 @@ export default async function Home({ params }: HomePageProps) {
           />
           <meta itemProp="areaServed" content="Romania" />
 
-          <section aria-labelledby="trustora-home-hero-heading">
-            <h2 id="trustora-home-hero-heading" className="sr-only">
-              {pageTitle}
-            </h2>
-            <Suspense fallback={<HomeHeroSkeleton />}>
-              <TrustoraHeroSection locale={locale} />
-            </Suspense>
-          </section>
+          <div className="bg-[#060B19]">
+            <section aria-labelledby="trustora-home-hero-heading">
+              <h2 id="trustora-home-hero-heading" className="sr-only">
+                {pageTitle}
+              </h2>
+              <Suspense fallback={<HomeHeroSkeleton />}>
+                <TrustoraHeroSection locale={locale} />
+              </Suspense>
+            </section>
+          </div>
 
           <section aria-labelledby="trustora-home-pillars-heading">
             <h2 id="trustora-home-pillars-heading" className="sr-only">

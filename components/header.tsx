@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, usePathname } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
@@ -55,8 +55,10 @@ const ChatButton = dynamic(
 );
 
 export function Header() {
+  const headerRef = useRef<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hasPassedHero, setHasPassedHero] = useState(false);
   const [isThemeMounted, setIsThemeMounted] = useState(false);
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const basicAuthEnabled =
@@ -137,21 +139,46 @@ export function Header() {
   ];
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     setIsThemeMounted(true);
   }, []);
 
   const activeTheme = isThemeMounted ? (resolvedTheme ?? theme ?? 'light') : 'light';
   const isDarkTheme = activeTheme === 'dark';
+  const isHomePage = pathname === '/';
+  const useDarkHeaderSurface = isDarkTheme || (isHomePage && !hasPassedHero);
   const themeToggleLabel = `${changeThemeToText} ${isDarkTheme ? lightText : darkText}`;
   const currentThemeLabel = isDarkTheme ? darkText : lightText;
+
+  useEffect(() => {
+    const updateHeaderState = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 20);
+
+      if (!isHomePage) {
+        setHasPassedHero(true);
+        return;
+      }
+
+      const hero = document.getElementById('trustora-home-hero');
+      if (!hero) {
+        setHasPassedHero(scrollTop > 20);
+        return;
+      }
+
+      const headerHeight = headerRef.current?.offsetHeight ?? 0;
+      const heroBottomInViewport = hero.getBoundingClientRect().bottom;
+      setHasPassedHero(heroBottomInViewport <= headerHeight);
+    };
+
+    updateHeaderState();
+    window.addEventListener('scroll', updateHeaderState, { passive: true });
+    window.addEventListener('resize', updateHeaderState);
+
+    return () => {
+      window.removeEventListener('scroll', updateHeaderState);
+      window.removeEventListener('resize', updateHeaderState);
+    };
+  }, [isHomePage]);
 
 
   const handleLogout = () => {
@@ -163,7 +190,13 @@ export function Header() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
-      className={cn("w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105", className)}
+      className={cn(
+        "w-11 h-11 rounded-xl transition-all duration-200 hover:scale-105",
+        useDarkHeaderSurface
+          ? "bg-white/5 text-white hover:bg-white/10 hover:text-white"
+          : "hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white",
+        className
+      )}
       aria-label={isThemeMounted ? themeToggleLabel : changeThemeToText}
     >
       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -171,13 +204,34 @@ export function Header() {
     </Button>
   );
 
+  const headerShellClass = cn(
+    'fixed inset-x-0 top-0 z-50 w-full transition-all duration-500',
+    useDarkHeaderSurface
+      ? (isScrolled
+        ? 'border-b border-white/10 bg-[#060B19]/88 text-white shadow-2xl backdrop-blur-xl supports-[backdrop-filter]:bg-[#060B19]/72'
+        : 'border-b border-white/5 bg-[#060B19]/78 text-white backdrop-blur-xl supports-[backdrop-filter]:bg-[#060B19]/62')
+      : (isScrolled
+        ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
+        : 'bg-background/95 border-b border-border/50 backdrop-blur-md supports-[backdrop-filter]:bg-background/60')
+  );
+  const secondaryTextClass = useDarkHeaderSurface ? 'text-slate-400' : 'text-muted-foreground';
+  const navInactiveClass = useDarkHeaderSurface ? 'text-slate-200/85' : 'text-muted-foreground';
+  const navHoverSurfaceClass = useDarkHeaderSurface
+    ? 'bg-white/5'
+    : 'bg-emerald-50/70 dark:bg-emerald-500/10';
+  const switcherClass = useDarkHeaderSurface ? 'text-white hover:bg-white/10 hover:text-white' : '';
+  const authOutlineClass = useDarkHeaderSurface
+    ? 'border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105'
+    : 'border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105';
+  const mobileMenuButtonClass = useDarkHeaderSurface
+    ? 'w-11 h-11 rounded-xl text-white hover:bg-white/10'
+    : 'w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl';
+
   if (earlyAccessEnabled) {
     return (
       <header
-        className={`sticky top-[-1px] z-50 w-full transition-all duration-500 ${isScrolled
-          ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
-          : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
-          }`}
+        ref={headerRef}
+        className={headerShellClass}
         role="banner"
         aria-label={mainNavigationText}
       >
@@ -213,20 +267,25 @@ export function Header() {
                 <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
                   Trustora
                 </span>
-                <span className="text-xs text-muted-foreground font-medium -mt-1">
+                <span className={cn("text-xs font-medium -mt-1", secondaryTextClass)}>
                   Where work meets trust.
                 </span>
               </div>
             </Link>
 
             <div className="flex items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <LocaleSwitcher className="w-fit" />
-              <CurrencySwitcher className="w-fit" />
+              <LocaleSwitcher className={cn("w-fit", switcherClass)} />
+              <CurrencySwitcher className={cn("w-fit", switcherClass)} />
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
-                className="w-11 h-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
+                className={cn(
+                  "w-11 h-11 rounded-xl transition-all duration-200 hover:scale-105",
+                  useDarkHeaderSurface
+                    ? "bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                    : "hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
+                )}
                 aria-label={isThemeMounted ? themeToggleLabel : changeThemeToText}
               >
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -234,7 +293,7 @@ export function Header() {
               </Button>
               <div className="hidden sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
                 <Button
-                  className="w-full rounded-xl border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 sm:w-auto"
+                  className={cn("w-full sm:w-auto", authOutlineClass)}
                   variant="outline"
                   asChild
                 >
@@ -250,7 +309,7 @@ export function Header() {
                     aria-label={earlyAccessMenuAria}
                     variant="ghost"
                     size="icon"
-                    className="sm:hidden w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl"
+                    className={cn("sm:hidden", mobileMenuButtonClass)}
                   >
                     <Menu className="h-6 w-6" />
                   </Button>
@@ -323,10 +382,8 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-[-1px] z-50 w-full transition-all duration-500 ${isScrolled
-        ? 'glass-effect border-b shadow-2xl backdrop-blur-xl'
-        : 'bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border/50'
-        }`}
+      ref={headerRef}
+      className={headerShellClass}
       role="banner"
       aria-label={mainNavigationText}
     >
@@ -363,7 +420,7 @@ export function Header() {
               <span className="text-2xl font-black bg-gradient-to-r from-[#1BC47D] via-[#21D19F] to-[#0B1C2D] bg-clip-text text-transparent">
                 Trustora
               </span>
-              <span className="text-xs text-muted-foreground font-medium -mt-1">
+              <span className={cn("text-xs font-medium -mt-1", secondaryTextClass)}>
                 Where work meets trust.
               </span>
             </div>
@@ -382,13 +439,13 @@ export function Header() {
                   'text-sm font-medium transition-colors hover:text-primary relative',
                   pathname === item.href
                     ? 'text-primary'
-                    : 'text-muted-foreground'
+                    : navInactiveClass
                 )}
                 aria-label={`${navigateToText} + ' ' + ${item.name}`}
               >
                 {item.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#1BC47D] to-[#0B1C2D] transition-all duration-300 group-hover:w-full rounded-full"></span>
-                <span className="absolute inset-0 bg-emerald-50/70 dark:bg-emerald-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
+                <span className={cn("absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10", navHoverSurfaceClass)}></span>
               </Link>
             ))}
           </nav>
@@ -405,8 +462,8 @@ export function Header() {
               </>
             )}
 
-            <LocaleSwitcher className="hidden lg:block" />
-            <CurrencySwitcher className="hidden lg:block" />
+            <LocaleSwitcher className={cn("hidden lg:block", switcherClass)} />
+            <CurrencySwitcher className={cn("hidden lg:block", switcherClass)} />
 
             {/* Theme Toggle */}
             <ThemeToggle className="hidden lg:flex" />
@@ -452,7 +509,7 @@ export function Header() {
               </DropdownMenu>
             ) : (
               <div className="hidden md:flex items-center space-x-3">
-                <Button variant="outline" aria-label="Deschide meniul principal" className="border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105" asChild>
+                <Button variant="outline" aria-label="Deschide meniul principal" className={authOutlineClass} asChild>
                   <Link href="/auth/signin">{loginText}</Link>
                 </Button>
                 <Button className="bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
@@ -464,7 +521,7 @@ export function Header() {
             {/* Mobile Menu */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button aria-label="Meniul principal pe mobil" variant="ghost" size="icon" className="lg:hidden w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl">
+                <Button aria-label="Meniul principal pe mobil" variant="ghost" size="icon" className={cn("lg:hidden", mobileMenuButtonClass)}>
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
