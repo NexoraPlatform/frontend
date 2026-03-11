@@ -222,6 +222,22 @@ export default function DashboardClient() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [rapydConnecting, setRapydConnecting] = useState(false);
   const hasRapydConnected = Boolean(user?.rapyd_wallet_id);
+  const hasPhoneNumber = Boolean(String(user?.phone ?? '').trim());
+  const hasCompanyProfile = Boolean(
+    user?.company &&
+    (
+      Boolean((user.company as any)?.id) ||
+      (typeof (user.company as any)?.name === 'string' && (user.company as any).name.trim().length > 0)
+    )
+  );
+  const missingRapydRequirementKeys = [
+    !hasPhoneNumber ? 'phone' : null,
+    !hasCompanyProfile ? 'company' : null,
+  ].filter(Boolean) as Array<'phone' | 'company'>;
+  const canConnectRapyd = missingRapydRequirementKeys.length === 0;
+  const rapydRequirementsLabel = missingRapydRequirementKeys
+    .map((key) => t(`dashboard.finance.requirements.${key}`))
+    .join(', ');
 
   useEffect(() => {
     document.title = 'Trustora | Escrow Dashboard';
@@ -784,6 +800,14 @@ export default function DashboardClient() {
 
 
   const getRapydOnboardingUrl = async () => {
+    if (!canConnectRapyd) {
+      toast.error(
+        t('dashboard.finance.requirements.missing', {
+          items: rapydRequirementsLabel,
+        })
+      );
+      return null;
+    }
     setRapydConnecting(true);
     try {
       if (!user) return;
@@ -1167,6 +1191,16 @@ export default function DashboardClient() {
               <History size={18} />
               {t('dashboard.tabs.messages')}
             </button>
+            {isProvider ? (
+              <button
+                type="button"
+                onClick={() => router.push('/provider/profile')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
+              >
+                <FileText size={18} />
+                {t('navigation.edit_profile')}
+              </button>
+            ) : null}
 
             {isProvider && (
               <>
@@ -1196,10 +1230,15 @@ export default function DashboardClient() {
               {!hasRapydConnected ? (
                 <div className="space-y-2">
                   <p className="text-xs text-slate-400">{t('dashboard.hero.balance.error')}</p>
+                  {!canConnectRapyd ? (
+                    <p className="text-xs text-amber-300">
+                      {t('dashboard.finance.requirements.missing', { items: rapydRequirementsLabel })}
+                    </p>
+                  ) : null}
                   <button
                     type="button"
                     onClick={getRapydOnboardingUrl}
-                    disabled={rapydConnecting}
+                    disabled={rapydConnecting || !canConnectRapyd}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#1BC47D] px-3 py-2 text-xs font-semibold text-[#06111A] transition-colors hover:bg-[#17b672] disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {rapydConnecting ? <Loader2 size={14} className="animate-spin" /> : null}
@@ -1784,11 +1823,16 @@ export default function DashboardClient() {
                         <p className="text-sm text-slate-500 dark:text-[#A3ADC2] mb-4">
                           {t('dashboard.hero.balance.error')}
                         </p>
+                        {!canConnectRapyd ? (
+                          <p className="text-sm text-amber-600 dark:text-amber-300 mb-4">
+                            {t('dashboard.finance.requirements.missing', { items: rapydRequirementsLabel })}
+                          </p>
+                        ) : null}
                         <Button
                           type="button"
                           className="bg-[#1BC47D] hover:bg-[#159c63] text-[#06111A]"
                           onClick={getRapydOnboardingUrl}
-                          disabled={rapydConnecting}
+                          disabled={rapydConnecting || !canConnectRapyd}
                         >
                           {rapydConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                           {t('dashboard.hero.rapyd.connect')}

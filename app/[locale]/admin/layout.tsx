@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -14,17 +12,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { user, loading, userLoading } = useAuth();
-  const router = useRouter();
   const t = useTranslations();
   const loadingText = t('admin.loading');
-  useEffect(() => {
-    if (userLoading) {
-      return;
-    }
-    if (!loading && !user) {
-      router.push('/auth/signin?callbackUrl=' + encodeURIComponent('/admin'));
-    }
-  }, [user, loading, router, userLoading]);
 
   if (loading || userLoading) {
     return (

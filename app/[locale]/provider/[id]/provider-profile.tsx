@@ -111,6 +111,10 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
         try {
             // Load provider profile
             const providerData = await apiClient.getProviderProfileByUrl(id);
+            const providerCompanyName =
+                typeof providerData.company === 'string'
+                    ? providerData.company
+                    : providerData.company?.name || providerData.company_name || '';
 
             const userLanguages = (providerData.languages || []).map((lang: any) => {
                 const match = languages.find((l: Languages) => l.name.toLowerCase() === lang.language?.toLowerCase());
@@ -123,14 +127,15 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
             });
 
             const providerInfo = {
-                id: id,
+                id: providerData.id,
+                profileUrl: providerData.profile_url || id,
                 firstName: providerData.firstName,
                 lastName: providerData.lastName,
                 email: providerData.email,
                 phone: providerData.phone,
                 avatar: providerData.avatar,
                 bio: providerData.profile.bio,
-                company: providerData.company,
+                company: providerCompanyName,
                 website: providerData.website,
                 location: providerData.profile.location,
                 rating: 4.9,
@@ -437,6 +442,24 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     const cardClass = emptySections >= 2 ? 'lg:grid-cols-1' : 'lg:grid-cols-2';
 
     const lastActiveProvider = Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60));
+    const sessionCompanyName =
+        typeof user?.company === 'string'
+            ? user.company
+            : user?.company?.name || user?.company_name || '';
+    const isViewingOwnProviderProfile =
+        Boolean(user) &&
+        (
+            String(user?.id ?? '') === String(provider.id ?? '') ||
+            (
+                typeof user?.profile_url === 'string' &&
+                typeof provider.profileUrl === 'string' &&
+                user.profile_url.trim() === provider.profileUrl.trim()
+            )
+        );
+    const displayCompany =
+        isViewingOwnProviderProfile && sessionCompanyName
+            ? sessionCompanyName
+            : provider.company;
 
     return (
         <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
@@ -553,10 +576,10 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
                                     {/* Contact Info */}
                                     <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                        {provider.company && (
+                                        {displayCompany && (
                                             <div className="flex items-center space-x-2 text-sm">
                                                 <Building className="w-4 h-4 text-muted-foreground" />
-                                                <span>{provider.company}</span>
+                                                <span>{displayCompany}</span>
                                             </div>
                                         )}
 
@@ -1126,13 +1149,15 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="flex items-center space-x-3">
-                                            <Building className="w-5 h-5 text-muted-foreground" />
-                                            <div>
-                                                <p className="font-medium">Companie</p>
-                                                <p className="text-sm text-muted-foreground">{provider.company}</p>
+                                        {displayCompany && (
+                                            <div className="flex items-center space-x-3">
+                                                <Building className="w-5 h-5 text-muted-foreground" />
+                                                <div>
+                                                    <p className="font-medium">Companie</p>
+                                                    <p className="text-sm text-muted-foreground">{displayCompany}</p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                         <div className="flex items-center space-x-3">
                                             <Globe className="w-5 h-5 text-muted-foreground" />
                                             <div>

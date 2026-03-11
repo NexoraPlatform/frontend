@@ -1882,6 +1882,8 @@ export default function NewProjectPage() {
   const milestoneAssignmentSignatureRef = useRef('');
   const oauthCallbackHandledRef = useRef(false);
   const wizardStateHydratedRef = useRef(false);
+  const authRecoveryAttemptedRef = useRef(false);
+  const authRedirectInProgressRef = useRef(false);
   const briefSubscriptionRef = useRef<{
     channelName: string;
     channel: {
@@ -1892,12 +1894,22 @@ export default function NewProjectPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (loading || userLoading) return;
-    if (user) return;
+    if (loading || userLoading || authRedirectInProgressRef.current) return;
+    if (user) {
+      authRecoveryAttemptedRef.current = false;
+      return;
+    }
 
+    if (!authRecoveryAttemptedRef.current) {
+      authRecoveryAttemptedRef.current = true;
+      void refreshUser().catch(() => {});
+      return;
+    }
+
+    authRedirectInProgressRef.current = true;
     const callbackUrl = `${window.location.pathname}${window.location.search}`;
     router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-  }, [loading, userLoading, user, router]);
+  }, [loading, refreshUser, router, user, userLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
