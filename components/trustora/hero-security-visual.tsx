@@ -324,7 +324,7 @@ export function TrustoraHeroSecurityVisual() {
           style={{ width: "100%", height: "100%" }}
         />
 
-        <div className="absolute inset-x-[12%] top-1/2 z-20 h-[260px] -translate-y-1/2 rounded-full bg-cyan-400/10 blur-3xl sm:h-[320px]" />
+        {/*<div className="absolute inset-x-[12%] top-1/2 z-20 h-[260px] -translate-y-1/2 rounded-full bg-cyan-400/10 blur-3xl sm:h-[320px]" />*/}
 
         <div className="relative z-20 flex h-full items-center justify-center pointer-events-none animate-[float_4s_ease-in-out_infinite]">
           <img
