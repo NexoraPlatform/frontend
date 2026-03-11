@@ -14,7 +14,6 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
   const secondaryCta = t("hero.secondary_cta");
   const trustedLabel = t("hero.trusted_label");
   const dashboardLabel = t("hero.dashboard_label");
-  const securedLabel = t("hero.secured_label");
 
   const logoAlt =
     locale === "ro"
@@ -99,14 +98,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
           </div>
         </article>
 
-        <aside className="relative" aria-label={dashboardLabel}>
-          <div className="mb-4 flex items-center justify-between px-2 text-xs uppercase tracking-[0.24em] text-slate-400">
-            <span className="mono">{dashboardLabel}</span>
-            <span className="rounded-full border border-[#1BC47D]/30 bg-[#1BC47D]/10 px-3 py-1 font-semibold text-[#74C69D]">
-              {securedLabel}
-            </span>
-          </div>
-
+        <aside className="relative lg:-ml-6" aria-label={dashboardLabel}>
           <TrustoraHeroSecurityVisual />
         </aside>
       </div>

@@ -312,18 +312,19 @@ export function TrustoraHeroSecurityVisual() {
   return (
     <>
       <div
-        className="relative h-[400px] w-full overflow-hidden rounded-[2rem] sm:h-[500px] lg:h-[600px]"
+        className="relative h-[400px] w-full overflow-hidden sm:h-[500px] lg:h-[600px]"
         ref={containerRef}
         style={{ perspective: "1000px" }}
       >
-        <div className="absolute inset-0 rounded-[2rem] border border-cyan-500/10 bg-[#060B19]" />
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[length:40px_40px] pointer-events-none" />
+        <div className="absolute inset-0 z-0 opacity-70 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[length:40px_40px] pointer-events-none" />
 
         <canvas
           ref={canvasRef}
           className="absolute inset-0 z-10 pointer-events-none"
           style={{ width: "100%", height: "100%" }}
         />
+
+        <div className="absolute inset-x-[12%] top-1/2 z-20 h-[260px] -translate-y-1/2 rounded-full bg-cyan-400/10 blur-3xl sm:h-[320px]" />
 
         <div className="relative z-20 flex h-full items-center justify-center pointer-events-none animate-[float_4s_ease-in-out_infinite]">
           <img
