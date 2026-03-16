@@ -159,6 +159,8 @@ type ProjectNewOAuthSnapshot = {
   briefText: string;
   briefPayloadTruncated: boolean;
   briefPayloadTrimmedSections: string[];
+  briefResultId: number | string | null;
+  briefChannel: string;
   recommendedProviders?: AiBriefRecommendedProviders;
   otherProviders?: AiBriefOtherProvidersByService;
   selectedProviders: AiBriefProvider[];
@@ -214,6 +216,8 @@ type ProjectNewPersistedWizardState = {
   briefText: string;
   briefPayloadTruncated: boolean;
   briefPayloadTrimmedSections: string[];
+  briefResultId: number | string | null;
+  briefChannel: string;
   recommendedProviders?: AiBriefRecommendedProviders;
   otherProviders?: AiBriefOtherProvidersByService;
   selectedProviders: AiBriefProvider[];
@@ -1338,7 +1342,20 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
 
   const statusRaw = toString(source.status ?? root.status).toUpperCase();
   const status: AiBriefResponse['status'] =
-    statusRaw === 'FINAL' ? 'FINAL' : statusRaw === 'PROCESSING' ? 'PROCESSING' : 'CLARIFY';
+    statusRaw === 'FINAL'
+      ? 'FINAL'
+      : statusRaw === 'PROCESSING'
+        ? 'PROCESSING'
+        : statusRaw === 'FAILED'
+          ? 'FAILED'
+          : statusRaw === 'FAILED_BROADCAST'
+            ? 'FAILED_BROADCAST'
+            : 'CLARIFY';
+  const normalizedError =
+    toString(source.error ?? root.error) ||
+    toString(source.error_message ?? root.error_message) ||
+    toString(source.message ?? root.message) ||
+    null;
 
   const questions = normalizeQuestions(source.questions ?? root.questions);
   const finalBriefText =
@@ -1615,6 +1632,7 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
     ...(toString(source.channel ?? root.channel)
       ? { channel: toString(source.channel ?? root.channel) }
       : {}),
+    ...(normalizedError ? { error: normalizedError } : {}),
     ...(questions.length > 0 ? { questions } : {}),
     ...(final_brief ? { final_brief } : {}),
     ...(final_brief_modular ? { final_brief_modular } : {}),
@@ -1632,6 +1650,7 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
     Boolean(final_brief_modular) ||
     Boolean(final_brief_full) ||
     Boolean(finalBriefText) ||
+    Boolean(normalizedError) ||
     questions.length > 0 ||
     Boolean(recommendedProviders) ||
     Boolean(legacyOtherProviders) ||
@@ -1761,6 +1780,15 @@ export default function NewProjectPage() {
   const userInitials = `${(user?.firstName?.[0] ?? '')}${(user?.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
   const userDisplayName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || user?.email || 'User';
   const userAvatarSrc = (user as any)?.avatar ?? (user as any)?.profile_photo_url ?? (user as any)?.avatar_url ?? undefined;
+  const briefProjectId = useMemo(() => {
+    const rawProjectId = searchParams.get('project_id') ?? searchParams.get('projectId');
+    if (!rawProjectId) {
+      return null;
+    }
+
+    const numericProjectId = toNumber(rawProjectId);
+    return numericProjectId ?? rawProjectId.trim() ?? null;
+  }, [searchParams]);
 
   useEffect(() => {
     document.title = 'Trustora | Create Project';
@@ -1881,11 +1909,14 @@ export default function NewProjectPage() {
 
   const [briefMessages, setBriefMessages] = useState<AiAssistantMessage[]>([]);
   const [briefStatus, setBriefStatus] = useState<'IDLE' | AiBriefResponse['status']>('IDLE');
+  const [activeBriefResultId, setActiveBriefResultId] = useState<number | string | null>(null);
+  const [activeBriefChannel, setActiveBriefChannel] = useState('');
   const [briefQuestions, setBriefQuestions] = useState<string[]>([]);
   const [briefAnswer, setBriefAnswer] = useState('');
   const [briefResult, setBriefResult] =
     useState<NonNullable<AiBriefResponse['final_brief']> | null>(null);
   const [briefSubscriptionError, setBriefSubscriptionError] = useState<string | null>(null);
+  const [briefErrorMessage, setBriefErrorMessage] = useState<string | null>(null);
   const [briefModularDetails, setBriefModularDetails] =
     useState<AiBriefResponse['final_brief_modular'] | null>(null);
   const [briefFullDetails, setBriefFullDetails] =
@@ -2173,7 +2204,9 @@ export default function NewProjectPage() {
         briefStatusCandidate === 'IDLE' ||
         briefStatusCandidate === 'PROCESSING' ||
         briefStatusCandidate === 'CLARIFY' ||
-        briefStatusCandidate === 'FINAL'
+        briefStatusCandidate === 'FINAL' ||
+        briefStatusCandidate === 'FAILED' ||
+        briefStatusCandidate === 'FAILED_BROADCAST'
       ) {
         setBriefStatus(briefStatusCandidate);
       }
@@ -2216,6 +2249,23 @@ export default function NewProjectPage() {
         setBriefPayloadTrimmedSections(
           parsed.briefPayloadTrimmedSections.map((entry) => toString(entry)).filter(Boolean)
         );
+      }
+
+      const restoredBriefResultId = (parsed as { briefResultId?: unknown }).briefResultId;
+      if (
+        (typeof restoredBriefResultId === 'number' && Number.isFinite(restoredBriefResultId)) ||
+        (typeof restoredBriefResultId === 'string' && restoredBriefResultId.trim())
+      ) {
+        setActiveBriefResultId(
+          typeof restoredBriefResultId === 'number'
+            ? restoredBriefResultId
+            : restoredBriefResultId.trim()
+        );
+      }
+
+      const restoredBriefChannel = (parsed as { briefChannel?: unknown }).briefChannel;
+      if (typeof restoredBriefChannel === 'string') {
+        setActiveBriefChannel(restoredBriefChannel);
       }
 
       if (
@@ -2323,7 +2373,9 @@ export default function NewProjectPage() {
         briefStatusCandidate === 'IDLE' ||
         briefStatusCandidate === 'PROCESSING' ||
         briefStatusCandidate === 'CLARIFY' ||
-        briefStatusCandidate === 'FINAL'
+        briefStatusCandidate === 'FINAL' ||
+        briefStatusCandidate === 'FAILED' ||
+        briefStatusCandidate === 'FAILED_BROADCAST'
       ) {
         setBriefStatus(briefStatusCandidate);
       }
@@ -2360,6 +2412,23 @@ export default function NewProjectPage() {
             .map((entry) => toString(entry))
             .filter(Boolean)
         );
+      }
+
+      const restoredBriefResultId = (parsed as { briefResultId?: unknown }).briefResultId;
+      if (
+        (typeof restoredBriefResultId === 'number' && Number.isFinite(restoredBriefResultId)) ||
+        (typeof restoredBriefResultId === 'string' && restoredBriefResultId.trim())
+      ) {
+        setActiveBriefResultId(
+          typeof restoredBriefResultId === 'number'
+            ? restoredBriefResultId
+            : restoredBriefResultId.trim()
+        );
+      }
+
+      const restoredBriefChannel = (parsed as { briefChannel?: unknown }).briefChannel;
+      if (typeof restoredBriefChannel === 'string') {
+        setActiveBriefChannel(restoredBriefChannel);
       }
 
       if (
@@ -2435,6 +2504,8 @@ export default function NewProjectPage() {
       briefText,
       briefPayloadTruncated,
       briefPayloadTrimmedSections,
+      briefResultId: activeBriefResultId,
+      briefChannel: activeBriefChannel,
       ...(recommendedProviders ? { recommendedProviders } : {}),
       ...(otherProviders ? { otherProviders } : {}),
       selectedProviders,
@@ -2481,6 +2552,8 @@ export default function NewProjectPage() {
     briefText,
     briefPayloadTruncated,
     briefPayloadTrimmedSections,
+    activeBriefResultId,
+    activeBriefChannel,
     recommendedProviders,
     otherProviders,
     selectedProviders,
@@ -3782,6 +3855,8 @@ export default function NewProjectPage() {
         briefText,
         briefPayloadTruncated,
         briefPayloadTrimmedSections,
+        briefResultId: activeBriefResultId,
+        briefChannel: activeBriefChannel,
         ...(recommendedProviders ? { recommendedProviders } : {}),
         ...(otherProviders ? { otherProviders } : {}),
         selectedProviders,
@@ -4108,12 +4183,39 @@ export default function NewProjectPage() {
   }, []);
 
   const applyBriefResponse = useCallback((response: AiBriefResponse) => {
+    if (response.brief_result_id !== undefined) {
+      setActiveBriefResultId(response.brief_result_id);
+    }
+
+    if (response.channel) {
+      setActiveBriefChannel(response.channel);
+    }
+
     setBriefStatus(response.status);
     setBriefPayloadTruncated(Boolean(response.payload_truncated));
     setBriefPayloadTrimmedSections(response.payload_trimmed_sections ?? []);
+    setBriefSubscriptionError(null);
+
+    if (response.status === 'PROCESSING') {
+      setBriefQuestions([]);
+      setBriefResult(null);
+      setBriefModularDetails(null);
+      setBriefFullDetails(null);
+      setBriefText('');
+      setRecommendedProviders(undefined);
+      setOtherProviders(undefined);
+      setSelectedProviders([]);
+      setBriefErrorMessage(null);
+      return;
+    }
 
     if (response.status === 'CLARIFY') {
       setBriefQuestions(response.questions ?? []);
+      setBriefResult(null);
+      setBriefModularDetails(null);
+      setBriefFullDetails(null);
+      setBriefText('');
+      setBriefErrorMessage(null);
       return;
     }
 
@@ -4127,6 +4229,7 @@ export default function NewProjectPage() {
       setBriefFullDetails(response.final_brief_full ?? null);
       setBriefText(response.final_brief_text ?? '');
       setBriefQuestions([]);
+      setBriefErrorMessage(null);
 
       if (response.recommended_providers) {
         setRecommendedProviders(response.recommended_providers);
@@ -4180,13 +4283,22 @@ export default function NewProjectPage() {
       return;
     }
 
-    if (response.status === 'PROCESSING') {
+    if (response.status === 'FAILED' || response.status === 'FAILED_BROADCAST') {
       setBriefQuestions([]);
+      setBriefResult(null);
+      setBriefModularDetails(null);
+      setBriefFullDetails(null);
+      setBriefText('');
+      setRecommendedProviders(undefined);
+      setOtherProviders(undefined);
+      setSelectedProviders([]);
+      setBriefErrorMessage(response.error || t('brief_generation_failed'));
     }
-  }, []);
+  }, [t]);
 
   const loadBriefResultById = useCallback(
     async (briefResultId: number | string) => {
+      setActiveBriefResultId(briefResultId);
       const response = await aiService.getBriefBuilderResult(briefResultId);
       setBriefDebugResponseJson(toJsonDebugString(response));
 
@@ -4220,53 +4332,50 @@ export default function NewProjectPage() {
 
     const handleGenerated = (payload: unknown) => {
       setBriefDebugResponseJson(toJsonDebugString(payload));
-      const response = normalizeAiBriefResponse(payload);
-      if (!response) {
-        const briefResultId = extractBriefResultId(payload);
-        if (briefResultId !== null) {
-          setBriefStatus('PROCESSING');
-          void loadBriefResultById(briefResultId).catch((error) => {
-            setBriefStatus('CLARIFY');
-            toast.error(
-              extractErrorMessage(
-                error,
-                t('could_not_load_the_final_brief_result')
-              )
-            );
-          });
+      const briefResultId = extractBriefResultId(payload) ?? activeBriefResultId;
+      if (briefResultId === null) {
+        const response = normalizeAiBriefResponse(payload);
+        if (response) {
+          applyBriefResponse(response);
         }
         return;
       }
 
-      applyBriefResponse(response);
-
-      if (response.status === 'PROCESSING') {
-        const briefResultId = response.brief_result_id ?? extractBriefResultId(payload);
-        if (briefResultId !== null) {
-          void loadBriefResultById(briefResultId).catch((error) => {
-            setBriefStatus('CLARIFY');
-            toast.error(
-              extractErrorMessage(
-                error,
-                t('could_not_load_the_final_brief_result')
-              )
-            );
-          });
-        }
-      }
+      void loadBriefResultById(briefResultId).catch((error) => {
+        setBriefStatus('FAILED');
+        setBriefErrorMessage(
+          extractErrorMessage(
+            error,
+            t('could_not_load_the_final_brief_result')
+          )
+        );
+      });
     };
 
     const handleFailed = (payload: unknown) => {
-      const source = toObject(payload);
-      const message =
-        toString(source?.errorMessage) ||
-        toString(source?.error_message) ||
-        toString(source?.message) ||
-        toString(source?.error) ||
-        t('brief_generation_failed');
+      setBriefDebugResponseJson(toJsonDebugString(payload));
+      const briefResultId = extractBriefResultId(payload) ?? activeBriefResultId;
+      if (briefResultId !== null) {
+        void loadBriefResultById(briefResultId).catch((error) => {
+          setBriefStatus('FAILED');
+          setBriefErrorMessage(
+            extractErrorMessage(
+              error,
+              t('could_not_load_the_final_brief_result')
+            )
+          );
+        });
+        return;
+      }
 
-      setBriefStatus('CLARIFY');
-      toast.error(message);
+      const response = normalizeAiBriefResponse(payload);
+      if (response) {
+        applyBriefResponse(response);
+        return;
+      }
+
+      setBriefStatus('FAILED');
+      setBriefErrorMessage(t('brief_generation_failed'));
     };
 
     void (async () => {
@@ -4282,7 +4391,7 @@ export default function NewProjectPage() {
 
       setBriefSubscriptionError(null);
 
-      const channelName = `user.${userId}.briefs`;
+      const channelName = activeBriefChannel || `user.${userId}.briefs`;
       const channel = echo.private(channelName);
 
       AI_BRIEF_GENERATED_EVENT_NAMES.forEach((eventName) => {
@@ -4304,7 +4413,16 @@ export default function NewProjectPage() {
       cancelled = true;
       cleanupBriefSubscription();
     };
-  }, [step, user?.id, applyBriefResponse, cleanupBriefSubscription, loadBriefResultById, t]);
+  }, [
+    step,
+    user?.id,
+    activeBriefChannel,
+    activeBriefResultId,
+    applyBriefResponse,
+    cleanupBriefSubscription,
+    loadBriefResultById,
+    t,
+  ]);
 
   const requestBriefBuilder = useCallback(
     async (messages: AiAssistantMessage[]) => {
@@ -4313,43 +4431,48 @@ export default function NewProjectPage() {
       }
 
       setBriefStatus('PROCESSING');
+      setActiveBriefResultId(null);
+      setActiveBriefChannel('');
+      setBriefErrorMessage(null);
+      setBriefQuestions([]);
+      setBriefResult(null);
+      setBriefModularDetails(null);
+      setBriefFullDetails(null);
+      setBriefText('');
+      setRecommendedProviders(undefined);
+      setOtherProviders(undefined);
+      setSelectedProviders([]);
       try {
         const response = await aiService.buildBrief({
           locale,
+          ...(briefProjectId !== null ? { project_id: briefProjectId } : {}),
           messages,
         });
         setBriefDebugResponseJson(toJsonDebugString(response));
 
         const normalizedResponse = normalizeAiBriefResponse(response);
-        if (normalizedResponse) {
+        if (
+          normalizedResponse &&
+          (normalizedResponse.status === 'FAILED' ||
+            normalizedResponse.status === 'FAILED_BROADCAST')
+        ) {
           applyBriefResponse(normalizedResponse);
-
-          if (normalizedResponse.status === 'PROCESSING') {
-            const briefResultId =
-              normalizedResponse.brief_result_id ?? extractBriefResultId(response);
-            if (briefResultId !== null) {
-              try {
-                await loadBriefResultById(briefResultId);
-              } catch {
-                // Keep waiting for realtime event fallback.
-              }
-            }
-          }
-
           return;
         }
 
         const briefResultId = extractBriefResultId(response);
         if (briefResultId !== null) {
-          try {
-            await loadBriefResultById(briefResultId);
-          } catch {
-            // Keep waiting for realtime event fallback.
-          }
+          setActiveBriefResultId(briefResultId);
         }
+
+        if (normalizedResponse?.channel) {
+          setActiveBriefChannel(normalizedResponse.channel);
+        }
+
+        setBriefStatus('PROCESSING');
       } catch (error) {
-        setBriefStatus('CLARIFY');
-        toast.error(
+        setBriefStatus('FAILED');
+        setBriefErrorMessage(
           extractErrorMessage(
             error,
             t('could_not_generate_the_brief')
@@ -4357,7 +4480,7 @@ export default function NewProjectPage() {
         );
       }
     },
-    [applyBriefResponse, loadBriefResultById, locale, t]
+    [applyBriefResponse, briefProjectId, locale, t]
   );
 
   useEffect(() => {
@@ -4424,6 +4547,10 @@ export default function NewProjectPage() {
       setBriefDebugResponseJson('');
       setBriefPayloadTruncated(false);
       setBriefPayloadTrimmedSections([]);
+      setActiveBriefResultId(null);
+      setActiveBriefChannel('');
+      setBriefErrorMessage(null);
+      setBriefSubscriptionError(null);
       setRecommendedProviders(undefined);
       setOtherProviders(undefined);
       setSelectedProviders([]);
@@ -4469,7 +4596,11 @@ export default function NewProjectPage() {
     setBriefModularDetails(null);
     setBriefFullDetails(null);
     setBriefText('');
-    setBriefStatus('IDLE');
+    setBriefStatus('PROCESSING');
+    setActiveBriefResultId(null);
+    setActiveBriefChannel('');
+    setBriefErrorMessage(null);
+    setBriefSubscriptionError(null);
     setBriefAnswer('');
     setBriefPayloadTruncated(false);
     setBriefPayloadTrimmedSections([]);
@@ -5596,16 +5727,18 @@ export default function NewProjectPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
-                    className={
-                      briefStatus === 'FINAL'
-                        ? 'border-emerald-300 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300'
-                        : briefStatus === 'PROCESSING'
-                          ? 'border-blue-300 text-blue-700 dark:border-blue-500/30 dark:text-blue-300'
+                  className={
+                    briefStatus === 'FINAL'
+                      ? 'border-emerald-300 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-300'
+                      : briefStatus === 'PROCESSING'
+                        ? 'border-blue-300 text-blue-700 dark:border-blue-500/30 dark:text-blue-300'
+                        : briefStatus === 'FAILED' || briefStatus === 'FAILED_BROADCAST'
+                          ? 'border-red-300 text-red-700 dark:border-red-500/30 dark:text-red-300'
                           : 'border-amber-300 text-amber-700 dark:border-amber-500/30 dark:text-amber-300'
-                    }
-                  >
-                    {t('status')}: {briefStatus}
-                  </Badge>
+                  }
+                >
+                  {t('status')}: {briefStatus}
+                </Badge>
 
                   {briefStatus === 'PROCESSING' ? (
                     <span className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-[#8FA0B8]">
@@ -5645,16 +5778,28 @@ export default function NewProjectPage() {
                   </Alert>
                 ) : null}
 
-                {briefQuestions.length > 0 ? (
+                {briefStatus === 'PROCESSING' ? (
+                  <Alert className="border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-100">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>{t('waiting_for_brief_or_clarifications')}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefErrorMessage ? (
+                  <Alert className="border-red-300 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{briefErrorMessage}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {briefStatus === 'CLARIFY' && briefQuestions.length > 0 ? (
                   <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
                     <h4 className="font-semibold text-amber-800 dark:text-amber-200">
                       {t('clarifications_required')}
                     </h4>
-                    <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-100">
-                      {briefQuestions.map((question, index) => (
-                        <li key={`${question}-${index}`}>• {question}</li>
-                      ))}
-                    </ul>
+                    <p className="text-sm text-amber-700 dark:text-amber-100">
+                      {briefQuestions[0]}
+                    </p>
                     <div className="space-y-2">
                       <Label htmlFor="clarification">{t('your_answer')}</Label>
                       <Textarea
@@ -5673,7 +5818,7 @@ export default function NewProjectPage() {
                   </div>
                 ) : null}
 
-                {briefResult ? (
+                {briefStatus === 'FINAL' && briefResult ? (
                   <div className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
                     <div>
                       <h3 className="text-lg font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">

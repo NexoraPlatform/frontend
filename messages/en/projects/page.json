@@ -398,6 +398,7 @@
       "and_displayed_by_project_lines": "and organized by project lines.",
       "status": "Status",
       "generating_modular_structure": "Generating modular structure...",
+      "waiting_for_brief_or_clarifications": "We are analyzing your request. We are waiting either for the final brief or for any clarification questions.",
       "the_websocket_payload_was_compacted_because_of_the_broadcast_size_limit_10kb": "The websocket payload was compacted because of the broadcast size limit (10KB).",
       "sections_sent_in_compact_mode": "Sections sent in compact mode",
       "clarifications_required": "Clarifications required",

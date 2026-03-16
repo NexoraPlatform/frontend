@@ -398,6 +398,7 @@
       "and_displayed_by_project_lines": "și organizat pe linii de proiect.",
       "status": "Status",
       "generating_modular_structure": "Generăm structura modulară...",
+      "waiting_for_brief_or_clarifications": "Analizăm cererea ta. Așteptăm fie brief-ul final, fie eventualele întrebări de clarificare.",
       "the_websocket_payload_was_compacted_because_of_the_broadcast_size_limit_10kb": "Payload-ul websocket a fost compactat pentru limita de broadcast (10KB).",
       "sections_sent_in_compact_mode": "Secțiuni trimise compactat",
       "clarifications_required": "Clarificări necesare",

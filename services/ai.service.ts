@@ -26,6 +26,7 @@ export interface AiRecommendServicesResponse {
 export interface AiBriefBuilderPayload {
   locale?: string;
   channel?: string;
+  project_id?: number | string;
   messages: AiAssistantMessage[];
   [key: string]: unknown;
 }
