@@ -12,6 +12,32 @@
     "empty": "Nu ai notificări",
     "end_of_list": "Ai ajuns la capăt",
     "see_all": "Vezi Toate Notificările",
+    "labels": {
+      "notification": "Notificare",
+      "message": "Mesaj",
+      "project": "Proiect",
+      "escrow": "Escrow",
+      "customer_verified": "Client verificat",
+      "party_verification_approved": "KYB aprobat",
+      "payment_pending": "Plată în așteptare",
+      "processing": "În procesare",
+      "funded": "Finanțat",
+      "review_needed": "Necesită review",
+      "waiting_review": "În așteptarea review-ului",
+      "rejected": "Respins",
+      "accepted": "Acceptat",
+      "payment_disbursed": "Plată deblocată",
+      "cancelled": "Anulat",
+      "completed": "Finalizat"
+    },
+    "actions": {
+      "view": "Vezi",
+      "continue_payment": "Continuă plata",
+      "review_milestone": "Revizuiește milestone-ul",
+      "waiting_review": "În așteptarea review-ului",
+      "revise_delivery": "Revizuiește livrarea",
+      "payout_completed": "Plata a fost finalizată"
+    },
     "toast": {
       "view": "Vezi",
       "types": {

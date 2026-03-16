@@ -83,6 +83,11 @@ export type CreateProjectPayload = {
   budget: number;
   budgetType: 'FIXED' | 'HOURLY';
   paymentPlan?: string;
+  project_terms?: {
+    license_provider: 'CLIENT';
+    allow_open_source: boolean;
+    nda_active: boolean;
+  };
   milestoneCount?: number;
   milestones?: ProviderMilestonePayload[];
   [key: string]: unknown;
@@ -2009,6 +2014,10 @@ export class ApiClient {
     });
   }
 
+  async getUnreadNotificationsCount() {
+    return this.request<any>('/notifications/unread-count');
+  }
+
   async subscribeToNotifications(subscription: PushSubscription, navigator: Navigator) {
     return this.request<any>('/notifications/subscribe', {
       method: 'POST',
@@ -2053,6 +2062,21 @@ export class ApiClient {
       method: 'POST',
       body: JSON.stringify(data)
     });
+  }
+
+  async createEscrowCustomer(language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<{ success?: boolean; message?: string; error?: string }>(
+      `/escrow/create-customer${qs ? `?${qs}` : ''}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 
   async rapydOnboarding(language?: string) {

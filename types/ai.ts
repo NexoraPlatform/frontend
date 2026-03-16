@@ -12,6 +12,7 @@ export interface AiBriefProjectLineMilestone {
   description?: string;
   percentage?: number;
   amount: number;
+  duration_days?: number;
   assigned_provider_id?: number | null;
   provider_id?: number | null;
   providerId?: number | null;
@@ -108,6 +109,7 @@ export interface AiMilestoneItem {
   description?: string;
   percentage?: number;
   amount?: number;
+  duration_days?: number;
 }
 
 export interface AiBusinessAnalysis {

@@ -330,6 +330,26 @@
       "save": "Salvează datele bancare"
     }
   },
+  "onboarding_bar": {
+    "company": {
+      "title": "Adaugă detaliile companiei",
+      "description": "Completează datele juridice și bancare ale companiei pentru a continua onboardingul și pentru a activa plățile securizate.",
+      "action": "Deschide detaliile companiei"
+    },
+    "escrow_customer": {
+      "title": "Pornește onboardingul pentru Escrow.com",
+      "description": "Ca să poți folosi plățile prin escrow, trebuie mai întâi să îți creezi profilul de onboarding în Escrow.com.",
+      "action": "Pornește onboardingul",
+      "loading": "Se pornește...",
+      "success": "Onboardingul Escrow.com a fost pornit cu succes.",
+      "error": "Nu am putut porni onboardingul pentru Escrow.com."
+    },
+    "escrow_kyb": {
+      "title": "Finalizează verificarea KYB",
+      "description": "Finalizează verificarea KYB în Escrow.com pentru a termina onboardingul și pentru a putea încasa banii.",
+      "action": "Continuă KYB"
+    }
+  },
   "actions": {
     "edit": "Editează"
   },

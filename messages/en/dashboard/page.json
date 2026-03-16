@@ -330,6 +330,26 @@
       "save": "Save Bank Details"
     }
   },
+  "onboarding_bar": {
+    "company": {
+      "title": "Add your company details",
+      "description": "Complete your company's legal and banking details to continue onboarding and unlock secure payouts.",
+      "action": "Open company details"
+    },
+    "escrow_customer": {
+      "title": "Start your Escrow.com onboarding",
+      "description": "To use escrow payments, you need to create your Escrow.com onboarding profile first.",
+      "action": "Start onboarding",
+      "loading": "Starting...",
+      "success": "Escrow.com onboarding started successfully.",
+      "error": "Failed to start the Escrow.com onboarding."
+    },
+    "escrow_kyb": {
+      "title": "Complete your KYB verification",
+      "description": "Finish the KYB verification on Escrow.com to complete onboarding and to be able to receive funds.",
+      "action": "Continue KYB"
+    }
+  },
   "actions": {
     "edit": "Edit"
   },

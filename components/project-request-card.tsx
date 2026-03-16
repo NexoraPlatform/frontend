@@ -864,8 +864,17 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             ? 'WORK_IN_PROGRESS'
             : project.status;
 
+    const transactionNextStep = ((next_step_url: string) => {
+        window.open(next_step_url, '_blank');
+    });
+
     return (
-        <Card key={project.id} className="border-2">
+        <Card
+            key={project.id}
+            className="border-2 transition-shadow"
+            data-project-card-id={String(project.id)}
+            id={`project-card-${project.id}`}
+        >
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <div>
@@ -1158,7 +1167,10 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         <div className="text-sm text-muted-foreground mt-1">
                                             {t('client.project_requests.providers.allocated')}{' '}
                                             {providerBudgetBase != null ? (
-                                                <PriceDisplay value={providerBudgetBase} />
+                                                <>
+                                                    <PriceDisplay value={providerBudgetBase} />
+                                                    <div><Button variant="default" onClick={() => transactionNextStep(project.escrow_transactions[0].provider_next_step)}>Dada</Button></div>
+                                                </>
                                             ) : (
                                                 '-'
                                             )}
@@ -1422,6 +1434,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 return (
                                                     <div
                                                         key={milestoneId ?? index}
+                                                        data-project-milestone-id={milestoneId != null ? String(milestoneId) : undefined}
+                                                        id={milestoneId != null ? `project-milestone-${String(milestoneId)}` : undefined}
                                                         className={`flex items-center justify-between rounded-md border p-2 text-sm gap-2 ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? 'bg-green-300' : ''}`}
                                                     >
                                                         <div className="flex items-center justify-between gap-6">

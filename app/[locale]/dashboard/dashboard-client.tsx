@@ -1,65 +1,65 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { usePathname, useRouter } from '@/lib/navigation';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useLocale, useTranslations} from 'next-intl';
+import {useSearchParams} from 'next/navigation';
+import {Link, usePathname, useRouter} from '@/lib/navigation';
+import {motion} from 'framer-motion';
+import {Button} from '@/components/ui/button';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {Input} from '@/components/ui/input';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Tabs, TabsContent} from '@/components/ui/tabs';
+import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
+import {Alert, AlertDescription} from '@/components/ui/alert';
 import {
-  Shield,
-  Lock,
-  CheckCircle2,
-  Layers,
-  ArrowRight,
-  Briefcase,
-  DollarSign,
-  Star,
-  CheckCircle,
-  AlertCircle,
-  Plus,
-  Search,
-  Filter,
-  ArrowUp,
-  ArrowDown,
-  MessageSquare,
-  Target,
-  Wallet,
   Activity,
-  Users,
-  FileText,
-  Settings,
+  AlertCircle,
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
   Bell,
-  LayoutDashboard,
-  History,
-  Loader2,
+  Briefcase,
+  CheckCircle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  X,
+  DollarSign,
+  FileText,
+  Filter,
+  History,
+  Layers,
+  LayoutDashboard,
+  Loader2,
+  Lock,
+  MessageSquare,
   Moon,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Settings,
+  Shield,
+  Star,
   Sun,
-  MoreHorizontal
+  Target,
+  Users,
+  Wallet,
+  X
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { ProjectRequestCard } from '@/components/project-request-card';
-import { apiClient, DashboardStatsResponse, RecentActivityQuick } from '@/lib/api';
-import { ensureEcho } from '@/lib/echo';
-import { toast } from 'sonner';
-import { Link } from '@/lib/navigation';
-import { sanitizeExternalRedirectUrl } from '@/lib/navigation-security';
+import {useAuth} from '@/contexts/auth-context';
+import {ProjectRequestCard} from '@/components/project-request-card';
+import {apiClient, DashboardStatsResponse, RecentActivityQuick} from '@/lib/api';
+import {ensureEcho} from '@/lib/echo';
+import {toast} from 'sonner';
+import {sanitizeExternalRedirectUrl} from '@/lib/navigation-security';
 import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
 import SettingsComponent from "@/components/dashboard/SettingsComponent";
-import { NotificationBell } from '@/components/notification-bell';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
-import { CurrencySwitcher } from '@/components/CurrencySwitcher';
-import { ChatButton } from '@/components/chat/chat-button';
+import CompanyInformationsSettingsDialog from '@/components/dashboard/settings/company-informations-settings-dialog';
+import {NotificationBell} from '@/components/notification-bell';
+import {LocaleSwitcher} from '@/components/LocaleSwitcher';
+import {CurrencySwitcher} from '@/components/CurrencySwitcher';
+import {ChatButton} from '@/components/chat/chat-button';
 import ChatLauncher from '@/components/chat/chat-launcher';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
@@ -160,6 +160,7 @@ export default function DashboardClient() {
   const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
   const t = useTranslations();
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [openCompanyInformationsDialog, setOpenCompanyInformationsDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [overviewProjects, setOverviewProjects] = useState<any[]>([]);
@@ -209,6 +210,8 @@ export default function DashboardClient() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const tabParam = searchParams.get('tab');
+  const focusedProjectId = searchParams.get('projectId');
+  const focusedMilestoneId = searchParams.get('activeMilestoneId');
   const [activeTab, setActiveTab] = useState('overview');
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [balance, setBalance] = useState<WalletData | null>(null);
@@ -361,6 +364,57 @@ export default function DashboardClient() {
   }, [tabParam, availableTabs, updateTabQuery, userLoading, user]);
 
   useEffect(() => {
+    if (activeTab !== 'projects') return;
+    if (!focusedProjectId && !focusedMilestoneId) return;
+
+    let cancelled = false;
+    let timer: number | null = null;
+    const highlightClassNames = ['ring-2', 'ring-[#1BC47D]', 'ring-offset-2', 'ring-offset-transparent'];
+
+    const escapeSelector = (value: string) => {
+      if (typeof window !== 'undefined' && window.CSS?.escape) {
+        return window.CSS.escape(value);
+      }
+
+      return value.replace(/["\\]/g, '\\$&');
+    };
+
+    const focusTarget = (attempt = 0) => {
+      if (cancelled) return;
+
+      const selector = focusedMilestoneId
+        ? `[data-project-milestone-id="${escapeSelector(focusedMilestoneId)}"]`
+        : focusedProjectId
+          ? `[data-project-card-id="${escapeSelector(focusedProjectId)}"]`
+          : null;
+      if (!selector) return;
+
+      const target = document.querySelector<HTMLElement>(selector);
+      if (!target) {
+        if (attempt < 12) {
+          timer = window.setTimeout(() => focusTarget(attempt + 1), 250);
+        }
+        return;
+      }
+
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      highlightClassNames.forEach((className) => target.classList.add(className));
+      window.setTimeout(() => {
+        highlightClassNames.forEach((className) => target.classList.remove(className));
+      }, 2400);
+    };
+
+    timer = window.setTimeout(() => focusTarget(), 150);
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, [activeTab, focusedMilestoneId, focusedProjectId]);
+
+  useEffect(() => {
     if (userLoading) return;
 
     if (!user) {
@@ -378,6 +432,11 @@ export default function DashboardClient() {
     setActiveTab(value);
     updateTabQuery(value);
   };
+
+  const handleOpenCompanyInformationsDialog = useCallback(() => {
+    handleTabChange('settings');
+    setOpenCompanyInformationsDialog(true);
+  }, [handleTabChange]);
 
   const handleWalletChange = (walletId: string) => {
     setSelectedWalletId(walletId);
@@ -468,14 +527,21 @@ export default function DashboardClient() {
       } else {
         response = await apiClient.getClientProjectRequests();
       }
-      const projectsCollection = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.projects)
-          ? response.projects
-          : Array.isArray(response?.data)
-            ? response.data
-            : [];
-      let filteredProjects = projectsCollection;
+      let filteredProjects = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.projects)
+              ? response.projects
+              : Array.isArray(response?.data)
+                  ? response.data
+                  : [];
+
+      if (focusedProjectId) {
+        filteredProjects = [...filteredProjects].sort((a: any, b: any) => {
+          const aMatches = String(a?.id ?? '') === String(focusedProjectId) ? 1 : 0;
+          const bMatches = String(b?.id ?? '') === String(focusedProjectId) ? 1 : 0;
+          return bMatches - aMatches;
+        });
+      }
 
       // Apply search filter
       if (searchTerm) {
@@ -555,7 +621,7 @@ export default function DashboardClient() {
     } finally {
       setLoadingProjects(false);
     }
-  }, [currentPage, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
+  }, [currentPage, focusedProjectId, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
 
   const loadOverviewProjects = useCallback(async () => {
     if (!user) return;
@@ -1288,76 +1354,81 @@ export default function DashboardClient() {
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-colors duration-300">
         <header
-          className="h-20 backdrop-blur-md border-b flex items-center justify-between px-8 z-10 shrink-0 transition-colors duration-300"
+          className="backdrop-blur-md border-b px-4 py-4 sm:px-6 lg:px-8 z-10 shrink-0 transition-colors duration-300"
           style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}
         >
-          <div className="flex items-center gap-4 w-96">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder={t('dashboard.filters.search_placeholder')}
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none transition-colors border"
-                style={{
-                  backgroundColor: 'var(--input-bg)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-main)'
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2">
-              <div
-                className="rounded-lg border"
-                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
-              >
-                <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex w-full items-center gap-4 xl:max-w-md">
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder={t('dashboard.filters.search_placeholder')}
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none transition-colors border"
+                    style={{
+                      backgroundColor: 'var(--input-bg)',
+                      borderColor: 'var(--border-color)',
+                      color: 'var(--text-main)'
+                    }}
+                  />
+                </div>
               </div>
-              <div
-                className="rounded-lg border"
-                style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
-              >
-                <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <div className="hidden sm:flex items-center gap-2">
+                  <div
+                    className="rounded-lg border"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+                  >
+                    <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+                  </div>
+                  <div
+                    className="rounded-lg border"
+                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
+                  >
+                    <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDarkMode((prev) => !prev)}
+                  className="relative transition-colors hover:text-[var(--text-main)]"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="Toggle Light/Dark Mode"
+                >
+                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+
+                <div className="relative">
+                  <NotificationBell />
+                </div>
+                <div className="relative">
+                  <ChatButton />
+                </div>
+
+                <div className="hidden h-6 w-px transition-colors duration-300 md:block" style={{ backgroundColor: 'var(--border-color)' }} />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isProvider) {
+                      handleTabChange('finance');
+                    } else {
+                      router.push('/projects/new');
+                    }
+                  }}
+                  className="bg-[#1BC47D] hover:bg-[#18A96B] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-md shadow-[#1BC47D]/20 flex items-center gap-2"
+                >
+                  <Wallet size={16} /> {isProvider ? t('dashboard.tabs.finance') : t('dashboard.projects.new_project')}
+                </button>
               </div>
             </div>
-            <button
-              onClick={() => setIsDarkMode((prev) => !prev)}
-              className="relative transition-colors hover:text-[var(--text-main)]"
-              style={{ color: 'var(--text-muted)' }}
-              title="Toggle Light/Dark Mode"
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
 
-            <div className="relative">
-              <NotificationBell />
-            </div>
-            <div className="relative">
-              <ChatButton />
-            </div>
-
-            <div className="w-px h-6 transition-colors duration-300" style={{ backgroundColor: 'var(--border-color)' }} />
-
-            <button
-              type="button"
-              onClick={() => {
-                if (isProvider) {
-                  handleTabChange('finance');
-                } else {
-                  router.push('/projects/new');
-                }
-              }}
-              className="bg-[#1BC47D] hover:bg-[#18A96B] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-md shadow-[#1BC47D]/20 flex items-center gap-2"
-            >
-              <Wallet size={16} /> {isProvider ? t('dashboard.tabs.finance') : t('dashboard.projects.new_project')}
-            </button>
           </div>
         </header>
 
@@ -1942,10 +2013,14 @@ export default function DashboardClient() {
             )}
 
             {/* Settings Tab */}
-            <SettingsComponent />
+            <SettingsComponent onOpenCompanyInformationsDialog={handleOpenCompanyInformationsDialog} />
           </motion.div>
         </div>
       </main>
+      <CompanyInformationsSettingsDialog
+        openCompanyInformationsDialog={openCompanyInformationsDialog}
+        setOpenCompanyInformationsDialog={setOpenCompanyInformationsDialog}
+      />
       {user ? <ChatLauncher /> : null}
     </Tabs>
   );

@@ -114,6 +114,9 @@ export default function EditUserClient({ id }: { id: number }) {
         stripe_account_id: "",
         rapyd_wallet_id: "",
         rapyd_contact_id: "",
+        escrow_customer_id: "",
+        escrow_kyb_verified: null,
+        escrow_next_step: "",
         location: "",
         user_permissions: {},
     });

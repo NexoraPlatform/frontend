@@ -165,6 +165,8 @@ type ProjectNewOAuthSnapshot = {
   totalBudget: string;
   editableDuration: string;
   editablePaymentPlan: string;
+  ndaActive: boolean;
+  allowOpenSource: boolean;
 };
 
 const PROJECT_NEW_OAUTH_SNAPSHOT_KEY = 'trustora:projects-new-oauth-snapshot';
@@ -220,6 +222,8 @@ type ProjectNewPersistedWizardState = {
   totalBudget: string;
   editableDuration: string;
   editablePaymentPlan: string;
+  ndaActive: boolean;
+  allowOpenSource: boolean;
 };
 
 type ReviewMilestoneEntry = {
@@ -740,36 +744,48 @@ const normalizeBriefProjectLines = (
       }
 
       const milestonesRaw = Array.isArray(line.milestones) ? line.milestones : [];
-      const milestones = milestonesRaw
-        .map((milestoneEntry) => {
-          const milestone = toObject(milestoneEntry);
-          if (!milestone) {
-            return null;
-          }
+      const milestones: NonNullable<
+        AiBriefResponse['final_brief']
+      >['project_lines'][number]['milestones'] = [];
 
-          const milestoneTitle = toString(milestone.title);
-          if (!milestoneTitle) {
-            return null;
-          }
+      milestonesRaw.forEach((milestoneEntry) => {
+        const milestone = toObject(milestoneEntry);
+        if (!milestone) {
+          return;
+        }
 
-          const milestoneDescription = toString(milestone.description);
-          const milestonePercentage = toNumber(milestone.percentage);
-          const assignedProviderId = getMilestoneAssignedProviderId(milestone);
-          const assignedProvider = toObject(milestone.assigned_provider);
+        const milestoneTitle = toString(milestone.title);
+        if (!milestoneTitle) {
+          return;
+        }
 
-          return {
-            title: milestoneTitle,
-            ...(milestoneDescription ? { description: milestoneDescription } : {}),
-            ...(milestonePercentage !== null ? { percentage: milestonePercentage } : {}),
-            amount: toNumber(milestone.amount) ?? 0,
-            ...(assignedProviderId !== null ? { assigned_provider_id: assignedProviderId } : {}),
-            ...(assignedProvider ? { assigned_provider: assignedProvider } : {}),
-          };
-        })
-        .filter(
-          (item): item is { title: string; description?: string; percentage?: number; amount: number } =>
-            item !== null
+        const milestoneDescription = toString(milestone.description);
+        const milestonePercentage = toNumber(milestone.percentage);
+        const milestoneDurationDays = toNumber(
+          milestone.duration_days ?? milestone.durationDays
         );
+        const assignedProviderId = getMilestoneAssignedProviderId(milestone);
+        const assignedProvider = toObject(milestone.assigned_provider);
+        const normalizedAssignedProvider =
+          assignedProviderId !== null
+            ? {
+                ...(assignedProvider ?? {}),
+                id: assignedProviderId,
+              }
+            : null;
+
+        milestones.push({
+          title: milestoneTitle,
+          ...(milestoneDescription ? { description: milestoneDescription } : {}),
+          ...(milestonePercentage !== null ? { percentage: milestonePercentage } : {}),
+          amount: toNumber(milestone.amount) ?? 0,
+          ...(milestoneDurationDays !== null
+            ? { duration_days: Math.max(0, Math.trunc(milestoneDurationDays)) }
+            : {}),
+          ...(assignedProviderId !== null ? { assigned_provider_id: assignedProviderId } : {}),
+          ...(normalizedAssignedProvider ? { assigned_provider: normalizedAssignedProvider } : {}),
+        });
+      });
 
       return {
         service_name: serviceName,
@@ -927,6 +943,7 @@ const normalizeMilestoneListWithService = (
 
       const percentage = toNumber(milestone.percentage);
       const amount = toNumber(milestone.amount);
+      const durationDays = toNumber(milestone.duration_days ?? milestone.durationDays);
       const rawServiceId = milestone.service_id ?? milestone.serviceId;
       const serviceId =
         typeof rawServiceId === 'string' || typeof rawServiceId === 'number'
@@ -947,6 +964,7 @@ const normalizeMilestoneListWithService = (
         ...(toString(milestone.description) ? { description: toString(milestone.description) } : {}),
         ...(percentage !== null ? { percentage } : {}),
         ...(amount !== null ? { amount } : {}),
+        ...(durationDays !== null ? { duration_days: Math.max(0, Math.trunc(durationDays)) } : {}),
         ...(serviceId !== undefined ? { service_id: serviceId } : {}),
         ...(serviceName ? { service_name: serviceName } : {}),
         ...(deliveryProvider ? { delivery_provider: deliveryProvider } : {}),
@@ -1034,6 +1052,7 @@ const buildProjectLinesFromTechnologiesAndMilestones = (
 
     const amount = toNumber(milestone.amount) ?? 0;
     const percentage = toNumber(milestone.percentage);
+    const durationDays = toNumber(milestone.duration_days);
     const serviceName = toString(milestone.service_name);
     const serviceId =
       typeof milestone.service_id === 'string' || typeof milestone.service_id === 'number'
@@ -1083,6 +1102,7 @@ const buildProjectLinesFromTechnologiesAndMilestones = (
         ? { description: toString(milestone.description) }
         : {}),
       ...(percentage !== null ? { percentage } : {}),
+      ...(durationDays !== null ? { duration_days: Math.max(0, Math.trunc(durationDays)) } : {}),
       amount,
     };
 
@@ -1777,6 +1797,17 @@ export default function NewProjectPage() {
     },
     [t]
   );
+  const formatMilestoneDurationDays = useCallback(
+    (durationDays: unknown) => {
+      const normalized = toNumber(durationDays);
+      if (normalized === null || normalized <= 0) {
+        return null;
+      }
+
+      return t('milestone_duration_days', { count: Math.trunc(normalized) });
+    },
+    [t]
+  );
 
   const [step, setStep] = useState<WizardStep>('intent');
   const [projectInputMode, setProjectInputMode] = useState<ProjectInputMode>('ai');
@@ -1791,6 +1822,8 @@ export default function NewProjectPage() {
   const [manualPaymentPlan, setManualPaymentPlan] = useState('MILESTONE');
   const [manualCurrency, setManualCurrency] = useState('USD');
   const [manualProjectLines, setManualProjectLines] = useState<ManualProjectLineForm[]>([]);
+  const [ndaActive, setNdaActive] = useState(false);
+  const [allowOpenSource, setAllowOpenSource] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -2232,6 +2265,14 @@ export default function NewProjectPage() {
       if (typeof parsed.editablePaymentPlan === 'string') {
         setEditablePaymentPlan(parsed.editablePaymentPlan);
       }
+
+      if (typeof parsed.ndaActive === 'boolean') {
+        setNdaActive(parsed.ndaActive);
+      }
+
+      if (typeof parsed.allowOpenSource === 'boolean') {
+        setAllowOpenSource(parsed.allowOpenSource);
+      }
     } catch (error) {
       console.error('Failed to restore persisted project wizard state:', error);
     } finally {
@@ -2348,6 +2389,14 @@ export default function NewProjectPage() {
       if (typeof parsed.editablePaymentPlan === 'string') {
         setEditablePaymentPlan(parsed.editablePaymentPlan);
       }
+
+      if (typeof parsed.ndaActive === 'boolean') {
+        setNdaActive(parsed.ndaActive);
+      }
+
+      if (typeof parsed.allowOpenSource === 'boolean') {
+        setAllowOpenSource(parsed.allowOpenSource);
+      }
     } catch (error) {
       console.error('Failed to restore OAuth wizard snapshot:', error);
     } finally {
@@ -2394,6 +2443,8 @@ export default function NewProjectPage() {
       totalBudget,
       editableDuration,
       editablePaymentPlan,
+      ndaActive,
+      allowOpenSource,
     };
 
     try {
@@ -2438,6 +2489,8 @@ export default function NewProjectPage() {
     totalBudget,
     editableDuration,
     editablePaymentPlan,
+    ndaActive,
+    allowOpenSource,
   ]);
 
   const groupedServicesData = useMemo(() => {
@@ -3735,6 +3788,8 @@ export default function NewProjectPage() {
         totalBudget,
         editableDuration,
         editablePaymentPlan,
+        ndaActive,
+        allowOpenSource,
       };
 
       try {
@@ -4511,6 +4566,12 @@ export default function NewProjectPage() {
       milestones: line.milestones,
     }));
 
+    const projectTerms = {
+      license_provider: 'CLIENT' as const,
+      allow_open_source: allowOpenSource,
+      nda_active: ndaActive,
+    };
+
     return {
       ...(typeof user?.id === 'string' || typeof user?.id === 'number'
         ? { clientId: user.id }
@@ -4521,6 +4582,7 @@ export default function NewProjectPage() {
       ...(briefingDisplay.currency ? { currency: briefingDisplay.currency } : {}),
       ...(effectivePaymentPlan ? { paymentPlan: effectivePaymentPlan } : {}),
       ...(effectiveDuration ? { duration: effectiveDuration } : {}),
+      project_terms: projectTerms,
       brief: {
         title: briefResult.title,
         project_lines: briefProjectLines,
@@ -4550,6 +4612,8 @@ export default function NewProjectPage() {
     selectedProviders,
     effectivePaymentPlan,
     effectiveDuration,
+    allowOpenSource,
+    ndaActive,
   ]);
 
   const createProjectPayloadDebugJson = useMemo(
@@ -5525,9 +5589,7 @@ export default function NewProjectPage() {
                   {t('step_3_modular_briefing')}
                 </CardTitle>
                 <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {t('the_brief_is_built_on_the_echo_channel')}{' '}
-                  <code>user.{String(user.id)}.briefs</code>{' '}
-                  {t('and_displayed_by_project_lines')}
+                  {t('the_brief_is_built_on_the_echo_channel')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -5765,6 +5827,9 @@ export default function NewProjectPage() {
                                 {typeof milestone.percentage === 'number' ? `${milestone.percentage}%` : '—'}
                                 {' • '}
                                 {typeof milestone.amount === 'number' ? `$${milestone.amount.toLocaleString()}` : '—'}
+                                {formatMilestoneDurationDays(milestone.duration_days)
+                                  ? ` • ${formatMilestoneDurationDays(milestone.duration_days)}`
+                                  : ''}
                               </div>
                             </div>
                           ))}
@@ -5960,6 +6025,9 @@ export default function NewProjectPage() {
                                   {line.milestones.map((milestone, milestoneIndex) => (
                                     <li key={`${milestone.title}-${milestoneIndex}`}>
                                       • {milestone.title} - ${milestone.amount.toLocaleString()}
+                                      {formatMilestoneDurationDays(milestone.duration_days)
+                                        ? ` • ${formatMilestoneDurationDays(milestone.duration_days)}`
+                                        : ''}
                                     </li>
                                   ))}
                                 </ul>
@@ -6138,6 +6206,9 @@ export default function NewProjectPage() {
                                           >
                                             <span className="truncate text-slate-700 dark:text-[#C9D4E7]">
                                               {entry.milestone.title}
+                                              {formatMilestoneDurationDays(entry.milestone.duration_days)
+                                                ? ` • ${formatMilestoneDurationDays(entry.milestone.duration_days)}`
+                                                : ''}
                                             </span>
                                             <Button
                                               size="icon"
@@ -6182,6 +6253,9 @@ export default function NewProjectPage() {
                                           >
                                             <span className="truncate text-emerald-800 dark:text-emerald-100">
                                               {entry.milestone.title}
+                                              {formatMilestoneDurationDays(entry.milestone.duration_days)
+                                                ? ` • ${formatMilestoneDurationDays(entry.milestone.duration_days)}`
+                                                : ''}
                                             </span>
                                             <Button
                                               size="icon"
@@ -6552,6 +6626,56 @@ export default function NewProjectPage() {
                       </div>
                     </div>
 
+                    <div className="rounded-md border border-slate-200 bg-white/90 p-3 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
+                      <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                        {t('project_terms_title')}
+                      </div>
+                      <p className="mb-3 text-xs text-slate-500 dark:text-[#8FA0B8]">
+                        {t('project_terms_license_provider_fixed')}
+                      </p>
+                      <div className="space-y-3">
+                        <label
+                          htmlFor="project-term-nda"
+                          className="flex items-start gap-3 rounded-md border border-slate-200 px-3 py-3 text-sm dark:border-[#1E2A3D]"
+                        >
+                          <Checkbox
+                            id="project-term-nda"
+                            checked={ndaActive}
+                            onCheckedChange={(checked) => setNdaActive(Boolean(checked))}
+                            className="mt-0.5"
+                          />
+                          <div className="space-y-1">
+                            <div className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {t('project_terms_nda_label')}
+                            </div>
+                            <p className="text-xs leading-5 text-slate-500 dark:text-[#8FA0B8]">
+                              {t('project_terms_nda_description')}
+                            </p>
+                          </div>
+                        </label>
+
+                        <label
+                          htmlFor="project-term-open-source"
+                          className="flex items-start gap-3 rounded-md border border-slate-200 px-3 py-3 text-sm dark:border-[#1E2A3D]"
+                        >
+                          <Checkbox
+                            id="project-term-open-source"
+                            checked={allowOpenSource}
+                            onCheckedChange={(checked) => setAllowOpenSource(Boolean(checked))}
+                            className="mt-0.5"
+                          />
+                          <div className="space-y-1">
+                            <div className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              {t('project_terms_open_source_label')}
+                            </div>
+                            <p className="text-xs leading-5 text-slate-500 dark:text-[#8FA0B8]">
+                              {t('project_terms_open_source_description')}
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
                     {requiresMilestonesByDuration && linesMissingMilestones.length > 0 ? (
                       <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
                         <AlertCircle className="h-4 w-4" />
@@ -6629,6 +6753,9 @@ export default function NewProjectPage() {
                               {typeof milestone.amount === 'number'
                                 ? `$${milestone.amount.toLocaleString()}`
                                 : t('n_a')}
+                              {formatMilestoneDurationDays(milestone.duration_days)
+                                ? ` • ${formatMilestoneDurationDays(milestone.duration_days)}`
+                                : ''}
                             </div>
                           ))}
                         </div>

@@ -49,6 +49,9 @@ export interface AuthUser {
   callVerified?: boolean;
   rapyd_wallet_id?: string;
   rapyd_contact_id?: string;
+  escrow_customer_id?: string | null;
+  escrow_kyb_verified?: boolean | null;
+  escrow_next_step?: string | null;
   is_online?: boolean;
   last_seen?: string | null;
   onesignal_player_id?: string | null;

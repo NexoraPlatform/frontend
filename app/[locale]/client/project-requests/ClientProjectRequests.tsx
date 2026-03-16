@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
@@ -93,6 +94,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [responding, setResponding] = useState<string | null>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
     const [releasingId, setReleasingId] = useState<string | null>(null);
@@ -115,6 +117,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     ]
         .map((slug) => String(slug).toLowerCase())
         .filter(Boolean);
+    const focusedProjectId = searchParams.get('projectId');
     const isClientRole = roleSlugs.includes('client') || user?.role?.toLowerCase() === 'client';
     const hasRoleInfo = roleSlugs.length > 0 || Boolean(user?.role);
     const getMilestoneId = useCallback((milestone: any) => {
@@ -502,8 +505,16 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const loadProjects = useCallback(async () => {
         try {
             const response = await apiClient.getClientProjectRequests();
+            const projectsCollection = Array.isArray(response?.projects) ? response.projects : [];
+            const prioritizedProjects = focusedProjectId
+                ? [...projectsCollection].sort((a: any, b: any) => {
+                    const aMatches = String(a?.id ?? '') === String(focusedProjectId) ? 1 : 0;
+                    const bMatches = String(b?.id ?? '') === String(focusedProjectId) ? 1 : 0;
+                    return bMatches - aMatches;
+                })
+                : projectsCollection;
 
-            setProjects(response.projects || []);
+            setProjects(prioritizedProjects);
         } catch (error: any) {
             console.error('Failed to load projects:', error);
             setProjects([]);
@@ -511,7 +522,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         } finally {
             setLoadingProjects(false);
         }
-    }, [t]);
+    }, [focusedProjectId, t]);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -911,6 +922,10 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         ? "min-h-screen bg-white dark:bg-[#070C14]"
         : "bg-transparent";
 
+    const transactionNextStep = ((next_step_url: string) => {
+        window.open(next_step_url, '_blank');
+    });
+
     return (
         <div className={containerClassName}>
             {withLayout ? <Header /> : null}
@@ -1085,7 +1100,12 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                 );
 
                                 return (
-                                    <Card key={project.id} className="glass-card border-transparent shadow-sm">
+                                    <Card
+                                        key={project.id}
+                                        className="glass-card border-transparent shadow-sm transition-shadow"
+                                        data-project-card-id={String(project.id)}
+                                        id={`project-card-${project.id}`}
+                                    >
                                         <CardHeader className="space-y-4">
                                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                                 <div>
@@ -1358,6 +1378,24 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                             (providerMilestonesProposedTotal > 0
                                                                 ? providerMilestonesProposedTotal
                                                                 : null);
+                                                        const providerEscrowTransaction = Array.isArray(project?.escrow_transactions)
+                                                            ? project.escrow_transactions.find((transaction: any) => {
+                                                                const transactionProviderId =
+                                                                    transaction?.provider_id ??
+                                                                    transaction?.providerId ??
+                                                                    null;
+
+                                                                return (
+                                                                    transactionProviderId !== null &&
+                                                                    transactionProviderId !== undefined &&
+                                                                    String(transactionProviderId) === String(provider.id)
+                                                                );
+                                                            }) ?? null
+                                                            : null;
+                                                        const providerTransactionNextStep =
+                                                            providerEscrowTransaction?.client_next_step ??
+                                                            providerEscrowTransaction?.clientNextStep ??
+                                                            null;
 
                                                         return (
                                                             <div
@@ -1405,7 +1443,19 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
                                                                             {t('client.project_requests.providers.allocated')}{' '}
                                                                             {providerAllocatedBudget != null ? (
-                                                                                <PriceDisplay value={providerAllocatedBudget} />
+                                                                                <>
+                                                                                    <PriceDisplay value={providerAllocatedBudget} />
+                                                                                    {providerTransactionNextStep ? (
+                                                                                        <div className="mt-2">
+                                                                                            <Button
+                                                                                                variant="default"
+                                                                                                onClick={() => transactionNextStep(providerTransactionNextStep)}
+                                                                                            >
+                                                                                                Dada
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                    ) : null}
+                                                                                </>
                                                                             ) : (
                                                                                 '-'
                                                                             )}
@@ -1540,6 +1590,8 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         return (
                                                                             <div
                                                                                 key={milestoneId ?? index}
+                                                                                data-project-milestone-id={milestoneId != null ? String(milestoneId) : undefined}
+                                                                                id={milestoneId != null ? `project-milestone-${String(milestoneId)}` : undefined}
                                                                                 className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
     ${milestoneStatus === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
     ${(milestoneStatus === 'WORK_IN_PROGRESS' || milestoneStatus === 'IN_PROGRESS') ? "bg-sky-50 border-sky-200 dark:bg-sky-900/10 dark:border-sky-800" : ""}
