@@ -1,24 +1,29 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
+import { Link } from "@/lib/navigation";
 import type { Locale } from "@/types/locale";
 import { TrustoraHeroSecurityVisual } from "@/components/trustora/hero-security-visual";
 
 export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: "trustora" });
   const badgeText = t("hero.badge");
+  const eyebrow = t("hero.eyebrow");
   const title = t("hero.title");
   const titleHighlight = t("hero.title_highlight");
   const subtitle = t("hero.subtitle");
   const primaryCta = t("hero.primary_cta");
   const secondaryCta = t("hero.secondary_cta");
-  const trustedLabel = t("hero.trusted_label");
+  const ctaNote = t("hero.cta_note");
+  const proofOne = t("hero.proof_one");
+  const proofTwo = t("hero.proof_two");
+  const proofThree = t("hero.proof_three");
   const dashboardLabel = t("hero.dashboard_label");
 
   const logoAlt =
     locale === "ro"
-      ? "Logo Trustora pentru marketplace de servicii IT"
-      : "Trustora logo for IT services marketplace";
+      ? "Logo Trustora pentru acces anticipat la proiecte IT protejate"
+      : "Trustora logo for early access to protected IT projects";
 
   return (
     <section
@@ -30,7 +35,11 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
     >
       <meta
         itemProp="serviceType"
-        content={locale === "ro" ? "Marketplace servicii IT și freelancing" : "IT services marketplace"}
+        content={
+          locale === "ro"
+            ? "Marketplace de freelancing IT cu plăți securizate prin escrow"
+            : "IT freelancing marketplace with escrow-secured payments"
+        }
       />
       <meta itemProp="areaServed" content="Romania" />
 
@@ -56,6 +65,10 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
             {badgeText}
           </div>
 
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">
+            {eyebrow}
+          </p>
+
           <h1
             id="trustora-hero-title"
             className="mb-6 text-4xl font-bold leading-[1.1] text-white sm:text-5xl lg:text-7xl"
@@ -72,29 +85,35 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row">
-            <button
-              type="button"
+            <Link
+              href="/early-access/client"
               aria-label={primaryCta}
-              className="btn-primary rounded-xl px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-emerald-200/50"
+              className="inline-flex items-center justify-center rounded-xl bg-[#1BC47D] px-8 py-4 text-center text-lg font-semibold text-[#071A12] shadow-lg shadow-emerald-500/25 transition-colors hover:bg-[#17b672]"
             >
               {primaryCta}
-            </button>
-            <button
-              type="button"
+            </Link>
+            <Link
+              href="/early-access/provider"
               aria-label={secondaryCta}
-              className="rounded-xl border border-[#1BC47D]/70 bg-transparent px-8 py-4 text-lg font-semibold text-[#1BC47D] hover:bg-[#1BC47D]/10"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-600 bg-white/5 px-8 py-4 text-center text-lg font-semibold text-white transition-colors hover:border-[#1BC47D]/70 hover:bg-[#1BC47D]/10"
             >
               {secondaryCta}
-            </button>
+            </Link>
           </div>
 
-          <div className="mt-10 flex items-center gap-4 text-sm text-slate-300">
-            <div className="flex -space-x-2" aria-hidden="true">
-              <div className="h-8 w-8 rounded-full border-2 border-[#060B19] bg-slate-300" />
-              <div className="h-8 w-8 rounded-full border-2 border-[#060B19] bg-slate-400" />
-              <div className="h-8 w-8 rounded-full border-2 border-[#060B19] bg-slate-500" />
-            </div>
-            <span>{trustedLabel}</span>
+          <p className="mt-4 max-w-xl text-sm text-slate-400">
+            {ctaNote}
+          </p>
+
+          <div className="mt-10 flex max-w-2xl flex-wrap gap-3 text-sm text-slate-200">
+            {[proofTwo, proofThree].map((proof) => (
+              <span
+                key={proof}
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200"
+              >
+                {proof}
+              </span>
+            ))}
           </div>
         </article>
 

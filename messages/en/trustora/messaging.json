@@ -1,16 +1,16 @@
 {
   "messaging": {
-    "clients_badge": "FOR CLIENTS",
-    "clients_title": "“I pay only when I receive the delivery.”",
-    "clients_body": "Your money is protected through escrow. No payment leaves the platform without your explicit confirmation of the work quality.",
-    "clients_benefit_one": "Zero financial loss risk",
-    "clients_benefit_two": "Video pre-verified professionals",
-    "clients_link": "Start hiring safely →",
+    "clients_badge": "FOR COMPANIES",
+    "clients_title": "Client Benefits: IT services backed by escrow-secured payments",
+    "clients_body": "Tell us what projects you are preparing and join the priority list for the first escrow-secured collaborations.",
+    "clients_benefit_one": "Early access to verified professionals",
+    "clients_benefit_two": "Launch without financial risk on your first collaboration",
+    "clients_link": "Request early access →",
     "pros_badge": "FOR PROFESSIONALS",
-    "pros_title": "“Funds are locked before I start.”",
-    "pros_body": "No more working on promises. Payment for each milestone is already locked in the system before you write the first line of code.",
-    "pros_benefit_one": "100% payment guarantee",
-    "pros_benefit_two": "Disputes resolved through technical arbitration",
-    "pros_link": "Join the infrastructure →"
+    "pros_title": "Freelancer Benefits: secure IT payments and verified clients",
+    "pros_body": "We select founding members based on experience, technical testing, and video verification so the standard stays high from day one.",
+    "pros_benefit_one": "Early visibility to serious companies",
+    "pros_benefit_two": "Milestone-secured payments, not promises",
+    "pros_link": "Apply for verification →"
   }
 }

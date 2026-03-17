@@ -37,19 +37,20 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   return generateSEO({
     locale,
     pathname: "/",
-    title: isRo ? "Marketplace servicii IT și freelancing" : "IT services and freelancing marketplace",
+    title: isRo
+      ? "Marketplace de Freelancing IT cu Plăți Securizate prin Escrow | Trustora"
+      : "IT Freelancing Marketplace with Escrow-Secured Payments | Trustora",
     description: isRo
-      ? "Găsește experți IT verificați pentru proiectele tale: dezvoltare web, aplicații mobile, UI/UX și marketing digital, cu plăți protejate prin escrow."
-      : "Find verified IT experts for web development, mobile apps, UI/UX, and digital marketing, with escrow-protected payments.",
+      ? "Intră pe lista de acces anticipat pentru proiecte IT cu profesioniști verificați, plăți protejate prin escrow și contracte digitale clare."
+      : "Join early access for IT projects with verified professionals, escrow-protected payments, and clear digital contracts.",
     keywords: [
       "trustora",
-      "marketplace IT",
-      "freelancing",
+      "early access",
+      "waitlist",
       "escrow",
-      "dezvoltare web",
-      "aplicatii mobile",
-      "ui ux",
-      "digital marketing",
+      "verified IT experts",
+      "digital contracts",
+      "software projects",
     ],
   });
 }
@@ -80,12 +81,12 @@ export default async function Home({ params }: HomePageProps) {
 
   const pillarsHeading =
     locale === "ro"
-      ? "Pilonii platformei Trustora pentru servicii IT"
-      : "Trustora platform pillars for IT services";
+      ? "De ce se înscriu membrii fondatori Trustora"
+      : "Why founding members join Trustora";
   const messagingHeading =
     locale === "ro"
-      ? "Fluxuri pentru clienți și freelanceri IT"
-      : "Workflows for clients and IT freelancers";
+      ? "Acces anticipat pentru companii și profesioniști IT"
+      : "Early access for companies and IT professionals";
   const visualHeading = t("trustora.visual.title");
 
   return (
@@ -116,7 +117,11 @@ export default async function Home({ params }: HomePageProps) {
           <meta itemProp="description" content={heroSubtitle} />
           <meta
             itemProp="serviceType"
-            content={locale === "ro" ? "Marketplace servicii IT și freelancing" : "IT services marketplace"}
+            content={
+              locale === "ro"
+                ? "Marketplace de freelancing IT cu plăți securizate prin escrow"
+                : "IT freelancing marketplace with escrow-secured payments"
+            }
           />
           <meta itemProp="areaServed" content="Romania" />
 

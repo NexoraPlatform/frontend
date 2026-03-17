@@ -1,87 +1,177 @@
 import { Locale } from "@/types/locale";
 import { getTranslations } from "next-intl/server";
-import Image from "next/image";
 
 export async function TrustoraVisualLanguageSection({ locale }: { locale: Locale }) {
     const t = await getTranslations({ locale, namespace: "trustora" });
+    const badge = t("visual.badge");
     const title = t("visual.title");
-    const moneyLabel = t("visual.money_label");
-    const moneySub = t("visual.money_subtitle");
-    const contractsLabel = t("visual.contracts_label");
-    const contractsSub = t("visual.contracts_subtitle");
-    const verificationLabel = t("visual.verification_label");
-    const verificationSub = t("visual.verification_subtitle");
+    const subtitle = t("visual.subtitle");
+    const stepOneLabel = t("visual.step_one.label");
+    const stepOneTitle = t("visual.step_one.title");
+    const stepOneBody = t("visual.step_one.body");
+    const stepTwoLabel = t("visual.step_two.label");
+    const stepTwoTitle = t("visual.step_two.title");
+    const stepTwoBody = t("visual.step_two.body");
+    const stepThreeLabel = t("visual.step_three.label");
+    const stepThreeTitle = t("visual.step_three.title");
+    const stepThreeBody = t("visual.step_three.body");
+    const contractBadge = t("visual.contract.badge");
+    const contractTitle = t("visual.contract.title");
+    const partiesLabel = t("visual.contract.parties_label");
+    const partiesValue = t("visual.contract.parties_value");
+    const escrowLabel = t("visual.contract.escrow_label");
+    const escrowValue = t("visual.contract.escrow_value");
+    const proofLabel = t("visual.contract.proof_label");
+    const proofValue = t("visual.contract.proof_value");
+    const milestoneLabel = t("visual.contract.milestone_label");
+    const amountLabel = t("visual.contract.amount_label");
+    const statusLabel = t("visual.contract.status_label");
+    const milestoneOneTitle = t("visual.contract.milestone_one.title");
+    const milestoneOneAmount = t("visual.contract.milestone_one.amount");
+    const milestoneOneStatus = t("visual.contract.milestone_one.status");
+    const milestoneTwoTitle = t("visual.contract.milestone_two.title");
+    const milestoneTwoAmount = t("visual.contract.milestone_two.amount");
+    const milestoneTwoStatus = t("visual.contract.milestone_two.status");
+    const milestoneThreeTitle = t("visual.contract.milestone_three.title");
+    const milestoneThreeAmount = t("visual.contract.milestone_three.amount");
+    const milestoneThreeStatus = t("visual.contract.milestone_three.status");
+    const footer = t("visual.contract.footer");
+
+    const steps = [
+        { label: stepOneLabel, title: stepOneTitle, body: stepOneBody },
+        { label: stepTwoLabel, title: stepTwoTitle, body: stepTwoBody },
+        { label: stepThreeLabel, title: stepThreeTitle, body: stepThreeBody },
+    ];
+
+    const milestones = [
+        { title: milestoneOneTitle, amount: milestoneOneAmount, status: milestoneOneStatus, tone: "emerald" },
+        { title: milestoneTwoTitle, amount: milestoneTwoAmount, status: milestoneTwoStatus, tone: "cyan" },
+        { title: milestoneThreeTitle, amount: milestoneThreeAmount, status: milestoneThreeStatus, tone: "amber" },
+    ] as const;
 
     return (
-        <section className="py-24 px-6 bg-white overflow-hidden dark:bg-[#070C14]">
-            <div className="max-w-7xl mx-auto text-center">
-                <h2 className="text-3xl font-bold mb-16 text-[#0B1C2D] dark:text-[#E6EDF3]">{title}</h2>
-                <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 md:gap-20">
-                    <div className="w-48 h-48 glass-card flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 dark:bg-[#111B2D] dark:text-white">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                className="w-6 h-6"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
+        <section className="overflow-hidden bg-[#08101F] px-6 py-24 text-white">
+            <div className="mx-auto max-w-7xl">
+                <div className="max-w-3xl">
+                    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#9BC0E5]">
+                        {badge}
+                    </span>
+                    <h2 className="mt-6 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                        {title}
+                    </h2>
+                    <p className="mt-5 text-lg leading-8 text-slate-300">
+                        {subtitle}
+                    </p>
+                </div>
+
+                <div className="mt-14 grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
+                    <div className="space-y-4">
+                        {steps.map((step, index) => (
+                            <article
+                                key={step.title}
+                                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)] backdrop-blur"
                             >
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                <circle cx="12" cy="11" r="3" />
-                                <path d="M12 7v1" />
-                                <path d="M12 14v1" />
-                            </svg>
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-wider dark:text-[#E6EDF3]">{moneyLabel}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-[#6B7285]">{moneySub}</span>
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-[#1BC47D]">
+                                        0{index + 1}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8FA9C7]">
+                                            {step.label}
+                                        </p>
+                                        <h3 className="mt-2 text-xl font-semibold text-white">
+                                            {step.title}
+                                        </h3>
+                                        <p className="mt-3 text-sm leading-7 text-slate-300">
+                                            {step.body}
+                                        </p>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
                     </div>
-                    <div className="hidden md:block w-20 h-px bg-slate-200 dark:bg-[#1E2A3D]" />
-                    <div className="w-48 h-48 glass-card border-2 border-[#1BC47D] flex flex-col items-center justify-center p-6 text-center shadow-lg shadow-emerald-100">
-                        <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4 dark:bg-[rgba(27,196,125,0.1)] dark:text-white">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                className="w-6 h-6"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-label="Smart Contract Icon"
-                            >
-                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                                <path d="M12 11l3 1.5v3l-3 1.5l-3-1.5v-3L12 11z" />
-                                <path d="M10.5 14.5l1 1l2.5-2.5" />
-                            </svg>
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-wider dark:text-[#E6EDF3]">{contractsLabel}</span>
-                        <span className="text-[10px] text-emerald-600 dark:text-[#1BC47D]">{contractsSub}</span>
-                    </div>
-                    <div className="hidden md:block w-20 h-px bg-slate-200 dark:bg-[#1E2A3D]" />
-                    <div className="w-48 h-48 glass-card flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 dark:bg-[#111B2D] dark:text-white">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                className="w-6 h-6"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-label="Biometric Identity Verification Icon"
-                            >
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                <circle cx="10" cy="7" r="4" />
-                                <path d="M18 7h2a2 2 0 0 1 2 2v2" />
-                                <path d="M22 13v2a2 2 0 0 1-2 2h-2" />
-                                <path d="M14 11l2 2l4-4" />
-                            </svg>
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-wider dark:text-[#E6EDF3]">{verificationLabel}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-[#6B7285]">{verificationSub}</span>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(27,196,125,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.16),transparent_34%)] blur-3xl" />
+                        <article className="overflow-hidden rounded-[32px] border border-white/10 bg-[#0B1220] shadow-[0_36px_120px_rgba(0,0,0,0.36)]">
+                            <div className="border-b border-white/10 px-8 py-6">
+                                <span className="inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-200">
+                                    {contractBadge}
+                                </span>
+                                <h3 className="mt-4 text-2xl font-semibold text-white">
+                                    {contractTitle}
+                                </h3>
+                            </div>
+
+                            <div className="grid gap-4 border-b border-white/10 px-8 py-6 sm:grid-cols-3">
+                                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7FA0C1]">
+                                        {partiesLabel}
+                                    </p>
+                                    <p className="mt-3 text-sm font-medium text-slate-100">
+                                        {partiesValue}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7FA0C1]">
+                                        {escrowLabel}
+                                    </p>
+                                    <p className="mt-3 text-sm font-medium text-slate-100">
+                                        {escrowValue}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7FA0C1]">
+                                        {proofLabel}
+                                    </p>
+                                    <p className="mt-3 text-sm font-medium text-slate-100">
+                                        {proofValue}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="px-8 py-6">
+                                <div className="grid grid-cols-12 gap-3 border-b border-white/10 pb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7FA0C1]">
+                                    <div className="col-span-6">{milestoneLabel}</div>
+                                    <div className="col-span-3 text-right">{amountLabel}</div>
+                                    <div className="col-span-3 text-right">{statusLabel}</div>
+                                </div>
+
+                                <div className="mt-4 space-y-3">
+                                    {milestones.map((milestone) => (
+                                        <div
+                                            key={milestone.title}
+                                            className="grid grid-cols-12 items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4"
+                                        >
+                                            <div className="col-span-6">
+                                                <p className="text-sm font-medium text-white">{milestone.title}</p>
+                                            </div>
+                                            <div className="col-span-3 text-right text-sm font-medium text-slate-200">
+                                                {milestone.amount}
+                                            </div>
+                                            <div className="col-span-3 flex justify-end">
+                                                <span
+                                                    className={[
+                                                        "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                                                        milestone.tone === "emerald"
+                                                            ? "bg-emerald-500/15 text-emerald-200"
+                                                            : milestone.tone === "cyan"
+                                                              ? "bg-cyan-500/15 text-cyan-200"
+                                                              : "bg-amber-500/15 text-amber-200",
+                                                    ].join(" ")}
+                                                >
+                                                    {milestone.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="border-t border-white/10 bg-white/[0.02] px-8 py-5 text-sm text-slate-300">
+                                {footer}
+                            </div>
+                        </article>
                     </div>
                 </div>
             </div>

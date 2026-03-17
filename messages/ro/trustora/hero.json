@@ -1,21 +1,17 @@
 {
   "hero": {
-    "badge": "PLATFORMĂ LIVE ÎN ROMÂNIA",
-    "title": "Unde munca întâlnește",
-    "title_highlight": "încrederea.",
-    "subtitle": "Prima infrastructură digitală din România care securizează plățile și garantează livrarea serviciilor IT prin sistem Escrow nativ și verificare video.",
-    "primary_cta": "Începe acum — Gratuit",
-    "secondary_cta": "Vezi cum funcționează",
-    "trusted_label": "Peste 500+ specialiști IT verificați video",
-    "dashboard_label": "Active Escrow Dashboard",
-    "secured_label": "SECURED",
-    "contract_name": "Dezvoltare Modul AI",
-    "contract_value": "4.200 €",
-    "milestone_progress": "MILESTONE 3/4",
-    "milestone_eta": "LIVRATĂ ÎN 2 ZILE",
-    "next_milestone": "Next Milestone",
-    "payout_label": "Payout",
-    "payout_value": "Instant"
+    "badge": "Waitlist deschisă pentru membrii fondatori",
+    "eyebrow": "Where work meets trust.",
+    "title": "Marketplace de Freelancing IT",
+    "title_highlight": "cu plăți securizate prin escrow",
+    "subtitle": "Trustora deschide accesul anticipat pentru companii care vor proiecte IT fără risc financiar și pentru profesioniști care vor contracte serioase, cu bani securizați în escrow.",
+    "primary_cta": "Solicită Acces Anticipat",
+    "secondary_cta": "Aplică pentru Verificare (Locuri limitate)",
+    "cta_note": "Fără card și fără obligații. Intri pe waitlist acum, iar accesul se oferă gradual pentru cohorta inițială.",
+    "proof_one": "Primii 100 de profesioniști fondatori",
+    "proof_two": "Escrow activ pe fiecare milestone",
+    "proof_three": "KYB & KYC înainte de start",
+    "dashboard_label": "Vizual contract Trustora"
   },
   "hero_visual": {
     "contract_id": "Contract #TR-9784-VB",

@@ -1,16 +1,16 @@
 {
   "messaging": {
-    "clients_badge": "PENTRU CLIENȚI",
-    "clients_title": "„Plătesc doar când primesc livrarea.”",
-    "clients_body": "Banii tăi sunt protejați prin escrow. Nicio plată nu părăsește platforma fără confirmarea ta explicită a calității muncii.",
-    "clients_benefit_one": "Zero risc de pierdere financiară",
-    "clients_benefit_two": "Profesioniști pre-verificați video",
-    "clients_link": "Începe să angajezi în siguranță →",
+    "clients_badge": "PENTRU COMPANII",
+    "clients_title": "Beneficii pentru Clienți: Servicii IT cu plăți securizate prin escrow",
+    "clients_body": "Ne spui ce proiecte pregătești și intri pe lista prioritară pentru primele colaborări securizate prin escrow.",
+    "clients_benefit_one": "Acces anticipat la profesioniști verificați",
+    "clients_benefit_two": "Lansare fără risc financiar la prima colaborare",
+    "clients_link": "Solicită acces anticipat →",
     "pros_badge": "PENTRU PROFESIONIȘTI",
-    "pros_title": "„Banii sunt blocați înainte să încep.”",
-    "pros_body": "Nu mai lucrezi pe promisiuni. Plata pentru fiecare milestone este deja blocată în sistem înainte ca tu să scrii prima linie de cod.",
-    "pros_benefit_one": "Garanția plății 100%",
-    "pros_benefit_two": "Dispute rezolvate prin arbitraj tehnic",
-    "pros_link": "Intră în infrastructură →"
+    "pros_title": "Avantaje pentru Freelanceri IT: Plăți securizate și clienți verificați",
+    "pros_body": "Selectăm membrii fondatori pe baza experienței, a testării tehnice și a verificării video, ca să păstrăm standardul ridicat din prima zi.",
+    "pros_benefit_one": "Vizibilitate timpurie către companii serioase",
+    "pros_benefit_two": "Plăți securizate pe milestone-uri, nu promisiuni",
+    "pros_link": "Aplică pentru verificare →"
   }
 }
