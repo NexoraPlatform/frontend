@@ -23,7 +23,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
   return (
     <section
       id="trustora-home-hero"
-      className="relative overflow-hidden bg-[#060B19] px-6 pb-20 pt-24 text-[#E6EDF3] sm:pt-28"
+      className="relative h-[100svh] min-h-[100svh] max-h-[100svh] overflow-hidden bg-[#060B19] px-6 text-[#E6EDF3] supports-[height:100dvh]:h-[100dvh] supports-[height:100dvh]:min-h-[100dvh] supports-[height:100dvh]:max-h-[100dvh]"
       aria-labelledby="trustora-hero-title"
       itemScope
       itemType="https://schema.org/Service"
@@ -38,7 +38,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(11,26,64,0.9),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(72,202,228,0.12),transparent_28%),linear-gradient(180deg,#060B19_0%,#08101F_60%,#060B19_100%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
+      <div className="relative z-10 mx-auto grid h-full max-w-7xl items-center gap-8 py-24 sm:py-28 lg:grid-cols-2 lg:gap-12">
         <article>
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-100">
             <Image
@@ -58,7 +58,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
 
           <h1
             id="trustora-hero-title"
-            className="mb-6 text-5xl font-bold leading-[1.1] text-white lg:text-7xl"
+            className="mb-6 text-4xl font-bold leading-[1.1] text-white sm:text-5xl lg:text-7xl"
             itemProp="name"
           >
             {title} <span className="text-[#1BC47D]">{titleHighlight}</span>
@@ -98,7 +98,7 @@ export async function TrustoraHeroSection({ locale }: { locale: Locale }) {
           </div>
         </article>
 
-        <aside className="relative lg:-ml-6" aria-label={dashboardLabel}>
+        <aside className="relative flex items-center justify-center lg:-ml-6" aria-label={dashboardLabel}>
           <TrustoraHeroSecurityVisual />
         </aside>
       </div>

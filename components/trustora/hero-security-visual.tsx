@@ -436,7 +436,7 @@ export function TrustoraHeroSecurityVisual() {
   return (
     <>
       <div
-        className="relative h-[400px] w-full overflow-hidden sm:h-[500px] lg:h-[600px]"
+        className="relative h-[clamp(240px,38vh,600px)] w-full overflow-hidden sm:h-[clamp(280px,42vh,620px)] lg:h-[clamp(360px,58vh,680px)]"
         ref={containerRef}
         style={{ perspective: "1000px" }}
       >
