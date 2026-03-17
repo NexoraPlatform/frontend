@@ -255,8 +255,9 @@ export function TrustoraHeroSecurityVisual() {
               this.vx = (this.vx - 2 * projection * normalX) * ricochetBoost;
               this.vy = (this.vy - 2 * projection * normalY) * ricochetBoost;
 
-              const impactX = nearestX + normalX * 2;
-              const impactY = nearestY + normalY * 2;
+              const impactInset = 1.5;
+              const impactX = nearestX - normalX * impactInset;
+              const impactY = nearestY - normalY * impactInset;
 
               impacts.push(new ImpactRipple(impactX, impactY));
               for (let i = 0; i < 8; i++) {
@@ -436,7 +437,7 @@ export function TrustoraHeroSecurityVisual() {
   return (
     <>
       <div
-        className="relative h-[clamp(240px,38vh,600px)] w-full overflow-hidden sm:h-[clamp(280px,42vh,620px)] lg:h-[clamp(360px,58vh,680px)]"
+        className="relative h-[clamp(300px,48vh,680px)] w-full overflow-hidden sm:h-[clamp(360px,54vh,760px)] lg:h-[clamp(460px,72vh,920px)]"
         ref={containerRef}
         style={{ perspective: "1000px" }}
       >
