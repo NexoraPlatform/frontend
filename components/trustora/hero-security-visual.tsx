@@ -26,6 +26,9 @@ export function TrustoraHeroSecurityVisual() {
     const ctx: CanvasRenderingContext2D = context;
 
     let animationFrameId = 0;
+    let lastFrameTimestamp = 0;
+    let elapsedTimeMs = 0;
+    let threatSpawnAccumulator = 0;
     let width = 0;
     let height = 0;
     let centerX = 0;
@@ -106,8 +109,8 @@ export function TrustoraHeroSecurityVisual() {
         this.glow = 0;
       }
 
-      update() {
-        this.x += this.vx;
+      update(deltaFactor: number) {
+        this.x += this.vx * deltaFactor;
 
         const distToCenter = Math.hypot(this.x - centerX, this.y - centerY);
         if (distToCenter < SHIELD_RADIUS + 50) {
@@ -197,10 +200,11 @@ export function TrustoraHeroSecurityVisual() {
         const dy = this.targetY - this.y;
         const dist = Math.hypot(dx, dy);
 
-        const speed =
+        const baseSpeed =
           spawnEdge === "bottom"
             ? Math.random() * 2 + 3.2
             : Math.random() * 2 + 2.5;
+        const speed = baseSpeed * 1.18;
         this.vx = (dx / dist) * speed;
         this.vy = (dy / dist) * speed;
 
@@ -211,12 +215,12 @@ export function TrustoraHeroSecurityVisual() {
         this.trail = [];
       }
 
-      update() {
+      update(deltaFactor: number) {
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > 8) this.trail.shift();
 
-        this.x += this.vx;
-        this.y += this.vy;
+        this.x += this.vx * deltaFactor;
+        this.y += this.vy * deltaFactor;
 
         if (this.state === "attacking") {
           const contractBounds = getContractBounds();
@@ -269,7 +273,7 @@ export function TrustoraHeroSecurityVisual() {
             }
           }
 
-          const floatOffset = Math.sin(Date.now() / 636) * 10;
+          const floatOffset = Math.sin(elapsedTimeMs / 636) * 10;
           const distToCenter = Math.hypot(this.x - centerX, this.y - (centerY + floatOffset));
 
           if (distToCenter <= SHIELD_RADIUS) {
@@ -286,7 +290,7 @@ export function TrustoraHeroSecurityVisual() {
             triggerContractImpact();
           }
         } else if (this.state === "repelled") {
-          this.alpha -= 0.02;
+          this.alpha -= 0.02 * deltaFactor;
         }
       }
 
@@ -341,10 +345,10 @@ export function TrustoraHeroSecurityVisual() {
         this.color = Math.random() > 0.5 ? "#ff2a4b" : "#ffaa00";
         this.size = Math.random() * 1.5 + 0.5;
       }
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.alpha -= 0.04;
+      update(deltaFactor: number) {
+        this.x += this.vx * deltaFactor;
+        this.y += this.vy * deltaFactor;
+        this.alpha -= 0.04 * deltaFactor;
       }
       draw() {
         ctx.globalAlpha = Math.max(0, this.alpha);
@@ -368,9 +372,9 @@ export function TrustoraHeroSecurityVisual() {
         this.radius = 5;
         this.alpha = 0.8;
       }
-      update() {
-        this.radius += 2;
-        this.alpha -= 0.05;
+      update(deltaFactor: number) {
+        this.radius += 2 * deltaFactor;
+        this.alpha -= 0.05 * deltaFactor;
       }
       draw() {
         ctx.globalAlpha = Math.max(0, this.alpha);
@@ -390,21 +394,35 @@ export function TrustoraHeroSecurityVisual() {
 
     for (let i = 0; i < 60; i++) dataParticles.push(new DataStream());
 
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      if (!lastFrameTimestamp) {
+        lastFrameTimestamp = timestamp;
+      }
+
+      const rawDeltaMs = timestamp - lastFrameTimestamp;
+      const deltaMs = Math.min(Math.max(rawDeltaMs, 0), 32);
+      const deltaFactor = deltaMs / (1000 / 60);
+      const deltaSeconds = deltaMs / 1000;
+
+      lastFrameTimestamp = timestamp;
+      elapsedTimeMs += deltaMs;
+
       ctx.clearRect(0, 0, width, height);
 
-      if (Math.random() < 0.055) {
+      threatSpawnAccumulator += deltaSeconds * 3.3;
+      while (threatSpawnAccumulator >= 1) {
         threats.push(new Threat());
+        threatSpawnAccumulator -= 1;
       }
 
       dataParticles.forEach((p) => {
-        p.update();
+        p.update(deltaFactor);
         p.draw();
       });
 
       for (let i = threats.length - 1; i >= 0; i--) {
         const t = threats[i];
-        t.update();
+        t.update(deltaFactor);
         t.draw();
         if (t.alpha <= 0 || t.x < -100 || t.x > width + 100 || t.y < -100 || t.y > height + 100) {
           threats.splice(i, 1);
@@ -412,13 +430,13 @@ export function TrustoraHeroSecurityVisual() {
       }
 
       for (let i = sparks.length - 1; i >= 0; i--) {
-        sparks[i].update();
+        sparks[i].update(deltaFactor);
         sparks[i].draw();
         if (sparks[i].alpha <= 0) sparks.splice(i, 1);
       }
 
       for (let i = impacts.length - 1; i >= 0; i--) {
-        impacts[i].update();
+        impacts[i].update(deltaFactor);
         impacts[i].draw();
         if (impacts[i].alpha <= 0) impacts.splice(i, 1);
       }
@@ -426,7 +444,7 @@ export function TrustoraHeroSecurityVisual() {
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("resize", resize);
