@@ -12,6 +12,32 @@
     "empty": "You have no notifications",
     "end_of_list": "You've reached the end",
     "see_all": "See all notifications",
+    "labels": {
+      "notification": "Notification",
+      "message": "Message",
+      "project": "Project",
+      "escrow": "Escrow",
+      "customer_verified": "Customer verified",
+      "party_verification_approved": "KYB approved",
+      "payment_pending": "Payment pending",
+      "processing": "Processing",
+      "funded": "Funded",
+      "review_needed": "Review needed",
+      "waiting_review": "Waiting review",
+      "rejected": "Rejected",
+      "accepted": "Accepted",
+      "payment_disbursed": "Payment disbursed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "actions": {
+      "view": "View",
+      "continue_payment": "Continue payment",
+      "review_milestone": "Review milestone",
+      "waiting_review": "Waiting for review",
+      "revise_delivery": "Revise delivery",
+      "payout_completed": "Payout completed"
+    },
     "toast": {
       "view": "View",
       "types": {

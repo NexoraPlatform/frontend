@@ -19,6 +19,9 @@ export type BaseUser = {
     stripe_account_id?: string;
     rapyd_wallet_id?: string;
     rapyd_contact_id?: string;
+    escrow_customer_id?: string | null;
+    escrow_kyb_verified?: boolean | null;
+    escrow_next_step?: string | null;
     location?: string;
     avatar?: string;
     confirm_password?: string;

@@ -26,6 +26,7 @@ export interface AiRecommendServicesResponse {
 export interface AiBriefBuilderPayload {
   locale?: string;
   channel?: string;
+  project_id?: number | string;
   messages: AiAssistantMessage[];
   [key: string]: unknown;
 }
@@ -112,10 +113,10 @@ export const aiService = {
     );
   },
 
-  async getBriefBuilderResult(id: number | string) {
+  async getFinalBriefResult(id: number | string) {
     const requestOptions = await buildAiRequestOptions();
     return http.get<AiBriefResponse | AiBriefBuilderResultEnvelope | Record<string, unknown>>(
-      `/api/ai/brief-builder/${encodeURIComponent(String(id))}`,
+      `/api/ai/final-brief/${encodeURIComponent(String(id))}`,
       requestOptions
     );
   },

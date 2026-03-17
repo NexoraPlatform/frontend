@@ -28,6 +28,11 @@ export interface CreateProjectPayload {
   budget?: number;
   currency?: string;
   paymentPlan?: string;
+  project_terms?: {
+    license_provider: 'CLIENT';
+    allow_open_source: boolean;
+    nda_active: boolean;
+  };
   brief: {
     title?: string;
     project_lines: ProjectBriefLinePayload[];

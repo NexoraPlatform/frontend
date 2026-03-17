@@ -1,17 +1,15 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import {useState, useEffect, ForwardRefExoticComponent, RefAttributes} from 'react';
+import {useState, useEffect, ForwardRefExoticComponent, RefAttributes, useMemo, useCallback, useRef} from 'react';
 import { useRouter } from '@/lib/navigation';
 import { useSearchParams } from 'next/navigation';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ProviderDashboardShell } from '@/components/dashboard/provider-dashboard-shell';
 import {
     ArrowLeft,
     ArrowRight,
@@ -31,16 +29,45 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import { hasRole } from '@/lib/access';
+import { getRoleSlugs } from '@/lib/access';
 
 export default function SelectLevelsPageClient() {
-    const { user, loading, userLoading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
     const [services, setServices] = useState<any[]>([]);
     const [serviceLevels, setServiceLevels] = useState<{[key: string]: string}>({});
     const [error, setError] = useState('');
     const [loadingServices, setLoadingServices] = useState(true);
+    const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
+    const servicesParam = searchParams.get('services');
+    const storageKey = useMemo(
+        () => (servicesParam ? `provider-services-levels:${servicesParam}` : null),
+        [servicesParam]
+    );
+    const [hasInitializedLevels, setHasInitializedLevels] = useState(false);
+    const roleRefreshAttemptedRef = useRef(false);
+    const roleSlugs = useMemo(() => getRoleSlugs(user), [user]);
+    const hasRoleInfo = roleSlugs.length > 0;
+    const isProvider = roleSlugs.includes('provider');
+
+    const readPersistedLevels = useCallback(() => {
+        if (!storageKey || typeof window === 'undefined') {
+            return {};
+        }
+
+        try {
+            const rawState = window.sessionStorage.getItem(storageKey);
+            if (!rawState) {
+                return {};
+            }
+
+            const parsed = JSON.parse(rawState);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    }, [storageKey]);
 
     useEffect(() => {
         if (userLoading) return;
@@ -49,20 +76,33 @@ export default function SelectLevelsPageClient() {
             router.push('/auth/signin');
             return;
         }
-        if (!hasRole(user, ['provider'])) {
+
+        if (!hasRoleInfo && !roleRefreshAttemptedRef.current) {
+            roleRefreshAttemptedRef.current = true;
+            setIsRefreshingRole(true);
+            void refreshUser().finally(() => {
+                setIsRefreshingRole(false);
+            });
+            return;
+        }
+
+        if (hasRoleInfo && !isProvider) {
             router.push('/dashboard');
             return;
         }
 
-        const servicesParam = searchParams.get('services');
         if (servicesParam) {
-            loadServices(servicesParam.split(','));
+            const persistedState = readPersistedLevels();
+            loadServices(servicesParam.split(','), persistedState.serviceLevels ?? {});
         } else {
             router.push('/provider/services/select');
         }
-    }, [user, userLoading, router, searchParams]);
+    }, [hasRoleInfo, isProvider, readPersistedLevels, refreshUser, router, servicesParam, user, userLoading]);
 
-    const loadServices = async (serviceIds: string[]) => {
+    const loadServices = async (
+        serviceIds: string[],
+        persistedLevels: Record<string, string> = {}
+    ) => {
         try {
             // Încarcă serviciile din baza de date
             const servicePromises = serviceIds.map(id => apiClient.getService(id));
@@ -73,15 +113,29 @@ export default function SelectLevelsPageClient() {
             // Inițializează nivelurile cu 'JUNIOR' implicit
             const initialLevels: Record<string, string> = {};
             serviceIds.forEach(id => {
-                initialLevels[id] = 'JUNIOR';
+                initialLevels[id] = persistedLevels[id] || 'JUNIOR';
             });
             setServiceLevels(initialLevels);
         } catch (error: any) {
             setError('Nu s-au putut încărca serviciile');
         } finally {
             setLoadingServices(false);
+            setHasInitializedLevels(true);
         }
     };
+
+    useEffect(() => {
+        if (!hasInitializedLevels || !storageKey || typeof window === 'undefined') {
+            return;
+        }
+
+        window.sessionStorage.setItem(
+            storageKey,
+            JSON.stringify({
+                serviceLevels,
+            })
+        );
+    }, [hasInitializedLevels, serviceLevels, storageKey]);
 
     type ServiceSlug =
         | 'dezvoltare-website-react'
@@ -163,7 +217,8 @@ export default function SelectLevelsPageClient() {
             serviceId: service.id,
             serviceName: service.name,
             level: serviceLevels[service.id],
-            category: service.category?.name
+            category: service.category?.name,
+            programming_language: service.programming_language ?? ''
         }));
         // Redirecționează către pagina de teste
         const testParam = encodeURIComponent(JSON.stringify(testData));
@@ -175,7 +230,7 @@ export default function SelectLevelsPageClient() {
         return levels.find(l => l.value === levelValue) || levels[0];
     };
 
-    if (loading || userLoading || loadingServices) {
+    if (loading || userLoading || loadingServices || isRefreshingRole) {
         return (
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
@@ -183,34 +238,26 @@ export default function SelectLevelsPageClient() {
         );
     }
 
-    if (!user || !hasRole(user, ['provider'])) {
+    if (!user || (hasRoleInfo && !isProvider)) {
         return null;
     }
 
     return (
-        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-            <TrustoraThemeStyles />
-            <Header />
-
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="flex items-center space-x-4 mb-8">
+        <ProviderDashboardShell
+            title="Selectează Nivelurile"
+            description="Alege nivelul de competență pentru serviciul tău și pregătește pasul de testare."
+            activeMenu="services"
+        >
+            <div className="space-y-8">
+                <div className="flex items-center justify-between gap-4">
                     <Button variant="outline" size="icon" onClick={() => router.back()}>
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
-                    <div className="flex-1">
-                        <h1 className="text-3xl font-bold">Selectează Nivelurile</h1>
-                        <p className="text-muted-foreground">
-                            Alege nivelul de competență pentru fiecare serviciu selectat
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-sm text-muted-foreground">Pasul 2 din 4</div>
-                        <div className="text-lg font-semibold text-[var(--midnight-blue)] dark:text-white">Niveluri Competență</div>
-                    </div>
+                    <Badge className="border-0 bg-[#1BC47D]/15 px-3 py-2 text-[#1BC47D]">
+                        Pasul 2 din 4
+                    </Badge>
                 </div>
 
-                {/* Progress */}
                 <div className="mb-8 glass-card p-4">
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
@@ -414,8 +461,6 @@ export default function SelectLevelsPageClient() {
                     </Button>
                 </div>
             </div>
-
-            <Footer />
-        </div>
+        </ProviderDashboardShell>
     );
 }

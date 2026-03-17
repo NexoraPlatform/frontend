@@ -2,21 +2,28 @@
 
 import parseJson from "parse-json";
 import Cal, { getCalApi } from "@calcom/embed-react";
+import { useLocale, useTranslations } from 'next-intl';
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useRouter } from '@/lib/navigation';
 import { useSearchParams } from 'next/navigation';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -42,14 +49,20 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import { hasRole } from '@/lib/access';
+import { getRoleSlugs } from '@/lib/access';
 import { AnimatePresence, motion } from "framer-motion";
+import { ensureEcho } from '@/lib/echo';
+import { ProviderDashboardShell } from '@/components/dashboard/provider-dashboard-shell';
+import ExamGuard from '@/components/exams/ExamGuard';
 
 interface TestData {
     serviceId: string;
     serviceName: string;
     level: string;
     category: string;
+    programming_language?: string;
+    flow?: 'standard' | 'level_upgrade';
+    currentLevel?: string;
 }
 
 interface Question {
@@ -57,7 +70,7 @@ interface Question {
     type: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'CODE_WRITING' | 'TEXT_INPUT';
     question: string;
     points: number;
-    options?: string;
+    options?: string[];
     correctAnswers: string[];
     explanation?: string;
     codeTemplate?: string;
@@ -68,6 +81,7 @@ interface Question {
         expectedOutput: string;
         description?: string;
     }>;
+    meta?: Record<string, any> | null;
 }
 
 interface TestAnswer {
@@ -85,10 +99,272 @@ type ExplanationQuestion = {
     correctAnswer?: string | string[];
 };
 
+type ServiceTestStatus = 'idle' | 'processing' | 'completed' | 'failed' | 'cooldown';
+
+type ServiceTestCard = {
+    serviceInfo: TestData;
+    requestId: string | null;
+    status: ServiceTestStatus;
+    test: any | null;
+    error: string | null;
+    nextAvailableAt: string | null;
+};
+
+type PersistedTestsState = {
+    generationRequestIds?: Record<string, string>;
+    currentTest?: any | null;
+    currentQuestionIndex?: number;
+    answers?: TestAnswer[];
+    testInProgress?: boolean;
+    timeRemaining?: number;
+    testStartTime?: string | null;
+    questionStartTime?: string | null;
+    evaluationRequestId?: string | null;
+};
+
+type TestRequestState = {
+    requestId: string;
+    status: string;
+    type: string;
+    channel: string;
+    serviceId: string | null;
+    skillTestId: string | null;
+    testResultId: string | null;
+    result: any;
+    error: string | null;
+    nextAvailableAt: string | null;
+    message: string | null;
+    restMessages: boolean;
+};
+
+const getServiceTestKey = (serviceInfo: TestData) =>
+    `${serviceInfo.serviceId}:${serviceInfo.level}`.toLowerCase();
+
+const parsePersistedDate = (value: unknown): Date | null => {
+    if (typeof value !== 'string' || !value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const parseArrayOfStrings = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return value.filter((entry): entry is string => typeof entry === 'string');
+    }
+
+    if (typeof value === 'string') {
+        try {
+            const parsed = parseJson(value);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((entry): entry is string => typeof entry === 'string');
+            }
+        } catch {
+            if (value.trim()) {
+                return [value];
+            }
+        }
+    }
+
+    return [];
+};
+
+const parseQuestionMeta = (value: unknown): Record<string, any> | null => {
+    if (!value) {
+        return null;
+    }
+
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, any>;
+    }
+
+    if (typeof value === 'string') {
+        try {
+            const parsed = parseJson(value);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed as Record<string, any>;
+            }
+        } catch {
+            return null;
+        }
+    }
+
+    return null;
+};
+
+const normalizeQuestion = (rawQuestion: any): Question => ({
+    id: String(rawQuestion?.id ?? ''),
+    type: rawQuestion?.type ?? 'TEXT_INPUT',
+    question: String(rawQuestion?.question ?? ''),
+    points: Number(rawQuestion?.points ?? 0),
+    options: parseArrayOfStrings(rawQuestion?.options),
+    correctAnswers: parseArrayOfStrings(rawQuestion?.correctAnswers ?? rawQuestion?.correct_answers),
+    explanation: typeof rawQuestion?.explanation === 'string' ? rawQuestion.explanation : undefined,
+    codeTemplate:
+        typeof rawQuestion?.codeTemplate === 'string'
+            ? rawQuestion.codeTemplate
+            : typeof rawQuestion?.code_template === 'string'
+                ? rawQuestion.code_template
+                : undefined,
+    codeSolution:
+        typeof rawQuestion?.codeSolution === 'string'
+            ? rawQuestion.codeSolution
+            : typeof rawQuestion?.code_solution === 'string'
+                ? rawQuestion.code_solution
+                : undefined,
+    expectedOutput:
+        typeof rawQuestion?.expectedOutput === 'string'
+            ? rawQuestion.expectedOutput
+            : typeof rawQuestion?.expected_output === 'string'
+                ? rawQuestion.expected_output
+                : undefined,
+    testCases: Array.isArray(rawQuestion?.testCases)
+        ? rawQuestion.testCases
+        : Array.isArray(rawQuestion?.test_cases)
+            ? rawQuestion.test_cases
+            : [],
+    meta: parseQuestionMeta(rawQuestion?.meta),
+});
+
+const normalizeEditorLanguage = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+
+    switch (normalized) {
+        case 'js':
+        case 'javascript':
+        case 'node':
+        case 'nodejs':
+        case 'next.js':
+        case 'nextjs':
+        case 'react':
+        case 'astro':
+        case 'svelte':
+            return 'javascript';
+        case 'ts':
+        case 'typescript':
+            return 'typescript';
+        case 'php':
+        case 'laravel':
+            return 'php';
+        case 'py':
+        case 'python':
+            return 'python';
+        case 'go':
+        case 'golang':
+            return 'go';
+        case 'java':
+            return 'java';
+        case 'ruby':
+            return 'ruby';
+        case 'c#':
+        case 'csharp':
+            return 'csharp';
+        default:
+            return normalized || 'javascript';
+    }
+};
+
+const normalizeSkillTest = (rawTest: any) => {
+    const questions = Array.isArray(rawTest?.questions)
+        ? rawTest.questions.map(normalizeQuestion)
+        : [];
+
+    return {
+        ...rawTest,
+        id: String(rawTest?.id ?? ''),
+        title: String(rawTest?.title ?? ''),
+        description: typeof rawTest?.description === 'string' ? rawTest.description : '',
+        service_id: rawTest?.service_id != null ? String(rawTest.service_id) : '',
+        level: String(rawTest?.level ?? ''),
+        timeLimit: Number(rawTest?.timeLimit ?? rawTest?.time_limit ?? 0),
+        passingScore: Number(rawTest?.passingScore ?? rawTest?.passing_score ?? 0),
+        totalQuestions: Number(rawTest?.totalQuestions ?? rawTest?.total_questions ?? questions.length),
+        status: String(rawTest?.status ?? 'ACTIVE'),
+        service: rawTest?.service
+            ? {
+                ...rawTest.service,
+                id: rawTest.service?.id != null ? String(rawTest.service.id) : '',
+                name: String(rawTest.service?.name ?? ''),
+                category: rawTest.service?.category
+                    ? {
+                        ...rawTest.service.category,
+                        id: rawTest.service.category?.id != null ? String(rawTest.service.category.id) : '',
+                        name: String(rawTest.service.category?.name ?? ''),
+                    }
+                    : null,
+            }
+            : null,
+        questions,
+    };
+};
+
+const normalizeTestRequestState = (payload: any): TestRequestState => {
+    const result = payload?.result ?? null;
+    const normalizedResult =
+        result?.test
+            ? {
+                ...result,
+                test: normalizeSkillTest(result.test),
+            }
+            : result;
+
+    return {
+        requestId: String(payload?.request_id ?? ''),
+        status: String(payload?.status ?? 'PROCESSING').toUpperCase(),
+        type: String(payload?.type ?? ''),
+        channel: String(payload?.channel ?? ''),
+        serviceId: payload?.service_id != null ? String(payload.service_id) : null,
+        skillTestId: payload?.skill_test_id != null ? String(payload.skill_test_id) : null,
+        testResultId: payload?.test_result_id != null ? String(payload.test_result_id) : null,
+        result: normalizedResult,
+        error: typeof payload?.error === 'string' ? payload.error : null,
+        nextAvailableAt:
+            typeof payload?.next_available_at === 'string' ? payload.next_available_at : null,
+        message: typeof payload?.message === 'string' ? payload.message : null,
+        restMessages: Boolean(payload?.restMessages ?? payload?.rest_messages),
+    };
+};
+
+const normalizeEvaluationResult = (payload: any) => {
+    const result = payload?.result?.result ?? payload?.result ?? payload ?? {};
+    const explanations = Array.isArray(result?.explanations)
+        ? result.explanations.map((explanation: any) => ({
+            questionId: String(explanation?.questionId ?? explanation?.question_id ?? ''),
+            score: Number(explanation?.score ?? 0),
+            comment: String(explanation?.comment ?? ''),
+            isCorrect: Boolean(explanation?.isCorrect ?? explanation?.is_correct),
+            explanation:
+                typeof explanation?.explanation === 'string' ? explanation.explanation : undefined,
+            correctAnswer:
+                explanation?.correctAnswer ??
+                explanation?.correct_answer ??
+                undefined,
+        }))
+        : [];
+
+    return {
+        score: Number(result?.score ?? 0),
+        passed: Boolean(result?.passed),
+        feedback: String(result?.feedback ?? ''),
+        explanations,
+        timeSpent: Number(result?.timeSpent ?? result?.time_spent ?? 0),
+        test_result_id:
+            result?.test_result_id != null
+                ? String(result.test_result_id)
+                : result?.testResultId != null
+                    ? String(result.testResultId)
+                    : null,
+        error: Boolean(result?.error),
+    };
+};
+
 export default function SelectTestsPageClient() {
-    const { user, loading, userLoading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
+    const locale = useLocale();
+    const t = useTranslations('tests.providerFlow');
     const [testData, setTestData] = useState<TestData[]>([]);
-    const [availableTests, setAvailableTests] = useState<any[]>([]);
+    const [serviceTests, setServiceTests] = useState<Record<string, ServiceTestCard>>({});
     const [currentTest, setCurrentTest] = useState<any>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<TestAnswer[]>([]);
@@ -101,11 +377,189 @@ export default function SelectTestsPageClient() {
     const [showExplanations, setShowExplanations] = useState(false);
     const [error, setError] = useState('');
     const [loadingTests, setLoadingTests] = useState(true);
+    const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
+    const dataParam = searchParams.get('data');
     const [showQuestions, setShowQuestions] = useState(false);
     const [key, setKey] = useState(0);
     const [loadingResults, setLoadingResults] = useState(false);
+    const [evaluationRequestId, setEvaluationRequestId] = useState<string | null>(null);
+    const [hasInitializedState, setHasInitializedState] = useState(false);
+    const [startWarningOpen, setStartWarningOpen] = useState(false);
+    const [pendingStartTest, setPendingStartTest] = useState<any | null>(null);
+    const serviceTestsRef = useRef<Record<string, ServiceTestCard>>({});
+    const evaluationRequestIdRef = useRef<string | null>(null);
+    const roleRefreshAttemptedRef = useRef(false);
+    const storageKey = useMemo(
+        () => (dataParam ? `provider-services-tests:${dataParam}` : null),
+        [dataParam]
+    );
+    const roleSlugs = useMemo(() => getRoleSlugs(user), [user]);
+    const hasRoleInfo = roleSlugs.length > 0;
+    const isProvider = roleSlugs.includes('provider');
+
+    const availableTests = useMemo(
+        () =>
+            testData
+                .map((serviceInfo) => serviceTests[getServiceTestKey(serviceInfo)])
+                .filter((entry): entry is ServiceTestCard => Boolean(entry?.test))
+                .map((entry) => ({
+                    test: entry.test,
+                    serviceInfo: entry.serviceInfo,
+                    requestId: entry.requestId,
+                })),
+        [serviceTests, testData]
+    );
+
+    const resolvedServiceCount = useMemo(
+        () =>
+            testData.filter((serviceInfo) => {
+                const status = serviceTests[getServiceTestKey(serviceInfo)]?.status;
+                return status === 'completed' || status === 'failed' || status === 'cooldown';
+            }).length,
+        [serviceTests, testData]
+    );
+
+    const pendingServiceCount = useMemo(
+        () =>
+            testData.filter((serviceInfo) => {
+                const status = serviceTests[getServiceTestKey(serviceInfo)]?.status;
+                return !status || status === 'idle' || status === 'processing';
+            }).length,
+        [serviceTests, testData]
+    );
+
+    const isInitialGenerationProcessing =
+        !testInProgress &&
+        !testCompleted &&
+        !loadingResults &&
+        testData.length > 0 &&
+        availableTests.length === 0 &&
+        pendingServiceCount > 0 &&
+        resolvedServiceCount === 0;
+
+    const readPersistedState = useCallback((): PersistedTestsState => {
+        if (!storageKey || typeof window === 'undefined') {
+            return {};
+        }
+
+        try {
+            const rawState = window.sessionStorage.getItem(storageKey);
+            if (!rawState) {
+                return {};
+            }
+
+            const parsed = JSON.parse(rawState);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    }, [storageKey]);
+
+    const clearPersistedState = useCallback(() => {
+        if (!storageKey || typeof window === 'undefined') {
+            return;
+        }
+
+        window.sessionStorage.removeItem(storageKey);
+    }, [storageKey]);
+
+    const formatLevelHuman = useCallback((level: string) => {
+        const normalized = level.trim().toUpperCase();
+
+        if (normalized === 'JUNIOR') return 'Junior';
+        if (normalized === 'MEDIU' || normalized === 'MID' || normalized === 'INTERMEDIATE') {
+            return 'Mid';
+        }
+        if (normalized === 'SENIOR') return 'Senior';
+
+        if (!normalized) {
+            return '';
+        }
+
+        return normalized.charAt(0) + normalized.slice(1).toLowerCase();
+    }, []);
+
+    const formatLevelLabel = useCallback((level: string) => {
+        const normalized = level.trim().toUpperCase();
+
+        switch (normalized) {
+            case 'JUNIOR':
+                return t('levels.junior');
+            case 'MEDIU':
+            case 'MID':
+            case 'INTERMEDIATE':
+                return t('levels.intermediate');
+            case 'SENIOR':
+                return t('levels.senior');
+            case 'EXPERT':
+                return t('levels.expert');
+            default:
+                return normalized || level;
+        }
+    }, [t]);
+
+    const formatCooldownDate = useCallback((value: string | null) => {
+        if (!value) return null;
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return value;
+        }
+
+        return new Intl.DateTimeFormat(locale, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+        }).format(date);
+    }, [locale]);
+
+    useEffect(() => {
+        serviceTestsRef.current = serviceTests;
+    }, [serviceTests]);
+
+    useEffect(() => {
+        evaluationRequestIdRef.current = evaluationRequestId;
+    }, [evaluationRequestId]);
+
+    useEffect(() => {
+        if (!hasInitializedState || !storageKey || typeof window === 'undefined') {
+            return;
+        }
+
+        const generationRequestIds = Object.fromEntries(
+            Object.entries(serviceTests)
+                .filter(([, entry]) => Boolean(entry?.requestId))
+                .map(([serviceKey, entry]) => [serviceKey, entry.requestId as string])
+        );
+
+        window.sessionStorage.setItem(
+            storageKey,
+            JSON.stringify({
+                generationRequestIds,
+                currentTest,
+                currentQuestionIndex,
+                answers,
+                testInProgress,
+                timeRemaining,
+                testStartTime: testStartTime?.toISOString() ?? null,
+                questionStartTime: questionStartTime?.toISOString() ?? null,
+                evaluationRequestId,
+            } satisfies PersistedTestsState)
+        );
+    }, [
+        answers,
+        currentQuestionIndex,
+        currentTest,
+        evaluationRequestId,
+        hasInitializedState,
+        questionStartTime,
+        serviceTests,
+        storageKey,
+        testInProgress,
+        testStartTime,
+        timeRemaining,
+    ]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -121,6 +575,250 @@ export default function SelectTestsPageClient() {
         return () => clearInterval(interval);
     }, []);
 
+    const applyGenerationRequestState = useCallback(
+        (serviceInfo: TestData, requestState: TestRequestState) => {
+            const serviceKey = getServiceTestKey(serviceInfo);
+
+            if (requestState.status === 'COMPLETED' && requestState.result?.test) {
+                setServiceTests((prev) => ({
+                    ...prev,
+                    [serviceKey]: {
+                        serviceInfo,
+                        requestId: requestState.requestId,
+                        status: 'completed',
+                        test: requestState.result.test,
+                        error: null,
+                        nextAvailableAt: null,
+                    },
+                }));
+                return;
+            }
+
+            if (requestState.status === 'FAILED' || requestState.status === 'FAILED_BROADCAST') {
+                setServiceTests((prev) => ({
+                    ...prev,
+                    [serviceKey]: {
+                        serviceInfo,
+                        requestId: requestState.requestId,
+                        status: 'failed',
+                        test: null,
+                        error: requestState.error ?? t('errors.defaultGeneration'),
+                        nextAvailableAt: null,
+                    },
+                }));
+                return;
+            }
+
+            setServiceTests((prev) => ({
+                ...prev,
+                [serviceKey]: {
+                    ...(prev[serviceKey] ?? {
+                        serviceInfo,
+                        test: null,
+                    }),
+                    serviceInfo,
+                    requestId: requestState.requestId,
+                    status: 'processing',
+                    error: null,
+                    nextAvailableAt: null,
+                },
+            }));
+        },
+        [t]
+    );
+
+    const applyEvaluationRequestState = useCallback((requestState: TestRequestState) => {
+        setEvaluationRequestId(requestState.requestId);
+
+        if (requestState.status === 'COMPLETED') {
+            setTestResult(normalizeEvaluationResult(requestState.result));
+            setTestCompleted(true);
+            setTestInProgress(false);
+            setLoadingResults(false);
+            setError('');
+            return;
+        }
+
+        if (requestState.status === 'FAILED' || requestState.status === 'FAILED_BROADCAST') {
+            setTestCompleted(false);
+            setTestInProgress(false);
+            setLoadingResults(false);
+            setError(requestState.error ?? t('errors.defaultEvaluation'));
+            return;
+        }
+
+        setLoadingResults(true);
+    }, [t]);
+
+    const syncTestRequest = useCallback(
+        async (
+            requestId: string,
+            options?: {
+                expectedType?: 'generation' | 'evaluation';
+                serviceInfo?: TestData;
+            }
+        ) => {
+            if (!requestId) {
+                return;
+            }
+
+            try {
+                const state = normalizeTestRequestState(
+                    await apiClient.getTestRequestStatus(requestId)
+                );
+                const expectedType = options?.expectedType ?? (state.type as 'generation' | 'evaluation');
+
+                if (expectedType === 'evaluation') {
+                    applyEvaluationRequestState(state);
+                    return;
+                }
+
+                if (options?.serviceInfo) {
+                    applyGenerationRequestState(options.serviceInfo, state);
+                }
+            } catch (requestError: any) {
+                if (options?.expectedType === 'evaluation') {
+                    setLoadingResults(false);
+                    setError(
+                        t('errors.evaluationStateWithMessage', {
+                            message: requestError?.message ?? t('errors.unknown'),
+                        })
+                    );
+                    return;
+                }
+
+                const serviceInfo = options?.serviceInfo;
+                if (!serviceInfo) {
+                    return;
+                }
+
+                const serviceKey = getServiceTestKey(serviceInfo);
+                setServiceTests((prev) => ({
+                    ...prev,
+                    [serviceKey]: {
+                        ...(prev[serviceKey] ?? {
+                            serviceInfo,
+                            requestId,
+                            test: null,
+                        }),
+                        serviceInfo,
+                        requestId,
+                        status: 'failed',
+                        test: null,
+                        error:
+                            requestError?.message ??
+                            t('errors.generationState'),
+                        nextAvailableAt: null,
+                    },
+                }));
+            }
+        },
+        [applyEvaluationRequestState, applyGenerationRequestState, t]
+    );
+
+    const initializeServiceTests = useCallback(
+        async (
+            testDataArray: TestData[],
+            existingRequestIds: Record<string, string> = {}
+        ) => {
+            try {
+                await Promise.all(
+                    testDataArray.map(async (serviceInfo) => {
+                        const serviceKey = getServiceTestKey(serviceInfo);
+                        const existingRequestId = existingRequestIds[serviceKey];
+
+                        if (existingRequestId) {
+                            await syncTestRequest(existingRequestId, {
+                                expectedType: 'generation',
+                                serviceInfo,
+                            });
+                            return;
+                        }
+
+                        try {
+                            const generationRequest =
+                                serviceInfo.flow === 'level_upgrade'
+                                    ? await apiClient.findLevelUpgradeTest(
+                                        serviceInfo.serviceId,
+                                        serviceInfo.level,
+                                        locale
+                                    )
+                                    : await apiClient.findByServiceAndLevel(
+                                        serviceInfo.serviceId,
+                                        serviceInfo.level,
+                                        locale
+                                    );
+                            const requestId = String(generationRequest?.request_id ?? '');
+
+                            if (!requestId) {
+                                throw new Error(t('errors.generationRequestId'));
+                            }
+
+                            setServiceTests((prev) => ({
+                                ...prev,
+                                [serviceKey]: {
+                                    ...(prev[serviceKey] ?? {
+                                        serviceInfo,
+                                        test: null,
+                                    }),
+                                    serviceInfo,
+                                    requestId,
+                                    status: 'processing',
+                                    error: null,
+                                    nextAvailableAt: null,
+                                },
+                            }));
+
+                            await syncTestRequest(requestId, {
+                                expectedType: 'generation',
+                                serviceInfo,
+                            });
+                        } catch (generationError: any) {
+                            if (generationError?.status === 403) {
+                                const payload = generationError?.data ?? {};
+                                setServiceTests((prev) => ({
+                                    ...prev,
+                                    [serviceKey]: {
+                                        serviceInfo,
+                                        requestId: null,
+                                        status: 'cooldown',
+                                        test: null,
+                                        error:
+                                                typeof payload?.message === 'string'
+                                                    ? payload.message
+                                                : t('errors.cooldownDefault'),
+                                        nextAvailableAt:
+                                            typeof payload?.next_available_at === 'string'
+                                                ? payload.next_available_at
+                                                : null,
+                                    },
+                                }));
+                                return;
+                            }
+
+                            setServiceTests((prev) => ({
+                                ...prev,
+                                [serviceKey]: {
+                                    serviceInfo,
+                                    requestId: null,
+                                    status: 'failed',
+                                    test: null,
+                                    error:
+                                        generationError?.message ??
+                                        t('errors.generationStart'),
+                                    nextAvailableAt: null,
+                                },
+                            }));
+                        }
+                    })
+                );
+            } finally {
+                setLoadingTests(false);
+            }
+        },
+        [locale, syncTestRequest, t]
+    );
+
     useEffect(() => {
         if (userLoading) return;
 
@@ -128,55 +826,291 @@ export default function SelectTestsPageClient() {
             router.push('/auth/signin');
             return;
         }
-        if (!hasRole(user, ['provider'])) {
+
+        if (!hasRoleInfo && !roleRefreshAttemptedRef.current) {
+            roleRefreshAttemptedRef.current = true;
+            setIsRefreshingRole(true);
+            void refreshUser().finally(() => {
+                setIsRefreshingRole(false);
+            });
+            return;
+        }
+
+        if (hasRoleInfo && !isProvider) {
             router.push('/dashboard');
             return;
         }
 
-        const dataParam = searchParams.get('data');
-        if (dataParam) {
-            try {
-                const parsedData = JSON.parse(decodeURIComponent(dataParam));
+        if (!dataParam) {
+            router.push('/provider/services/select');
+            return;
+        }
 
-                setTestData(parsedData);
-                loadAvailableTests(parsedData);
-            } catch (error) {
-                setError('Date invalide');
-                router.push('/provider/services/select');
+        try {
+            setHasInitializedState(false);
+            setLoadingTests(true);
+            setError('');
+            setTestCompleted(false);
+            setTestResult(null);
+            setShowExplanations(false);
+
+            const parsedData = JSON.parse(decodeURIComponent(dataParam));
+            const normalizedTestData = (Array.isArray(parsedData)
+                ? parsedData
+                : parsedData
+                    ? [parsedData]
+                    : []
+            ).map((entry) => ({
+                ...entry,
+                programming_language:
+                    typeof entry?.programming_language === 'string'
+                        ? entry.programming_language
+                        : typeof entry?.programmingLanguage === 'string'
+                            ? entry.programmingLanguage
+                            : '',
+            }));
+            const persistedState = readPersistedState();
+            const generationRequestIds = persistedState.generationRequestIds ?? {};
+            const restoredCurrentTest = persistedState.currentTest ?? null;
+            const restoredTestInProgress = Boolean(persistedState.testInProgress && restoredCurrentTest);
+            const restoredTestStartTime = parsePersistedDate(persistedState.testStartTime);
+            const restoredQuestionStartTime = parsePersistedDate(persistedState.questionStartTime);
+            const totalTestSeconds = Number(restoredCurrentTest?.test?.timeLimit ?? 0) * 60;
+            const elapsedSeconds =
+                restoredTestStartTime != null
+                    ? Math.max(
+                        0,
+                        Math.floor((Date.now() - restoredTestStartTime.getTime()) / 1000)
+                    )
+                    : 0;
+            const fallbackTimeRemaining =
+                typeof persistedState.timeRemaining === 'number'
+                    ? Math.max(0, persistedState.timeRemaining)
+                    : 0;
+            const restoredTimeRemaining = restoredTestInProgress
+                ? totalTestSeconds > 0
+                    ? Math.max(0, totalTestSeconds - elapsedSeconds)
+                    : fallbackTimeRemaining
+                : 0;
+            const questionCount = Array.isArray(restoredCurrentTest?.test?.questions)
+                ? restoredCurrentTest.test.questions.length
+                : 0;
+            const restoredQuestionIndex = restoredTestInProgress && questionCount > 0
+                ? Math.min(
+                    Math.max(Number(persistedState.currentQuestionIndex ?? 0), 0),
+                    questionCount - 1
+                )
+                : 0;
+            const initialServiceStates = Object.fromEntries(
+                normalizedTestData.map((serviceInfo) => {
+                    const serviceKey = getServiceTestKey(serviceInfo);
+                    const existingRequestId = generationRequestIds[serviceKey] ?? null;
+
+                    return [
+                        serviceKey,
+                        {
+                            serviceInfo,
+                            requestId: existingRequestId,
+                            status: existingRequestId ? 'processing' : 'idle',
+                            test: null,
+                            error: null,
+                            nextAvailableAt: null,
+                        } satisfies ServiceTestCard,
+                    ];
+                })
+            ) as Record<string, ServiceTestCard>;
+
+            setServiceTests(initialServiceStates);
+            setTestData(normalizedTestData);
+            setCurrentTest(restoredCurrentTest);
+            setCurrentQuestionIndex(restoredQuestionIndex);
+            setAnswers(Array.isArray(persistedState.answers) ? persistedState.answers : []);
+            setTestInProgress(restoredTestInProgress);
+            setTimeRemaining(restoredTimeRemaining);
+            setTestStartTime(restoredTestInProgress ? restoredTestStartTime : null);
+            setQuestionStartTime(
+                restoredTestInProgress
+                    ? restoredQuestionStartTime ?? new Date()
+                    : null
+            );
+            setEvaluationRequestId(persistedState.evaluationRequestId ?? null);
+            setHasInitializedState(true);
+            setLoadingTests(!restoredTestInProgress);
+
+            void initializeServiceTests(normalizedTestData, generationRequestIds);
+
+            if (persistedState.evaluationRequestId) {
+                setLoadingResults(true);
+                void syncTestRequest(String(persistedState.evaluationRequestId), {
+                    expectedType: 'evaluation',
+                });
+            } else {
+                setLoadingResults(false);
             }
-        } else {
+        } catch (loadError) {
+            setError(t('errors.invalidData'));
+            setLoadingTests(false);
             router.push('/provider/services/select');
         }
-    }, [user, userLoading, router, searchParams]);
+    }, [
+        dataParam,
+        initializeServiceTests,
+        readPersistedState,
+        refreshUser,
+        router,
+        syncTestRequest,
+        hasRoleInfo,
+        isProvider,
+        user,
+        userLoading,
+        t,
+    ]);
+
+    useEffect(() => {
+        if (!user?.id) {
+            return;
+        }
+
+        let cancelled = false;
+        let channel:
+            | {
+                listen: (event: string, callback: (payload: any) => void) => void;
+                stopListening: (event: string) => void;
+            }
+            | null = null;
+
+        const handleRealtimeUpdate = (payload: any) => {
+            const requestId = String(payload?.request_id ?? '');
+            if (!requestId) {
+                return;
+            }
+
+            if (evaluationRequestIdRef.current && evaluationRequestIdRef.current === requestId) {
+                void syncTestRequest(requestId, { expectedType: 'evaluation' });
+                return;
+            }
+
+            const matchedServiceState = Object.values(serviceTestsRef.current).find(
+                (entry) => entry.requestId === requestId
+            );
+
+            if (matchedServiceState) {
+                void syncTestRequest(requestId, {
+                    expectedType: 'generation',
+                    serviceInfo: matchedServiceState.serviceInfo,
+                });
+            }
+        };
+
+        void (async () => {
+            const echo = await ensureEcho();
+            if (!echo || cancelled) {
+                return;
+            }
+
+            const privateChannel = echo.private(`user.${user.id}.tests`);
+            channel = privateChannel;
+            privateChannel.listen('.AiTestUpdated', handleRealtimeUpdate);
+            privateChannel.listen('.AiTestFailed', handleRealtimeUpdate);
+        })();
+
+        return () => {
+            cancelled = true;
+            channel?.stopListening('.AiTestUpdated');
+            channel?.stopListening('.AiTestFailed');
+        };
+    }, [syncTestRequest, user?.id]);
+
+    useEffect(() => {
+        const generationPending = Object.values(serviceTests).filter(
+            (entry) => entry.requestId && entry.status === 'processing'
+        );
+
+        if (generationPending.length === 0 && !(loadingResults && evaluationRequestId)) {
+            return;
+        }
+
+        const interval = window.setInterval(() => {
+            generationPending.forEach((entry) => {
+                if (!entry.requestId) {
+                    return;
+                }
+
+                void syncTestRequest(entry.requestId, {
+                    expectedType: 'generation',
+                    serviceInfo: entry.serviceInfo,
+                });
+            });
+
+            if (loadingResults && evaluationRequestId) {
+                void syncTestRequest(evaluationRequestId, { expectedType: 'evaluation' });
+            }
+        }, 5000);
+
+        return () => window.clearInterval(interval);
+    }, [evaluationRequestId, loadingResults, serviceTests, syncTestRequest]);
 
     const handleSubmitTest = useCallback(async () => {
         setLoadingResults(true);
         try {
             setTestInProgress(false);
+            setTestCompleted(false);
+            setTestResult(null);
 
             const totalTimeSpent = testStartTime
                 ? Math.floor((Date.now() - testStartTime.getTime()) / (1000 * 60))
                 : currentTest.test.timeLimit;
+            const currentServiceTestData = currentTest?.serviceInfo ?? testData[0] ?? null;
 
-            // Format answers correctly for the API
             const formattedData = {
                 testId: currentTest.test.id,
-                answers: answers,
+                answers,
                 timeSpent: totalTimeSpent,
-                testData: testData,
+                testData: currentServiceTestData
+                    ? {
+                        serviceId: currentServiceTestData.serviceId,
+                        levelHuman: formatLevelHuman(currentServiceTestData.level),
+                        category: currentServiceTestData.category,
+                        service: currentServiceTestData.serviceName,
+                        lang: locale,
+                    }
+                    : null,
             };
 
-            const result = await apiClient.takeTest(currentTest.test.id, formattedData);
+            const evaluationRequest = await apiClient.takeTest(currentTest.test.id, formattedData);
+            const requestId = String(evaluationRequest?.request_id ?? '');
 
-            setTestResult(result);
-            setTestCompleted(true);
-        } catch (error: any) {
-            setError('Nu s-a putut trimite testul: ' + error.message);
+            if (!requestId) {
+                throw new Error(t('errors.evaluationRequestId'));
+            }
+
+            setEvaluationRequestId(requestId);
+            setError('');
+            void syncTestRequest(requestId, { expectedType: 'evaluation' });
+        } catch (submitError: any) {
+            setError(
+                t('errors.submitTestWithMessage', {
+                    message: submitError.message,
+                })
+            );
             setTestInProgress(false);
-        } finally {
             setLoadingResults(false);
         }
-    }, [answers, currentTest, testData, testStartTime]);
+    }, [answers, currentTest, formatLevelHuman, locale, syncTestRequest, t, testData, testStartTime]);
+
+    useEffect(() => {
+        if (
+            !hasInitializedState ||
+            !testInProgress ||
+            !currentTest ||
+            loadingResults ||
+            timeRemaining > 0
+        ) {
+            return;
+        }
+
+        void handleSubmitTest();
+    }, [currentTest, handleSubmitTest, hasInitializedState, loadingResults, testInProgress, timeRemaining]);
 
     // Timer pentru test
     useEffect(() => {
@@ -195,30 +1129,10 @@ export default function SelectTestsPageClient() {
         return () => clearInterval(interval);
     }, [handleSubmitTest, testInProgress, timeRemaining]);
 
-    const loadAvailableTests = async (testDataArray: TestData[]) => {
+    const startTest = useCallback(async (test: any) => {
         try {
-            const tests = [];
-            for (const testInfo of testDataArray) {
-                const test = await apiClient.findByServiceAndLevel(testInfo.serviceId, testInfo.level);
-
-                if (test) {
-                    tests.push({
-                        test: test.test,
-                        serviceInfo: testInfo
-                    });
-                }
-            }
-
-            setAvailableTests(tests);
-        } catch (error: any) {
-            setError(error.message ?? 'Nu s-au putut încărca testele');
-        } finally {
-            setLoadingTests(false);
-        }
-    };
-
-    const startTest = async (test: any) => {
-        try {
+            setStartWarningOpen(false);
+            setPendingStartTest(null);
             setCurrentTest(test);
             setCurrentQuestionIndex(0);
             setAnswers([]);
@@ -228,11 +1142,37 @@ export default function SelectTestsPageClient() {
             setTestInProgress(true);
             setTestCompleted(false);
             setTestResult(null);
+            setEvaluationRequestId(null);
+            setLoadingResults(false);
+            setShowExplanations(false);
             setError('');
         } catch (error: any) {
-            setError('Nu s-a putut începe testul');
+            setError(t('errors.startTest'));
         }
-    };
+    }, [t]);
+
+    const handleStartWarningConfirm = useCallback(() => {
+        if (!pendingStartTest) {
+            return;
+        }
+
+        void startTest(pendingStartTest);
+    }, [pendingStartTest, startTest]);
+
+    const handleExamViolationFailed = useCallback(() => {
+        clearPersistedState();
+        setTestInProgress(false);
+        setCurrentTest(null);
+        setCurrentQuestionIndex(0);
+        setAnswers([]);
+        setTimeRemaining(0);
+        setTestStartTime(null);
+        setQuestionStartTime(null);
+        setEvaluationRequestId(null);
+        setLoadingResults(false);
+        setTestCompleted(false);
+        setTestResult(null);
+    }, [clearPersistedState]);
 
     const handleAnswerChange = (questionId: string, answer: string | string[]) => {
         setAnswers(prev => {
@@ -297,15 +1237,15 @@ export default function SelectTestsPageClient() {
 
     const getQuestionTypeLabel = (type: string) => {
         switch (type) {
-            case 'SINGLE_CHOICE': return 'Alegere Unică';
-            case 'MULTIPLE_CHOICE': return 'Alegere Multiplă';
-            case 'CODE_WRITING': return 'Scriere Cod';
-            case 'TEXT_INPUT': return 'Răspuns Text';
+            case 'SINGLE_CHOICE': return t('questionTypes.singleChoice');
+            case 'MULTIPLE_CHOICE': return t('questionTypes.multipleChoice');
+            case 'CODE_WRITING': return t('questionTypes.codeWriting');
+            case 'TEXT_INPUT': return t('questionTypes.textInput');
             default: return type;
         }
     };
 
-    const renderQuestion = (question: Question) => {
+    const renderQuestion = (question: Question, codeInput?: ReactNode) => {
         const currentAnswer = answers.find(a => a.questionId === question.id)?.answer;
         const Icon = getQuestionTypeIcon(question.type);
 
@@ -320,11 +1260,14 @@ export default function SelectTestsPageClient() {
                                 {getQuestionTypeLabel(question.type)}
                             </Badge>
                             <Badge className="bg-blue-100 text-blue-800">
-                                {question.points} puncte
+                                {t('question.points', { count: question.points })}
                             </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            Întrebarea {currentQuestionIndex + 1} din {currentTest.test.questions.length}
+                            {t('question.counter', {
+                                current: currentQuestionIndex + 1,
+                                total: currentTest.test.questions.length,
+                            })}
                         </div>
                     </div>
                 </CardHeader>
@@ -341,7 +1284,7 @@ export default function SelectTestsPageClient() {
                             value={currentAnswer as string || ''}
                             onValueChange={(value) => handleAnswerChange(question.id, value)}
                         >
-                            {parseJson(question.options).map((option: string, index: number) => (
+                            {question.options.map((option: string, index: number) => (
                                 <div key={index} className="flex items-center space-x-2">
                                     <RadioGroupItem value={option} id={`${question.id}-${index}`} />
                                     <Label htmlFor={`${question.id}-${index}`} className="cursor-pointer">
@@ -356,7 +1299,7 @@ export default function SelectTestsPageClient() {
                     {question.type === 'MULTIPLE_CHOICE' && question.options && (
                         <div className="space-y-3">
 
-                            {parseJson(question.options).map((option: string, index: number) => (
+                            {question.options.map((option: string, index: number) => (
                                 <div key={index} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={`${question.id}-${index}`}
@@ -382,7 +1325,7 @@ export default function SelectTestsPageClient() {
                         <div className="space-y-4">
                             {question.codeTemplate && (
                                 <div>
-                                    <Label className="text-sm font-medium mb-2 block">Template:</Label>
+                                    <Label className="text-sm font-medium mb-2 block">{t('question.template')}</Label>
                                     <pre className="bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto">
                                         {question.codeTemplate}
                                     </pre>
@@ -391,16 +1334,16 @@ export default function SelectTestsPageClient() {
 
                             {question.testCases && question.testCases.length > 0 && (
                                 <div>
-                                    <Label className="text-sm font-medium mb-2 block">Test Cases:</Label>
+                                    <Label className="text-sm font-medium mb-2 block">{t('question.testCases')}</Label>
                                     <div className="space-y-2">
                                         {question.testCases.map((testCase, index) => (
                                             <div key={index} className="bg-muted p-3 rounded-lg text-sm">
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <strong>Input:</strong> {testCase.input}
+                                                        <strong>{t('question.input')}</strong> {testCase.input}
                                                     </div>
                                                     <div>
-                                                        <strong>Output așteptat:</strong> {testCase.expectedOutput}
+                                                        <strong>{t('question.expectedOutput')}</strong> {testCase.expectedOutput}
                                                     </div>
                                                 </div>
                                                 {testCase.description && (
@@ -415,17 +1358,10 @@ export default function SelectTestsPageClient() {
                             )}
 
                             <div>
-                                <Label htmlFor={`code-${question.id}`} className="text-sm font-medium mb-2 block">
-                                    Scrie codul tău:
+                                <Label className="text-sm font-medium mb-2 block">
+                                    {t('question.writeCode')}
                                 </Label>
-                                <Textarea
-                                    id={`code-${question.id}`}
-                                    value={currentAnswer as string || question.codeTemplate || ''}
-                                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                    placeholder="Scrie codul aici..."
-                                    rows={10}
-                                    className="font-mono text-sm"
-                                />
+                                {codeInput}
                             </div>
                         </div>
                     )}
@@ -434,13 +1370,13 @@ export default function SelectTestsPageClient() {
                     {question.type === 'TEXT_INPUT' && (
                         <div>
                             <Label htmlFor={`text-${question.id}`} className="text-sm font-medium mb-2 block">
-                                Răspunsul tău:
+                                {t('question.yourAnswer')}
                             </Label>
                             <Input
                                 id={`text-${question.id}`}
                                 value={currentAnswer as string || ''}
                                 onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                placeholder="Scrie răspunsul aici..."
+                                placeholder={t('question.writeAnswerPlaceholder')}
                             />
                         </div>
                     )}
@@ -449,15 +1385,13 @@ export default function SelectTestsPageClient() {
         );
     };
 
-    if (loadingResults) {
+    if (loading || userLoading || isRefreshingRole) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-                <TrustoraThemeStyles />
                 <div className="flex flex-col items-center justify-center p-4">
                     <Loader2 className="w-10 h-10 text-[var(--emerald-green)] animate-spin mb-4" />
-
                     <p className="text-lg text-slate-700 dark:text-slate-200 font-medium h-8">
-                        Se asteapta{" "}
+                        {t('loading.generatingPrefix')}{" "}
                         <AnimatePresence mode="wait">
                             <motion.span
                                 key={key}
@@ -467,7 +1401,7 @@ export default function SelectTestsPageClient() {
                                 transition={{ duration: 0.4 }}
                                 className="font-bold text-[var(--emerald-green)] inline-block"
                             >
-                                rezultatul
+                                {showQuestions ? t('loading.words.questions') : t('loading.words.test')}
                             </motion.span>
                         </AnimatePresence>
                         !
@@ -477,47 +1411,83 @@ export default function SelectTestsPageClient() {
         );
     }
 
-    if (loading || userLoading || loadingTests) {
-
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-                <TrustoraThemeStyles />
-                <div className="flex flex-col items-center justify-center p-4">
-                    <Loader2 className="w-10 h-10 text-[var(--emerald-green)] animate-spin mb-4" />
-                    <p className="text-lg text-slate-700 dark:text-slate-200 font-medium h-8">
-                        Se generează{" "}
-                        <AnimatePresence mode="wait">
-                            <motion.span
-                                key={key}
-                                initial={{ opacity: 0, y: -4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 4 }}
-                                transition={{ duration: 0.4 }}
-                                className="font-bold text-[var(--emerald-green)] inline-block"
-                            >
-                                {showQuestions ? "întrebările" : "testul"}
-                            </motion.span>
-                        </AnimatePresence>
-                        !
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!user || !hasRole(user, ['provider'])) {
+    if (!user || (hasRoleInfo && !isProvider)) {
         return null;
     }
 
-    // Afișare rezultat test
-    if (testCompleted && testResult) {
+    if (loadingResults) {
         return (
-            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-                <TrustoraThemeStyles />
-                <Header />
+            <ProviderDashboardShell
+                title={t('shell.title')}
+                description={t('shell.waitingResultDescription')}
+                activeMenu="services"
+            >
+                <div className="flex min-h-[55vh] items-center justify-center">
+                    <div className="flex flex-col items-center justify-center p-4">
+                        <Loader2 className="mb-4 h-10 w-10 animate-spin text-[var(--emerald-green)]" />
+                        <p className="h-8 text-lg font-medium text-slate-700 dark:text-slate-200">
+                            {t('loading.waitingResultPrefix')}{" "}
+                            <AnimatePresence mode="wait">
+                                <motion.span
+                                    key={key}
+                                    initial={{ opacity: 0, y: -4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 4 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="inline-block font-bold text-[var(--emerald-green)]"
+                                >
+                                    {t('loading.words.result')}
+                                </motion.span>
+                            </AnimatePresence>
+                            !
+                        </p>
+                    </div>
+                </div>
+            </ProviderDashboardShell>
+        );
+    }
 
-                <div className="container mx-auto px-4 py-8">
-                    <div className="max-w-4xl mx-auto">
+    if (loadingTests || isInitialGenerationProcessing) {
+        return (
+            <ProviderDashboardShell
+                title={t('shell.title')}
+                description={t('shell.generatingDescription')}
+                activeMenu="services"
+            >
+                <div className="flex min-h-[55vh] items-center justify-center">
+                    <div className="flex flex-col items-center justify-center p-4">
+                        <Loader2 className="mb-4 h-10 w-10 animate-spin text-[var(--emerald-green)]" />
+                        <p className="h-8 text-lg font-medium text-slate-700 dark:text-slate-200">
+                            {t('loading.generatingPrefix')}{" "}
+                            <AnimatePresence mode="wait">
+                                <motion.span
+                                    key={key}
+                                    initial={{ opacity: 0, y: -4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 4 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="inline-block font-bold text-[var(--emerald-green)]"
+                                >
+                                    {showQuestions ? t('loading.words.questions') : t('loading.words.test')}
+                                </motion.span>
+                            </AnimatePresence>
+                            !
+                        </p>
+                    </div>
+                </div>
+            </ProviderDashboardShell>
+        );
+    }
+
+    // Afișare rezultat test
+    if (testCompleted && testResult && currentTest) {
+        return (
+            <ProviderDashboardShell
+                title={t('result.title')}
+                description={t('result.description')}
+                activeMenu="services"
+            >
+                <div className="mx-auto max-w-4xl">
                         <Card
                             className={`glass-card border-2 ${testResult.passed ? 'border-emerald-200/80 bg-emerald-50/70' : 'border-red-200/80 bg-red-50/70'}`}
                         >
@@ -531,12 +1501,12 @@ export default function SelectTestsPageClient() {
                                     )}
                                 </div>
                                 <CardTitle className="text-3xl mb-2">
-                                    {testResult.passed ? 'Felicitări! Ai trecut testul!' : 'Nu ai trecut testul'}
+                                    {testResult.passed ? t('result.passedTitle') : t('result.failedTitle')}
                                 </CardTitle>
                                 <CardDescription className="text-lg">
                                     {testResult.passed
-                                        ? 'Ai demonstrat competența necesară pentru acest nivel'
-                                        : 'Poți reîncerca testul după 30 de zile'
+                                        ? t('result.passedDescription')
+                                        : t('result.failedDescription')
                                     }
                                 </CardDescription>
                             </CardHeader>
@@ -546,19 +1516,19 @@ export default function SelectTestsPageClient() {
                                         <div className={`text-4xl font-bold mb-2 ${testResult.passed ? 'text-green-600' : 'text-red-600'}`}>
                                             {testResult.score}%
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Scorul tău</div>
+                                        <div className="text-sm text-muted-foreground">{t('result.scoreLabel')}</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-4xl font-bold mb-2 text-blue-600">
                                             {currentTest.test.passingScore}%
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Nota de trecere</div>
+                                        <div className="text-sm text-muted-foreground">{t('result.passingScoreLabel')}</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-4xl font-bold mb-2 text-purple-600">
                                             {testResult.timeSpent || 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Minute folosite</div>
+                                        <div className="text-sm text-muted-foreground">{t('result.timeSpentLabel')}</div>
                                     </div>
                                 </div>
 
@@ -567,40 +1537,41 @@ export default function SelectTestsPageClient() {
                                         {showExplanations ? (
                                             <>
                                                 <EyeOff className="w-4 h-4 mr-2" />
-                                                Ascunde Explicațiile
+                                                {t('result.hideExplanations')}
                                             </>
                                         ) : (
                                             <>
                                                 <Eye className="w-4 h-4 mr-2" />
-                                                Vezi Explicațiile
+                                                {t('result.showExplanations')}
                                             </>
                                         )}
                                     </Button>
                                     <Button onClick={() => router.push('/dashboard')}>
-                                        Înapoi la Dashboard
+                                        {t('result.backToDashboard')}
                                     </Button>
                                 </div>
 
-                                {/* Calendar Scheduling */}
-                                <div className="mt-8 border-t border-border/50 pt-8">
-                                    <h3 className="text-xl font-semibold mb-4 text-center">Programează Interviul Video</h3>
-                                    <p className="text-center text-muted-foreground mb-6">
-                                        Pentru a finaliza procesul de verificare, te rugăm să alegi o dată pentru interviu.
-                                    </p>
-                                    <div className="w-full h-[600px] overflow-hidden rounded-xl border border-border/50 bg-background/50">
-                                        <Cal
-                                            namespace="verificare-identitate"
-                                            calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&notes=Test Passed: ${currentTest.test.title}&service_id=${currentTest.serviceInfo.serviceId}`}
-                                            style={{ width: "100%", height: "100%", overflow: "scroll" }}
-                                            config={{ layout: 'month_view' }}
-                                        />
+                                {testResult.passed ? (
+                                    <div className="mt-8 border-t border-border/50 pt-8">
+                                        <h3 className="text-xl font-semibold mb-4 text-center">{t('result.calendarTitle')}</h3>
+                                        <p className="text-center text-muted-foreground mb-6">
+                                            {t('result.calendarDescription')}
+                                        </p>
+                                        <div className="w-full h-[600px] overflow-hidden rounded-xl border border-border/50 bg-background/50">
+                                            <Cal
+                                                namespace="verificare-identitate"
+                                                calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&notes=${t('result.calendarNote', { title: currentTest.test.title })}&service_id=${currentTest.serviceInfo.serviceId}`}
+                                                style={{ width: "100%", height: "100%", overflow: "scroll" }}
+                                                config={{ layout: 'month_view' }}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                ) : null}
 
                                 {/* Explicații răspunsuri */}
                                 {showExplanations && (
                                     <div className="mt-8 space-y-6">
-                                        <h3 className="text-xl font-semibold">Explicații Răspunsuri</h3>
+                                        <h3 className="text-xl font-semibold">{t('result.explanationsTitle')}</h3>
                                         {testResult.explanations.map((question: ExplanationQuestion, index: number) => {
                                             const userAnswer = answers.find(a => a.questionId === question.questionId);
 
@@ -612,30 +1583,30 @@ export default function SelectTestsPageClient() {
                                                     <CardHeader>
                                                         <div className="flex items-center space-x-2">
                                                             <Badge className={question.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                                                {question.isCorrect ? 'Corect' : 'Incorect'}
+                                                                {question.isCorrect ? t('result.correct') : t('result.incorrect')}
                                                             </Badge>
-                                                            <span className="font-medium">Întrebarea {index + 1}</span>
+                                                            <span className="font-medium">{t('result.questionLabel', { index: index + 1 })}</span>
                                                         </div>
                                                     </CardHeader>
                                                     <CardContent>
                                                         <div className="space-y-2 mb-4">
                                                             <div>
-                                                                <strong>Răspunsul tău:</strong>{' '}
+                                                                <strong>{t('result.yourAnswer')}</strong>{' '}
                                                                 {Array.isArray(userAnswer?.answer)
                                                                     ? userAnswer?.answer.join(', ')
-                                                                    : userAnswer?.answer || 'Nu ai răspuns'}
+                                                                    : userAnswer?.answer || t('result.noAnswer')}
                                                             </div>
                                                             <div>
-                                                                <strong>Răspunsul corect:</strong>{' '}
+                                                                <strong>{t('result.correctAnswer')}</strong>{' '}
                                                                 {Array.isArray(question.correctAnswer)
                                                                     ? question.correctAnswer.join(', ')
-                                                                    : question.correctAnswer || 'Nespecificat'}
+                                                                    : question.correctAnswer || t('result.unspecified')}
                                                             </div>
                                                         </div>
 
                                                         {question.explanation && (
                                                             <div className="bg-muted p-3 rounded-lg">
-                                                                <strong>Explicație:</strong> {question.explanation}
+                                                                <strong>{t('result.explanation')}</strong> {question.explanation}
                                                             </div>
                                                         )}
                                                     </CardContent>
@@ -646,11 +1617,8 @@ export default function SelectTestsPageClient() {
                                 )}
                             </CardContent>
                         </Card>
-                    </div>
                 </div>
-
-                <Footer />
-            </div>
+            </ProviderDashboardShell>
         );
     }
 
@@ -660,13 +1628,34 @@ export default function SelectTestsPageClient() {
         const currentQuestion = currentTest.test.questions[currentQuestionIndex];
         const progress = ((currentQuestionIndex + 1) / currentTest.test.questions.length) * 100;
         const hasAnswer = answers.some(a => a.questionId === currentQuestion.id);
+        const currentCodeAnswer = answers.find(
+            (answer) => answer.questionId === currentQuestion.id
+        )?.answer;
+        const codeEditor =
+            currentQuestion.type === 'CODE_WRITING' ? (
+                <ExamGuard
+                    testId={currentTest.test.id}
+                    initialStrikes={0}
+                    editorLanguage={normalizeEditorLanguage(
+                        currentTest?.serviceInfo?.programming_language || 'javascript'
+                    )}
+                    value={
+                        typeof currentCodeAnswer === 'string'
+                            ? currentCodeAnswer
+                            : currentQuestion.codeTemplate || ''
+                    }
+                    onChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                    onFailed={handleExamViolationFailed}
+                />
+            ) : null;
 
         return (
-            <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-                <TrustoraThemeStyles />
-                <Header />
-
-                <div className="container mx-auto px-4 py-8">
+            <ProviderDashboardShell
+                title={currentTest.test.title}
+                description={currentTest.serviceInfo.serviceName}
+                activeMenu="services"
+            >
+                <div className="space-y-6">
                     {/* Test Header */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-4">
@@ -689,15 +1678,26 @@ export default function SelectTestsPageClient() {
 
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
-                                <span>Progres</span>
-                                <span>{currentQuestionIndex + 1} din {currentTest.test.questions.length}</span>
+                                <span>{t('progress.label')}</span>
+                                <span>{t('progress.counter', {
+                                    current: currentQuestionIndex + 1,
+                                    total: currentTest.test.questions.length,
+                                })}</span>
                             </div>
                             <Progress value={progress} className="h-2" />
                         </div>
                     </div>
 
+                    {currentQuestion.type !== 'CODE_WRITING' ? (
+                        <ExamGuard
+                            testId={currentTest.test.id}
+                            initialStrikes={0}
+                            onFailed={handleExamViolationFailed}
+                        />
+                    ) : null}
+
                     {/* Întrebarea curentă */}
-                    {renderQuestion(currentQuestion)}
+                    {renderQuestion(currentQuestion, codeEditor)}
 
                     {/* Navigare */}
                     <div className="flex justify-between mt-6">
@@ -707,7 +1707,7 @@ export default function SelectTestsPageClient() {
                             disabled={currentQuestionIndex === 0}
                         >
                             <ArrowLeft className="w-4 h-4 mr-2" />
-                            Anterior
+                            {t('progress.previous')}
                         </Button>
 
                         <div className="flex space-x-3">
@@ -718,44 +1718,46 @@ export default function SelectTestsPageClient() {
                                     disabled={!hasAnswer}
                                 >
                                     <Send className="w-4 h-4 mr-2" />
-                                    Finalizează Testul
+                                    {t('progress.finishTest')}
                                 </Button>
                             ) : (
                                 <Button
                                     onClick={nextQuestion}
                                     disabled={!hasAnswer}
                                 >
-                                    Următoarea
+                                    {t('progress.next')}
                                     <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                                 </Button>
                             )}
                         </div>
                     </div>
                 </div>
-
-                <Footer />
-            </div>
+            </ProviderDashboardShell>
         );
     }
 
     // Lista testelor disponibile
     return (
-        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-            <TrustoraThemeStyles />
-            <Header />
-
-            <div className="container mx-auto px-4 py-8">
+        <ProviderDashboardShell
+            title={t('shell.title')}
+            description={t('shell.description')}
+            activeMenu="services"
+        >
+            <div className="space-y-8">
                 {/* Header */}
                 <div className="flex items-center space-x-4 mb-8">
                     <Button variant="outline" size="icon" onClick={() => router.back()}>
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                     <div className="flex-1">
-                        <h1 className="text-3xl font-bold">Teste de Competență</h1>
+                        <h1 className="text-3xl font-bold">{t('shell.title')}</h1>
                         <p className="text-muted-foreground">
-                            Demonstrează-ți cunoștințele pentru serviciile selectate
+                            {t('list.headerDescription')}
                         </p>
                     </div>
+                    <Badge className="border-0 bg-[#1BC47D]/15 px-3 py-2 text-[#1BC47D]">
+                        {t('list.stepBadge')}
+                    </Badge>
                 </div>
 
                 {error && (
@@ -767,69 +1769,218 @@ export default function SelectTestsPageClient() {
 
                 {/* Lista testelor */}
                 <div className="space-y-6">
-                    {availableTests.map((test, index) => (
-                        <Card key={index} className="glass-card border-emerald-100/60">
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle className="text-xl">{test.test.title}</CardTitle>
-                                        <CardDescription className="mt-1">
-                                            {test.serviceInfo.serviceName} - Nivel {test.serviceInfo.level}
-                                        </CardDescription>
-                                    </div>
-                                    <Badge className="bg-emerald-100 text-emerald-800">
-                                        {test.serviceInfo.category}
-                                    </Badge>
-                                </div>
-                            </CardHeader>
+                    {testData.map((serviceInfo, index) => {
+                        const serviceTest = serviceTests[getServiceTestKey(serviceInfo)];
 
-                            <CardContent>
-                                <p className="text-muted-foreground mb-4">{test.test.description}</p>
+                        if (!serviceTest || serviceTest.status === 'idle' || serviceTest.status === 'processing') {
+                            return (
+                                <Card key={`${serviceInfo.serviceId}-${serviceInfo.level}-${index}`} className="glass-card border-emerald-100/60">
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="text-xl">{serviceInfo.serviceName}</CardTitle>
+                                                <CardDescription className="mt-1">
+                                                    {t('list.levelLabel', { level: formatLevelLabel(serviceInfo.level) })}
+                                                </CardDescription>
+                                            </div>
+                                            <Badge className="bg-emerald-100 text-emerald-800">
+                                                {serviceInfo.category}
+                                            </Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center space-x-3 text-muted-foreground">
+                                            <Loader2 className="w-5 h-5 animate-spin text-[var(--emerald-green)]" />
+                                            <div>
+                                                <p className="font-medium text-foreground">
+                                                    {t('list.processingTitle')}
+                                                </p>
+                                                <p className="text-sm">
+                                                    {t('list.processingDescription')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Badge variant="outline">{t('list.processingBadge')}</Badge>
+                                    </CardContent>
+                                </Card>
+                            );
+                        }
 
-                                <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                    <div className="flex items-center space-x-2 text-sm">
-                                        <BookOpen className="w-4 h-4 text-[var(--emerald-green)]" />
-                                        <span>{test.test.totalQuestions || test.test.questions.length} întrebări</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-sm">
-                                        <Clock className="w-4 h-4 text-amber-500" />
-                                        <span>{test.test.timeLimit} minute</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-sm">
-                                        <Target className="w-4 h-4 text-[var(--emerald-green)]" />
-                                        <span>Nota de trecere: {test.test.passingScore}%</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-sm">
-                                        <Award className="w-4 h-4 text-emerald-500" />
-                                        <span>Certificare</span>
-                                    </div>
-                                </div>
+                        if (serviceTest.status === 'cooldown') {
+                            return (
+                                <Card key={`${serviceInfo.serviceId}-${serviceInfo.level}-${index}`} className="glass-card border-amber-200/80">
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="text-xl">{serviceInfo.serviceName}</CardTitle>
+                                                <CardDescription className="mt-1">
+                                                    {t('list.levelLabel', { level: formatLevelLabel(serviceInfo.level) })}
+                                                </CardDescription>
+                                            </div>
+                                            <Badge className="bg-amber-100 text-amber-800">
+                                                {serviceInfo.category}
+                                            </Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <Alert>
+                                            <AlertCircle className="h-4 w-4" />
+                                            <AlertDescription>
+                                                {serviceTest.error ?? t('list.cooldownDefault')}
+                                            </AlertDescription>
+                                        </Alert>
+                                        {serviceTest.nextAvailableAt ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                {t('list.availableAgainAt', {
+                                                    date: formatCooldownDate(serviceTest.nextAvailableAt) ?? '',
+                                                })}
+                                            </p>
+                                        ) : null}
+                                    </CardContent>
+                                </Card>
+                            );
+                        }
 
-                                <Button className="btn-primary" onClick={() => startTest(test)}>
-                                    <PlayCircle className="w-4 h-4 mr-2" />
-                                    Începe Testul
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
+                        if (serviceTest.status === 'failed' || !serviceTest.test) {
+                            return (
+                                <Card key={`${serviceInfo.serviceId}-${serviceInfo.level}-${index}`} className="glass-card border-red-200/80">
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="text-xl">{serviceInfo.serviceName}</CardTitle>
+                                                <CardDescription className="mt-1">
+                                                    {t('list.levelLabel', { level: formatLevelLabel(serviceInfo.level) })}
+                                                </CardDescription>
+                                            </div>
+                                            <Badge className="bg-red-100 text-red-800">
+                                                {serviceInfo.category}
+                                            </Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Alert variant="destructive">
+                                            <AlertCircle className="h-4 w-4" />
+                                            <AlertDescription>
+                                                {serviceTest.error ?? t('list.failedDefault')}
+                                            </AlertDescription>
+                                        </Alert>
+                                    </CardContent>
+                                </Card>
+                            );
+                        }
 
-                    {availableTests.length === 0 && !loadingTests && (
+                        return (
+                            <Card key={`${serviceInfo.serviceId}-${serviceInfo.level}-${index}`} className="glass-card border-emerald-100/60">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-xl">{serviceTest.test.title}</CardTitle>
+                                            <CardDescription className="mt-1">
+                                                {t('list.testCardDescription', {
+                                                    service: serviceInfo.serviceName,
+                                                    level: formatLevelLabel(serviceInfo.level),
+                                                })}
+                                            </CardDescription>
+                                        </div>
+                                        <Badge className="bg-emerald-100 text-emerald-800">
+                                            {serviceInfo.category}
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+
+                                <CardContent>
+                                    <p className="text-muted-foreground mb-4">{serviceTest.test.description}</p>
+
+                                    <div className="grid xs:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="flex items-center space-x-2 text-sm">
+                                            <BookOpen className="w-4 h-4 text-[var(--emerald-green)]" />
+                                            <span>{t('list.questionCount', {
+                                                count: serviceTest.test.totalQuestions || serviceTest.test.questions.length,
+                                            })}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 text-sm">
+                                            <Clock className="w-4 h-4 text-amber-500" />
+                                            <span>{t('list.minuteCount', {
+                                                count: serviceTest.test.timeLimit,
+                                            })}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 text-sm">
+                                            <Target className="w-4 h-4 text-[var(--emerald-green)]" />
+                                            <span>{t('list.passingScore', {
+                                                score: serviceTest.test.passingScore,
+                                            })}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 text-sm">
+                                            <Award className="w-4 h-4 text-emerald-500" />
+                                            <span>{t('list.certification')}</span>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        className="btn-primary"
+                                        onClick={() => {
+                                            setPendingStartTest({
+                                                test: serviceTest.test,
+                                                serviceInfo,
+                                                requestId: serviceTest.requestId,
+                                            });
+                                            setStartWarningOpen(true);
+                                        }}
+                                    >
+                                        <PlayCircle className="w-4 h-4 mr-2" />
+                                        {t('list.startTest')}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+
+                    {testData.length === 0 && !loadingTests && (
                         <div className="text-center py-12">
                             <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-medium mb-2">Nu există teste disponibile</h3>
+                            <h3 className="text-lg font-medium mb-2">{t('list.emptyTitle')}</h3>
                             <p className="text-muted-foreground mb-4">
-                                {error ?? 'Administratorii nu au creat încă testele pentru serviciile selectate'}
+                                {error ?? t('list.emptyDescription')}
                             </p>
                             <Button variant="outline" onClick={() => router.back()}>
                                 <ArrowLeft className="w-4 h-4 mr-2" />
-                                Înapoi
+                                {t('list.back')}
                             </Button>
                         </div>
                     )}
                 </div>
             </div>
-
-            <Footer />
-        </div>
+            <AlertDialog
+                open={startWarningOpen}
+                onOpenChange={(open) => {
+                    setStartWarningOpen(open);
+                    if (!open) {
+                        setPendingStartTest(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('startWarning.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('startWarning.description')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                        <p>{t('startWarning.leaveTab')}</p>
+                        <p>{t('startWarning.noReturn')}</p>
+                        <p className="font-medium text-foreground">
+                            {t('startWarning.retry')}
+                        </p>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('startWarning.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleStartWarningConfirm}>
+                            {t('startWarning.confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </ProviderDashboardShell>
     );
 }

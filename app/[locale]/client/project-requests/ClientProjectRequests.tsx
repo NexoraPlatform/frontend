@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
@@ -32,7 +33,14 @@ import {
     User,
     XCircle
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    DialogDescription,
+    DialogHeader,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 import { ensureEcho } from '@/lib/echo';
@@ -41,9 +49,12 @@ import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
-import RapydCheckoutButton from "@/components/RapydCheckoutButton";
 import BriefCopilot from '@/components/projects/BriefCopilot';
 import { AI_BRIEF_DRAFT_STORAGE_KEY, type AiBriefFormDraft } from '@/types/ai';
+import {
+    getProjectMilestoneChangeRequestsForMilestone,
+    getProjectMilestoneChangeRequestsForProvider,
+} from '@/lib/milestone-change-requests';
 
 
 
@@ -92,7 +103,14 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [projects, setProjects] = useState<any[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [responding, setResponding] = useState<string | null>(null);
+    const [budgetRejectionDialog, setBudgetRejectionDialog] = useState<{
+        projectId: string;
+        providerId: string;
+    } | null>(null);
+    const [budgetRejectionReason, setBudgetRejectionReason] = useState('');
+    const [budgetRejectionError, setBudgetRejectionError] = useState<string | null>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
     const [releasingId, setReleasingId] = useState<string | null>(null);
@@ -109,12 +127,20 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const [loadingReplacementSuggestions, setLoadingReplacementSuggestions] = useState(false);
     const [reassigningProviderId, setReassigningProviderId] = useState<string | null>(null);
     const [briefDraft, setBriefDraft] = useState<AiBriefFormDraft>(createEmptyBriefDraft);
+    const [milestoneProposalResponseDialog, setMilestoneProposalResponseDialog] = useState<{
+        projectId: string;
+        proposalId: string;
+    } | null>(null);
+    const [milestoneProposalResponseReason, setMilestoneProposalResponseReason] = useState('');
+    const [milestoneProposalResponseError, setMilestoneProposalResponseError] = useState<string | null>(null);
+    const [highlightedMilestoneId, setHighlightedMilestoneId] = useState<string | null>(null);
     const roleSlugs = [
         ...(user?.role_slugs ?? []),
         ...((user?.roles ?? []).map((role: any) => role?.slug).filter(Boolean)),
     ]
         .map((slug) => String(slug).toLowerCase())
         .filter(Boolean);
+    const focusedProjectId = searchParams.get('projectId');
     const isClientRole = roleSlugs.includes('client') || user?.role?.toLowerCase() === 'client';
     const hasRoleInfo = roleSlugs.length > 0 || Boolean(user?.role);
     const getMilestoneId = useCallback((milestone: any) => {
@@ -151,6 +177,51 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         if (numeric === null || numeric <= 0) return null;
         return numeric;
     };
+    const normalizeOptionalText = (value: unknown): string | null => {
+        if (typeof value !== 'string') {
+            return null;
+        }
+
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : null;
+    };
+
+    useEffect(() => {
+        if (!highlightedMilestoneId) {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            setHighlightedMilestoneId(null);
+        }, 5000);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [highlightedMilestoneId]);
+
+    const applyProjectUpdate = useCallback((nextProject: any, options?: { highlightMilestoneId?: string | number | null }) => {
+        if (!nextProject || typeof nextProject !== 'object') {
+            return;
+        }
+
+        setProjects((current) =>
+            current.map((entry) =>
+                String(entry?.id ?? '') === String(nextProject?.id ?? '')
+                    ? nextProject
+                    : entry
+            )
+        );
+        setSelectedProject((current: any | null) =>
+            current && String(current?.id ?? '') === String(nextProject?.id ?? '')
+                ? nextProject
+                : current
+        );
+
+        if (options?.highlightMilestoneId !== null && options?.highlightMilestoneId !== undefined) {
+            setHighlightedMilestoneId(String(options.highlightMilestoneId));
+        }
+    }, []);
 
     const getProjectMilestones = useCallback((project: any) => {
         if (!project) return [];
@@ -262,9 +333,25 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                     provider?.last_name ??
                     inferredLastName ??
                     (inferredFirstName ? '' : `#${String(provider?.id ?? '')}`),
+                providerBudgetProposalReason:
+                    normalizeOptionalText(
+                        provider?.providerBudgetProposalReason ??
+                        provider?.provider_budget_proposal_reason ??
+                        provider?.proposalReason ??
+                        provider?.pivot?.provider_budget_proposal_reason ??
+                        provider?.pivot?.proposalReason
+                    ) ?? null,
+                clientBudgetRejectionReason:
+                    normalizeOptionalText(
+                        provider?.clientBudgetRejectionReason ??
+                        provider?.client_budget_rejection_reason ??
+                        provider?.rejectionReason ??
+                        provider?.pivot?.client_budget_rejection_reason ??
+                        provider?.pivot?.rejectionReason
+                    ) ?? null,
             };
         });
-    }, [getProjectMilestones, getProviderId]);
+    }, [getProjectMilestones, getProviderId, normalizeOptionalText]);
 
     const getProviderMilestones = useCallback((project: any, provider: any) => {
         const providerId = getProviderId(provider);
@@ -502,8 +589,16 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const loadProjects = useCallback(async () => {
         try {
             const response = await apiClient.getClientProjectRequests();
+            const projectsCollection = Array.isArray(response?.projects) ? response.projects : [];
+            const prioritizedProjects = focusedProjectId
+                ? [...projectsCollection].sort((a: any, b: any) => {
+                    const aMatches = String(a?.id ?? '') === String(focusedProjectId) ? 1 : 0;
+                    const bMatches = String(b?.id ?? '') === String(focusedProjectId) ? 1 : 0;
+                    return bMatches - aMatches;
+                })
+                : projectsCollection;
 
-            setProjects(response.projects || []);
+            setProjects(prioritizedProjects);
         } catch (error: any) {
             console.error('Failed to load projects:', error);
             setProjects([]);
@@ -511,7 +606,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         } finally {
             setLoadingProjects(false);
         }
-    }, [t]);
+    }, [focusedProjectId, t]);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -636,33 +731,85 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
     const handleBudgetResponse = useCallback(async (
         projectId: string,
         providerId: string,
-        response: 'ACCEPTED' | 'REJECTED'
+        response: 'ACCEPTED' | 'REJECTED',
+        reason?: string
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
-            await apiClient.respondToBudgetProposal(
+            const responsePayload = await apiClient.respondToBudgetProposal(
                 projectId,
                 providerId,
                 {
                     response,
-                    ...(response === 'REJECTED'
-                        ? { reason: 'Budget proposal rejected by client' }
+                    ...(response === 'REJECTED' && reason?.trim()
+                        ? { reason: reason.trim() }
                         : {}),
-                },
+                    },
                 locale
             );
-            await loadProjects();
+            applyProjectUpdate(responsePayload?.project);
             toast.success(
                 response === 'ACCEPTED'
                     ? t('client.project_requests.budget.approved')
                     : t('client.project_requests.budget.rejected')
             );
+            return true;
         } catch (error: any) {
-            toast.error(t('client.project_requests.errors.generic', { message: error.message }));
+            const message =
+                error?.response?.data?.message ??
+                error?.message ??
+                'Unknown error';
+            toast.error(t('client.project_requests.errors.generic', { message }));
+            return false;
         } finally {
             setResponding(null);
         }
-    }, [loadProjects, locale, t]);
+    }, [applyProjectUpdate, locale, t]);
+
+    const handleMilestoneProposalResponse = useCallback(async (
+        projectId: string,
+        proposalId: string,
+        response: 'ACCEPTED' | 'REJECTED',
+        reason?: string
+    ) => {
+        const requestKey = `${projectId}:${proposalId}:${response}`;
+        setResponding(requestKey);
+        try {
+            const responsePayload = await apiClient.respondToProjectMilestoneProposal(
+                projectId,
+                proposalId,
+                {
+                    response,
+                    ...(response === 'REJECTED' && reason?.trim() ? { reason: reason.trim() } : {}),
+                },
+                locale
+            );
+            const appliedMilestoneId =
+                (responsePayload as { applied_milestone_id?: string | number | null })
+                    ?.applied_milestone_id ?? null;
+            applyProjectUpdate(responsePayload?.project, {
+                highlightMilestoneId:
+                    response === 'ACCEPTED'
+                        ? appliedMilestoneId
+                        : null,
+            });
+            toast.success(
+                response === 'ACCEPTED'
+                    ? t('client.project_requests.milestone_change_requests.accepted')
+                    : t('client.project_requests.milestone_change_requests.rejected')
+            );
+            return true;
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ??
+                error?.message ??
+                'Unknown error';
+            toast.error(t('client.project_requests.errors.generic', { message }));
+            return false;
+        } finally {
+            setResponding(null);
+        }
+    }, [applyProjectUpdate, locale, t]);
 
     const generateContract = async (projectId: string, clientId: string, providerId: string) => {
         const response = await apiClient.generateProjectContract(projectId, clientId, providerId);
@@ -911,6 +1058,110 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
         ? "min-h-screen bg-white dark:bg-[#070C14]"
         : "bg-transparent";
 
+    const transactionNextStep = ((next_step_url: string) => {
+        window.open(next_step_url, '_blank');
+    });
+
+    const renderEscrowStatusControl = (
+        statusValue: unknown,
+        nextStepUrl: string | null | undefined,
+        audience: 'provider' | 'client'
+    ) => {
+        const status = normalizeStatusValue(statusValue, '');
+        if (!status) {
+            return null;
+        }
+
+        const badgeClassName =
+            "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium";
+
+        const renderBadge = (label: string, className: string) => (
+            <Badge className={`${badgeClassName} ${className}`}>{label}</Badge>
+        );
+
+        switch (status) {
+            case 'PENDING':
+                if (nextStepUrl) {
+                    return (
+                        <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                            onClick={() => transactionNextStep(nextStepUrl)}
+                        >
+                            {t('client.project_requests.escrow.approve')}
+                        </Button>
+                    );
+                }
+                return renderBadge(
+                    t('client.project_requests.escrow.approve'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            case 'AWAITING_PAYMENT':
+                return renderBadge(
+                    t('client.project_requests.escrow.awaiting_payment'),
+                    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200'
+                );
+            case 'FUNDED':
+                return renderBadge(
+                    t('client.project_requests.escrow.funded'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            case 'ACTION_REQUIRED':
+                if (nextStepUrl) {
+                    return (
+                        <Button
+                            size="sm"
+                            className="bg-orange-600 hover:bg-orange-700 text-white shadow-sm"
+                            onClick={() => transactionNextStep(nextStepUrl)}
+                        >
+                            {t('client.project_requests.escrow.action_required')}
+                        </Button>
+                    );
+                }
+                return renderBadge(
+                    t('client.project_requests.escrow.action_required'),
+                    'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-200'
+                );
+            case 'DELIVERED':
+                return renderBadge(
+                    t('client.project_requests.escrow.delivered'),
+                    'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200'
+                );
+            case 'REJECTED':
+                return renderBadge(
+                    t('client.project_requests.escrow.rejected'),
+                    'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
+                );
+            case 'REVISION_REQUIRED':
+                return renderBadge(
+                    t('client.project_requests.escrow.revision_required'),
+                    'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-200'
+                );
+            case 'APPROVED':
+                return renderBadge(
+                    t('client.project_requests.escrow.approved'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            case 'IN_PROGRESS':
+                return renderBadge(
+                    t('client.project_requests.escrow.in_progress'),
+                    'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200'
+                );
+            case 'CANCELLED':
+                return renderBadge(
+                    t('client.project_requests.escrow.cancelled'),
+                    'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-200'
+                );
+            case 'COMPLETED':
+                return renderBadge(
+                    t('client.project_requests.escrow.completed'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <div className={containerClassName}>
             {withLayout ? <Header /> : null}
@@ -1085,7 +1336,12 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                 );
 
                                 return (
-                                    <Card key={project.id} className="glass-card border-transparent shadow-sm">
+                                    <Card
+                                        key={project.id}
+                                        className="glass-card border-transparent shadow-sm transition-shadow"
+                                        data-project-card-id={String(project.id)}
+                                        id={`project-card-${project.id}`}
+                                    >
                                         <CardHeader className="space-y-4">
                                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                                 <div>
@@ -1358,6 +1614,66 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                             (providerMilestonesProposedTotal > 0
                                                                 ? providerMilestonesProposedTotal
                                                                 : null);
+                                                        const providerBudgetProposalReason =
+                                                            normalizeOptionalText(
+                                                                provider?.providerBudgetProposalReason ??
+                                                                provider?.provider_budget_proposal_reason ??
+                                                                provider?.proposalReason ??
+                                                                provider?.pivot?.provider_budget_proposal_reason ??
+                                                                provider?.pivot?.proposalReason
+                                                            );
+                                                        const clientBudgetRejectionReason =
+                                                            normalizeOptionalText(
+                                                                provider?.clientBudgetRejectionReason ??
+                                                                provider?.client_budget_rejection_reason ??
+                                                                provider?.rejectionReason ??
+                                                                provider?.pivot?.client_budget_rejection_reason ??
+                                                                provider?.pivot?.rejectionReason
+                                                            );
+                                                        const providerEscrowTransaction = Array.isArray(project?.escrow_transactions)
+                                                            ? project.escrow_transactions.find((transaction: any) => {
+                                                                const transactionProviderId =
+                                                                    transaction?.provider_id ??
+                                                                    transaction?.providerId ??
+                                                                    null;
+
+                                                                return (
+                                                                    transactionProviderId !== null &&
+                                                                    transactionProviderId !== undefined &&
+                                                                    String(transactionProviderId) === String(provider.id)
+                                                                );
+                                                            }) ?? null
+                                                            : null;
+                                                        const providerTransactionNextStep =
+                                                            providerEscrowTransaction?.client_next_step ??
+                                                            providerEscrowTransaction?.clientNextStep ??
+                                                            null;
+                                                        const providerEscrowTransactionId = normalizeOptionalText(
+                                                            providerEscrowTransaction?.escrow_transaction_id ??
+                                                            providerEscrowTransaction?.escrowTransactionId
+                                                        );
+                                                        const providerEscrowPaymentUrl = providerEscrowTransactionId
+                                                            ? `https://www.escrow-sandbox.com/transactions/${providerEscrowTransactionId}/payment`
+                                                            : null;
+                                                        const providerEscrowStatus = normalizeStatusValue(
+                                                            providerEscrowTransaction?.client_transaction_status ??
+                                                            providerEscrowTransaction?.clientTransactionStatus ??
+                                                            '',
+                                                            ''
+                                                        );
+                                                        const providerMilestoneChangeRequests =
+                                                            getProjectMilestoneChangeRequestsForProvider(
+                                                                project,
+                                                                provider?.id
+                                                            );
+                                                        const standaloneMilestoneChangeRequests =
+                                                            providerMilestoneChangeRequests.filter(
+                                                                (proposal) =>
+                                                                    (proposal?.project_line_milestone_id === null ||
+                                                                        proposal?.project_line_milestone_id === undefined) &&
+                                                                    (proposal?.current_snapshot?.id === null ||
+                                                                        proposal?.current_snapshot?.id === undefined)
+                                                            );
 
                                                         return (
                                                             <div
@@ -1405,7 +1721,18 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         <div className="text-sm text-slate-500 dark:text-[#A3ADC2] mt-2">
                                                                             {t('client.project_requests.providers.allocated')}{' '}
                                                                             {providerAllocatedBudget != null ? (
-                                                                                <PriceDisplay value={providerAllocatedBudget} />
+                                                                                <>
+                                                                                    <PriceDisplay value={providerAllocatedBudget} />
+                                                                                    {providerEscrowStatus ? (
+                                                                                        <div className="mt-2">
+                                                                                            {renderEscrowStatusControl(
+                                                                                                providerEscrowStatus,
+                                                                                                providerTransactionNextStep,
+                                                                                                'client'
+                                                                                            )}
+                                                                                        </div>
+                                                                                    ) : null}
+                                                                                </>
                                                                             ) : (
                                                                                 '-'
                                                                             )}
@@ -1449,6 +1776,14 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                             '-'
                                                                                         )}
                                                                                     </div>
+                                                                                    {providerBudgetProposalReason ? (
+                                                                                        <div className="mt-2 text-sm text-slate-600 dark:text-[#C7D2E3]">
+                                                                                            <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                {t('client.project_requests.budget.provider_reason')}{' '}
+                                                                                            </span>
+                                                                                            {providerBudgetProposalReason}
+                                                                                        </div>
+                                                                                    ) : null}
                                                                                 </div>
                                                                                 <div className="flex flex-wrap gap-2">
                                                                                     <Button
@@ -1470,11 +1805,12 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                         size="sm"
                                                                                         variant="outline"
                                                                                         onClick={() => {
-                                                                                            handleBudgetResponse(
-                                                                                                project.id,
-                                                                                                provider.id,
-                                                                                                'REJECTED'
-                                                                                            );
+                                                                                            setBudgetRejectionDialog({
+                                                                                                projectId: String(project.id),
+                                                                                                providerId: String(provider.id),
+                                                                                            });
+                                                                                            setBudgetRejectionReason('');
+                                                                                            setBudgetRejectionError(null);
                                                                                         }}
                                                                                         disabled={responding === `${project.id}-${provider.id}` || providerBudgetStatus !== 'PROPOSED'}
                                                                                         className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
@@ -1488,6 +1824,23 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                     </Alert>
                                                                 )}
 
+                                                                {providerBudgetStatus === 'REJECTED' && clientBudgetRejectionReason ? (
+                                                                    <Alert className="mt-4 border-red-200 bg-red-50 dark:border-red-500/20 dark:bg-red-500/10">
+                                                                        <XCircle className="h-4 w-4 text-red-600 dark:text-red-300" />
+                                                                        <AlertDescription>
+                                                                            <div className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                {t('client.project_requests.budget.rejected')}
+                                                                            </div>
+                                                                            <div className="mt-1 text-sm text-slate-600 dark:text-[#C7D2E3]">
+                                                                                <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                    {t('client.project_requests.budget.client_rejection_reason')}{' '}
+                                                                                </span>
+                                                                                {clientBudgetRejectionReason}
+                                                                            </div>
+                                                                        </AlertDescription>
+                                                                    </Alert>
+                                                                ) : null}
+
                                                                 {provider.respondedAt && (
                                                                     <div className="mt-3 text-xs text-slate-400 dark:text-[#A3ADC2]">
                                                                         {t('client.project_requests.providers.response_received')} {formatDistanceToNow(new Date(provider.respondedAt), {
@@ -1498,6 +1851,102 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                 )}
 
                                                                 <div className="space-y-2 mt-2">
+                                                                    {standaloneMilestoneChangeRequests.length > 0 ? (
+                                                                        <div className="space-y-2">
+                                                                            {standaloneMilestoneChangeRequests.map((proposal: any) => {
+                                                                                const proposalId = proposal?.id != null ? String(proposal.id) : '';
+                                                                                const proposalStatus = normalizeStatusValue(proposal?.status ?? 'PENDING');
+                                                                                const proposalType = normalizeStatusValue(proposal?.proposal_type ?? '');
+
+                                                                                return (
+                                                                                    <div
+                                                                                        key={proposalId || `${proposalType}-${proposal?.created_at ?? Math.random()}`}
+                                                                                        className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                                                                    >
+                                                                                        <div className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                            {proposal?.title ??
+                                                                                                t('client.project_requests.milestone_change_requests.proposed_new')}
+                                                                                        </div>
+                                                                                        <div className="mt-1 text-slate-600 dark:text-[#C7D2E3]">
+                                                                                            <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                {t('client.project_requests.milestone_change_requests.reason')}:{' '}
+                                                                                            </span>
+                                                                                            {proposal?.reason || '-'}
+                                                                                        </div>
+                                                                                        <div className="mt-2 rounded-md border border-slate-200/80 bg-white/80 p-2 text-xs text-slate-600 dark:border-[#1E2A3D] dark:bg-[#111B2D] dark:text-[#C7D2E3]">
+                                                                                            <div className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                {t('client.project_requests.milestone_change_requests.proposed_new')}
+                                                                                            </div>
+                                                                                            <div className="mt-1">
+                                                                                                {proposal?.title ??
+                                                                                                    t('client.project_requests.milestone_change_requests.untitled')}
+                                                                                            </div>
+                                                                                            {proposal?.description ? (
+                                                                                                <div className="mt-1">
+                                                                                                    {proposal.description}
+                                                                                                </div>
+                                                                                            ) : null}
+                                                                                            {toFiniteNumber(proposal?.amount) != null ? (
+                                                                                                <div className="mt-1">
+                                                                                                    <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                        {t('client.project_requests.milestone_change_requests.amount')}:{' '}
+                                                                                                    </span>
+                                                                                                    <PriceDisplay value={toFiniteNumber(proposal?.amount) ?? 0} />
+                                                                                                </div>
+                                                                                            ) : null}
+                                                                                        </div>
+                                                                                        {proposalStatus === 'PENDING' ? (
+                                                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                                                <Button
+                                                                                                    size="sm"
+                                                                                                    className="btn-primary"
+                                                                                                    onClick={() => {
+                                                                                                        void handleMilestoneProposalResponse(
+                                                                                                            String(project.id),
+                                                                                                            proposalId,
+                                                                                                            'ACCEPTED'
+                                                                                                        );
+                                                                                                    }}
+                                                                                                    disabled={
+                                                                                                        !proposalId ||
+                                                                                                        responding === `${project.id}:${proposalId}:ACCEPTED`
+                                                                                                    }
+                                                                                                >
+                                                                                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                                                                                    {t('client.project_requests.milestone_change_requests.accept')}
+                                                                                                </Button>
+                                                                                                <Button
+                                                                                                    size="sm"
+                                                                                                    variant="outline"
+                                                                                                    className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                                                                                                    onClick={() => {
+                                                                                                        setMilestoneProposalResponseDialog({
+                                                                                                            projectId: String(project.id),
+                                                                                                            proposalId,
+                                                                                                        });
+                                                                                                        setMilestoneProposalResponseReason('');
+                                                                                                        setMilestoneProposalResponseError(null);
+                                                                                                    }}
+                                                                                                    disabled={!proposalId}
+                                                                                                >
+                                                                                                    <XCircle className="w-4 h-4 mr-1" />
+                                                                                                    {t('client.project_requests.milestone_change_requests.reject')}
+                                                                                                </Button>
+                                                                                            </div>
+                                                                                        ) : null}
+                                                                                        {proposalStatus === 'REJECTED' && proposal?.client_reason ? (
+                                                                                            <div className="mt-2 text-sm text-red-600 dark:text-red-300">
+                                                                                                <span className="font-medium">
+                                                                                                    {t('client.project_requests.milestone_change_requests.client_reason')}:{' '}
+                                                                                                </span>
+                                                                                                {proposal.client_reason}
+                                                                                            </div>
+                                                                                        ) : null}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    ) : null}
                                                                     {providerOwnedMilestones.map((milestone: any, index: number) => {
                                                                         const milestoneId = getMilestoneId(milestone);
                                                                         const milestoneStatus = milestoneStatusFor(milestone);
@@ -1522,6 +1971,8 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                         // Se poate securiza doar următorul milestone PENDING al providerului,
                                                                         // iar acesta devine eligibil după finalizarea milestone-ului anterior.
                                                                         const showSecurePaymentBtn =
+                                                                            providerEscrowStatus === 'AWAITING_PAYMENT' &&
+                                                                            Boolean(providerEscrowPaymentUrl) &&
                                                                             !hasMilestoneExceededEscrowPhase &&
                                                                             isPendingPaymentStatus(milestone) &&
                                                                             isMilestoneBudgetApproved(milestone) &&
@@ -1536,11 +1987,24 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                             milestone?.proposed_amount ??
                                                                             milestone?.proposedAmount
                                                                         );
+                                                                        const milestoneChangeRequests = milestoneId != null
+                                                                            ? getProjectMilestoneChangeRequestsForMilestone(
+                                                                                project,
+                                                                                milestoneId
+                                                                            ).filter(
+                                                                                (proposal) =>
+                                                                                    String(proposal?.provider_id ?? '') ===
+                                                                                    String(provider?.id ?? '')
+                                                                            )
+                                                                            : [];
 
                                                                         return (
                                                                             <div
                                                                                 key={milestoneId ?? index}
+                                                                                data-project-milestone-id={milestoneId != null ? String(milestoneId) : undefined}
+                                                                                id={milestoneId != null ? `project-milestone-${String(milestoneId)}` : undefined}
                                                                                 className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-md border p-4 text-sm transition-colors
+    ${highlightedMilestoneId && milestoneIdKey === highlightedMilestoneId ? "ring-2 ring-emerald-200 border-emerald-400 dark:ring-emerald-500/30" : ""}
     ${milestoneStatus === 'PENDING' ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800" : ""}
     ${(milestoneStatus === 'WORK_IN_PROGRESS' || milestoneStatus === 'IN_PROGRESS') ? "bg-sky-50 border-sky-200 dark:bg-sky-900/10 dark:border-sky-800" : ""}
     ${(milestoneStatus === 'FINISHED' || milestoneStatus === 'COMPLETED') ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800" : ""}
@@ -1563,6 +2027,126 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                             </span>
                                                                                         ) : null}
                                                                                     </span>
+                                                                                    {milestoneChangeRequests.length > 0 ? (
+                                                                                        <div className="mt-2 w-full space-y-2">
+                                                                                            {milestoneChangeRequests.map((proposal: any) => {
+                                                                                                const proposalId = proposal?.id != null ? String(proposal.id) : '';
+                                                                                                const proposalStatus = normalizeStatusValue(proposal?.status ?? 'PENDING');
+                                                                                                const proposalType = normalizeStatusValue(proposal?.proposal_type ?? '');
+
+                                                                                                return (
+                                                                                                    <div
+                                                                                                        key={String(proposal?.id ?? `${proposal?.proposal_type}-${proposal?.created_at}`)}
+                                                                                                        className="rounded-md border border-slate-200/80 bg-white/80 p-2 text-xs text-slate-600 dark:border-[#1E2A3D] dark:bg-[#111B2D] dark:text-[#C7D2E3]"
+                                                                                                    >
+                                                                                                        {(proposalType === 'UPDATE' || proposalType === 'DELETE') && proposal?.current_snapshot ? (
+                                                                                                            <div className="mb-2 rounded-md border border-dashed border-slate-200 bg-slate-50/80 p-2 dark:border-[#243246] dark:bg-[#0B1220]">
+                                                                                                                <div className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                                    {t('client.project_requests.milestone_change_requests.before')}
+                                                                                                                </div>
+                                                                                                                <div className="mt-1">
+                                                                                                                    {proposal?.current_snapshot?.title ??
+                                                                                                                        proposal?.milestone_title ??
+                                                                                                                        t('client.project_requests.milestone_change_requests.untitled')}
+                                                                                                                </div>
+                                                                                                                {proposal?.current_snapshot?.description ? (
+                                                                                                                    <div className="mt-1">
+                                                                                                                        {proposal.current_snapshot.description}
+                                                                                                                    </div>
+                                                                                                                ) : null}
+                                                                                                                {toFiniteNumber(proposal?.current_snapshot?.amount) != null ? (
+                                                                                                                    <div className="mt-1">
+                                                                                                                        <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                                            {t('client.project_requests.milestone_change_requests.amount')}:{' '}
+                                                                                                                        </span>
+                                                                                                                        <PriceDisplay value={toFiniteNumber(proposal?.current_snapshot?.amount) ?? 0} />
+                                                                                                                    </div>
+                                                                                                                ) : null}
+                                                                                                            </div>
+                                                                                                        ) : null}
+                                                                                                        {proposalType !== 'DELETE' ? (
+                                                                                                            <div className="mb-2 rounded-md border border-slate-200 bg-slate-50/80 p-2 dark:border-[#243246] dark:bg-[#0B1220]">
+                                                                                                                <div className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                                    {proposalType === 'ADD'
+                                                                                                                        ? t('client.project_requests.milestone_change_requests.proposed_new')
+                                                                                                                        : t('client.project_requests.milestone_change_requests.proposed_changes')}
+                                                                                                                </div>
+                                                                                                                <div className="mt-1">
+                                                                                                                    {proposal?.title ??
+                                                                                                                        proposal?.milestone_title ??
+                                                                                                                        t('client.project_requests.milestone_change_requests.untitled')}
+                                                                                                                </div>
+                                                                                                                {proposal?.description ? (
+                                                                                                                    <div className="mt-1">
+                                                                                                                        {proposal.description}
+                                                                                                                    </div>
+                                                                                                                ) : null}
+                                                                                                                {toFiniteNumber(proposal?.amount) != null ? (
+                                                                                                                    <div className="mt-1">
+                                                                                                                        <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                                            {t('client.project_requests.milestone_change_requests.amount')}:{' '}
+                                                                                                                        </span>
+                                                                                                                        <PriceDisplay value={toFiniteNumber(proposal?.amount) ?? 0} />
+                                                                                                                    </div>
+                                                                                                                ) : null}
+                                                                                                            </div>
+                                                                                                        ) : null}
+                                                                                                        <span className="font-medium text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                                                                                            {t('client.project_requests.milestone_change_requests.reason')}:{' '}
+                                                                                                        </span>
+                                                                                                        {proposal?.reason || '-'}
+                                                                                                        {proposalStatus === 'REJECTED' && proposal?.client_reason ? (
+                                                                                                            <div className="mt-1 text-red-600 dark:text-red-300">
+                                                                                                                <span className="font-medium">
+                                                                                                                    {t('client.project_requests.milestone_change_requests.client_reason')}:{' '}
+                                                                                                                </span>
+                                                                                                                {proposal.client_reason}
+                                                                                                            </div>
+                                                                                                        ) : null}
+                                                                                                        {proposalStatus === 'PENDING' ? (
+                                                                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                                                                <Button
+                                                                                                                    size="sm"
+                                                                                                                    className="btn-primary"
+                                                                                                                    onClick={() => {
+                                                                                                                        void handleMilestoneProposalResponse(
+                                                                                                                            String(project.id),
+                                                                                                                            proposalId,
+                                                                                                                            'ACCEPTED'
+                                                                                                                        );
+                                                                                                                    }}
+                                                                                                                    disabled={
+                                                                                                                        !proposalId ||
+                                                                                                                        responding === `${project.id}:${proposalId}:ACCEPTED`
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                                                                                                    {t('client.project_requests.milestone_change_requests.accept')}
+                                                                                                                </Button>
+                                                                                                                <Button
+                                                                                                                    size="sm"
+                                                                                                                    variant="outline"
+                                                                                                                    className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
+                                                                                                                    onClick={() => {
+                                                                                                                        setMilestoneProposalResponseDialog({
+                                                                                                                            projectId: String(project.id),
+                                                                                                                            proposalId,
+                                                                                                                        });
+                                                                                                                        setMilestoneProposalResponseReason('');
+                                                                                                                        setMilestoneProposalResponseError(null);
+                                                                                                                    }}
+                                                                                                                    disabled={!proposalId}
+                                                                                                                >
+                                                                                                                    <XCircle className="w-4 h-4 mr-1" />
+                                                                                                                    {t('client.project_requests.milestone_change_requests.reject')}
+                                                                                                                </Button>
+                                                                                                            </div>
+                                                                                                        ) : null}
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })}
+                                                                                        </div>
+                                                                                    ) : null}
                                                                                 </div>
 
                                                                                 {/* Partea Dreaptă: Status + Butoane */}
@@ -1604,15 +2188,21 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                                                             </Button>
                                                                                         )}
 
-                                                                                        {/* BUTON SECURE FUNDS (Rapyd) */}
+                                                                                        {/* BUTON SECURE FUNDS (Escrow next step) */}
                                                                                         {showSecurePaymentBtn && (
                                                                                             <div className="flex-1 sm:flex-none">
-                                                                                                <RapydCheckoutButton
-                                                                                                    project={project}
-                                                                                                    milestone={milestone}
-                                                                                                    countryCode="RO"
-                                                                                                    onSuccess={() => window.location.reload()}
-                                                                                                />
+                                                                                                <Button
+                                                                                                    size="sm"
+                                                                                                    className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
+                                                                                                    onClick={() => {
+                                                                                                        if (providerEscrowPaymentUrl) {
+                                                                                                            transactionNextStep(providerEscrowPaymentUrl);
+                                                                                                        }
+                                                                                                    }}
+                                                                                                >
+                                                                                                    <Shield className="w-3.5 h-3.5 mr-2" />
+                                                                                                    {t('client.project_requests.actions.secure_payment')}
+                                                                                                </Button>
                                                                                             </div>
                                                                                         )}
                                                                                         {showDisabledSecurePaymentBtn && (
@@ -1665,24 +2255,24 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                                         )}
                                                     </Button>
                                                 )}
-                                                <div className="flex flex-col gap-2 sm:flex-row">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                    >
-                                                        <Eye className="w-4 h-4 mr-2" />
-                                                        {t('client.project_requests.actions.view_details')}
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"
-                                                    >
-                                                        <MessageSquare className="w-4 h-4 mr-2" />
-                                                        {t('client.project_requests.actions.messages')}
-                                                    </Button>
-                                                </div>
+                                                {/*<div className="flex flex-col gap-2 sm:flex-row">*/}
+                                                {/*    <Button*/}
+                                                {/*        variant="outline"*/}
+                                                {/*        size="sm"*/}
+                                                {/*        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"*/}
+                                                {/*    >*/}
+                                                {/*        <Eye className="w-4 h-4 mr-2" />*/}
+                                                {/*        {t('client.project_requests.actions.view_details')}*/}
+                                                {/*    </Button>*/}
+                                                {/*    <Button*/}
+                                                {/*        variant="outline"*/}
+                                                {/*        size="sm"*/}
+                                                {/*        className="border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1E2A3D] dark:text-[#E6EDF3] dark:hover:bg-[#111B2D]"*/}
+                                                {/*    >*/}
+                                                {/*        <MessageSquare className="w-4 h-4 mr-2" />*/}
+                                                {/*        {t('client.project_requests.actions.messages')}*/}
+                                                {/*    </Button>*/}
+                                                {/*</div>*/}
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -1919,6 +2509,204 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                             </div>
                         )}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(budgetRejectionDialog)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setBudgetRejectionDialog(null);
+                        setBudgetRejectionReason('');
+                        setBudgetRejectionError(null);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {t('client.project_requests.budget.reject_proposal_title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                            {t('client.project_requests.budget.reject_proposal_description')}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="budget-rejection-reason">
+                            {t('client.project_requests.budget.reason_label')}
+                        </Label>
+                        <Textarea
+                            id="budget-rejection-reason"
+                            value={budgetRejectionReason}
+                            onChange={(event) => {
+                                setBudgetRejectionReason(event.target.value);
+                                if (budgetRejectionError) {
+                                    setBudgetRejectionError(null);
+                                }
+                            }}
+                            placeholder={t('client.project_requests.budget.reason_placeholder_rejection')}
+                            rows={4}
+                        />
+                        {budgetRejectionError ? (
+                            <p className="text-sm text-red-600 dark:text-red-300">
+                                {budgetRejectionError}
+                            </p>
+                        ) : null}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setBudgetRejectionDialog(null);
+                                setBudgetRejectionReason('');
+                                setBudgetRejectionError(null);
+                            }}
+                        >
+                            {t('client.project_requests.budget.cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={
+                                !budgetRejectionDialog ||
+                                responding ===
+                                    `${budgetRejectionDialog?.projectId}-${budgetRejectionDialog?.providerId}`
+                            }
+                            onClick={() => {
+                                if (!budgetRejectionDialog) return;
+
+                                const trimmedReason = budgetRejectionReason.trim();
+                                if (!trimmedReason) {
+                                    setBudgetRejectionError(
+                                        t('client.project_requests.budget.reason_required_reject')
+                                    );
+                                    return;
+                                }
+
+                                setBudgetRejectionError(null);
+                                void (async () => {
+                                    const success = await handleBudgetResponse(
+                                        budgetRejectionDialog.projectId,
+                                        budgetRejectionDialog.providerId,
+                                        'REJECTED',
+                                        trimmedReason
+                                    );
+                                    if (success) {
+                                        setBudgetRejectionDialog(null);
+                                        setBudgetRejectionReason('');
+                                    }
+                                })();
+                            }}
+                        >
+                            {responding ===
+                            `${budgetRejectionDialog?.projectId}-${budgetRejectionDialog?.providerId}` ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : null}
+                            {t('client.project_requests.budget.submit_rejection')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(milestoneProposalResponseDialog)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setMilestoneProposalResponseDialog(null);
+                        setMilestoneProposalResponseReason('');
+                        setMilestoneProposalResponseError(null);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-xl mx-auto bg-white dark:bg-[#0B1220] rounded-2xl shadow-2xl border-0 p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                            {t('client.project_requests.milestone_change_requests.reject_title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-slate-500 dark:text-[#A3ADC2]">
+                            {t('client.project_requests.milestone_change_requests.reject_description')}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="milestone-proposal-rejection-reason">
+                            {t('client.project_requests.milestone_change_requests.client_reason')}
+                        </Label>
+                        <Textarea
+                            id="milestone-proposal-rejection-reason"
+                            value={milestoneProposalResponseReason}
+                            onChange={(event) => {
+                                setMilestoneProposalResponseReason(event.target.value);
+                                if (milestoneProposalResponseError) {
+                                    setMilestoneProposalResponseError(null);
+                                }
+                            }}
+                            placeholder={t('client.project_requests.milestone_change_requests.reject_reason_placeholder')}
+                            rows={4}
+                        />
+                        {milestoneProposalResponseError ? (
+                            <p className="text-sm text-red-600 dark:text-red-300">
+                                {milestoneProposalResponseError}
+                            </p>
+                        ) : null}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setMilestoneProposalResponseDialog(null);
+                                setMilestoneProposalResponseReason('');
+                                setMilestoneProposalResponseError(null);
+                            }}
+                        >
+                            {t('client.project_requests.budget.cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={
+                                !milestoneProposalResponseDialog ||
+                                responding ===
+                                    `${milestoneProposalResponseDialog?.projectId}:${milestoneProposalResponseDialog?.proposalId}:REJECTED`
+                            }
+                            onClick={() => {
+                                if (!milestoneProposalResponseDialog) return;
+
+                                const trimmedReason = milestoneProposalResponseReason.trim();
+                                if (!trimmedReason) {
+                                    setMilestoneProposalResponseError(
+                                        t('client.project_requests.milestone_change_requests.reject_reason_required')
+                                    );
+                                    return;
+                                }
+
+                                setMilestoneProposalResponseError(null);
+                                void (async () => {
+                                    const success = await handleMilestoneProposalResponse(
+                                        milestoneProposalResponseDialog.projectId,
+                                        milestoneProposalResponseDialog.proposalId,
+                                        'REJECTED',
+                                        trimmedReason
+                                    );
+                                    if (success) {
+                                        setMilestoneProposalResponseDialog(null);
+                                        setMilestoneProposalResponseReason('');
+                                    }
+                                })();
+                            }}
+                        >
+                            {responding ===
+                            `${milestoneProposalResponseDialog?.projectId}:${milestoneProposalResponseDialog?.proposalId}:REJECTED` ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : null}
+                            {t('client.project_requests.milestone_change_requests.submit_reject')}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

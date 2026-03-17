@@ -1,4 +1,5 @@
 import { apiFetch, FetchError, type ApiFetchOptions } from '@/lib/fetch-client';
+import { normalizeMilestoneChangeRequest } from '@/lib/milestone-change-requests';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://Trustorabe.dacars.ro/api';
 
@@ -65,6 +66,28 @@ export type ProjectProviderBudgetResponsePayload = {
   [key: string]: unknown;
 };
 
+export type MilestoneProposalType = 'ADD' | 'UPDATE' | 'DELETE';
+
+export type ProjectMilestoneProposalInput = {
+  proposal_type: MilestoneProposalType;
+  project_line_id: string | number;
+  project_line_milestone_id?: string | number;
+  title?: string;
+  description?: string | null;
+  amount?: number;
+  percentage?: number;
+  reason?: string;
+};
+
+export type SubmitProjectMilestoneProposalsPayload = {
+  proposals: ProjectMilestoneProposalInput[];
+};
+
+export type RespondToProjectMilestoneProposalPayload = {
+  response: 'ACCEPTED' | 'REJECTED';
+  reason?: string;
+};
+
 export type ReplacementSuggestionsQuery = {
   milestone_ids?: Array<string | number>;
   exclude_provider_id?: string | number;
@@ -83,6 +106,11 @@ export type CreateProjectPayload = {
   budget: number;
   budgetType: 'FIXED' | 'HOURLY';
   paymentPlan?: string;
+  project_terms?: {
+    license_provider: 'CLIENT';
+    allow_open_source: boolean;
+    nda_active: boolean;
+  };
   milestoneCount?: number;
   milestones?: ProviderMilestonePayload[];
   [key: string]: unknown;
@@ -103,6 +131,60 @@ export type GenerateProjectInformationResponse = {
   notes?: string;
 };
 
+export type ProviderServiceCategory = {
+  id: number | null;
+  name: string;
+  slug: string;
+  description: string;
+  icon: string | null;
+  image: string | null;
+  sortOrder: number | null;
+  isActive: boolean;
+  parent_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
+};
+
+export type ProviderServiceDetails = {
+  id: number | null;
+  name: string;
+  slug: string;
+  description: string;
+  programming_language: string;
+  tags: string[];
+  isActive: boolean;
+  category_id: number | null;
+  status: string;
+  isFeatured: boolean;
+  orderCount: number;
+  rating: number | null;
+  reviewCount: number;
+  viewCount: number;
+  favoriteCount: number;
+  price: number | null;
+  delivery_provider: string;
+  vector_synced_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
+  category: ProviderServiceCategory | null;
+};
+
+export type ProviderServiceRecord = {
+  id: number | null;
+  user_id: number | null;
+  service_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  level: string;
+  verified: boolean;
+  rating: number | null;
+  reviewCount: number;
+  provider_project_count: number;
+  service: ProviderServiceDetails | null;
+};
+
 type BudgetPayload = {
   amount: number | null;
   currency: string;
@@ -118,6 +200,20 @@ const toFiniteNumber = (value: unknown): number | null => {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+};
+
+const toBoolean = (value: unknown): boolean => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  }
+  return false;
 };
 
 const normalizeMilestoneStatusInput = (
@@ -166,6 +262,90 @@ const asArray = <T = unknown>(value: unknown): T[] => {
   return Array.isArray(value) ? (value as T[]) : [];
 };
 
+const normalizeProviderServiceCategory = (value: unknown): ProviderServiceCategory | null => {
+  const category = asObject(value);
+  if (!category) {
+    return null;
+  }
+
+  return {
+    id: toFiniteNumber(category.id),
+    name: typeof category.name === 'string' ? category.name : '',
+    slug: typeof category.slug === 'string' ? category.slug : '',
+    description: typeof category.description === 'string' ? category.description : '',
+    icon: typeof category.icon === 'string' && category.icon.trim() ? category.icon : null,
+    image: typeof category.image === 'string' && category.image.trim() ? category.image : null,
+    sortOrder: toFiniteNumber(category.sortOrder ?? category.sort_order),
+    isActive: toBoolean(category.isActive ?? category.is_active),
+    parent_id: toFiniteNumber(category.parent_id),
+    created_at: typeof category.created_at === 'string' ? category.created_at : null,
+    updated_at: typeof category.updated_at === 'string' ? category.updated_at : null,
+    deleted_at: typeof category.deleted_at === 'string' ? category.deleted_at : null,
+  };
+};
+
+const normalizeProviderServiceDetails = (value: unknown): ProviderServiceDetails | null => {
+  const service = asObject(value);
+  if (!service) {
+    return null;
+  }
+
+  const rawTags = Array.isArray(service.tags)
+    ? service.tags
+    : typeof service.tags === 'string'
+      ? service.tags.split(',')
+      : [];
+
+  return {
+    id: toFiniteNumber(service.id),
+    name: typeof service.name === 'string' ? service.name : '',
+    slug: typeof service.slug === 'string' ? service.slug : '',
+    description: typeof service.description === 'string' ? service.description : '',
+    programming_language:
+      typeof service.programming_language === 'string' ? service.programming_language : '',
+    tags: rawTags
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter(Boolean),
+    isActive: toBoolean(service.isActive ?? service.is_active),
+    category_id: toFiniteNumber(service.category_id),
+    status: typeof service.status === 'string' ? service.status : '',
+    isFeatured: toBoolean(service.isFeatured ?? service.is_featured),
+    orderCount: toFiniteNumber(service.orderCount ?? service.order_count) ?? 0,
+    rating: toFiniteNumber(service.rating),
+    reviewCount: toFiniteNumber(service.reviewCount ?? service.review_count) ?? 0,
+    viewCount: toFiniteNumber(service.viewCount ?? service.view_count) ?? 0,
+    favoriteCount: toFiniteNumber(service.favoriteCount ?? service.favorite_count) ?? 0,
+    price: toFiniteNumber(service.price),
+    delivery_provider:
+      typeof service.delivery_provider === 'string' ? service.delivery_provider : '',
+    vector_synced_at:
+      typeof service.vector_synced_at === 'string' ? service.vector_synced_at : null,
+    created_at: typeof service.created_at === 'string' ? service.created_at : null,
+    updated_at: typeof service.updated_at === 'string' ? service.updated_at : null,
+    deleted_at: typeof service.deleted_at === 'string' ? service.deleted_at : null,
+    category: normalizeProviderServiceCategory(service.category),
+  };
+};
+
+const normalizeProviderService = (value: unknown): ProviderServiceRecord => {
+  const record = asObject(value) ?? {};
+
+  return {
+    id: toFiniteNumber(record.id),
+    user_id: toFiniteNumber(record.user_id),
+    service_id: toFiniteNumber(record.service_id),
+    created_at: typeof record.created_at === 'string' ? record.created_at : null,
+    updated_at: typeof record.updated_at === 'string' ? record.updated_at : null,
+    level: typeof record.level === 'string' ? record.level : '',
+    verified: toBoolean(record.verified),
+    rating: toFiniteNumber(record.rating),
+    reviewCount: toFiniteNumber(record.reviewCount ?? record.review_count) ?? 0,
+    provider_project_count:
+      toFiniteNumber(record.provider_project_count ?? record.providerProjectCount) ?? 0,
+    service: normalizeProviderServiceDetails(record.service),
+  };
+};
+
 const normalizeBudgetPayload = (value: unknown): BudgetPayload => {
   const budgetObject = asObject(value);
 
@@ -212,6 +392,9 @@ const normalizeProjectLineMilestone = (value: unknown) => {
     proposed_amount: proposedAmount,
     percentage,
     budget_status: budgetStatus,
+    milestone_change_requests: asArray(milestone.milestone_change_requests).map(
+      normalizeMilestoneChangeRequest
+    ),
     status:
       (typeof milestone.status === 'string' && milestone.status) || 'PENDING',
   };
@@ -272,6 +455,9 @@ const normalizeProjectLine = (value: unknown) => {
     budget_allocation: budgetAllocationAmount,
     budget_percentage: budgetPercentage,
     budget_status: lineBudgetStatusRaw.trim().toUpperCase() || derivedLineBudgetStatus,
+    milestone_change_requests: asArray(line.milestone_change_requests).map(
+      normalizeMilestoneChangeRequest
+    ),
     milestones,
     deliverables,
   };
@@ -383,6 +569,9 @@ const normalizeProjectEntity = (value: unknown) => {
     project_lines: projectLines,
     project_line_milestones: normalizedProjectLineMilestones,
     project_deliverables: normalizedProjectDeliverables,
+    milestone_change_requests: asArray(project.milestone_change_requests).map(
+      normalizeMilestoneChangeRequest
+    ),
     providers: asArray(project.providers),
     selected_providers: asArray(project.selected_providers),
     existing_services: asArray(project.existing_services),
@@ -1344,8 +1533,22 @@ export class ApiClient {
     return this.request<any>(`/tests/${id}`);
   }
 
-  async findByServiceAndLevel(serviceId: string, level: string) {
-    return this.request<any>(`/tests/service/${serviceId}/level/${level}`);
+  async findByServiceAndLevel(serviceId: string, level: string, lang?: string) {
+    return this.request<any>(`/tests/service/${serviceId}/level/${level}`, {
+      params: lang ? { lang } : undefined,
+      skipDefaultParams: true,
+    });
+  }
+
+  async findLevelUpgradeTest(serviceId: string, level: string, lang?: string) {
+    return this.request<any>(`/tests/service/${serviceId}/level-up/${level}`, {
+      params: lang ? { lang } : undefined,
+      skipDefaultParams: true,
+    });
+  }
+
+  async getTestRequestStatus(requestId: string) {
+    return this.request<any>(`/tests/requests/${requestId}`);
   }
 
   async createTest(testData: any) {
@@ -1392,6 +1595,24 @@ export class ApiClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(testData),
+    });
+  }
+
+  async logExamViolation(payload: {
+    testId: string | number;
+    type: 'minor' | 'critical';
+    reason: string;
+  }) {
+    return this.request<any>('/exams/log-violation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        test_id: payload.testId,
+        type: payload.type,
+        reason: payload.reason,
+      }),
     });
   }
 
@@ -1546,7 +1767,16 @@ export class ApiClient {
   }
 
   async getProviderServices(providerId: string) {
-    return this.request<any>(`/users/providers/${providerId}/services`);
+    const response = await this.request<any>(`/users/providers/${providerId}/services`);
+    const services = Array.isArray(response)
+      ? response
+      : Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.services)
+          ? response.services
+          : [];
+
+    return services.map(normalizeProviderService);
   }
 
   async getProviderReviews(providerId: string, params?: {
@@ -1810,13 +2040,107 @@ export class ApiClient {
     const params = new URLSearchParams();
     if (language) params.set('language', language);
     const qs = params.toString();
-    return this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response${qs ? `?${qs}` : ''}`, {
+    const responsePayload = await this.request<any>(`/projects/${projectId}/providers/${providerId}/budget-response${qs ? `?${qs}` : ''}`, {
       method: 'POST',
       body: JSON.stringify(response),
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
+    const project = extractProjectEntity(responsePayload);
+    return project
+      ? {
+          ...(asObject(responsePayload) ?? {}),
+          project: normalizeProjectEntity(project),
+        }
+      : responsePayload;
+  }
+
+  async submitProjectMilestoneProposals(
+    projectId: string | number,
+    payload: SubmitProjectMilestoneProposalsPayload,
+    language?: string
+  ) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    const responsePayload = await this.request<any>(
+      `/projects/${projectId}/milestone-proposals${qs ? `?${qs}` : ''}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          proposals: payload.proposals.map((proposal) => ({
+            proposal_type: proposal.proposal_type,
+            project_line_id: String(proposal.project_line_id),
+            ...(proposal.project_line_milestone_id !== undefined &&
+            proposal.project_line_milestone_id !== null
+              ? { project_line_milestone_id: String(proposal.project_line_milestone_id) }
+              : {}),
+            ...(proposal.title ? { title: proposal.title } : {}),
+            ...(proposal.description !== undefined ? { description: proposal.description } : {}),
+            ...(typeof proposal.amount === 'number' && Number.isFinite(proposal.amount)
+              ? { amount: proposal.amount }
+              : {}),
+            ...(typeof proposal.percentage === 'number' && Number.isFinite(proposal.percentage)
+              ? { percentage: proposal.percentage }
+              : {}),
+            ...(proposal.reason ? { reason: proposal.reason } : {}),
+          })),
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const payloadObject = asObject(responsePayload);
+    const normalizedProposals = asArray(payloadObject?.proposals).map(
+      normalizeMilestoneChangeRequest
+    );
+    const project = extractProjectEntity(responsePayload);
+
+    return {
+      ...(payloadObject ?? {}),
+      ...(normalizedProposals.length > 0 ? { proposals: normalizedProposals } : {}),
+      ...(project ? { project: normalizeProjectEntity(project) } : {}),
+    };
+  }
+
+  async respondToProjectMilestoneProposal(
+    projectId: string | number,
+    proposalId: string | number,
+    payload: RespondToProjectMilestoneProposalPayload,
+    language?: string
+  ) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    const responsePayload = await this.request<any>(
+      `/projects/${projectId}/milestone-proposals/${proposalId}/respond${qs ? `?${qs}` : ''}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          response: payload.response,
+          ...(payload.reason ? { reason: payload.reason } : {}),
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const payloadObject = asObject(responsePayload);
+    const proposal = asObject(payloadObject?.proposal)
+      ? normalizeMilestoneChangeRequest(payloadObject?.proposal)
+      : null;
+    const project = extractProjectEntity(responsePayload);
+
+    return {
+      ...(payloadObject ?? {}),
+      ...(proposal ? { proposal } : {}),
+      ...(project ? { project: normalizeProjectEntity(project) } : {}),
+    };
   }
 
   async getReplacementProviderSuggestions(projectId: string | number, query?: ReplacementSuggestionsQuery) {
@@ -2009,6 +2333,10 @@ export class ApiClient {
     });
   }
 
+  async getUnreadNotificationsCount() {
+    return this.request<any>('/notifications/unread-count');
+  }
+
   async subscribeToNotifications(subscription: PushSubscription, navigator: Navigator) {
     return this.request<any>('/notifications/subscribe', {
       method: 'POST',
@@ -2053,6 +2381,21 @@ export class ApiClient {
       method: 'POST',
       body: JSON.stringify(data)
     });
+  }
+
+  async createEscrowCustomer(language?: string) {
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    const qs = params.toString();
+    return this.request<{ success?: boolean; message?: string; error?: string }>(
+      `/escrow/create-customer${qs ? `?${qs}` : ''}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 
   async rapydOnboarding(language?: string) {

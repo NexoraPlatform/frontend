@@ -10,33 +10,17 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api';
-import { sanitizeNavigationTarget } from '@/lib/navigation-security';
 import { createEchoClient } from '@/lib/echo';
+import {
+    getNotificationActionTranslationKey,
+    getNotificationBadgeTranslationKey,
+    getNotificationTone,
+    normalizeNotification,
+    resolveNotificationLink,
+    shouldRefreshUserForNotification,
+} from '@/lib/notifications';
+import type { AppNotification, RawLaravelNotification } from '@/lib/notifications';
 import { ensurePusherClientConfig } from '@/lib/pusher-config';
-
-type RawLaravelNotification = {
-    id: string;
-    type: string;
-    data?: any;
-    title?: string;
-    message?: string;
-    projectId?: string | number;
-    groupId?: string | number | null;
-    by?: any;
-    payload?: any;
-    created_at?: string;
-    read_at?: string | null;
-};
-
-export type AppNotification = {
-    id: string;
-    type: 'PROJECT_ADDED' | 'ORDER_UPDATE' | 'MESSAGE' | 'PAYMENT' | 'SYSTEM';
-    title: string;
-    message: string;
-    isRead: boolean;
-    createdAt: string;
-    data: any;
-};
 
 type NotificationActor = {
     id?: string;
@@ -72,73 +56,10 @@ type Ctx = {
 
 const NotificationContext = createContext<Ctx | null>(null);
 
-function mapType(laraType: string | undefined, data?: any): AppNotification['type'] {
-    const declared = (data?.type ?? '').toLowerCase();
-    if (declared) {
-        if (declared.startsWith('chat.')) return 'MESSAGE';
-        if (declared === 'project.requested') return 'PROJECT_ADDED';
-        if (declared.startsWith('budget.')) return 'ORDER_UPDATE';
-        if (declared.startsWith('project.')) return 'ORDER_UPDATE';
-        if (declared.startsWith('rapyd.')) return 'PAYMENT';
-    }
-    const cls = (laraType ?? '').split('\\').pop()?.toLowerCase() || '';
-    if (!cls) return 'SYSTEM';
-    if (cls.includes('chat') && (cls.includes('message') || cls.includes('addedtogroup'))) return 'MESSAGE';
-    if (cls.includes('projectproviderrequested') || (cls.includes('project') && cls.includes('requested'))) return 'PROJECT_ADDED';
-    if (cls.includes('rapyd')) return 'PAYMENT';
-    if (cls.includes('budget') || cls.includes('accepted') || cls.includes('rejected') || cls.includes('suggested') || cls.includes('decision')) {
-        return 'ORDER_UPDATE';
-    }
-    return 'SYSTEM';
-}
-
 function toText(value: any): string | undefined {
     if (typeof value !== 'string') return undefined;
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function firstText(...values: any[]): string | undefined {
-    for (const value of values) {
-        const text = toText(value);
-        if (text) return text;
-    }
-    return undefined;
-}
-
-function humanize(value?: string): string | undefined {
-    if (!value) return undefined;
-    const cleaned = value
-        .replace(/[_\.]+/g, ' ')
-        .replace(/([a-z])([A-Z])/g, '$1 $2')
-        .replace(/\s+/g, ' ')
-        .trim();
-    if (!cleaned) return undefined;
-    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
-
-function extractNotificationTitle(data: any): string | undefined {
-    return firstText(data?.title);
-}
-
-function extractNotificationMessage(data: any): string | undefined {
-    return firstText(data?.message);
-}
-
-function normalize(n: RawLaravelNotification): AppNotification {
-    const rawData = n?.data && typeof n.data === 'object' ? n.data : (n as any);
-    const type = mapType(n.type, rawData);
-    const title = extractNotificationTitle(rawData) ?? '';
-    const message = extractNotificationMessage(rawData) ?? '';
-    return {
-        id: String(n.id ?? (rawData as any)?.id ?? ''),
-        type,
-        title: title || humanize(firstText(rawData?.type, rawData?.payload?.type)) || 'Notificare',
-        message: message || '',
-        isRead: !!n.read_at,
-        createdAt: n.created_at ?? (rawData as any)?.created_at ?? new Date().toISOString(),
-        data: rawData ?? {},
-    };
 }
 
 function getInitials(value?: string) {
@@ -325,43 +246,15 @@ function resolveNotificationActor(data: any, currentUserId?: string | number): N
     return normalized[0];
 }
 
-export function resolveNotificationLink(n: Pick<AppNotification, 'type' | 'data'>): string {
-    const link = n.data?.link;
-    const redirectUrl = n.data?.payload?.redirectUrl;
-    const resolvedLink =
-        (typeof link === 'string' && link.length > 0 && link) ||
-        (typeof redirectUrl === 'string' && redirectUrl.length > 0 && redirectUrl) ||
-        null;
-    const safeLink = sanitizeNavigationTarget(resolvedLink);
-    if (safeLink) return safeLink;
-    const projectId = n.data?.projectId ?? n.data?.payload?.projectId;
-    const groupId = n.data?.groupId ?? n.data?.payload?.groupId;
-    if (n.type === 'MESSAGE') {
-        if (groupId) return `/dashboard?tab=messages&groupId=${encodeURIComponent(String(groupId))}`;
-        return '/dashboard?tab=messages';
-    }
-    if (projectId) return `/projects/${projectId}`;
-    if (n.type === 'PAYMENT') return '/dashboard?tab=finance';
-    if (n.type === 'PROJECT_ADDED') return '/projects';
-    if (n.type === 'ORDER_UPDATE') return '/dashboard?tab=orders';
-    return '/dashboard';
-}
-
-const TYPE_LABEL_KEYS: Record<AppNotification['type'], string> = {
-    MESSAGE: 'common.notifications.toast.types.message',
-    PROJECT_ADDED: 'common.notifications.toast.types.project_added',
-    ORDER_UPDATE: 'common.notifications.toast.types.order_update',
-    PAYMENT: 'common.notifications.toast.types.payment',
-    SYSTEM: 'common.notifications.toast.types.system',
-};
-
-const TOAST_ACCENTS: Record<AppNotification['type'], string> = {
-    MESSAGE: 'border-l-4 border-l-[#0B1C2D] dark:border-l-emerald-200',
-    PROJECT_ADDED: 'border-l-4 border-l-[#1BC47D]',
-    ORDER_UPDATE: 'border-l-4 border-l-[#21D19F]',
-    PAYMENT: 'border-l-4 border-l-sky-500',
-    SYSTEM: 'border-l-4 border-l-amber-500',
-};
+const TOAST_ACCENTS = {
+    message: 'border-l-4 border-l-[#0B1C2D] dark:border-l-emerald-200',
+    info: 'border-l-4 border-l-[#1BC47D]',
+    processing: 'border-l-4 border-l-sky-500',
+    funded: 'border-l-4 border-l-[#21D19F]',
+    success: 'border-l-4 border-l-[#1BC47D]',
+    warning: 'border-l-4 border-l-amber-500',
+    system: 'border-l-4 border-l-slate-400 dark:border-l-slate-500',
+} as const;
 
 function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -397,11 +290,11 @@ async function getOrCreateEcho(): Promise<Echo<any> | null> {
     return echoSingletonInitPromise;
 }
 
-const INITIAL_LIMIT = 10;
-const LOAD_MORE_LIMIT = 10;
+const INITIAL_LIMIT = 20;
+const LOAD_MORE_LIMIT = 20;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const t = useTranslations();
     const locale = useLocale();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -420,6 +313,50 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const privateChannelRef = useRef<Channel | null>(null);
     const seenToastIdsRef = useRef<Set<string>>(new Set());
     const lastUserIdRef = useRef<string | null>(null);
+    const notificationLanguage = user?.language ?? locale;
+
+    const mergeNotifications = useCallback((
+        current: AppNotification[],
+        incoming: AppNotification[],
+        prependIncoming = false
+    ) => {
+        if (incoming.length === 0) {
+            return current;
+        }
+
+        const merged = new Map<string, AppNotification>();
+        const ordered = prependIncoming ? [...incoming, ...current] : [...current, ...incoming];
+        ordered.forEach((notification) => {
+            if (!notification?.id) {
+                return;
+            }
+            if (!merged.has(notification.id)) {
+                merged.set(notification.id, notification);
+            }
+        });
+
+        return Array.from(merged.values()).slice(0, 200);
+    }, []);
+
+    const fetchUnreadCount = useCallback(async () => {
+        if (!user) {
+            return;
+        }
+
+        try {
+            const response = await apiClient.getUnreadNotificationsCount();
+            const count = Number(
+                response?.count ??
+                response?.unreadCount ??
+                response?.data?.count ??
+                response?.data?.unreadCount ??
+                0
+            );
+            setUnreadCount(Number.isFinite(count) ? count : 0);
+        } catch {
+            // Ignore badge refresh failures and keep the current value
+        }
+    }, [user]);
 
     const refresh = useCallback(async () => {
         if (!user) return;
@@ -428,17 +365,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         try {
             const res: CursorResponse<RawLaravelNotification> = await apiClient.getNotifications({
                 limit: INITIAL_LIMIT,
-                language: locale,
+                language: notificationLanguage,
             } as any);
             const items = Array.isArray(res.data) ? res.data : [];
-            setNotifications(items.map(normalize));
-            if (typeof res.unreadCount === 'number') setUnreadCount(Number(res.unreadCount));
+            setNotifications(items.map(normalizeNotification));
             setHasMore(!!res.hasMore);
             setNextCursor(res.nextCursor ?? null);
+            await fetchUnreadCount();
         } finally {
             setLoading(false);
         }
-    }, [locale, user]);
+    }, [fetchUnreadCount, notificationLanguage, user]);
 
     const loadMore = useCallback(async () => {
         if (!nextCursor || !hasMore || loadingMore) return;
@@ -447,33 +384,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             const res: CursorResponse<RawLaravelNotification> = await apiClient.getNotifications({
                 limit: LOAD_MORE_LIMIT,
                 cursor: nextCursor,
-                language: locale,
+                language: notificationLanguage,
             } as any);
             const items = Array.isArray(res.data) ? res.data : [];
-            const normalized = items.map(normalize);
-            setNotifications(prev => {
-                const seen = new Set(prev.map(p => p.id));
-                const merged = [...prev];
-                for (const n of normalized) if (!seen.has(n.id)) merged.push(n);
-                return merged;
-            });
-            if (typeof res.unreadCount === 'number') setUnreadCount(Number(res.unreadCount));
+            const normalized = items.map(normalizeNotification);
+            setNotifications(prev => mergeNotifications(prev, normalized));
             setHasMore(!!res.hasMore);
             setNextCursor(res.nextCursor ?? null);
         } finally {
             setLoadingMore(false);
         }
-    }, [nextCursor, hasMore, loadingMore, locale]);
+    }, [hasMore, loadingMore, mergeNotifications, nextCursor, notificationLanguage]);
 
     const markAsRead = useCallback(async (id: string) => {
         await apiClient.markNotificationAsRead(id);
-        setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isRead: true } : n)));
+        setNotifications(prev => prev.map(n => (
+            n.id === id ? { ...n, isRead: true, readAt: n.readAt ?? new Date().toISOString() } : n
+        )));
         setUnreadCount(prev => Math.max(0, prev - 1));
     }, []);
 
     const markAllAsRead = useCallback(async () => {
         await apiClient.markAllNotificationsAsRead();
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        const now = new Date().toISOString();
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true, readAt: n.readAt ?? now })));
         setUnreadCount(0);
     }, []);
 
@@ -494,7 +428,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const avatarSrc = actor?.avatar ?? undefined;
         const titleText = toText(notification.title) ?? '';
         const messageText = toText(notification.message) ?? '';
-        const typeLabel = t(TYPE_LABEL_KEYS[notification.type]);
+        const typeLabel = t(getNotificationBadgeTranslationKey(notification));
         const primaryText = titleText || typeLabel;
         let secondaryText = messageText;
         if (!secondaryText && actorName && actorName !== primaryText) {
@@ -504,8 +438,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
 
         const link = resolveNotificationLink(notification);
-        const accentClass = TOAST_ACCENTS[notification.type] ?? TOAST_ACCENTS.SYSTEM;
-        const viewLabel = t('common.notifications.toast.view');
+        const tone = getNotificationTone(notification);
+        const accentClass = TOAST_ACCENTS[tone] ?? TOAST_ACCENTS.system;
+        const actionKey = getNotificationActionTranslationKey(notification);
+        const viewLabel = actionKey ? t(actionKey) : t('common.notifications.actions.view');
 
         const handleClick = async () => {
             if (!notification.isRead) {
@@ -591,22 +527,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             privateChannelRef.current = ch;
 
             ch.notification((raw: RawLaravelNotification) => {
-                const rawType = String(raw?.type ?? '').toLowerCase();
-                const notificationType = String(raw?.data?.type ?? '').toLowerCase();
-                const n = normalize(raw);
-                setNotifications(prev => {
-                    if (prev.find(x => x.id === n.id)) return prev;
-                    return [n, ...prev].slice(0, 200);
-                });
-                if (!n.isRead) setUnreadCount(prev => prev + 1);
-                showNotificationToast(n);
-
-                if (
-                    notificationType === 'budget.accepted.by_provider' ||
-                    rawType.includes('provideracceptedclientbudget')
-                ) {
-                    void refresh();
+                const notification = normalizeNotification(raw);
+                setNotifications(prev => mergeNotifications(prev, [notification], true));
+                if (!notification.isRead) {
+                    setUnreadCount(prev => prev + 1);
                 }
+                if (shouldRefreshUserForNotification(notification.type)) {
+                    void refreshUser();
+                }
+                showNotificationToast(notification);
+                void fetchUnreadCount();
             });
         })();
 
@@ -617,7 +547,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             }
             privateChannelRef.current = null;
         };
-    }, [refresh, showNotificationToast, user]);
+    }, [fetchUnreadCount, mergeNotifications, refreshUser, showNotificationToast, user]);
 
     const readPushStatus = useCallback(async () => {
         if (!isWebPushSupported) return;
@@ -689,3 +619,6 @@ export function useNotifications(): Ctx {
     if (!ctx) throw new Error('useNotifications must be used within <NotificationProvider>');
     return ctx;
 }
+
+export { resolveNotificationLink };
+export type { AppNotification };

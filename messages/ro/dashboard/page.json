@@ -60,6 +60,7 @@
   },
   "errors": {
     "projects_load_failed": "Nu s-au putut încărca proiectele: {message}",
+    "services_load_failed": "Nu s-au putut încărca serviciile: {message}",
     "generic": "Eroare: {message}"
   },
   "notifications": {
@@ -223,6 +224,36 @@
       "provider": "Gestionează serviciile pe care le oferi",
       "client": "Serviciile pe care le urmărești"
     },
+    "loading": "Se încarcă serviciile tale",
+    "retry": "Reîncearcă",
+    "manage_cta": "Gestionează serviciile",
+    "summary": {
+      "total": "Servicii active",
+      "verified": "Servicii verificate",
+      "categories": "Categorii acoperite",
+      "average_rating": "Rating mediu"
+    },
+    "labels": {
+      "verified": "Verificat",
+      "rating": "Rating",
+      "reviews": "recenzii",
+      "projects": "proiecte",
+      "delivery_provider": "Livrare",
+      "category_fallback": "Categorie neatribuită",
+      "service_fallback": "Serviciu fără nume",
+      "not_rated": "Fără rating încă"
+    },
+    "levels": {
+      "junior": "Junior",
+      "mid": "Mediu",
+      "senior": "Senior",
+      "expert": "Expert"
+    },
+    "upgrade": {
+      "label": "Upgrade nivel",
+      "description": "Poți susține testul pentru a trece de la {current} la {target}.",
+      "cta": "Dă test pentru {level}"
+    },
     "empty": {
       "title": {
         "provider": "Nu oferi încă servicii",
@@ -328,6 +359,26 @@
       "iban": "IBAN",
       "company_address": "Adresă companie",
       "save": "Salvează datele bancare"
+    }
+  },
+  "onboarding_bar": {
+    "company": {
+      "title": "Adaugă detaliile companiei",
+      "description": "Completează datele juridice și bancare ale companiei pentru a continua onboardingul și pentru a activa plățile securizate.",
+      "action": "Deschide detaliile companiei"
+    },
+    "escrow_customer": {
+      "title": "Pornește onboardingul pentru Escrow.com",
+      "description": "Ca să poți folosi plățile prin escrow, trebuie mai întâi să îți creezi profilul de onboarding în Escrow.com.",
+      "action": "Pornește onboardingul",
+      "loading": "Se pornește...",
+      "success": "Onboardingul Escrow.com a fost pornit cu succes.",
+      "error": "Nu am putut porni onboardingul pentru Escrow.com."
+    },
+    "escrow_kyb": {
+      "title": "Finalizează verificarea KYB",
+      "description": "Finalizează verificarea KYB în Escrow.com pentru a termina onboardingul și pentru a putea încasa banii.",
+      "action": "Continuă KYB"
     }
   },
   "actions": {

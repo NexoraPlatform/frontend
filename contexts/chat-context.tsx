@@ -263,7 +263,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const newMessageNotifications = notifications.filter(n => {
             if (seenNotificationIdsRef.current.has(n.id)) return false;
             seenNotificationIdsRef.current.add(n.id);
-            return n.type === 'MESSAGE' && !n.isRead;
+            return n.category === 'message' && !n.isRead;
         });
 
         if (newMessageNotifications.length > 0) {

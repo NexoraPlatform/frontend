@@ -22,6 +22,7 @@ vi.mock('@/lib/navigation', () => ({
 
 vi.mock('@/contexts/notification-context', () => ({
   useNotifications: vi.fn(),
+  resolveNotificationLink: vi.fn(() => '/dashboard?tab=messages'),
 }));
 
 vi.mock('@/contexts/chat-context', () => ({
@@ -50,11 +51,18 @@ describe('Interactive widgets', () => {
       notifications: [
         {
           id: 'n1',
-          type: 'MESSAGE',
+          type: 'chat.message',
           title: 'Hello',
           message: 'World',
           isRead: false,
           createdAt: '2025-01-01T10:00:00Z',
+          readAt: null,
+          category: 'message',
+          projectId: null,
+          payload: {},
+          groupId: null,
+          link: null,
+          notificationType: 'chat.message',
           data: {},
         },
       ],

@@ -22,6 +22,53 @@ export interface ProjectBudget {
   [key: string]: unknown;
 }
 
+export interface ProjectMilestoneChangeRequestCurrentSnapshot {
+  id?: number | string;
+  project_line_id?: number | string;
+  assigned_provider_id?: number | string | null;
+  currency?: string | null;
+  title?: string | null;
+  description?: string | null;
+  percentage?: number | null;
+  amount?: number | null;
+  status?: string | null;
+  budget_status?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ProjectMilestoneChangeRequest {
+  id?: number | string;
+  project_id?: number | string;
+  project_line_id?: number | string | null;
+  project_line_milestone_id?: number | string | null;
+  proposal_type?: string;
+  status?: string;
+  title?: string | null;
+  description?: string | null;
+  percentage?: number | null;
+  amount?: number | null;
+  reason?: string | null;
+  client_reason?: string | null;
+  provider_id?: number | string | null;
+  provider?: {
+    id?: number | string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    avatar?: string | null;
+    rating?: number | null;
+    [key: string]: unknown;
+  } | null;
+  service_id?: number | string | null;
+  service_name?: string | null;
+  delivery_provider?: DeliveryProvider | string | null;
+  milestone_title?: string | null;
+  current_snapshot?: ProjectMilestoneChangeRequestCurrentSnapshot | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  [key: string]: unknown;
+}
+
 export interface ProjectLineMilestone {
   id?: number | string;
   project_line_id?: number | string;
@@ -61,6 +108,7 @@ export interface ProjectLineMilestone {
     | 'COMPLETED'
     | (string & {});
   due_date?: string;
+  milestone_change_requests?: ProjectMilestoneChangeRequest[];
   [key: string]: unknown;
 }
 
@@ -90,6 +138,7 @@ export interface ProjectLine {
   description?: string;
   budget_percentage?: number;
   title?: string;
+  milestone_change_requests?: ProjectMilestoneChangeRequest[];
   [key: string]: unknown;
 }
 
@@ -116,6 +165,7 @@ export interface Project {
   existing_services?: unknown[];
   custom_services?: unknown[];
   milestones?: unknown[];
+  milestone_change_requests?: ProjectMilestoneChangeRequest[];
   service?: Service | null;
   delivery_type?: string;
   delivery_settings?: unknown;

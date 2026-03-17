@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,10 @@ import {
     MessageSquare,
     Loader2,
     Banknote,
-    Shield
+    Shield,
+    Plus,
+    Pencil,
+    Trash2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
@@ -38,9 +41,15 @@ import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
 import { formatDeadline } from '@/lib/projects';
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Locale } from '@/types/locale';
 import { PriceDisplay } from '@/components/PriceDisplay';
-import RapydCheckoutButton from "@/components/RapydCheckoutButton";
+import {
+    getProjectLineForMilestone,
+    getProjectMilestoneChangeRequestsForMilestone,
+    getProjectMilestoneChangeRequestsForProvider,
+} from '@/lib/milestone-change-requests';
 
 interface ProjectRequestCardProps {
     project: any;
@@ -77,9 +86,48 @@ const normalizePositiveBudget = (value: unknown): number | null => {
     if (numeric === null || numeric <= 0) return null;
     return numeric;
 };
+const normalizeOptionalText = (value: unknown): string | null => {
+    if (typeof value !== 'string') {
+        return null;
+    }
 
-export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRequestCardProps) {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+};
+
+type MilestoneProposalDialogState = {
+    mode: 'ADD' | 'UPDATE' | 'DELETE';
+    providerId: string;
+    projectLineId: string;
+    milestoneId: string | null;
+    title: string;
+    description: string;
+    amount: string;
+    reason: string;
+    serviceName: string;
+    milestoneTitle: string;
+    currentSnapshot: any | null;
+};
+
+const createMilestoneProposalDialogState = (
+    config: Partial<MilestoneProposalDialogState> & Pick<MilestoneProposalDialogState, 'mode' | 'providerId' | 'projectLineId'>
+): MilestoneProposalDialogState => ({
+    mode: config.mode,
+    providerId: config.providerId,
+    projectLineId: config.projectLineId,
+    milestoneId: config.milestoneId ?? null,
+    title: config.title ?? '',
+    description: config.description ?? '',
+    amount: config.amount ?? '',
+    reason: config.reason ?? '',
+    serviceName: config.serviceName ?? '',
+    milestoneTitle: config.milestoneTitle ?? '',
+    currentSnapshot: config.currentSnapshot ?? null,
+});
+
+export function ProjectRequestCard({ project: initialProject, onResponse, onRefresh }: ProjectRequestCardProps) {
     const { user, loading } = useAuth();
+    const [project, setProject] = useState(initialProject);
     const [responding, setResponding] = useState<string | null>(null);
     const [updatingMilestoneId, setUpdatingMilestoneId] = useState<string | null>(null);
     const router = useRouter();
@@ -88,6 +136,40 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const dateLocale = locale?.toLowerCase().startsWith('en') ? enUS : ro;
     const [proposeNewBudgetProviderId, setProposeNewBudgetProviderId] = useState<string | null>(null);
     const [newBudget, setNewBudget] = useState<number>(0);
+    const [newBudgetReason, setNewBudgetReason] = useState('');
+    const [newBudgetReasonError, setNewBudgetReasonError] = useState<string | null>(null);
+    const [rejectBudgetProviderId, setRejectBudgetProviderId] = useState<string | null>(null);
+    const [budgetRejectionReason, setBudgetRejectionReason] = useState('');
+    const [budgetRejectionError, setBudgetRejectionError] = useState<string | null>(null);
+    const [milestoneProposalDialog, setMilestoneProposalDialog] = useState<MilestoneProposalDialogState | null>(null);
+    const [milestoneProposalError, setMilestoneProposalError] = useState<string | null>(null);
+    const [milestoneProposalResponseDialog, setMilestoneProposalResponseDialog] = useState<{
+        proposalId: string;
+        projectId: string;
+        proposalType: string;
+    } | null>(null);
+    const [milestoneProposalResponseReason, setMilestoneProposalResponseReason] = useState('');
+    const [milestoneProposalResponseError, setMilestoneProposalResponseError] = useState<string | null>(null);
+    const [submittingMilestoneProposalKey, setSubmittingMilestoneProposalKey] = useState<string | null>(null);
+    const [highlightedMilestoneId, setHighlightedMilestoneId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setProject(initialProject);
+    }, [initialProject]);
+
+    useEffect(() => {
+        if (!highlightedMilestoneId) {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            setHighlightedMilestoneId(null);
+        }, 5000);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [highlightedMilestoneId]);
 
 
 
@@ -96,6 +178,16 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         if (normalized === 'PENDING' || normalized === 'ESCROW' || normalized === 'BLOCKED') return 'work_in_progress';
         if (normalized === 'WORK_IN_PROGRESS' || normalized === 'IN_PROGRESS') return 'finished';
         return null;
+    };
+
+    const applyProjectUpdate = (nextProject: any, options?: { highlightMilestoneId?: string | number | null }) => {
+        if (nextProject && typeof nextProject === 'object') {
+            setProject(nextProject);
+        }
+
+        if (options?.highlightMilestoneId !== null && options?.highlightMilestoneId !== undefined) {
+            setHighlightedMilestoneId(String(options.highlightMilestoneId));
+        }
     };
 
     const handleMarkMilestoneStatus = async (
@@ -109,7 +201,7 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
         const requestMilestoneId = String(milestone);
         setUpdatingMilestoneId(requestMilestoneId);
         try {
-            await apiClient.markProjectMilestone(projectId, {
+            const response = await apiClient.markProjectMilestone(projectId, {
                 milestone: requestMilestoneId,
                 language: locale,
                 currency:
@@ -120,6 +212,11 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                     ).toUpperCase(),
                 status: nextStatus,
             });
+            applyProjectUpdate(
+                response && typeof response === 'object'
+                    ? (response as any)?.project ?? (response as any)?.data ?? response
+                    : null
+            );
             await onRefresh?.();
         } catch (error: any) {
             toast.error(t('client.project_requests.errors.generic', { message: error?.message ?? 'Unknown error' }));
@@ -131,31 +228,192 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
     const handleBudgetResponse = async (
         projectId: string,
         providerId: string,
-        response: 'ACCEPTED' | 'REJECTED'
+        response: 'ACCEPTED' | 'REJECTED',
+        reason?: string
     ) => {
         setResponding(`${projectId}-${providerId}`);
         try {
-            await apiClient.respondToBudgetProposal(
+            const responsePayload = await apiClient.respondToBudgetProposal(
                 projectId,
                 providerId,
                 {
                     response,
-                    ...(response === 'REJECTED'
-                        ? { reason: 'Budget proposal rejected by client' }
+                    ...(response === 'REJECTED' && reason?.trim()
+                        ? { reason: reason.trim() }
                         : {}),
-                },
+                    },
                 locale
             );
+            applyProjectUpdate(responsePayload?.project);
             toast.success(
                 response === 'ACCEPTED'
                     ? t('client.project_requests.budget.approved')
                     : t('client.project_requests.budget.rejected')
             );
-            onRefresh?.();
+            await onRefresh?.();
+            return true;
         } catch (error: any) {
-            toast.error(t('client.project_requests.errors.generic', { message: error.message }));
+            const message =
+                error?.response?.data?.message ??
+                error?.message ??
+                'Unknown error';
+            toast.error(t('client.project_requests.errors.generic', { message }));
+            return false;
         } finally {
             setResponding(null);
+        }
+    };
+
+    const handleSubmitMilestoneProposal = async () => {
+        if (!milestoneProposalDialog) {
+            return;
+        }
+
+        const trimmedReason = milestoneProposalDialog.reason.trim();
+        if (!trimmedReason) {
+            setMilestoneProposalError(t('client.project_requests.milestone_change_requests.reason_required'));
+            return;
+        }
+
+        if (milestoneProposalDialog.mode === 'ADD') {
+            const trimmedTitle = milestoneProposalDialog.title.trim();
+            const normalizedAmount = toFiniteNumber(milestoneProposalDialog.amount);
+            if (!trimmedTitle) {
+                setMilestoneProposalError(t('client.project_requests.milestone_change_requests.title_required'));
+                return;
+            }
+
+            if (normalizedAmount === null) {
+                setMilestoneProposalError(t('client.project_requests.milestone_change_requests.amount_required'));
+                return;
+            }
+        }
+
+        if (milestoneProposalDialog.mode === 'UPDATE') {
+            const currentSnapshot = milestoneProposalDialog.currentSnapshot ?? {};
+            const trimmedTitle = milestoneProposalDialog.title.trim();
+            const trimmedDescription = milestoneProposalDialog.description.trim();
+            const normalizedAmount = toFiniteNumber(milestoneProposalDialog.amount);
+            const currentTitle = normalizeOptionalText(currentSnapshot?.title) ?? '';
+            const currentDescription = normalizeOptionalText(currentSnapshot?.description) ?? '';
+            const currentAmount = toFiniteNumber(currentSnapshot?.amount);
+
+            const hasChanged =
+                trimmedTitle !== currentTitle ||
+                trimmedDescription !== currentDescription ||
+                normalizedAmount !== currentAmount;
+
+            if (!milestoneProposalDialog.milestoneId) {
+                setMilestoneProposalError(t('client.project_requests.milestone_change_requests.invalid_milestone'));
+                return;
+            }
+
+            if (!hasChanged) {
+                setMilestoneProposalError(t('client.project_requests.milestone_change_requests.no_changes'));
+                return;
+            }
+        }
+
+        if (milestoneProposalDialog.mode === 'DELETE' && !milestoneProposalDialog.milestoneId) {
+            setMilestoneProposalError(t('client.project_requests.milestone_change_requests.invalid_milestone'));
+            return;
+        }
+
+        const proposalKey = [
+            project?.id ?? '',
+            milestoneProposalDialog.providerId,
+            milestoneProposalDialog.mode,
+            milestoneProposalDialog.milestoneId ?? milestoneProposalDialog.projectLineId,
+        ].join(':');
+
+        setSubmittingMilestoneProposalKey(proposalKey);
+        try {
+            const responsePayload = await apiClient.submitProjectMilestoneProposals(
+                project.id,
+                {
+                    proposals: [
+                        {
+                            proposal_type: milestoneProposalDialog.mode,
+                            project_line_id: milestoneProposalDialog.projectLineId,
+                            ...(milestoneProposalDialog.milestoneId
+                                ? { project_line_milestone_id: milestoneProposalDialog.milestoneId }
+                                : {}),
+                            ...(milestoneProposalDialog.title.trim()
+                                ? { title: milestoneProposalDialog.title.trim() }
+                                : {}),
+                            ...(milestoneProposalDialog.description.trim()
+                                ? { description: milestoneProposalDialog.description.trim() }
+                                : {}),
+                            ...(toFiniteNumber(milestoneProposalDialog.amount) !== null
+                                ? { amount: toFiniteNumber(milestoneProposalDialog.amount) as number }
+                                : {}),
+                            reason: trimmedReason,
+                        },
+                    ],
+                },
+                locale
+            );
+
+            applyProjectUpdate(responsePayload?.project);
+            toast.success(t('client.project_requests.milestone_change_requests.submitted'));
+            setMilestoneProposalDialog(null);
+            setMilestoneProposalError(null);
+            await onRefresh?.();
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ??
+                error?.message ??
+                'Unknown error';
+            toast.error(t('client.project_requests.errors.generic', { message }));
+        } finally {
+            setSubmittingMilestoneProposalKey(null);
+        }
+    };
+
+    const handleMilestoneProposalResponse = async (
+        projectId: string,
+        proposalId: string,
+        response: 'ACCEPTED' | 'REJECTED',
+        reason?: string
+    ) => {
+        const requestKey = `${projectId}:${proposalId}:${response}`;
+        setSubmittingMilestoneProposalKey(requestKey);
+        try {
+            const responsePayload = await apiClient.respondToProjectMilestoneProposal(
+                projectId,
+                proposalId,
+                {
+                    response,
+                    ...(response === 'REJECTED' && reason?.trim() ? { reason: reason.trim() } : {}),
+                },
+                locale
+            );
+            const appliedMilestoneId =
+                (responsePayload as { applied_milestone_id?: string | number | null })
+                    ?.applied_milestone_id ?? null;
+
+            applyProjectUpdate(responsePayload?.project, {
+                highlightMilestoneId:
+                    response === 'ACCEPTED'
+                        ? appliedMilestoneId
+                        : null,
+            });
+            toast.success(
+                response === 'ACCEPTED'
+                    ? t('client.project_requests.milestone_change_requests.accepted')
+                    : t('client.project_requests.milestone_change_requests.rejected')
+            );
+            await onRefresh?.();
+            return true;
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ??
+                error?.message ??
+                'Unknown error';
+            toast.error(t('client.project_requests.errors.generic', { message }));
+            return false;
+        } finally {
+            setSubmittingMilestoneProposalKey(null);
         }
     };
 
@@ -512,6 +770,22 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             provider_response: providerResponse,
             allocatedBudget,
             proposedBudget,
+            providerBudgetProposalReason:
+                normalizeOptionalText(
+                    providerRaw?.providerBudgetProposalReason ??
+                    providerRaw?.provider_budget_proposal_reason ??
+                    providerRaw?.proposalReason ??
+                    providerRaw?.pivot?.provider_budget_proposal_reason ??
+                    providerRaw?.pivot?.proposalReason
+                ) ?? null,
+            clientBudgetRejectionReason:
+                normalizeOptionalText(
+                    providerRaw?.clientBudgetRejectionReason ??
+                    providerRaw?.client_budget_rejection_reason ??
+                    providerRaw?.rejectionReason ??
+                    providerRaw?.pivot?.client_budget_rejection_reason ??
+                    providerRaw?.pivot?.rejectionReason
+                ) ?? null,
             respondedAt:
                 providerRaw?.respondedAt ??
                 providerRaw?.responded_at ??
@@ -840,6 +1114,38 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             });
     };
 
+    const getProviderProjectLines = (projectData: any, providerData: any) => {
+        const providerId = resolveProviderId(providerData);
+        if (!providerId) {
+            return [];
+        }
+
+        const projectLinesForProvider = Array.isArray(projectData?.project_lines)
+            ? projectData.project_lines
+            : [];
+
+        return projectLinesForProvider.filter((line: any) => {
+            const lineProviders = Array.isArray(line?.providers) ? line.providers : [];
+            const hasDirectProviderMatch = lineProviders.some(
+                (lineProvider: any) => resolveProviderId(lineProvider) === providerId
+            );
+            if (hasDirectProviderMatch) {
+                return true;
+            }
+
+            const lineMilestones = Array.isArray(line?.milestones) ? line.milestones : [];
+            return lineMilestones.some((lineMilestone: any) => {
+                const assignedProviderId =
+                    lineMilestone?.assigned_provider_id ??
+                    lineMilestone?.assignedProviderId ??
+                    lineMilestone?.provider_id ??
+                    lineMilestone?.providerId ??
+                    null;
+                return assignedProviderId !== null && String(assignedProviderId) === providerId;
+            });
+        });
+    };
+
     const projectBudgetAmount = (() => {
         if (project?.budget && typeof project.budget === 'object') {
             return toFiniteNumber((project.budget as { amount?: unknown }).amount);
@@ -864,8 +1170,138 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
             ? 'WORK_IN_PROGRESS'
             : project.status;
 
+    const transactionNextStep = ((next_step_url: string) => {
+        window.open(next_step_url, '_blank');
+    });
+
+    const renderEscrowStatusControl = (
+        statusValue: unknown,
+        nextStepUrl: string | null | undefined,
+        audience: 'provider' | 'client'
+    ) => {
+        const status = normalizeStatusValue(statusValue);
+        if (!status) {
+            return null;
+        }
+
+        const badgeClassName =
+            "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium";
+
+        const renderBadge = (label: string, className: string) => (
+            <Badge className={`${badgeClassName} ${className}`}>{label}</Badge>
+        );
+
+        switch (status) {
+            case 'PENDING':
+                if (nextStepUrl) {
+                    return (
+                        <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                            onClick={() => transactionNextStep(nextStepUrl)}
+                        >
+                            {t('client.project_requests.escrow.approve')}
+                        </Button>
+                    );
+                }
+                return renderBadge(
+                    t('client.project_requests.escrow.approve'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            case 'AWAITING_PAYMENT':
+                if (audience === 'client' && nextStepUrl) {
+                    return (
+                        <Button
+                            size="sm"
+                            className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
+                            onClick={() => transactionNextStep(nextStepUrl)}
+                        >
+                            {t('client.project_requests.escrow.pay')}
+                        </Button>
+                    );
+                }
+                return renderBadge(
+                    t('client.project_requests.escrow.awaiting_payment'),
+                    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200'
+                );
+            case 'FUNDED':
+                return renderBadge(
+                    t('client.project_requests.escrow.funded'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            case 'ACTION_REQUIRED':
+                if (nextStepUrl) {
+                    return (
+                        <Button
+                            size="sm"
+                            className="bg-orange-600 hover:bg-orange-700 text-white shadow-sm"
+                            onClick={() => transactionNextStep(nextStepUrl)}
+                        >
+                            {t('client.project_requests.escrow.action_required')}
+                        </Button>
+                    );
+                }
+                return renderBadge(
+                    t('client.project_requests.escrow.action_required'),
+                    'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-200'
+                );
+            case 'DELIVERED':
+                return renderBadge(
+                    t('client.project_requests.escrow.delivered'),
+                    'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200'
+                );
+            case 'REJECTED':
+                return renderBadge(
+                    t('client.project_requests.escrow.rejected'),
+                    'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
+                );
+            case 'REVISION_REQUIRED':
+                return renderBadge(
+                    t('client.project_requests.escrow.revision_required'),
+                    'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-200'
+                );
+            case 'APPROVED':
+                return renderBadge(
+                    t('client.project_requests.escrow.approved'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            case 'IN_PROGRESS':
+                return renderBadge(
+                    t('client.project_requests.escrow.in_progress'),
+                    'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200'
+                );
+            case 'CANCELLED':
+                return renderBadge(
+                    t('client.project_requests.escrow.cancelled'),
+                    'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-200'
+                );
+            case 'COMPLETED':
+                return renderBadge(
+                    t('client.project_requests.escrow.completed'),
+                    'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                );
+            default:
+                return null;
+        }
+    };
+
+    const activeMilestoneProposalDialogProvider = milestoneProposalDialog
+        ? normalizedProviders.find(
+            (entry: any) => String(entry?.id ?? '') === String(milestoneProposalDialog.providerId)
+        )
+        : null;
+    const milestoneProposalDialogLines = activeMilestoneProposalDialogProvider
+        ? getProviderProjectLines(project, activeMilestoneProposalDialogProvider)
+        : [];
+
     return (
-        <Card key={project.id} className="border-2">
+        <>
+        <Card
+            key={project.id}
+            className="border-2 transition-shadow"
+            data-project-card-id={String(project.id)}
+            id={`project-card-${project.id}`}
+        >
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <div>
@@ -1005,6 +1441,20 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                     : providerMilestonesProposedTotal > 0
                                         ? providerMilestonesProposedTotal
                                         : null;
+                            const providerBudgetProposalReason = normalizeOptionalText(
+                                provider?.providerBudgetProposalReason ??
+                                provider?.provider_budget_proposal_reason ??
+                                provider?.proposalReason ??
+                                provider?.pivot?.provider_budget_proposal_reason ??
+                                provider?.pivot?.proposalReason
+                            );
+                            const clientBudgetRejectionReason = normalizeOptionalText(
+                                provider?.clientBudgetRejectionReason ??
+                                provider?.client_budget_rejection_reason ??
+                                provider?.rejectionReason ??
+                                provider?.pivot?.client_budget_rejection_reason ??
+                                provider?.pivot?.rejectionReason
+                            );
                             const milestoneBudgetStatusFor = (entry: any) =>
                                 normalizeStatusValue(entry?.budget_status ?? entry?.budgetStatus ?? '');
                             const providerMilestoneBudgetStatuses = providerMilestones
@@ -1053,12 +1503,74 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 );
                                 return explicitProviderBudgetStatus || 'PENDING';
                             })();
+                            const providerResponseStatus = normalizeStatusValue(
+                                provider?.provider_response ??
+                                provider?.providerResponse ??
+                                provider?.status ??
+                                project?.status ??
+                                ''
+                            );
+                            const providerEscrowTransaction = Array.isArray(project?.escrow_transactions)
+                                ? project.escrow_transactions.find((transaction: any) => {
+                                    const transactionProviderId =
+                                        transaction?.provider_id ??
+                                        transaction?.providerId ??
+                                        null;
+
+                                    return (
+                                        transactionProviderId !== null &&
+                                        transactionProviderId !== undefined &&
+                                        String(transactionProviderId) === String(provider.id)
+                                    );
+                                }) ?? null
+                                : null;
+                            const providerTransactionNextStep =
+                                providerEscrowTransaction?.provider_next_step ??
+                                providerEscrowTransaction?.providerNextStep ??
+                                null;
+                            const clientEscrowStatus = normalizeStatusValue(
+                                providerEscrowTransaction?.client_transaction_status ??
+                                providerEscrowTransaction?.clientTransactionStatus ??
+                                ''
+                            );
+                            const clientEscrowTransactionId = normalizeOptionalText(
+                                providerEscrowTransaction?.escrow_transaction_id ??
+                                providerEscrowTransaction?.escrowTransactionId
+                            );
+                            const clientEscrowPaymentUrl = clientEscrowTransactionId
+                                ? `https://www.escrow-sandbox.com/transactions/${clientEscrowTransactionId}/payment`
+                                : null;
+                            const providerEscrowStatus = normalizeStatusValue(
+                                providerEscrowTransaction?.provider_transaction_status ??
+                                providerEscrowTransaction?.providerTransactionStatus ??
+                                ''
+                            );
+                            const isProjectFullyApprovedForProvider =
+                                providerResponseStatus === 'ACCEPTED' &&
+                                providerBudgetStatus === 'ACCEPTED';
                             const canClientManageBudgetProposal =
                                 isClientRole && providerBudgetStatus === 'PROPOSED';
                             const canProviderRespondToProject =
                                 isProviderRole &&
                                 isCurrentUserProvider &&
                                 (providerBudgetStatus === 'PENDING' || providerBudgetStatus === 'REJECTED');
+                            const canProviderManageMilestoneChanges =
+                                isProviderRole &&
+                                isCurrentUserProvider &&
+                                !isProjectFullyApprovedForProvider;
+                            const canClientRespondToMilestoneChanges = isClientRole;
+                            const providerProjectLines = getProviderProjectLines(project, provider);
+                            const providerMilestoneChangeRequests = getProjectMilestoneChangeRequestsForProvider(
+                                project,
+                                provider?.id
+                            );
+                            const standaloneMilestoneChangeRequests = providerMilestoneChangeRequests.filter(
+                                (proposal) =>
+                                    (proposal?.project_line_milestone_id === null ||
+                                        proposal?.project_line_milestone_id === undefined) &&
+                                    (proposal?.current_snapshot?.id === null ||
+                                        proposal?.current_snapshot?.id === undefined)
+                            );
                             const milestoneStatusFor = (entry: any) => normalizeStatusValue(entry?.status ?? '');
                             const milestonePaymentStatusFor = (entry: any) => {
                                 const explicitStatus = normalizeStatusValue(
@@ -1158,7 +1670,18 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         <div className="text-sm text-muted-foreground mt-1">
                                             {t('client.project_requests.providers.allocated')}{' '}
                                             {providerBudgetBase != null ? (
-                                                <PriceDisplay value={providerBudgetBase} />
+                                                <>
+                                                    <PriceDisplay value={providerBudgetBase} />
+                                                    {providerEscrowStatus ? (
+                                                        <div className="mt-2 flex justify-end">
+                                                            {renderEscrowStatusControl(
+                                                                providerEscrowStatus,
+                                                                providerTransactionNextStep,
+                                                                'provider'
+                                                            )}
+                                                        </div>
+                                                    ) : null}
+                                                </>
                                             ) : (
                                                 '-'
                                             )}
@@ -1181,12 +1704,14 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => {
-                                                setNewBudget(providerBudgetBase ?? 0);
-                                                setProposeNewBudgetProviderId(provider.id);
-                                            }}
-                                        >
-                                            <Banknote className="w-4 h-4 mr-1" />
+                                        onClick={() => {
+                                            setNewBudget(providerBudgetBase ?? 0);
+                                            setNewBudgetReason('');
+                                            setNewBudgetReasonError(null);
+                                            setProposeNewBudgetProviderId(provider.id);
+                                        }}
+                                    >
+                                        <Banknote className="w-4 h-4 mr-1" />
                                             {providerBudgetStatus === 'REJECTED'
                                                 ? t('client.project_requests.budget.propose_new')
                                                 : t('client.project_requests.budget.propose_new')}
@@ -1217,6 +1742,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                         onOpenChange={(isOpen) => {
                                             if (isOpen) {
                                                 setNewBudget(providerBudgetBase ?? 0);
+                                                setNewBudgetReason('');
+                                                setNewBudgetReasonError(null);
                                             }
                                             setProposeNewBudgetProviderId(isOpen ? provider.id : null);
                                         }}
@@ -1245,6 +1772,27 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         onChange={(e) => setNewBudget(Number(e.target.value))}
                                                     />
                                                 </div>
+                                                <div className="mt-3">
+                                                    <div className="mb-2 text-sm font-medium">
+                                                        {t('client.project_requests.budget.reason_label')}
+                                                    </div>
+                                                    <Textarea
+                                                        value={newBudgetReason}
+                                                        onChange={(event) => {
+                                                            setNewBudgetReason(event.target.value);
+                                                            if (newBudgetReasonError) {
+                                                                setNewBudgetReasonError(null);
+                                                            }
+                                                        }}
+                                                        placeholder={t('client.project_requests.budget.reason_placeholder_new_proposal')}
+                                                        rows={4}
+                                                    />
+                                                    {newBudgetReasonError ? (
+                                                        <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+                                                            {newBudgetReasonError}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
                                             </div>
 
                                             <DialogFooter>
@@ -1254,11 +1802,22 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 <Button
                                                     variant="default"
                                                     onClick={() => {
+                                                        const trimmedReason = newBudgetReason.trim();
+                                                        if (!trimmedReason) {
+                                                            setNewBudgetReasonError(
+                                                                t('client.project_requests.budget.reason_required_new_propose')
+                                                            );
+                                                            return;
+                                                        }
+
                                                         onResponse(String(project.id), {
                                                             response: 'NEW_PROPOSE',
                                                             proposedBudget: newBudget,
+                                                            reason: trimmedReason,
                                                         });
                                                         setProposeNewBudgetProviderId(null);
+                                                        setNewBudgetReason('');
+                                                        setNewBudgetReasonError(null);
                                                     }}
                                                 >
                                                     {t('client.project_requests.budget.save_changes')}
@@ -1291,6 +1850,14 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                             '-'
                                                         )}
                                                     </div>
+                                                    {providerBudgetProposalReason ? (
+                                                        <div className="mt-2 text-sm text-muted-foreground">
+                                                            <span className="font-medium text-foreground">
+                                                                {t('client.project_requests.budget.provider_reason')}{' '}
+                                                            </span>
+                                                            {providerBudgetProposalReason}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                                 <div className="flex space-x-2">
                                                     <Button
@@ -1314,11 +1881,9 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         size="sm"
                                                         variant="destructive"
                                                         onClick={() => {
-                                                            handleBudgetResponse(
-                                                                String(project.id),
-                                                                String(provider.id),
-                                                                'REJECTED'
-                                                            );
+                                                            setRejectBudgetProviderId(String(provider.id));
+                                                            setBudgetRejectionReason('');
+                                                            setBudgetRejectionError(null);
                                                         }}
                                                         disabled={responding === `${project.id}-${provider.id}` || providerBudgetStatus !== 'PROPOSED'}
                                                     >
@@ -1329,6 +1894,103 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                             </div>
                                         </AlertDescription>
                                     </Alert>
+                                )}
+
+                                {providerBudgetStatus === 'REJECTED' && clientBudgetRejectionReason ? (
+                                    <Alert className="mt-3 border-red-200 bg-red-50/70 dark:border-red-500/30 dark:bg-red-500/10">
+                                        <XCircle className="h-4 w-4 text-red-600 dark:text-red-300" />
+                                        <AlertDescription>
+                                            <div className="font-medium">
+                                                {t('client.project_requests.budget.rejected')}
+                                            </div>
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                                <span className="font-medium text-foreground">
+                                                    {t('client.project_requests.budget.client_rejection_reason')}{' '}
+                                                </span>
+                                                {clientBudgetRejectionReason}
+                                            </div>
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
+
+                                {canClientManageBudgetProposal && (
+                                    <Dialog
+                                        open={rejectBudgetProviderId === String(provider.id)}
+                                        onOpenChange={(isOpen) => {
+                                            setRejectBudgetProviderId(isOpen ? String(provider.id) : null);
+                                            setBudgetRejectionReason('');
+                                            setBudgetRejectionError(null);
+                                        }}
+                                    >
+                                        <DialogContent className="max-w-xl">
+                                            <DialogHeader>
+                                                <DialogTitle>{t('client.project_requests.budget.reject_proposal_title')}</DialogTitle>
+                                                <DialogDescription>
+                                                    {t('client.project_requests.budget.reject_proposal_description')}
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-2">
+                                                <div className="text-sm font-medium">
+                                                    {t('client.project_requests.budget.reason_label')}
+                                                </div>
+                                                <Textarea
+                                                    value={budgetRejectionReason}
+                                                    onChange={(event) => {
+                                                        setBudgetRejectionReason(event.target.value);
+                                                        if (budgetRejectionError) {
+                                                            setBudgetRejectionError(null);
+                                                        }
+                                                    }}
+                                                    placeholder={t('client.project_requests.budget.reason_placeholder_rejection')}
+                                                    rows={4}
+                                                />
+                                                {budgetRejectionError ? (
+                                                    <p className="text-sm text-red-600 dark:text-red-300">
+                                                        {budgetRejectionError}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">
+                                                        {t('client.project_requests.budget.cancel')}
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={responding === `${project.id}-${provider.id}`}
+                                                    onClick={() => {
+                                                        const trimmedReason = budgetRejectionReason.trim();
+                                                        if (!trimmedReason) {
+                                                            setBudgetRejectionError(
+                                                                t('client.project_requests.budget.reason_required_reject')
+                                                            );
+                                                            return;
+                                                        }
+
+                                                        void (async () => {
+                                                            const success = await handleBudgetResponse(
+                                                                String(project.id),
+                                                                String(provider.id),
+                                                                'REJECTED',
+                                                                trimmedReason
+                                                            );
+                                                            if (success) {
+                                                                setRejectBudgetProviderId(null);
+                                                                setBudgetRejectionReason('');
+                                                                setBudgetRejectionError(null);
+                                                            }
+                                                        })();
+                                                    }}
+                                                >
+                                                    {responding === `${project.id}-${provider.id}` ? (
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    ) : null}
+                                                    {t('client.project_requests.budget.submit_rejection')}
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
                                 )}
 
                                 {/* Response Time */}
@@ -1343,9 +2005,108 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                 )}
                                 {providerMilestones.length > 0 && (
                                     <div className="mt-4 border-t pt-3">
-                                        <div className="text-sm font-medium mb-2">
-                                            {t('client.project_requests.milestones.title')}
+                                        <div className="mb-2 flex items-center justify-between gap-3">
+                                            <div className="text-sm font-medium">
+                                                {t('client.project_requests.milestones.title')}
+                                            </div>
+                                            {canProviderManageMilestoneChanges && providerProjectLines.length > 0 ? (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        const defaultLine = providerProjectLines[0];
+                                                        setMilestoneProposalDialog(
+                                                            createMilestoneProposalDialogState({
+                                                                mode: 'ADD',
+                                                                providerId: String(provider.id),
+                                                                projectLineId: String(defaultLine?.id ?? ''),
+                                                                serviceName: String(
+                                                                    defaultLine?.service_name ?? defaultLine?.title ?? ''
+                                                                ),
+                                                            })
+                                                        );
+                                                        setMilestoneProposalError(null);
+                                                    }}
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" />
+                                                    {t('client.project_requests.milestone_change_requests.add_action')}
+                                                </Button>
+                                            ) : null}
                                         </div>
+                                        {standaloneMilestoneChangeRequests.length > 0 ? (
+                                            <div className="mb-3 space-y-2">
+                                                {standaloneMilestoneChangeRequests.map((proposal: any) => {
+                                                    const proposalId = proposal?.id != null ? String(proposal.id) : '';
+                                                    const proposalStatus = normalizeStatusValue(proposal?.status ?? 'PENDING');
+                                                    const proposalType = normalizeStatusValue(proposal?.proposal_type ?? '');
+
+                                                    return (
+                                                        <div
+                                                            key={proposalId || `${proposalType}-${proposal?.created_at ?? Math.random()}`}
+                                                            className="rounded-md border border-slate-200 bg-slate-50/60 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                                        >
+                                                            <div className="font-medium text-slate-700 dark:text-slate-200">
+                                                                {proposal?.title ??
+                                                                    t('client.project_requests.milestone_change_requests.proposed_new')}
+                                                            </div>
+                                                            <div className="mt-1 text-muted-foreground">
+                                                                <span className="font-medium text-foreground">
+                                                                    {t('client.project_requests.milestone_change_requests.reason')}:{' '}
+                                                                </span>
+                                                                {proposal?.reason || '-'}
+                                                            </div>
+                                                            {canClientRespondToMilestoneChanges && proposalStatus === 'PENDING' ? (
+                                                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            void handleMilestoneProposalResponse(
+                                                                                String(project.id),
+                                                                                proposalId,
+                                                                                'ACCEPTED'
+                                                                            );
+                                                                        }}
+                                                                        disabled={
+                                                                            !proposalId ||
+                                                                            submittingMilestoneProposalKey ===
+                                                                                `${project.id}:${proposalId}:ACCEPTED`
+                                                                        }
+                                                                    >
+                                                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                                                        {t('client.project_requests.milestone_change_requests.accept')}
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="destructive"
+                                                                        onClick={() => {
+                                                                            setMilestoneProposalResponseDialog({
+                                                                                projectId: String(project.id),
+                                                                                proposalId,
+                                                                                proposalType,
+                                                                            });
+                                                                            setMilestoneProposalResponseReason('');
+                                                                            setMilestoneProposalResponseError(null);
+                                                                        }}
+                                                                        disabled={!proposalId}
+                                                                    >
+                                                                        <XCircle className="w-4 h-4 mr-1" />
+                                                                        {t('client.project_requests.milestone_change_requests.reject')}
+                                                                    </Button>
+                                                                </div>
+                                                            ) : null}
+                                                            {proposalStatus === 'REJECTED' && proposal?.client_reason ? (
+                                                                <div className="mt-2 text-sm text-red-600 dark:text-red-300">
+                                                                    <span className="font-medium">
+                                                                        {t('client.project_requests.milestone_change_requests.client_reason')}:{' '}
+                                                                    </span>
+                                                                    {proposal.client_reason}
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : null}
 
                                         <div className="space-y-2">
                                             {providerMilestones.map((milestone: any, index: number) => {
@@ -1355,6 +2116,8 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                 const hasMilestoneExceededEscrowPhase = isMilestoneBeyondEscrowPhase(milestone);
                                                 const canSecureThisMilestone =
                                                     isClientRole &&
+                                                    clientEscrowStatus === 'AWAITING_PAYMENT' &&
+                                                    Boolean(clientEscrowPaymentUrl) &&
                                                     !hasMilestoneExceededEscrowPhase &&
                                                     isPendingPaymentStatus(milestone) &&
                                                     isMilestoneBudgetApproved(milestone) &&
@@ -1418,14 +2181,101 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                     milestoneId !== null &&
                                                     milestoneId !== undefined &&
                                                     updatingMilestoneId === String(milestoneId);
+                                                const milestoneChangeRequests = milestoneId != null
+                                                    ? getProjectMilestoneChangeRequestsForMilestone(project, milestoneId).filter(
+                                                        (proposal) => String(proposal?.provider_id ?? '') === String(provider?.id ?? '')
+                                                    )
+                                                    : [];
+                                                const projectLineForMilestone = getProjectLineForMilestone(project, milestone);
+                                                const canProviderEditMilestone =
+                                                    canProviderManageMilestoneChanges &&
+                                                    milestoneId != null &&
+                                                    isMilestoneAssignedToCardProvider;
 
                                                 return (
                                                     <div
                                                         key={milestoneId ?? index}
-                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm gap-2 ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? 'bg-green-300' : ''}`}
+                                                        data-project-milestone-id={milestoneId != null ? String(milestoneId) : undefined}
+                                                        id={milestoneId != null ? `project-milestone-${String(milestoneId)}` : undefined}
+                                                        className={`flex items-center justify-between rounded-md border p-2 text-sm gap-2 ${
+                                                            highlightedMilestoneId && milestoneId != null && String(milestoneId) === highlightedMilestoneId
+                                                                ? 'border-emerald-400 ring-2 ring-emerald-200 dark:ring-emerald-500/30'
+                                                                : ''
+                                                        } ${(milestoneStatus === 'PAID' || milestonePaymentStatus === 'PAID') ? 'bg-green-300' : ''}`}
                                                     >
                                                         <div className="flex items-center justify-between gap-6">
-                                                            <span>{milestone.title}</span>
+                                                            <span className="block">
+                                                                <div>{milestone.title}</div>
+                                                                <div className="text-sm text-muted-foreground line-clamp-2">{milestone.description}</div>
+                                                                {milestoneChangeRequests.length > 0 ? (
+                                                                    <div className="mt-2 space-y-2">
+                                                                        {milestoneChangeRequests.map((proposal: any) => {
+                                                                            const proposalId = proposal?.id != null ? String(proposal.id) : '';
+                                                                            const proposalStatus = normalizeStatusValue(proposal?.status ?? 'PENDING');
+                                                                            const proposalType = normalizeStatusValue(proposal?.proposal_type ?? '');
+
+                                                                            return (
+                                                                                <div
+                                                                                    key={String(proposal?.id ?? `${proposal?.proposal_type}-${proposal?.created_at}`)}
+                                                                                    className="rounded-md border border-slate-200/80 bg-white/80 p-2 text-xs text-muted-foreground dark:border-[#1E2A3D] dark:bg-[#111B2D]"
+                                                                                >
+                                                                                    <span className="font-medium text-foreground">
+                                                                                        {t('client.project_requests.milestone_change_requests.reason')}:{' '}
+                                                                                    </span>
+                                                                                    {proposal?.reason || '-'}
+                                                                                    {proposalStatus === 'REJECTED' && proposal?.client_reason ? (
+                                                                                        <div className="mt-1 text-red-600 dark:text-red-300">
+                                                                                            <span className="font-medium">
+                                                                                                {t('client.project_requests.milestone_change_requests.client_reason')}:{' '}
+                                                                                            </span>
+                                                                                            {proposal.client_reason}
+                                                                                        </div>
+                                                                                    ) : null}
+                                                                                    {canClientRespondToMilestoneChanges && proposalStatus === 'PENDING' ? (
+                                                                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                                                            <Button
+                                                                                                size="sm"
+                                                                                                onClick={() => {
+                                                                                                    void handleMilestoneProposalResponse(
+                                                                                                        String(project.id),
+                                                                                                        proposalId,
+                                                                                                        'ACCEPTED'
+                                                                                                    );
+                                                                                                }}
+                                                                                                disabled={
+                                                                                                    !proposalId ||
+                                                                                                    submittingMilestoneProposalKey ===
+                                                                                                        `${project.id}:${proposalId}:ACCEPTED`
+                                                                                                }
+                                                                                            >
+                                                                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                                                                                {t('client.project_requests.milestone_change_requests.accept')}
+                                                                                            </Button>
+                                                                                            <Button
+                                                                                                size="sm"
+                                                                                                variant="destructive"
+                                                                                                onClick={() => {
+                                                                                                    setMilestoneProposalResponseDialog({
+                                                                                                        projectId: String(project.id),
+                                                                                                        proposalId,
+                                                                                                        proposalType,
+                                                                                                    });
+                                                                                                    setMilestoneProposalResponseReason('');
+                                                                                                    setMilestoneProposalResponseError(null);
+                                                                                                }}
+                                                                                                disabled={!proposalId}
+                                                                                            >
+                                                                                                <XCircle className="w-4 h-4 mr-1" />
+                                                                                                {t('client.project_requests.milestone_change_requests.reject')}
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                    ) : null}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : null}
+                                                            </span>
                                                             <span>/</span>
                                                             <span className="font-medium">
                                                                 {t('client.project_requests.providers.milestone_budget')}{' '}
@@ -1440,6 +2290,84 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         <div className="ms-2 flex items-center gap-2">
                                                             {getMilestoneStatusBadge(milestoneStatus)}
                                                         </div>
+                                                        {canProviderEditMilestone ? (
+                                                            <span className="flex items-center gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setMilestoneProposalDialog(
+                                                                            createMilestoneProposalDialogState({
+                                                                                mode: 'UPDATE',
+                                                                                providerId: String(provider.id),
+                                                                                projectLineId: String(
+                                                                                    projectLineForMilestone?.id ??
+                                                                                        milestone?.project_line_id ??
+                                                                                        milestone?.projectLineId ??
+                                                                                        ''
+                                                                                ),
+                                                                                milestoneId: String(milestoneId),
+                                                                                title: String(milestone?.title ?? ''),
+                                                                                description: String(milestone?.description ?? ''),
+                                                                                amount:
+                                                                                    toFiniteNumber(milestone?.amount) != null
+                                                                                        ? String(toFiniteNumber(milestone?.amount))
+                                                                                        : '',
+                                                                                reason: '',
+                                                                                serviceName: String(
+                                                                                    projectLineForMilestone?.service_name ??
+                                                                                        milestone?.service_name ??
+                                                                                        ''
+                                                                                ),
+                                                                                milestoneTitle: String(milestone?.title ?? ''),
+                                                                                currentSnapshot: milestone,
+                                                                            })
+                                                                        );
+                                                                        setMilestoneProposalError(null);
+                                                                    }}
+                                                                >
+                                                                    <Pencil className="w-3.5 h-3.5 mr-1" />
+                                                                    {t('client.project_requests.milestone_change_requests.edit_action')}
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setMilestoneProposalDialog(
+                                                                            createMilestoneProposalDialogState({
+                                                                                mode: 'DELETE',
+                                                                                providerId: String(provider.id),
+                                                                                projectLineId: String(
+                                                                                    projectLineForMilestone?.id ??
+                                                                                        milestone?.project_line_id ??
+                                                                                        milestone?.projectLineId ??
+                                                                                        ''
+                                                                                ),
+                                                                                milestoneId: String(milestoneId),
+                                                                                title: String(milestone?.title ?? ''),
+                                                                                description: String(milestone?.description ?? ''),
+                                                                                amount:
+                                                                                    toFiniteNumber(milestone?.amount) != null
+                                                                                        ? String(toFiniteNumber(milestone?.amount))
+                                                                                        : '',
+                                                                                reason: '',
+                                                                                serviceName: String(
+                                                                                    projectLineForMilestone?.service_name ??
+                                                                                        milestone?.service_name ??
+                                                                                        ''
+                                                                                ),
+                                                                                milestoneTitle: String(milestone?.title ?? ''),
+                                                                                currentSnapshot: milestone,
+                                                                            })
+                                                                        );
+                                                                        setMilestoneProposalError(null);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                                                    {t('client.project_requests.milestone_change_requests.delete_action')}
+                                                                </Button>
+                                                            </span>
+                                                        ) : null}
                                                         {canAdvanceMilestoneStatus && (
                                                             <span>
                                                                 <Button
@@ -1463,14 +2391,18 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                                                         )}
                                                         {canSecureThisMilestone && (
                                                             <span>
-                                                                <RapydCheckoutButton
-                                                                    project={project}
-                                                                    milestone={milestone}
-                                                                    countryCode="RO"
-                                                                    onSuccess={() => {
-                                                                        onRefresh?.();
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
+                                                                    onClick={() => {
+                                                                        if (clientEscrowPaymentUrl) {
+                                                                            transactionNextStep(clientEscrowPaymentUrl);
+                                                                        }
                                                                     }}
-                                                                />
+                                                                >
+                                                                    <Shield className="w-3.5 h-3.5 mr-2" />
+                                                                    {t('client.project_requests.actions.secure_payment')}
+                                                                </Button>
                                                             </span>
                                                         )}
                                                         {showDisabledSecurePaymentButton && (
@@ -1500,23 +2432,347 @@ export function ProjectRequestCard({ project, onResponse, onRefresh }: ProjectRe
                 </div>
 
                 {/* Project Actions */}
-                <div className="flex space-x-3 mt-6 pt-4 border-t">
+                {/*<div className="flex space-x-3 mt-6 pt-4 border-t">*/}
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/projects/${project.slug ?? project.id}`)}
-                        disabled={!project?.slug && !project?.id}
-                    >
-                        <Eye className="w-4 h-4 mr-2" />
-                        {t('client.project_requests.actions.view_details')}
-                    </Button>
-                    <Button variant="outline" size="sm">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        {t('client.project_requests.actions.messages')}
-                    </Button>
-                </div>
+                {/*    <Button*/}
+                {/*        variant="outline"*/}
+                {/*        size="sm"*/}
+                {/*        onClick={() => router.push(`/projects/${project.slug ?? project.id}`)}*/}
+                {/*        disabled={!project?.slug && !project?.id}*/}
+                {/*    >*/}
+                {/*        <Eye className="w-4 h-4 mr-2" />*/}
+                {/*        {t('client.project_requests.actions.view_details')}*/}
+                {/*    </Button>*/}
+                {/*    <Button variant="outline" size="sm">*/}
+                {/*        <MessageSquare className="w-4 h-4 mr-2" />*/}
+                {/*        {t('client.project_requests.actions.messages')}*/}
+                {/*    </Button>*/}
+                {/*</div>*/}
             </CardContent>
         </Card>
+
+        <Dialog
+            open={Boolean(milestoneProposalDialog)}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                    setMilestoneProposalDialog(null);
+                    setMilestoneProposalError(null);
+                }
+            }}
+        >
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>
+                        {milestoneProposalDialog?.mode === 'ADD'
+                            ? t('client.project_requests.milestone_change_requests.add_title')
+                            : milestoneProposalDialog?.mode === 'UPDATE'
+                                ? t('client.project_requests.milestone_change_requests.update_title')
+                                : t('client.project_requests.milestone_change_requests.delete_title')}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {milestoneProposalDialog?.mode === 'ADD'
+                            ? t('client.project_requests.milestone_change_requests.add_description')
+                            : milestoneProposalDialog?.mode === 'UPDATE'
+                                ? t('client.project_requests.milestone_change_requests.update_description')
+                                : t('client.project_requests.milestone_change_requests.delete_description')}
+                    </DialogDescription>
+                </DialogHeader>
+
+                {milestoneProposalDialog ? (
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor={`milestone-proposal-line-${project.id}`}>
+                                {t('client.project_requests.milestone_change_requests.service_label')}
+                            </Label>
+                            <select
+                                id={`milestone-proposal-line-${project.id}`}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={milestoneProposalDialog.projectLineId}
+                                onChange={(event) => {
+                                    const selectedLine = milestoneProposalDialogLines.find(
+                                        (line: any) => String(line?.id ?? '') === event.target.value
+                                    );
+                                    setMilestoneProposalDialog({
+                                        ...milestoneProposalDialog,
+                                        projectLineId: event.target.value,
+                                        serviceName: String(
+                                            selectedLine?.service_name ?? selectedLine?.title ?? ''
+                                        ),
+                                    });
+                                    if (milestoneProposalError) {
+                                        setMilestoneProposalError(null);
+                                    }
+                                }}
+                                disabled={milestoneProposalDialog.mode !== 'ADD'}
+                            >
+                                {milestoneProposalDialogLines.map((line: any) => (
+                                    <option key={String(line?.id ?? '')} value={String(line?.id ?? '')}>
+                                        {line?.service_name ?? line?.title ?? '-'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {milestoneProposalDialog.mode !== 'DELETE' ? (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`milestone-proposal-title-${project.id}`}>
+                                        {t('client.project_requests.milestone_change_requests.title_label')}
+                                    </Label>
+                                    <Input
+                                        id={`milestone-proposal-title-${project.id}`}
+                                        value={milestoneProposalDialog.title}
+                                        onChange={(event) => {
+                                            setMilestoneProposalDialog({
+                                                ...milestoneProposalDialog,
+                                                title: event.target.value,
+                                            });
+                                            if (milestoneProposalError) {
+                                                setMilestoneProposalError(null);
+                                            }
+                                        }}
+                                        placeholder={t('client.project_requests.milestone_change_requests.title_placeholder')}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor={`milestone-proposal-description-${project.id}`}>
+                                        {t('client.project_requests.milestone_change_requests.description_label')}
+                                    </Label>
+                                    <Textarea
+                                        id={`milestone-proposal-description-${project.id}`}
+                                        rows={3}
+                                        value={milestoneProposalDialog.description}
+                                        onChange={(event) => {
+                                            setMilestoneProposalDialog({
+                                                ...milestoneProposalDialog,
+                                                description: event.target.value,
+                                            });
+                                            if (milestoneProposalError) {
+                                                setMilestoneProposalError(null);
+                                            }
+                                        }}
+                                        placeholder={t('client.project_requests.milestone_change_requests.description_placeholder')}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor={`milestone-proposal-amount-${project.id}`}>
+                                        {t('client.project_requests.milestone_change_requests.amount')}
+                                    </Label>
+                                    <Input
+                                        id={`milestone-proposal-amount-${project.id}`}
+                                        type="number"
+                                        min="0"
+                                        value={milestoneProposalDialog.amount}
+                                        onChange={(event) => {
+                                            setMilestoneProposalDialog({
+                                                ...milestoneProposalDialog,
+                                                amount: event.target.value,
+                                            });
+                                            if (milestoneProposalError) {
+                                                setMilestoneProposalError(null);
+                                            }
+                                        }}
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <Alert>
+                                <Trash2 className="h-4 w-4" />
+                                <AlertDescription>
+                                    {t('client.project_requests.milestone_change_requests.delete_confirm', {
+                                        milestone:
+                                            milestoneProposalDialog.milestoneTitle ||
+                                            milestoneProposalDialog.title ||
+                                            t('client.project_requests.milestone_change_requests.untitled'),
+                                    })}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {milestoneProposalDialog.currentSnapshot &&
+                        milestoneProposalDialog.mode !== 'ADD' ? (
+                            <div className="rounded-md border border-dashed border-slate-300 bg-slate-50/60 p-3 text-sm dark:border-[#2A3952] dark:bg-[#111B2D]">
+                                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    {t('client.project_requests.milestone_change_requests.before')}
+                                </div>
+                                <div className="font-medium">
+                                    {milestoneProposalDialog.currentSnapshot?.title ??
+                                        milestoneProposalDialog.milestoneTitle ??
+                                        t('client.project_requests.milestone_change_requests.untitled')}
+                                </div>
+                                {milestoneProposalDialog.currentSnapshot?.description ? (
+                                    <div className="text-muted-foreground">
+                                        {milestoneProposalDialog.currentSnapshot.description}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        <div className="space-y-2">
+                            <Label htmlFor={`milestone-proposal-reason-${project.id}`}>
+                                {t('client.project_requests.milestone_change_requests.reason')}
+                            </Label>
+                            <Textarea
+                                id={`milestone-proposal-reason-${project.id}`}
+                                rows={4}
+                                value={milestoneProposalDialog.reason}
+                                onChange={(event) => {
+                                    setMilestoneProposalDialog({
+                                        ...milestoneProposalDialog,
+                                        reason: event.target.value,
+                                    });
+                                    if (milestoneProposalError) {
+                                        setMilestoneProposalError(null);
+                                    }
+                                }}
+                                placeholder={t('client.project_requests.milestone_change_requests.reason_placeholder')}
+                            />
+                        </div>
+
+                        {milestoneProposalError ? (
+                            <p className="text-sm text-red-600 dark:text-red-300">
+                                {milestoneProposalError}
+                            </p>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">
+                            {t('client.project_requests.budget.cancel')}
+                        </Button>
+                    </DialogClose>
+                    <Button
+                        onClick={() => {
+                            void handleSubmitMilestoneProposal();
+                        }}
+                        disabled={
+                            !milestoneProposalDialog ||
+                            submittingMilestoneProposalKey ===
+                                [
+                                    project?.id ?? '',
+                                    milestoneProposalDialog.providerId,
+                                    milestoneProposalDialog.mode,
+                                    milestoneProposalDialog.milestoneId ?? milestoneProposalDialog.projectLineId,
+                                ].join(':')
+                        }
+                    >
+                        {submittingMilestoneProposalKey ===
+                        (milestoneProposalDialog
+                            ? [
+                                  project?.id ?? '',
+                                  milestoneProposalDialog.providerId,
+                                  milestoneProposalDialog.mode,
+                                  milestoneProposalDialog.milestoneId ??
+                                      milestoneProposalDialog.projectLineId,
+                              ].join(':')
+                            : '') ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : null}
+                        {t('client.project_requests.milestone_change_requests.submit')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            open={Boolean(milestoneProposalResponseDialog)}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                    setMilestoneProposalResponseDialog(null);
+                    setMilestoneProposalResponseReason('');
+                    setMilestoneProposalResponseError(null);
+                }
+            }}
+        >
+            <DialogContent className="max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>
+                        {t('client.project_requests.milestone_change_requests.reject_title')}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t('client.project_requests.milestone_change_requests.reject_description')}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-2">
+                    <Label htmlFor={`milestone-proposal-response-reason-${project.id}`}>
+                        {t('client.project_requests.milestone_change_requests.client_reason')}
+                    </Label>
+                    <Textarea
+                        id={`milestone-proposal-response-reason-${project.id}`}
+                        rows={4}
+                        value={milestoneProposalResponseReason}
+                        onChange={(event) => {
+                            setMilestoneProposalResponseReason(event.target.value);
+                            if (milestoneProposalResponseError) {
+                                setMilestoneProposalResponseError(null);
+                            }
+                        }}
+                        placeholder={t('client.project_requests.milestone_change_requests.reject_reason_placeholder')}
+                    />
+                    {milestoneProposalResponseError ? (
+                        <p className="text-sm text-red-600 dark:text-red-300">
+                            {milestoneProposalResponseError}
+                        </p>
+                    ) : null}
+                </div>
+
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">
+                            {t('client.project_requests.budget.cancel')}
+                        </Button>
+                    </DialogClose>
+                    <Button
+                        variant="destructive"
+                        onClick={() => {
+                            const trimmedReason = milestoneProposalResponseReason.trim();
+                            if (!trimmedReason) {
+                                setMilestoneProposalResponseError(
+                                    t('client.project_requests.milestone_change_requests.reject_reason_required')
+                                );
+                                return;
+                            }
+
+                            if (!milestoneProposalResponseDialog) {
+                                return;
+                            }
+
+                            void (async () => {
+                                const success = await handleMilestoneProposalResponse(
+                                    milestoneProposalResponseDialog.projectId,
+                                    milestoneProposalResponseDialog.proposalId,
+                                    'REJECTED',
+                                    trimmedReason
+                                );
+
+                                if (success) {
+                                    setMilestoneProposalResponseDialog(null);
+                                    setMilestoneProposalResponseReason('');
+                                    setMilestoneProposalResponseError(null);
+                                }
+                            })();
+                        }}
+                        disabled={
+                            !milestoneProposalResponseDialog ||
+                            submittingMilestoneProposalKey ===
+                                `${milestoneProposalResponseDialog.projectId}:${milestoneProposalResponseDialog.proposalId}:REJECTED`
+                        }
+                    >
+                        {submittingMilestoneProposalKey ===
+                        `${milestoneProposalResponseDialog?.projectId}:${milestoneProposalResponseDialog?.proposalId}:REJECTED` ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : null}
+                        {t('client.project_requests.milestone_change_requests.submit_reject')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

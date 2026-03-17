@@ -60,6 +60,7 @@
   },
   "errors": {
     "projects_load_failed": "Couldn't load projects: {message}",
+    "services_load_failed": "Couldn't load services: {message}",
     "generic": "Error: {message}"
   },
   "notifications": {
@@ -223,6 +224,36 @@
       "provider": "Manage the services you offer",
       "client": "The services you're following"
     },
+    "loading": "Loading your services",
+    "retry": "Retry",
+    "manage_cta": "Manage services",
+    "summary": {
+      "total": "Active services",
+      "verified": "Verified services",
+      "categories": "Covered categories",
+      "average_rating": "Average rating"
+    },
+    "labels": {
+      "verified": "Verified",
+      "rating": "Rating",
+      "reviews": "reviews",
+      "projects": "projects",
+      "delivery_provider": "Delivery",
+      "category_fallback": "Uncategorized",
+      "service_fallback": "Untitled service",
+      "not_rated": "No rating yet"
+    },
+    "levels": {
+      "junior": "Junior",
+      "mid": "Mid",
+      "senior": "Senior",
+      "expert": "Expert"
+    },
+    "upgrade": {
+      "label": "Level upgrade",
+      "description": "You can take the test to move from {current} to {target}.",
+      "cta": "Take the {level} test"
+    },
     "empty": {
       "title": {
         "provider": "You don't offer services yet",
@@ -328,6 +359,26 @@
       "iban": "IBAN",
       "company_address": "Company address",
       "save": "Save Bank Details"
+    }
+  },
+  "onboarding_bar": {
+    "company": {
+      "title": "Add your company details",
+      "description": "Complete your company's legal and banking details to continue onboarding and unlock secure payouts.",
+      "action": "Open company details"
+    },
+    "escrow_customer": {
+      "title": "Start your Escrow.com onboarding",
+      "description": "To use escrow payments, you need to create your Escrow.com onboarding profile first.",
+      "action": "Start onboarding",
+      "loading": "Starting...",
+      "success": "Escrow.com onboarding started successfully.",
+      "error": "Failed to start the Escrow.com onboarding."
+    },
+    "escrow_kyb": {
+      "title": "Complete your KYB verification",
+      "description": "Finish the KYB verification on Escrow.com to complete onboarding and to be able to receive funds.",
+      "action": "Continue KYB"
     }
   },
   "actions": {

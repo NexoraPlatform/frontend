@@ -11,6 +11,7 @@ vi.mock('@/contexts/auth-context', () => ({
 vi.mock('@/lib/api', () => ({
   apiClient: {
     getNotifications: vi.fn(),
+    getUnreadNotificationsCount: vi.fn(),
     markNotificationAsRead: vi.fn(),
     markAllNotificationsAsRead: vi.fn(),
     deleteNotification: vi.fn(),
@@ -59,11 +60,13 @@ describe('contexts/notification-context', () => {
   const mockedUseAuth = useAuth as unknown as vi.Mock;
   const mockedApi = apiClient as unknown as {
     getNotifications: vi.Mock;
+    getUnreadNotificationsCount: vi.Mock;
     markNotificationAsRead: vi.Mock;
   };
 
   beforeEach(() => {
-    mockedUseAuth.mockReturnValue({ user: { id: '1' } });
+    mockedUseAuth.mockReturnValue({ user: { id: '1', language: 'ro' }, refreshUser: vi.fn() });
+    mockedApi.getUnreadNotificationsCount.mockResolvedValue({ count: 1 });
   });
 
   afterEach(() => {
@@ -98,6 +101,7 @@ describe('contexts/notification-context', () => {
     expect(result.current.notifications).toHaveLength(1);
     expect(result.current.unreadCount).toBe(1);
     expect(result.current.hasMore).toBe(true);
+    expect(mockedApi.getNotifications).toHaveBeenCalledWith({ limit: 20, language: 'ro' });
   });
 
   it('markAsRead updates item and decrements unreadCount', async () => {
@@ -115,6 +119,7 @@ describe('contexts/notification-context', () => {
       hasMore: false,
       unreadCount: 1,
     });
+    mockedApi.getUnreadNotificationsCount.mockResolvedValueOnce({ count: 1 });
 
     mockedApi.markNotificationAsRead.mockResolvedValueOnce({ ok: true });
 
@@ -172,6 +177,7 @@ describe('contexts/notification-context', () => {
         hasMore: false,
         unreadCount: 2,
       });
+    mockedApi.getUnreadNotificationsCount.mockResolvedValueOnce({ count: 1 });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <NotificationProvider>{children}</NotificationProvider>
