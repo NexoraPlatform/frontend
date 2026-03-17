@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import {useAuth} from '@/contexts/auth-context';
 import {ProjectRequestCard} from '@/components/project-request-card';
-import {apiClient, DashboardStatsResponse, RecentActivityQuick} from '@/lib/api';
+import {apiClient, DashboardStatsResponse, ProviderServiceRecord, RecentActivityQuick} from '@/lib/api';
 import {ensureEcho} from '@/lib/echo';
 import {toast} from 'sonner';
 import {sanitizeExternalRedirectUrl} from '@/lib/navigation-security';
@@ -172,6 +172,9 @@ export default function DashboardClient() {
   const [recentActivities, setRecentActivities] = useState<RecentActivityQuick[]>([]);
   const [loadingRecentActivities, setLoadingRecentActivities] = useState(false);
   const [recentActivitiesError, setRecentActivitiesError] = useState('');
+  const [providerServices, setProviderServices] = useState<ProviderServiceRecord[]>([]);
+  const [loadingProviderServices, setLoadingProviderServices] = useState(false);
+  const [providerServicesError, setProviderServicesError] = useState('');
   const roleSlugs = useMemo(() => {
     const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
     const fromRoles = (rolesList ?? []).map((role: any) => role?.slug).filter(Boolean);
@@ -195,6 +198,7 @@ export default function DashboardClient() {
     }
     return [...BASE_TABS, 'finance'];
   }, [hasRoleInfo, isProvider]);
+  const defaultTab = availableTabs[0] ?? 'overview';
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -246,6 +250,16 @@ export default function DashboardClient() {
     document.title = 'Trustora | Escrow Dashboard';
   }, []);
 
+  const normalizeProviderLevelKey = useCallback((value: string) => {
+    const normalized = value.trim().toUpperCase();
+
+    if (normalized === 'MID' || normalized === 'INTERMEDIATE') {
+      return 'MEDIU';
+    }
+
+    return normalized;
+  }, []);
+
   const parseBalanceAmount = useCallback((value: unknown) => {
     if (value === null || value === undefined) return null;
     const parsed = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
@@ -263,6 +277,116 @@ export default function DashboardClient() {
       return `${new Intl.NumberFormat(locale).format(value)} ${currency}`;
     }
   }, [locale]);
+
+  const formatCompactNumber = useCallback((value: number) => {
+    return new Intl.NumberFormat(locale, {
+      notation: 'compact',
+      maximumFractionDigits: value >= 100 ? 0 : 1,
+    }).format(value);
+  }, [locale]);
+
+  const formatRatingValue = useCallback((value: number | null | undefined) => {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '--';
+    }
+
+    return new Intl.NumberFormat(locale, {
+      minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }, [locale]);
+
+  const formatProviderLevel = useCallback((value: string) => {
+    const normalized = normalizeProviderLevelKey(value);
+
+    if (normalized === 'SENIOR') {
+      return t('dashboard.services.levels.senior');
+    }
+
+    if (normalized === 'MEDIU') {
+      return t('dashboard.services.levels.mid');
+    }
+
+    if (normalized === 'JUNIOR') {
+      return t('dashboard.services.levels.junior');
+    }
+
+    if (normalized === 'EXPERT') {
+      return t('dashboard.services.levels.expert');
+    }
+
+    if (!normalized) {
+      return '--';
+    }
+
+    return normalized
+      .toLowerCase()
+      .split(/[\s_-]+/)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }, [normalizeProviderLevelKey, t]);
+
+  const getNextProviderLevel = useCallback((value: string) => {
+    const orderedLevels = ['JUNIOR', 'MEDIU', 'SENIOR', 'EXPERT'];
+    const normalized = normalizeProviderLevelKey(value);
+    const currentIndex = orderedLevels.indexOf(normalized);
+
+    if (currentIndex < 0 || currentIndex >= orderedLevels.length - 1) {
+      return null;
+    }
+
+    return orderedLevels[currentIndex + 1];
+  }, [normalizeProviderLevelKey]);
+
+  const formatDeliveryProvider = useCallback((value: string) => {
+    const normalized = value.trim().toLowerCase();
+
+    if (!normalized) {
+      return '';
+    }
+
+    if (normalized === 'github') {
+      return 'GitHub';
+    }
+
+    if (normalized === 'gitlab') {
+      return 'GitLab';
+    }
+
+    if (normalized === 'bitbucket') {
+      return 'Bitbucket';
+    }
+
+    return normalized
+      .split(/[\s_-]+/)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }, []);
+
+  const providerServicesSummary = useMemo(() => {
+    const categoryNames = new Set<string>();
+    let ratedServices = 0;
+    let ratingTotal = 0;
+
+    providerServices.forEach((providerService) => {
+      const categoryName = providerService.service?.category?.name?.trim();
+      if (categoryName) {
+        categoryNames.add(categoryName);
+      }
+
+      if (typeof providerService.rating === 'number' && Number.isFinite(providerService.rating)) {
+        ratedServices += 1;
+        ratingTotal += providerService.rating;
+      }
+    });
+
+    return {
+      total: providerServices.length,
+      verified: providerServices.filter((providerService) => providerService.verified).length,
+      categories: categoryNames.size,
+      averageRating: ratedServices > 0 ? ratingTotal / ratedServices : null,
+    };
+  }, [providerServices]);
 
   useEffect(() => {
     selectedWalletIdRef.current = selectedWalletId;
@@ -344,7 +468,14 @@ export default function DashboardClient() {
     }
     const query = params.toString();
     const basePath = pathname || '/dashboard';
-    router.replace(query ? `${basePath}?${query}` : basePath, { scroll: false });
+    const nextUrl = query ? `${basePath}?${query}` : basePath;
+    const currentUrl = searchParams.toString() ? `${basePath}?${searchParams.toString()}` : basePath;
+
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    router.replace(nextUrl, { scroll: false });
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
@@ -354,14 +485,37 @@ export default function DashboardClient() {
 
   useEffect(() => {
     if (userLoading || !user) return;
-    const nextTab = tabParam && availableTabs.includes(tabParam)
-      ? tabParam
-      : availableTabs[0] ?? 'overview';
-    setActiveTab(nextTab);
-    if (tabParam && !availableTabs.includes(tabParam)) {
-      updateTabQuery(nextTab);
+
+    if (tabParam) {
+      if (availableTabs.includes(tabParam)) {
+        setActiveTab((current) => (current === tabParam ? current : tabParam));
+        return;
+      }
+
+      setActiveTab(defaultTab);
+      updateTabQuery(defaultTab);
+      return;
     }
-  }, [tabParam, availableTabs, updateTabQuery, userLoading, user]);
+
+    setActiveTab((current) => (
+      availableTabs.includes(current) ? current : defaultTab
+    ));
+  }, [availableTabs, defaultTab, tabParam, updateTabQuery, userLoading, user]);
+
+  useEffect(() => {
+    if (userLoading || !user) return;
+    if (!availableTabs.includes(activeTab)) return;
+
+    if (activeTab === defaultTab) {
+      return;
+    }
+
+    if (tabParam === activeTab) {
+      return;
+    }
+
+    updateTabQuery(activeTab);
+  }, [activeTab, availableTabs, defaultTab, tabParam, updateTabQuery, user, userLoading]);
 
   useEffect(() => {
     if (activeTab !== 'projects') return;
@@ -437,6 +591,28 @@ export default function DashboardClient() {
     handleTabChange('settings');
     setOpenCompanyInformationsDialog(true);
   }, [handleTabChange]);
+
+  const handleStartLevelUpgradeTest = useCallback((providerService: ProviderServiceRecord) => {
+    const service = providerService.service;
+    const nextLevel = getNextProviderLevel(providerService.level);
+    const serviceId = providerService.service_id ?? service?.id;
+
+    if (!serviceId || !service?.name || !nextLevel) {
+      return;
+    }
+
+    const payload = encodeURIComponent(JSON.stringify({
+      serviceId: String(serviceId),
+      serviceName: service.name,
+      level: nextLevel,
+      currentLevel: normalizeProviderLevelKey(providerService.level),
+      category: service.category?.name ?? '',
+      programming_language: service.programming_language ?? '',
+      flow: 'level_upgrade',
+    }));
+
+    router.push(`/provider/services/tests?data=${payload}`);
+  }, [getNextProviderLevel, normalizeProviderLevelKey, router]);
 
   const handleWalletChange = (walletId: string) => {
     setSelectedWalletId(walletId);
@@ -691,6 +867,30 @@ export default function DashboardClient() {
     }
   }, [locale, t, user]);
 
+  const loadProviderServices = useCallback(async () => {
+    if (!isProvider || !user?.id) {
+      setProviderServices([]);
+      setProviderServicesError('');
+      setLoadingProviderServices(false);
+      return;
+    }
+
+    setLoadingProviderServices(true);
+    setProviderServicesError('');
+    try {
+      const response = await apiClient.getProviderServices(String(user.id));
+      setProviderServices(Array.isArray(response) ? response : []);
+    } catch (error: any) {
+      setProviderServicesError(
+        t('dashboard.errors.services_load_failed', {
+          message: error?.message ?? 'Unknown error',
+        })
+      );
+    } finally {
+      setLoadingProviderServices(false);
+    }
+  }, [isProvider, t, user?.id]);
+
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
     try {
@@ -806,6 +1006,11 @@ export default function DashboardClient() {
     if (!user || activeTab !== 'overview') return;
     loadRecentActivities();
   }, [activeTab, loadRecentActivities, user]);
+
+  useEffect(() => {
+    if (!user || !isProvider || activeTab !== 'services') return;
+    loadProviderServices();
+  }, [activeTab, isProvider, loadProviderServices, user]);
 
 
   useEffect(() => {
@@ -1204,7 +1409,6 @@ export default function DashboardClient() {
   return (
     <Tabs
       value={activeTab}
-      onValueChange={handleTabChange}
       className="flex h-screen w-full overflow-hidden font-sans transition-colors duration-300"
       style={{ ...(currentTheme as React.CSSProperties), backgroundColor: 'var(--bg-main)', color: 'var(--text-main)' } as React.CSSProperties}
     >
@@ -1827,26 +2031,310 @@ export default function DashboardClient() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-12">
-                    <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      {isProvider ? t('dashboard.services.empty.title.provider') : t('dashboard.services.empty.title.client')}
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      {isProvider
-                        ? t('dashboard.services.empty.description.provider')
-                        : t('dashboard.services.empty.description.client')
-                      }
-                    </p>
-                    {isProvider && (
-                      <Button asChild>
-                        <Link href="/provider/services/select">
-                          <Plus className="w-4 h-4 mr-2" />
-                          {t('dashboard.services.empty.cta')}
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
+                  {isProvider ? (
+                    loadingProviderServices ? (
+                      <div className="flex flex-col items-center justify-center py-14 text-center">
+                        <div
+                          className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border"
+                          style={{
+                            borderColor: 'var(--border-color)',
+                            background: 'linear-gradient(135deg, rgba(27, 196, 125, 0.14), rgba(33, 209, 159, 0.04))',
+                          }}
+                        >
+                          <Loader2 className="h-7 w-7 animate-spin" style={{ color: theme.trustAccent }} />
+                        </div>
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                          {t('dashboard.services.loading')}
+                        </h3>
+                        <p className="mt-2 max-w-md text-sm" style={{ color: 'var(--text-muted)' }}>
+                          {t('dashboard.services.description.provider')}
+                        </p>
+                      </div>
+                    ) : providerServicesError ? (
+                      <div className="space-y-4">
+                        <Alert variant="destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{providerServicesError}</AlertDescription>
+                        </Alert>
+                        <Button variant="outline" onClick={() => void loadProviderServices()}>
+                          {t('dashboard.services.retry')}
+                        </Button>
+                      </div>
+                    ) : providerServices.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          {t('dashboard.services.empty.title.provider')}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          {t('dashboard.services.empty.description.provider')}
+                        </p>
+                        <Button asChild>
+                          <Link href="/provider/services/select">
+                            <Plus className="w-4 h-4 mr-2" />
+                            {t('dashboard.services.empty.cta')}
+                          </Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                          <div
+                            className="rounded-2xl border p-4"
+                            style={{
+                              borderColor: 'var(--border-color)',
+                              background: 'linear-gradient(135deg, rgba(27, 196, 125, 0.12), rgba(27, 196, 125, 0.02))',
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                  {t('dashboard.services.summary.total')}
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                  {formatCompactNumber(providerServicesSummary.total)}
+                                </p>
+                              </div>
+                              <Briefcase className="h-5 w-5" style={{ color: theme.trustAccent }} />
+                            </div>
+                          </div>
+                          <div
+                            className="rounded-2xl border p-4"
+                            style={{
+                              borderColor: 'var(--border-color)',
+                              background: 'linear-gradient(135deg, rgba(33, 209, 159, 0.12), rgba(33, 209, 159, 0.02))',
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                  {t('dashboard.services.summary.verified')}
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                  {formatCompactNumber(providerServicesSummary.verified)}
+                                </p>
+                              </div>
+                              <Shield className="h-5 w-5" style={{ color: theme.success }} />
+                            </div>
+                          </div>
+                          <div
+                            className="rounded-2xl border p-4"
+                            style={{
+                              borderColor: 'var(--border-color)',
+                              background: 'linear-gradient(135deg, rgba(245, 166, 35, 0.12), rgba(245, 166, 35, 0.02))',
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                  {t('dashboard.services.summary.categories')}
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                  {formatCompactNumber(providerServicesSummary.categories)}
+                                </p>
+                              </div>
+                              <Layers className="h-5 w-5" style={{ color: theme.warning }} />
+                            </div>
+                          </div>
+                          <div
+                            className="rounded-2xl border p-4"
+                            style={{
+                              borderColor: 'var(--border-color)',
+                              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.02))',
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
+                                  {t('dashboard.services.summary.average_rating')}
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text-main)' }}>
+                                  {formatRatingValue(providerServicesSummary.averageRating)}
+                                </p>
+                              </div>
+                              <Star className="h-5 w-5" style={{ color: '#6366F1' }} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 xl:grid-cols-2">
+                          {providerServices.map((providerService) => {
+                            const service = providerService.service;
+                            const categoryName =
+                              service?.category?.name || t('dashboard.services.labels.category_fallback');
+                            const deliveryProviderLabel = service?.delivery_provider
+                              ? formatDeliveryProvider(service.delivery_provider)
+                              : '';
+                            const nextLevel = getNextProviderLevel(providerService.level);
+
+                            return (
+                              <div
+                                key={providerService.id ?? `${providerService.service_id}-${service?.slug ?? service?.name ?? 'service'}`}
+                                className="rounded-3xl border p-5"
+                                style={{
+                                  borderColor: 'var(--border-color)',
+                                  background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                                }}
+                              >
+                                <div className="flex flex-col gap-4">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                      <h3 className="text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                        {service?.name || t('dashboard.services.labels.service_fallback')}
+                                      </h3>
+                                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                                        {categoryName}
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                      {providerService.verified ? (
+                                        <Badge
+                                          className="border-0"
+                                          style={{ backgroundColor: 'rgba(33, 209, 159, 0.14)', color: theme.success }}
+                                        >
+                                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                          {t('dashboard.services.labels.verified')}
+                                        </Badge>
+                                      ) : null}
+                                      <Badge
+                                        variant="secondary"
+                                        className="border-0"
+                                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-main)' }}
+                                      >
+                                        {formatProviderLevel(providerService.level)}
+                                      </Badge>
+                                    </div>
+                                  </div>
+
+                                  {service?.description ? (
+                                    <p className="text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
+                                      {service.description}
+                                    </p>
+                                  ) : null}
+
+                                  <div className="grid gap-3 sm:grid-cols-3">
+                                    <div
+                                      className="rounded-2xl border p-3"
+                                      style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                    >
+                                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                        <Star className="h-3.5 w-3.5" />
+                                        {t('dashboard.services.labels.rating')}
+                                      </div>
+                                      <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                        {formatRatingValue(providerService.rating)}
+                                      </p>
+                                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                        {providerService.reviewCount > 0
+                                          ? `${formatCompactNumber(providerService.reviewCount)} ${t('dashboard.services.labels.reviews')}`
+                                          : t('dashboard.services.labels.not_rated')}
+                                      </p>
+                                    </div>
+                                    <div
+                                      className="rounded-2xl border p-3"
+                                      style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                    >
+                                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                        <Briefcase className="h-3.5 w-3.5" />
+                                        {t('dashboard.services.labels.projects')}
+                                      </div>
+                                      <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                        {formatCompactNumber(providerService.provider_project_count)}
+                                      </p>
+                                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                        {t('dashboard.services.labels.projects')}
+                                      </p>
+                                    </div>
+                                    <div
+                                      className="rounded-2xl border p-3"
+                                      style={{ borderColor: 'var(--border-color)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                    >
+                                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                        <Layers className="h-3.5 w-3.5" />
+                                        {t('dashboard.services.labels.delivery_provider')}
+                                      </div>
+                                      <p className="mt-2 text-lg font-semibold" style={{ color: 'var(--text-main)' }}>
+                                        {deliveryProviderLabel || '--'}
+                                      </p>
+                                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                        {formatProviderLevel(providerService.level)}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {service?.tags?.length ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      {service.tags.map((tag) => (
+                                        <Badge
+                                          key={`${providerService.id}-${tag}`}
+                                          variant="outline"
+                                          className="rounded-full px-3 py-1"
+                                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                                        >
+                                          #{tag}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  ) : null}
+
+                                  {nextLevel ? (
+                                    <div
+                                      className="flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                                      style={{
+                                        borderColor: 'var(--border-color)',
+                                        backgroundColor: 'rgba(27, 196, 125, 0.05)',
+                                      }}
+                                    >
+                                      <div className="space-y-1">
+                                        <p className="text-xs font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+                                          {t('dashboard.services.upgrade.label')}
+                                        </p>
+                                        <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>
+                                          {t('dashboard.services.upgrade.description', {
+                                            current: formatProviderLevel(providerService.level),
+                                            target: formatProviderLevel(nextLevel),
+                                          })}
+                                        </p>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handleStartLevelUpgradeTest(providerService)}
+                                      >
+                                        <ArrowUp className="mr-2 h-4 w-4" />
+                                        {t('dashboard.services.upgrade.cta', {
+                                          level: formatProviderLevel(nextLevel),
+                                        })}
+                                      </Button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button asChild variant="outline">
+                            <Link href="/provider/services/select">
+                              <Plus className="w-4 h-4 mr-2" />
+                              {t('dashboard.services.manage_cta')}
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <div className="text-center py-12">
+                      <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">
+                        {t('dashboard.services.empty.title.client')}
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        {t('dashboard.services.empty.description.client')}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

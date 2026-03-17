@@ -138,13 +138,23 @@ const extractBriefResultId = (value: unknown): number | string | null => {
     return null;
   }
 
-  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+  const source =
+    toObject(root.result) ??
+    toObject(root.result_payload) ??
+    toObject(root.data) ??
+    root;
   const sourceResponsePayload = toObject(source.response_payload);
   const rootResponsePayload = toObject(root.response_payload);
+  const sourceResultPayload = toObject(source.result_payload);
+  const rootResultPayload = toObject(root.result_payload);
   const sourceDebug = toObject(source.debug);
   const rootDebug = toObject(root.debug);
+  const sourceDebugPayload = toObject(source.debug_payload);
+  const rootDebugPayload = toObject(root.debug_payload);
   const sourceDebugResponsePayload = toObject(sourceDebug?.response_payload);
   const rootDebugResponsePayload = toObject(rootDebug?.response_payload);
+  const sourceDebugResultRaw = toObject(sourceDebugPayload?.result_raw);
+  const rootDebugResultRaw = toObject(rootDebugPayload?.result_raw);
   const candidate =
     source.brief_result_id ??
     root.brief_result_id ??
@@ -152,8 +162,12 @@ const extractBriefResultId = (value: unknown): number | string | null => {
     root.id ??
     sourceResponsePayload?.brief_result_id ??
     rootResponsePayload?.brief_result_id ??
+    sourceResultPayload?.brief_result_id ??
+    rootResultPayload?.brief_result_id ??
     sourceDebugResponsePayload?.brief_result_id ??
-    rootDebugResponsePayload?.brief_result_id;
+    rootDebugResponsePayload?.brief_result_id ??
+    sourceDebugResultRaw?.brief_result_id ??
+    rootDebugResultRaw?.brief_result_id;
 
   if (typeof candidate === 'number' && Number.isFinite(candidate)) {
     return candidate;
@@ -280,16 +294,40 @@ const normalizeTeamStructure = (
         .replace(/\n+/g, ' ')
         .trim();
       const count = toNumber(teamItem.count);
+      const percentage = toNumber(teamItem.percentage);
       const estimatedCost = toNumber(teamItem.estimated_cost);
+      const rawServiceId = teamItem.service_id ?? teamItem.serviceId;
+      const serviceId =
+        typeof rawServiceId === 'string' || typeof rawServiceId === 'number'
+          ? rawServiceId
+          : undefined;
+      const deliveryProvider = normalizeTextForTextarea(
+        toString(teamItem.delivery_provider ?? teamItem.deliveryProvider)
+      )
+        .replace(/\n+/g, ' ')
+        .trim();
+      const description = normalizeTextForTextarea(toString(teamItem.description)).trim();
 
+      if (serviceId !== undefined) {
+        normalizedItem.service_id = serviceId;
+      }
       if (service) {
         normalizedItem.service = service;
+      }
+      if (deliveryProvider) {
+        normalizedItem.delivery_provider = deliveryProvider as AiTeamStructureItem['delivery_provider'];
+      }
+      if (description) {
+        normalizedItem.description = description;
       }
       if (level) {
         normalizedItem.level = level;
       }
       if (count !== null) {
         normalizedItem.count = count;
+      }
+      if (percentage !== null) {
+        normalizedItem.percentage = percentage;
       }
       if (estimatedCost !== null) {
         normalizedItem.estimated_cost = estimatedCost;
@@ -323,6 +361,22 @@ const normalizeMilestones = (briefPayload: Record<string, unknown>): AiMilestone
       const description = normalizeTextForTextarea(toString(milestone.description));
       const percentage = toNumber(milestone.percentage);
       const amount = toNumber(milestone.amount);
+      const durationDays = toNumber(milestone.duration_days ?? milestone.durationDays);
+      const rawServiceId = milestone.service_id ?? milestone.serviceId;
+      const serviceId =
+        typeof rawServiceId === 'string' || typeof rawServiceId === 'number'
+          ? rawServiceId
+          : undefined;
+      const serviceName = normalizeTextForTextarea(
+        toString(milestone.service_name ?? milestone.serviceName ?? milestone.service)
+      )
+        .replace(/\n+/g, ' ')
+        .trim();
+      const deliveryProvider = normalizeTextForTextarea(
+        toString(milestone.delivery_provider ?? milestone.deliveryProvider ?? milestone.provider)
+      )
+        .replace(/\n+/g, ' ')
+        .trim();
 
       if (description) {
         normalizedMilestone.description = description;
@@ -332,6 +386,19 @@ const normalizeMilestones = (briefPayload: Record<string, unknown>): AiMilestone
       }
       if (amount !== null) {
         normalizedMilestone.amount = amount;
+      }
+      if (durationDays !== null) {
+        normalizedMilestone.duration_days = durationDays;
+      }
+      if (serviceId !== undefined) {
+        normalizedMilestone.service_id = serviceId;
+      }
+      if (serviceName) {
+        normalizedMilestone.service_name = serviceName;
+      }
+      if (deliveryProvider) {
+        normalizedMilestone.delivery_provider =
+          deliveryProvider as AiMilestoneItem['delivery_provider'];
       }
 
       return normalizedMilestone;
@@ -815,7 +882,10 @@ const normalizeBriefGeneratedPayload = (payload: unknown): AiBriefBuilderRespons
     return null;
   }
 
-  const nestedResult = toObject(root.result) ?? toObject(root.data);
+  const nestedResult =
+    toObject(root.result) ??
+    toObject(root.result_payload) ??
+    toObject(root.data);
   const source = nestedResult ?? root;
   const status = toBriefStatus(source.status ?? root.status);
   const rawQuestions = source.questions ?? root.questions;
@@ -1024,7 +1094,7 @@ export default function BriefCopilot({
   );
 
   const fetchBriefResultById = useCallback(async (briefResultId: number | string) => {
-    const payload = await aiService.getBriefBuilderResult(briefResultId);
+    const payload = await aiService.getFinalBriefResult(briefResultId);
     return normalizeBriefGeneratedPayload(payload);
   }, []);
 

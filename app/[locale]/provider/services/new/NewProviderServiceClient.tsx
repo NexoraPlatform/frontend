@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,14 +21,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
-import { hasRole } from '@/lib/access';
+import { getRoleSlugs } from '@/lib/access';
 
 type ClientProps = {
     serviceId?: string; // vine din searchParams
 };
 
 export default function NewProviderServiceClient({ serviceId }: ClientProps) {
-    const { user, loading, userLoading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
     const [service, setService] = useState<any>(null);
     const [formData, setFormData] = useState({
         pricingType: 'FIXED',
@@ -52,7 +52,12 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
     });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const router = useRouter();
+    const roleRefreshAttemptedRef = useRef(false);
+    const roleSlugs = useMemo(() => getRoleSlugs(user), [user]);
+    const hasRoleInfo = roleSlugs.length > 0;
+    const isProvider = roleSlugs.includes('provider');
 
     // Guard de autentificare/rol + încărcare serviciu
     useEffect(() => {
@@ -63,7 +68,16 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
             return;
         }
 
-        if (!hasRole(user, ['provider'])) {
+        if (!hasRoleInfo && !roleRefreshAttemptedRef.current) {
+            roleRefreshAttemptedRef.current = true;
+            setIsRefreshingRole(true);
+            void refreshUser().finally(() => {
+                setIsRefreshingRole(false);
+            });
+            return;
+        }
+
+        if (hasRoleInfo && !isProvider) {
             router.push('/dashboard');
             return;
         }
@@ -78,7 +92,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
                 }
             })();
         }
-    }, [userLoading, user, router, serviceId]);
+    }, [hasRoleInfo, isProvider, refreshUser, router, serviceId, user, userLoading]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -118,7 +132,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         }
     };
 
-    if (loading || userLoading) {
+    if (loading || userLoading || isRefreshingRole) {
         return (
             <div className="min-h-[40vh] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
@@ -126,7 +140,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         );
     }
 
-    if (!user || !hasRole(user, ['provider'])) return null;
+    if (!user || (hasRoleInfo && !isProvider)) return null;
 
     return (
         <>

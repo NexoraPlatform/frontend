@@ -203,6 +203,7 @@ const nextConfig = {
               frame-src 'self'
               https://onesignal.com
               https://sandboxcheckout.rapyd.net;
+              worker-src 'self' blob:;
               frame-ancestors 'none';
               base-uri 'self';
               form-action 'self';

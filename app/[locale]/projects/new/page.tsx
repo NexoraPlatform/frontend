@@ -57,6 +57,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PriceDisplay } from '@/components/PriceDisplay';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
@@ -118,6 +119,7 @@ type ManualMilestoneForm = {
   description: string;
   percentage: string;
   amount: string;
+  sync_source?: 'amount' | 'percentage' | null;
 };
 
 type ManualProjectLineForm = {
@@ -161,6 +163,7 @@ type ProjectNewOAuthSnapshot = {
   briefPayloadTrimmedSections: string[];
   briefResultId: number | string | null;
   briefChannel: string;
+  briefInputSignature: string;
   recommendedProviders?: AiBriefRecommendedProviders;
   otherProviders?: AiBriefOtherProvidersByService;
   selectedProviders: AiBriefProvider[];
@@ -218,6 +221,7 @@ type ProjectNewPersistedWizardState = {
   briefPayloadTrimmedSections: string[];
   briefResultId: number | string | null;
   briefChannel: string;
+  briefInputSignature: string;
   recommendedProviders?: AiBriefRecommendedProviders;
   otherProviders?: AiBriefOtherProvidersByService;
   selectedProviders: AiBriefProvider[];
@@ -374,19 +378,164 @@ const toNumber = (value: unknown): number | null => {
   return null;
 };
 
+const BUDGET_COMPARISON_EPSILON = 0.01;
+
+const formatBudgetInputValue = (value: number): string => {
+  if (!Number.isFinite(value)) {
+    return '';
+  }
+
+  return String(Number(value.toFixed(2)));
+};
+
+const getManualBudgetAmountFromPercentage = (
+  percentage: unknown,
+  totalBudgetValue: number
+): number | null => {
+  const normalizedPercentage = toNumber(percentage);
+  if (
+    normalizedPercentage === null ||
+    normalizedPercentage < 0 ||
+    !Number.isFinite(totalBudgetValue) ||
+    totalBudgetValue <= 0
+  ) {
+    return null;
+  }
+
+  return Number(((totalBudgetValue * normalizedPercentage) / 100).toFixed(2));
+};
+
+const getManualBudgetPercentageFromAmount = (
+  amount: unknown,
+  totalBudgetValue: number
+): number | null => {
+  const normalizedAmount = toNumber(amount);
+  if (
+    normalizedAmount === null ||
+    normalizedAmount < 0 ||
+    !Number.isFinite(totalBudgetValue) ||
+    totalBudgetValue <= 0
+  ) {
+    return null;
+  }
+
+  return Number(((normalizedAmount / totalBudgetValue) * 100).toFixed(2));
+};
+
+const deriveManualLineBudgetPercentage = (
+  milestones: ManualMilestoneForm[],
+  totalBudgetValue: number
+): string => {
+  const totalAmount = Number(sumManualMilestoneAmounts(milestones).toFixed(2));
+  const derivedFromAmount = getManualBudgetPercentageFromAmount(
+    totalAmount,
+    totalBudgetValue
+  );
+
+  if (derivedFromAmount !== null && derivedFromAmount > 0) {
+    return formatBudgetInputValue(derivedFromAmount);
+  }
+
+  const totalExplicitPercentage = milestones.reduce(
+    (sum, milestone) => sum + Math.max(0, toNumber(milestone.percentage) ?? 0),
+    0
+  );
+
+  return totalExplicitPercentage > 0
+    ? formatBudgetInputValue(totalExplicitPercentage)
+    : '';
+};
+
+const getManualLineBudgetAllocation = (
+  milestones: ManualMilestoneForm[],
+  totalBudgetValue: number
+): number | null => {
+  const totalAmount = Number(sumManualMilestoneAmounts(milestones).toFixed(2));
+  if (totalAmount > 0) {
+    return totalAmount;
+  }
+
+  const derivedPercentage = toNumber(
+    deriveManualLineBudgetPercentage(milestones, totalBudgetValue)
+  );
+  if (derivedPercentage === null) {
+    return null;
+  }
+
+  return getManualBudgetAmountFromPercentage(derivedPercentage, totalBudgetValue);
+};
+
+const syncManualMilestoneWithBudget = (
+  milestone: ManualMilestoneForm,
+  totalBudgetValue: number
+): ManualMilestoneForm => {
+  if (milestone.sync_source === 'amount') {
+    const amount = toNumber(milestone.amount);
+    if (amount === null || amount < 0) {
+      return milestone;
+    }
+
+    if (!Number.isFinite(totalBudgetValue) || totalBudgetValue <= 0) {
+      return {
+        ...milestone,
+        percentage: '',
+      };
+    }
+
+    return {
+      ...milestone,
+      percentage: formatBudgetInputValue((amount / totalBudgetValue) * 100),
+    };
+  }
+
+  if (milestone.sync_source === 'percentage') {
+    const percentage = toNumber(milestone.percentage);
+    if (percentage === null || percentage < 0) {
+      return milestone;
+    }
+
+    if (!Number.isFinite(totalBudgetValue) || totalBudgetValue <= 0) {
+      return {
+        ...milestone,
+        amount: '',
+      };
+    }
+
+    return {
+      ...milestone,
+      amount: formatBudgetInputValue((totalBudgetValue * percentage) / 100),
+    };
+  }
+
+  return milestone;
+};
+
+const sumManualMilestoneAmounts = (milestones: ManualMilestoneForm[]): number =>
+  milestones.reduce((sum, milestone) => sum + Math.max(0, toNumber(milestone.amount) ?? 0), 0);
+
 const extractBriefResultId = (value: unknown): number | string | null => {
   const root = toObject(value);
   if (!root) {
     return null;
   }
 
-  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+  const source =
+    toObject(root.result) ??
+    toObject(root.result_payload) ??
+    toObject(root.data) ??
+    root;
   const sourceResponsePayload = toObject(source.response_payload);
   const rootResponsePayload = toObject(root.response_payload);
+  const sourceResultPayload = toObject(source.result_payload);
+  const rootResultPayload = toObject(root.result_payload);
   const sourceDebug = toObject(source.debug);
   const rootDebug = toObject(root.debug);
+  const sourceDebugPayload = toObject(source.debug_payload);
+  const rootDebugPayload = toObject(root.debug_payload);
   const sourceDebugResponsePayload = toObject(sourceDebug?.response_payload);
   const rootDebugResponsePayload = toObject(rootDebug?.response_payload);
+  const sourceDebugResultRaw = toObject(sourceDebugPayload?.result_raw);
+  const rootDebugResultRaw = toObject(rootDebugPayload?.result_raw);
   const candidate =
     source.brief_result_id ??
     root.brief_result_id ??
@@ -394,8 +543,12 @@ const extractBriefResultId = (value: unknown): number | string | null => {
     root.id ??
     sourceResponsePayload?.brief_result_id ??
     rootResponsePayload?.brief_result_id ??
+    sourceResultPayload?.brief_result_id ??
+    rootResultPayload?.brief_result_id ??
     sourceDebugResponsePayload?.brief_result_id ??
-    rootDebugResponsePayload?.brief_result_id;
+    rootDebugResponsePayload?.brief_result_id ??
+    sourceDebugResultRaw?.brief_result_id ??
+    rootDebugResultRaw?.brief_result_id;
 
   if (typeof candidate === 'number' && Number.isFinite(candidate)) {
     return candidate;
@@ -718,6 +871,35 @@ const normalizeQuestions = (value: unknown): string[] => {
     .filter(Boolean);
 };
 
+const normalizeAssistantMessages = (value: unknown): AiAssistantMessage[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const source = toObject(entry);
+      if (!source) {
+        return null;
+      }
+
+      const role = toString(source.role);
+      const content = toString(source.content);
+      if (
+        (role !== 'system' && role !== 'user' && role !== 'assistant') ||
+        !content
+      ) {
+        return null;
+      }
+
+      return {
+        role,
+        content,
+      } satisfies AiAssistantMessage;
+    })
+    .filter((message): message is AiAssistantMessage => message !== null);
+};
+
 const toJsonDebugString = (value: unknown): string => {
   try {
     return JSON.stringify(value, null, 2);
@@ -913,13 +1095,29 @@ const normalizeTeamStructure = (
       }
 
       const count = toNumber(member.count);
+      const percentage = toNumber(member.percentage);
       const estimatedCost = toNumber(member.estimated_cost);
+      const rawServiceId = member.service_id ?? member.serviceId;
+      const serviceId =
+        typeof rawServiceId === 'string' || typeof rawServiceId === 'number'
+          ? rawServiceId
+          : undefined;
+      const deliveryProviderRaw = member.delivery_provider ?? member.deliveryProvider;
+      const deliveryProvider =
+        typeof deliveryProviderRaw === 'string' && deliveryProviderRaw.trim()
+          ? normalizeDeliveryProvider(deliveryProviderRaw)
+          : undefined;
+      const description = toString(member.description);
 
       return {
         role,
+        ...(serviceId !== undefined ? { service_id: serviceId } : {}),
         ...(toString(member.service) ? { service: toString(member.service) } : {}),
+        ...(deliveryProvider ? { delivery_provider: deliveryProvider } : {}),
+        ...(description ? { description } : {}),
         ...(toString(member.level) ? { level: toString(member.level) } : {}),
         ...(count !== null ? { count } : {}),
+        ...(percentage !== null ? { percentage } : {}),
         ...(estimatedCost !== null ? { estimated_cost: estimatedCost } : {}),
       };
     })
@@ -1338,7 +1536,11 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
     return null;
   }
 
-  const source = toObject(root.result) ?? toObject(root.data) ?? root;
+  const source =
+    toObject(root.result) ??
+    toObject(root.result_payload) ??
+    toObject(root.data) ??
+    root;
 
   const statusRaw = toString(source.status ?? root.status).toUpperCase();
   const status: AiBriefResponse['status'] =
@@ -1357,6 +1559,7 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
     toString(source.message ?? root.message) ||
     null;
 
+  const messages = normalizeAssistantMessages(source.messages ?? root.messages);
   const questions = normalizeQuestions(source.questions ?? root.questions);
   const finalBriefText =
     toString(source.final_brief_text) || toString(root.final_brief_text);
@@ -1633,6 +1836,7 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
       ? { channel: toString(source.channel ?? root.channel) }
       : {}),
     ...(normalizedError ? { error: normalizedError } : {}),
+    ...(messages.length > 0 ? { messages } : {}),
     ...(questions.length > 0 ? { questions } : {}),
     ...(final_brief ? { final_brief } : {}),
     ...(final_brief_modular ? { final_brief_modular } : {}),
@@ -1651,6 +1855,7 @@ const normalizeAiBriefResponse = (payload: unknown): AiBriefResponse | null => {
     Boolean(final_brief_full) ||
     Boolean(finalBriefText) ||
     Boolean(normalizedError) ||
+    messages.length > 0 ||
     questions.length > 0 ||
     Boolean(recommendedProviders) ||
     Boolean(legacyOtherProviders) ||
@@ -1699,6 +1904,22 @@ const buildInitialConversation = (
   return [{ role: 'user', content }];
 };
 
+const buildBriefConversationSignature = (
+  intent: string,
+  selectedServices: RecommendedServiceCandidate[]
+) =>
+  JSON.stringify({
+    intent: intent.trim(),
+    services: selectedServices.map((service) => ({
+      id:
+        typeof service.service_id === 'string' || typeof service.service_id === 'number'
+          ? String(service.service_id)
+          : '',
+      name: service.service_name,
+      delivery_provider: service.delivery_provider,
+    })),
+  });
+
 const buildProjectTitle = (intent: string, aiTitle?: string): string => {
   const normalizedAiTitle = toString(aiTitle);
   if (normalizedAiTitle) {
@@ -1723,6 +1944,7 @@ const createManualMilestone = (id: string): ManualMilestoneForm => ({
   description: '',
   percentage: '',
   amount: '',
+  sync_source: null,
 });
 
 const createManualProjectLine = (
@@ -1925,6 +2147,8 @@ export default function NewProjectPage() {
   const [briefDebugResponseJson, setBriefDebugResponseJson] = useState('');
   const [briefPayloadTruncated, setBriefPayloadTruncated] = useState(false);
   const [briefPayloadTrimmedSections, setBriefPayloadTrimmedSections] = useState<string[]>([]);
+  const [briefInputSignature, setBriefInputSignature] = useState('');
+  const [briefGenerationRequestKey, setBriefGenerationRequestKey] = useState(0);
 
   const [recommendedProviders, setRecommendedProviders] =
     useState<AiBriefRecommendedProviders | undefined>(undefined);
@@ -1935,19 +2159,26 @@ export default function NewProjectPage() {
   const [milestoneAssignmentsInitialized, setMilestoneAssignmentsInitialized] = useState(false);
 
   const [totalBudget, setTotalBudget] = useState('');
+  const budgetValue = useMemo(() => {
+    const parsed = Number(totalBudget);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [totalBudget]);
   const [editableDuration, setEditableDuration] = useState('');
   const [editablePaymentPlan, setEditablePaymentPlan] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
   const [startOverDialogOpen, setStartOverDialogOpen] = useState(false);
 
-  const briefRequestSentRef = useRef(false);
   const manualLineCounterRef = useRef(1);
   const manualMilestoneCounterRef = useRef(1);
   const milestoneAssignmentSignatureRef = useRef('');
+  const lastBriefGenerationRequestKeyRef = useRef(0);
+  const briefAwaitingRealtimeRef = useRef(false);
+  const briefAutoLoadResultIdRef = useRef('');
   const oauthCallbackHandledRef = useRef(false);
   const wizardStateHydratedRef = useRef(false);
   const authRecoveryAttemptedRef = useRef(false);
   const authRedirectInProgressRef = useRef(false);
+  const connectionsRefreshAttemptedRef = useRef(false);
   const briefSubscriptionRef = useRef<{
     channelName: string;
     channel: {
@@ -2268,6 +2499,11 @@ export default function NewProjectPage() {
         setActiveBriefChannel(restoredBriefChannel);
       }
 
+      const restoredBriefInputSignature = (parsed as { briefInputSignature?: unknown }).briefInputSignature;
+      if (typeof restoredBriefInputSignature === 'string') {
+        setBriefInputSignature(restoredBriefInputSignature);
+      }
+
       if (
         parsed.recommendedProviders &&
         typeof parsed.recommendedProviders === 'object' &&
@@ -2431,6 +2667,11 @@ export default function NewProjectPage() {
         setActiveBriefChannel(restoredBriefChannel);
       }
 
+      const restoredBriefInputSignature = (parsed as { briefInputSignature?: unknown }).briefInputSignature;
+      if (typeof restoredBriefInputSignature === 'string') {
+        setBriefInputSignature(restoredBriefInputSignature);
+      }
+
       if (
         parsed.recommendedProviders &&
         typeof parsed.recommendedProviders === 'object' &&
@@ -2506,6 +2747,7 @@ export default function NewProjectPage() {
       briefPayloadTrimmedSections,
       briefResultId: activeBriefResultId,
       briefChannel: activeBriefChannel,
+      briefInputSignature,
       ...(recommendedProviders ? { recommendedProviders } : {}),
       ...(otherProviders ? { otherProviders } : {}),
       selectedProviders,
@@ -2554,6 +2796,7 @@ export default function NewProjectPage() {
     briefPayloadTrimmedSections,
     activeBriefResultId,
     activeBriefChannel,
+    briefInputSignature,
     recommendedProviders,
     otherProviders,
     selectedProviders,
@@ -2981,7 +3224,7 @@ export default function NewProjectPage() {
   const handleManualLineFieldChange = useCallback(
     (
       lineId: string,
-      field: 'description' | 'budget_percentage',
+      field: 'description',
       value: string
     ) => {
       setManualProjectLines((current) =>
@@ -3010,19 +3253,23 @@ export default function NewProjectPage() {
           return line;
         }
 
+        const nextMilestones = line.milestones.filter(
+          (milestone) => milestone.id !== milestoneId
+        );
         return {
           ...line,
-          milestones: line.milestones.filter((milestone) => milestone.id !== milestoneId),
+          milestones: nextMilestones,
+          budget_percentage: deriveManualLineBudgetPercentage(nextMilestones, budgetValue),
         };
       })
     );
-  }, []);
+  }, [budgetValue]);
 
   const handleManualMilestoneFieldChange = useCallback(
     (
       lineId: string,
       milestoneId: string,
-      field: keyof Omit<ManualMilestoneForm, 'id'>,
+      field: 'title' | 'description' | 'percentage' | 'amount',
       value: string
     ) => {
       setManualProjectLines((current) =>
@@ -3031,21 +3278,139 @@ export default function NewProjectPage() {
             return line;
           }
 
+          const nextMilestones: ManualMilestoneForm[] = line.milestones.map((milestone): ManualMilestoneForm => {
+              if (milestone.id !== milestoneId) {
+                return milestone;
+              }
+
+              if (field === 'title' || field === 'description') {
+                return { ...milestone, [field]: value };
+              }
+
+              if (field === 'amount') {
+                if (!value.trim()) {
+                  return {
+                    ...milestone,
+                    amount: '',
+                    percentage: '',
+                    sync_source: 'amount',
+                  };
+                }
+
+                const amount = toNumber(value);
+                if (amount === null || budgetValue <= 0) {
+                  return {
+                    ...milestone,
+                    amount: value,
+                    percentage: '',
+                    sync_source: 'amount',
+                  };
+                }
+
+                return {
+                  ...milestone,
+                  amount: value,
+                  percentage: formatBudgetInputValue(
+                    (amount / budgetValue) * 100
+                  ),
+                  sync_source: 'amount',
+                };
+              }
+
+              if (!value.trim()) {
+                return {
+                  ...milestone,
+                  percentage: '',
+                  amount: '',
+                  sync_source: 'percentage',
+                };
+              }
+
+              const percentage = toNumber(value);
+              if (percentage === null || budgetValue <= 0) {
+                return {
+                  ...milestone,
+                  percentage: value,
+                  amount: '',
+                  sync_source: 'percentage',
+                };
+              }
+
+              return {
+                ...milestone,
+                percentage: value,
+                amount: formatBudgetInputValue(
+                  (budgetValue * percentage) / 100
+                ),
+                sync_source: 'percentage',
+              };
+            });
+
           return {
             ...line,
-            milestones: line.milestones.map((milestone) =>
-              milestone.id === milestoneId ? { ...milestone, [field]: value } : milestone
-            ),
+            milestones: nextMilestones,
+            budget_percentage: deriveManualLineBudgetPercentage(nextMilestones, budgetValue),
           };
         })
       );
     },
-    []
+    [budgetValue]
   );
+
+  useEffect(() => {
+    setManualProjectLines((current) => {
+      let hasChanges = false;
+
+      const nextLines = current.map((line) => {
+        const nextMilestones = line.milestones.map((milestone) => {
+          const syncedMilestone = syncManualMilestoneWithBudget(
+            milestone,
+            budgetValue
+          );
+
+          if (
+            syncedMilestone.amount !== milestone.amount ||
+            syncedMilestone.percentage !== milestone.percentage
+          ) {
+            hasChanges = true;
+            return syncedMilestone;
+          }
+
+          return milestone;
+        });
+
+        const nextBudgetPercentage = deriveManualLineBudgetPercentage(
+          nextMilestones,
+          budgetValue
+        );
+        const lineChanged = nextMilestones.some(
+          (milestone, index) => milestone !== line.milestones[index]
+        ) || nextBudgetPercentage !== line.budget_percentage;
+
+        if (lineChanged) {
+          hasChanges = true;
+        }
+
+        return lineChanged
+          ? {
+              ...line,
+              milestones: nextMilestones,
+              budget_percentage: nextBudgetPercentage,
+            }
+          : line;
+      });
+
+      return hasChanges ? nextLines : current;
+    });
+  }, [budgetValue]);
 
   const handleContinueManualToReview = useCallback(async () => {
     const normalizedIntent = intent.trim();
     const normalizedTitle = toString(manualTitle) || buildProjectTitle(normalizedIntent);
+    const normalizedTotalBudget = Number(totalBudget);
+    const totalBudgetValue = Number.isFinite(normalizedTotalBudget)
+      ? normalizedTotalBudget
+      : 0;
 
     if (!normalizedTitle) {
       toast.error(t('please_fill_in_the_project_title'));
@@ -3059,11 +3424,19 @@ export default function NewProjectPage() {
       return;
     }
 
+    if (totalBudgetValue <= 0) {
+      toast.error(t('enter_a_valid_total_budget_for_line_distribution'));
+      return;
+    }
+
+    let hasIncompleteMilestones = false;
+    let hasMilestonesWithoutDescription = false;
     const normalizedLines = manualProjectLines
       .map((line) => {
         const serviceId = toString(line.service_id);
         const selectedService = selectedManualServicesById.get(serviceId);
-        const budgetPercentage = toNumber(line.budget_percentage) ?? 0;
+        const budgetPercentage =
+          toNumber(deriveManualLineBudgetPercentage(line.milestones, totalBudgetValue)) ?? 0;
         if (!serviceId || !selectedService || budgetPercentage <= 0) {
           return null;
         }
@@ -3073,16 +3446,21 @@ export default function NewProjectPage() {
         const milestones = line.milestones
           .map((milestone) => {
             const milestoneTitle = toString(milestone.title);
+            const milestoneDescription = toString(milestone.description);
             const amount = toNumber(milestone.amount);
             if (!milestoneTitle || amount === null || amount <= 0) {
+              hasIncompleteMilestones = true;
+              return null;
+            }
+
+            if (!milestoneDescription) {
+              hasMilestonesWithoutDescription = true;
               return null;
             }
 
             return {
               title: milestoneTitle,
-              ...(toString(milestone.description)
-                ? { description: toString(milestone.description) }
-                : {}),
+              description: milestoneDescription,
               ...(toNumber(milestone.percentage) !== null
                 ? { percentage: toNumber(milestone.percentage) as number }
                 : {}),
@@ -3092,9 +3470,12 @@ export default function NewProjectPage() {
           .filter(
             (
               milestone
-            ): milestone is NonNullable<
-              NonNullable<AiBriefResponse['final_brief']>['project_lines'][number]
-            >['milestones'][number] => milestone !== null
+            ): milestone is {
+              title: string;
+              description: string;
+              percentage?: number;
+              amount: number;
+            } => milestone !== null
           );
 
         return {
@@ -3108,9 +3489,29 @@ export default function NewProjectPage() {
       .filter(
         (
           line
-        ): line is NonNullable<AiBriefResponse['final_brief']>['project_lines'][number] =>
-          line !== null
+        ): line is {
+          service_name: string;
+          delivery_provider: DeliveryProvider;
+          description: string;
+          budget_percentage: number;
+          milestones: {
+            title: string;
+            description: string;
+            percentage?: number;
+            amount: number;
+          }[];
+        } => line !== null
       );
+
+    if (hasMilestonesWithoutDescription) {
+      toast.error(t('milestone_description_required'));
+      return;
+    }
+
+    if (hasIncompleteMilestones) {
+      toast.error(t('milestones_incomplete'));
+      return;
+    }
 
     if (normalizedLines.length === 0) {
       toast.error(
@@ -3126,6 +3527,24 @@ export default function NewProjectPage() {
 
     if (totalPercentage > 100) {
       toast.error(t('total_line_percentage_cannot_exceed_100'));
+      return;
+    }
+
+    const totalMilestonesAmount = normalizedLines.reduce(
+      (sum, line) =>
+        sum +
+        line.milestones.reduce(
+          (milestoneSum, milestone) => milestoneSum + Number(milestone.amount || 0),
+          0
+        ),
+      0
+    );
+
+    if (
+      totalMilestonesAmount - totalBudgetValue >
+      BUDGET_COMPARISON_EPSILON
+    ) {
+      toast.error(t('manual_milestones_exceed_total_budget'));
       return;
     }
 
@@ -3328,10 +3747,50 @@ export default function NewProjectPage() {
   );
   const currentStepNumber = stepIndex >= 0 ? stepIndex + 1 : null;
 
-  const budgetValue = useMemo(() => {
-    const parsed = Number(totalBudget);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }, [totalBudget]);
+  const manualLineBudgetSummaries = useMemo(
+    () =>
+      manualProjectLines.map((line) => {
+        const lineBudgetPercentage = deriveManualLineBudgetPercentage(
+          line.milestones,
+          budgetValue
+        );
+        const lineBudgetAllocation = getManualLineBudgetAllocation(
+          line.milestones,
+          budgetValue
+        );
+        const milestonesTotal = Number(
+          sumManualMilestoneAmounts(line.milestones).toFixed(2)
+        );
+
+        return {
+          lineId: line.id,
+          lineBudgetPercentage,
+          lineBudgetAllocation,
+          milestonesTotal,
+          exceedsLineBudget:
+            lineBudgetAllocation !== null &&
+            milestonesTotal - lineBudgetAllocation > BUDGET_COMPARISON_EPSILON,
+        };
+      }),
+    [manualProjectLines, budgetValue]
+  );
+
+  const totalManualMilestonesAmount = useMemo(
+    () =>
+      Number(
+        manualProjectLines
+          .reduce((sum, line) => sum + sumManualMilestoneAmounts(line.milestones), 0)
+          .toFixed(2)
+      ),
+    [manualProjectLines]
+  );
+
+  const manualMilestonesExceedTotalBudget = useMemo(
+    () =>
+      budgetValue > 0 &&
+      totalManualMilestonesAmount - budgetValue > BUDGET_COMPARISON_EPSILON,
+    [budgetValue, totalManualMilestonesAmount]
+  );
 
   const reviewLines = useMemo(() => {
     if (!briefResult) {
@@ -3340,8 +3799,20 @@ export default function NewProjectPage() {
 
     return briefResult.project_lines.map((line) => {
       const percentage = Number(line.budget_percentage || 0);
+      const milestonesTotal = Array.isArray(line.milestones)
+        ? Number(
+            line.milestones
+              .reduce(
+                (sum, milestone) => sum + Math.max(0, toNumber(milestone.amount) ?? 0),
+                0
+              )
+              .toFixed(2)
+          )
+        : 0;
       const budgetAllocation =
-        budgetValue > 0 && percentage > 0
+        milestonesTotal > 0
+          ? milestonesTotal
+          : budgetValue > 0 && percentage > 0
           ? Number(((budgetValue * percentage) / 100).toFixed(2))
           : 0;
 
@@ -3351,6 +3822,34 @@ export default function NewProjectPage() {
       };
     });
   }, [briefResult, budgetValue]);
+
+  const reviewMilestonesTotal = useMemo(
+    () =>
+      Number(
+        reviewLines
+          .reduce(
+            (sum, line) =>
+              sum +
+              (Array.isArray(line.milestones)
+                ? line.milestones.reduce(
+                    (lineSum, milestone) =>
+                      lineSum + Math.max(0, toNumber(milestone.amount) ?? 0),
+                    0
+                  )
+                : 0),
+            0
+          )
+          .toFixed(2)
+      ),
+    [reviewLines]
+  );
+
+  const reviewMilestonesExceedTotalBudget = useMemo(
+    () =>
+      budgetValue > 0 &&
+      reviewMilestonesTotal - budgetValue > BUDGET_COMPARISON_EPSILON,
+    [budgetValue, reviewMilestonesTotal]
+  );
 
   const reviewMilestoneEntries = useMemo<ReviewMilestoneEntry[]>(() => {
     const entries: ReviewMilestoneEntry[] = [];
@@ -3485,15 +3984,17 @@ export default function NewProjectPage() {
   }, [reviewMilestoneEntries, selectedProviderIdsByService, milestoneAssignments, milestoneAssignmentsInitialized]);
 
   useEffect(() => {
-    if (milestoneAssignmentsInitialized) {
-      return;
-    }
-
     if (reviewMilestoneEntries.length === 0) {
+      if (milestoneAssignmentsInitialized) {
+        setMilestoneAssignmentsInitialized(false);
+      }
       return;
     }
 
     if (selectedProviders.length === 0) {
+      if (milestoneAssignmentsInitialized) {
+        setMilestoneAssignmentsInitialized(false);
+      }
       return;
     }
 
@@ -3525,6 +4026,25 @@ export default function NewProjectPage() {
       groupedEntries.forEach((entries, serviceKey) => {
         const providerIds = selectedProviderIdsByService.get(serviceKey) ?? [];
         if (providerIds.length === 0) {
+          return;
+        }
+
+        if (providerIds.length === 1) {
+          const [providerId] = providerIds;
+
+          entries.forEach((entry) => {
+            if (next[entry.key] === providerId) {
+              return;
+            }
+
+            if (next[entry.key] !== undefined && next[entry.key] !== providerId) {
+              return;
+            }
+
+            next[entry.key] = providerId;
+            changed = true;
+          });
+
           return;
         }
 
@@ -3813,6 +4333,7 @@ export default function NewProjectPage() {
     if (status === 'success') {
       toast.success(message || t('provider_connected_successfully'));
       setStep('connections');
+      connectionsRefreshAttemptedRef.current = true;
       void refreshUser().catch(() => {
         // Ignore transient refresh errors after OAuth callback.
       });
@@ -3857,6 +4378,7 @@ export default function NewProjectPage() {
         briefPayloadTrimmedSections,
         briefResultId: activeBriefResultId,
         briefChannel: activeBriefChannel,
+        briefInputSignature,
         ...(recommendedProviders ? { recommendedProviders } : {}),
         ...(otherProviders ? { otherProviders } : {}),
         selectedProviders,
@@ -3882,9 +4404,15 @@ export default function NewProjectPage() {
 
   useEffect(() => {
     if (step !== 'connections') {
+      connectionsRefreshAttemptedRef.current = false;
       return;
     }
 
+    if (connectionsRefreshAttemptedRef.current) {
+      return;
+    }
+
+    connectionsRefreshAttemptedRef.current = true;
     void refreshUser().catch(() => {
       // Keep the wizard usable even if auth refresh fails transiently.
     });
@@ -4183,12 +4711,20 @@ export default function NewProjectPage() {
   }, []);
 
   const applyBriefResponse = useCallback((response: AiBriefResponse) => {
+    if (response.status !== 'PROCESSING') {
+      briefAwaitingRealtimeRef.current = false;
+    }
+
     if (response.brief_result_id !== undefined) {
       setActiveBriefResultId(response.brief_result_id);
     }
 
     if (response.channel) {
       setActiveBriefChannel(response.channel);
+    }
+
+    if (response.messages && response.messages.length > 0) {
+      setBriefMessages(response.messages);
     }
 
     setBriefStatus(response.status);
@@ -4298,8 +4834,10 @@ export default function NewProjectPage() {
 
   const loadBriefResultById = useCallback(
     async (briefResultId: number | string) => {
+      briefAwaitingRealtimeRef.current = false;
+      briefAutoLoadResultIdRef.current = String(briefResultId);
       setActiveBriefResultId(briefResultId);
-      const response = await aiService.getBriefBuilderResult(briefResultId);
+      const response = await aiService.getFinalBriefResult(briefResultId);
       setBriefDebugResponseJson(toJsonDebugString(response));
 
       const normalizedResponse = normalizeAiBriefResponse(response);
@@ -4309,6 +4847,32 @@ export default function NewProjectPage() {
     },
     [applyBriefResponse]
   );
+
+  useEffect(() => {
+    if (step !== 'briefing' || activeBriefResultId === null) {
+      return;
+    }
+
+    if (briefAwaitingRealtimeRef.current) {
+      return;
+    }
+
+    const nextKey = String(activeBriefResultId);
+    if (briefAutoLoadResultIdRef.current === nextKey) {
+      return;
+    }
+
+    briefAutoLoadResultIdRef.current = nextKey;
+    void loadBriefResultById(activeBriefResultId).catch((error) => {
+      setBriefStatus('FAILED');
+      setBriefErrorMessage(
+        extractErrorMessage(
+          error,
+          t('could_not_load_the_final_brief_result')
+        )
+      );
+    });
+  }, [activeBriefResultId, loadBriefResultById, step, t]);
 
   useEffect(
     () => () => {
@@ -4341,6 +4905,7 @@ export default function NewProjectPage() {
         return;
       }
 
+      briefAwaitingRealtimeRef.current = false;
       void loadBriefResultById(briefResultId).catch((error) => {
         setBriefStatus('FAILED');
         setBriefErrorMessage(
@@ -4356,6 +4921,7 @@ export default function NewProjectPage() {
       setBriefDebugResponseJson(toJsonDebugString(payload));
       const briefResultId = extractBriefResultId(payload) ?? activeBriefResultId;
       if (briefResultId !== null) {
+        briefAwaitingRealtimeRef.current = false;
         void loadBriefResultById(briefResultId).catch((error) => {
           setBriefStatus('FAILED');
           setBriefErrorMessage(
@@ -4430,6 +4996,8 @@ export default function NewProjectPage() {
         return;
       }
 
+      briefAwaitingRealtimeRef.current = true;
+      briefAutoLoadResultIdRef.current = '';
       setBriefStatus('PROCESSING');
       setActiveBriefResultId(null);
       setActiveBriefChannel('');
@@ -4469,8 +5037,13 @@ export default function NewProjectPage() {
           setActiveBriefChannel(normalizedResponse.channel);
         }
 
+        if (briefResultId === null) {
+          briefAwaitingRealtimeRef.current = false;
+        }
+
         setBriefStatus('PROCESSING');
       } catch (error) {
+        briefAwaitingRealtimeRef.current = false;
         setBriefStatus('FAILED');
         setBriefErrorMessage(
           extractErrorMessage(
@@ -4488,7 +5061,11 @@ export default function NewProjectPage() {
       return;
     }
 
-    if (briefRequestSentRef.current) {
+    if (briefGenerationRequestKey === 0) {
+      return;
+    }
+
+    if (lastBriefGenerationRequestKeyRef.current === briefGenerationRequestKey) {
       return;
     }
 
@@ -4496,9 +5073,9 @@ export default function NewProjectPage() {
       return;
     }
 
-    briefRequestSentRef.current = true;
+    lastBriefGenerationRequestKeyRef.current = briefGenerationRequestKey;
     void requestBriefBuilder(briefMessages);
-  }, [briefMessages, requestBriefBuilder, step]);
+  }, [briefGenerationRequestKey, briefMessages, requestBriefBuilder, step]);
 
   const handleRequestRecommendation = async () => {
     const normalizedIntent = intent.trim();
@@ -4549,6 +5126,8 @@ export default function NewProjectPage() {
       setBriefPayloadTrimmedSections([]);
       setActiveBriefResultId(null);
       setActiveBriefChannel('');
+      setBriefInputSignature('');
+      setBriefGenerationRequestKey(0);
       setBriefErrorMessage(null);
       setBriefSubscriptionError(null);
       setRecommendedProviders(undefined);
@@ -4557,7 +5136,9 @@ export default function NewProjectPage() {
       setTotalBudget('');
       setEditableDuration('');
       setEditablePaymentPlan('');
-      briefRequestSentRef.current = false;
+      briefAwaitingRealtimeRef.current = false;
+      briefAutoLoadResultIdRef.current = '';
+      lastBriefGenerationRequestKeyRef.current = 0;
       transitionTo('recommendation');
       toast.success(t('ai_recommendation_has_been_generated'));
     } catch (error) {
@@ -4589,8 +5170,25 @@ export default function NewProjectPage() {
       return;
     }
 
+    const nextBriefInputSignature = buildBriefConversationSignature(
+      intent.trim(),
+      selectedServices
+    );
+
+    if (
+      activeBriefResultId !== null &&
+      briefInputSignature === nextBriefInputSignature &&
+      briefStatus !== 'FAILED' &&
+      briefStatus !== 'FAILED_BROADCAST'
+    ) {
+      briefAwaitingRealtimeRef.current = false;
+      transitionTo('briefing');
+      return;
+    }
+
     const initialMessages = buildInitialConversation(intent.trim(), selectedServices);
     setBriefMessages(initialMessages);
+    setBriefInputSignature(nextBriefInputSignature);
     setBriefQuestions([]);
     setBriefResult(null);
     setBriefModularDetails(null);
@@ -4609,11 +5207,13 @@ export default function NewProjectPage() {
     setSelectedProviders([]);
     setEditableDuration('');
     setEditablePaymentPlan('');
-    briefRequestSentRef.current = false;
+    briefAwaitingRealtimeRef.current = true;
+    briefAutoLoadResultIdRef.current = '';
+    setBriefGenerationRequestKey((current) => current + 1);
     transitionTo('briefing');
   };
 
-  const handleSendClarification = async () => {
+  const handleSendClarification = () => {
     const normalizedAnswer = briefAnswer.trim();
     if (!normalizedAnswer) {
       toast.error(t('write_an_answer_for_clarification'));
@@ -4623,7 +5223,9 @@ export default function NewProjectPage() {
     const nextMessages = [...briefMessages, { role: 'user', content: normalizedAnswer } satisfies AiAssistantMessage];
     setBriefMessages(nextMessages);
     setBriefAnswer('');
-    await requestBriefBuilder(nextMessages);
+    briefAwaitingRealtimeRef.current = true;
+    briefAutoLoadResultIdRef.current = '';
+    setBriefGenerationRequestKey((current) => current + 1);
   };
 
   const createProjectPayload = useMemo(() => {
@@ -4772,6 +5374,11 @@ export default function NewProjectPage() {
 
     if (!effectivePaymentPlan) {
       toast.error(t('select_payment_plan_before_creation'));
+      return;
+    }
+
+    if (reviewMilestonesExceedTotalBudget) {
+      toast.error(t('manual_milestones_exceed_total_budget'));
       return;
     }
 
@@ -5237,6 +5844,39 @@ export default function NewProjectPage() {
                         />
                       </div>
                       <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="manual-total-budget">
+                          {t('total_project_budget_usd')}
+                        </Label>
+                        <Input
+                          id="manual-total-budget"
+                          type="number"
+                          min="0"
+                          value={totalBudget}
+                          onChange={(event) => setTotalBudget(event.target.value)}
+                          placeholder={t('ex_25000')}
+                        />
+                        {budgetValue > 0 ? (
+                          <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            {t('manual_total_milestones_summary')}: {' '}
+                            <span className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                              <PriceDisplay value={totalManualMilestonesAmount} />
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                            {t('enter_total_budget_to_auto_calculate_milestones')}
+                          </div>
+                        )}
+                        {manualMilestonesExceedTotalBudget ? (
+                          <Alert className="mt-2 border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10">
+                            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                            <AlertDescription>
+                              {t('manual_milestones_exceed_total_budget')}
+                            </AlertDescription>
+                          </Alert>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
                         <Label>{t('technologies_services_api_only')}</Label>
                         <Input
                           value={manualServiceSearch}
@@ -5360,150 +6000,173 @@ export default function NewProjectPage() {
                       ) : null}
 
                       <div className="grid gap-3 md:grid-cols-2">
-                        {manualProjectLines.map((line, lineIndex) => (
-                          <div
-                            key={line.id}
-                            className="space-y-3 rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
-                          >
-                            <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                              {t('line')} {lineIndex + 1}
-                            </div>
+                        {manualProjectLines.map((line, lineIndex) => {
+                          const lineBudgetSummary = manualLineBudgetSummaries.find(
+                            (entry) => entry.lineId === line.id
+                          );
 
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <div className="space-y-2">
-                                <Label>{t('service_name_auto_selected')}</Label>
-                                <Input value={line.service_name} disabled />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>{t('delivery_provider_from_api_required')}</Label>
-                                <Input value={getLocalizedProviderLabel(line.delivery_provider)} disabled />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>{t('budget_per_line')}</Label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={line.budget_percentage}
-                                  onChange={(event) =>
-                                    handleManualLineFieldChange(line.id, 'budget_percentage', event.target.value)
-                                  }
-                                  placeholder={t('ex_30')}
-                                />
-                              </div>
-                              <div className="space-y-2 sm:col-span-2">
-                                <Label>{t('line_description')}</Label>
-                                <Textarea
-                                  rows={3}
-                                  value={line.description}
-                                  onChange={(event) =>
-                                    handleManualLineFieldChange(line.id, 'description', event.target.value)
-                                  }
-                                  placeholder={t('short_scope_for_this_line')}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-[#1E2A3D]">
-                              <div className="flex items-center justify-between">
-                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                                  {t('milestones')}
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleAddManualMilestone(line.id)}
-                                >
-                                  {t('add_milestone')}
-                                </Button>
+                          return (
+                            <div
+                              key={line.id}
+                              className="space-y-3 rounded-md border border-slate-200 bg-white/80 p-3 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
+                            >
+                              <div className="text-sm font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                {t('line')} {lineIndex + 1}
                               </div>
 
-                              {line.milestones.length > 0 ? (
+                              <div className="grid gap-3 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                  {line.milestones.map((milestone) => (
-                                    <div
-                                      key={milestone.id}
-                                      className="grid gap-2 rounded-md border border-slate-200 bg-white/80 p-2 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
-                                    >
-                                      <div className="grid gap-2 sm:grid-cols-3">
-                                        <Input
-                                          value={milestone.title}
-                                          onChange={(event) =>
-                                            handleManualMilestoneFieldChange(
-                                              line.id,
-                                              milestone.id,
-                                              'title',
-                                              event.target.value
-                                            )
-                                          }
-                                          placeholder={t('milestone_title')}
-                                        />
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          value={milestone.amount}
-                                          onChange={(event) =>
-                                            handleManualMilestoneFieldChange(
-                                              line.id,
-                                              milestone.id,
-                                              'amount',
-                                              event.target.value
-                                            )
-                                          }
-                                          placeholder={t('amount')}
-                                        />
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          max="100"
-                                          value={milestone.percentage}
-                                          onChange={(event) =>
-                                            handleManualMilestoneFieldChange(
-                                              line.id,
-                                              milestone.id,
-                                              'percentage',
-                                              event.target.value
-                                            )
-                                          }
-                                          placeholder="%"
-                                        />
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          value={milestone.description}
-                                          onChange={(event) =>
-                                            handleManualMilestoneFieldChange(
-                                              line.id,
-                                              milestone.id,
-                                              'description',
-                                              event.target.value
-                                            )
-                                          }
-                                          placeholder={t('milestone_description_optional')}
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() =>
-                                            handleRemoveManualMilestone(line.id, milestone.id)
-                                          }
-                                        >
-                                          {t('delete')}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
+                                  <Label>{t('service_name_auto_selected')}</Label>
+                                  <Input value={line.service_name} disabled />
                                 </div>
-                              ) : (
-                                <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
-                                  {t('there_are_no_milestones_on_this_line')}
-                                </p>
-                              )}
+                                <div className="space-y-2">
+                                  <Label>{t('delivery_provider_from_api_required')}</Label>
+                                  <Input value={getLocalizedProviderLabel(line.delivery_provider)} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>{t('budget_share_auto')}</Label>
+                                  <Input
+                                    value={lineBudgetSummary?.lineBudgetPercentage ?? ''}
+                                    disabled
+                                    placeholder={t('percentage_label')}
+                                  />
+                                </div>
+                                <div className="space-y-2 sm:col-span-2">
+                                  <Label>{t('service_description')}</Label>
+                                  <Textarea
+                                    rows={3}
+                                    value={line.description}
+                                    onChange={(event) =>
+                                      handleManualLineFieldChange(line.id, 'description', event.target.value)
+                                    }
+                                    placeholder={t('short_scope_for_this_service')}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="rounded-md border border-slate-200 bg-white/70 p-3 text-xs text-slate-600 dark:border-[#1E2A3D] dark:bg-[#0B1220] dark:text-[#AFC0D6]">
+                                <div className="flex flex-wrap items-center gap-4">
+                                  <span>
+                                    {t('service_budget_allocation')}: {' '}
+                                    <span className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                      {lineBudgetSummary?.lineBudgetAllocation !== null &&
+                                      lineBudgetSummary?.lineBudgetAllocation !== undefined ? (
+                                        <PriceDisplay value={lineBudgetSummary.lineBudgetAllocation} />
+                                      ) : (
+                                        '-'
+                                      )}
+                                    </span>
+                                  </span>
+                                  <span>
+                                    {t('service_milestones_total')}: {' '}
+                                    <span className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                                      <PriceDisplay value={lineBudgetSummary?.milestonesTotal ?? 0} />
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 rounded-md border border-slate-200 p-3 dark:border-[#1E2A3D]">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                    {t('milestones')}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleAddManualMilestone(line.id)}
+                                  >
+                                    {t('add_milestone')}
+                                  </Button>
+                                </div>
+
+                                {line.milestones.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {line.milestones.map((milestone) => (
+                                      <div
+                                        key={milestone.id}
+                                        className="grid gap-2 rounded-md border border-slate-200 bg-white/80 p-2 dark:border-[#1E2A3D] dark:bg-[#0B1220]"
+                                      >
+                                        <div className="grid gap-2 sm:grid-cols-3">
+                                          <Input
+                                            value={milestone.title}
+                                            onChange={(event) =>
+                                              handleManualMilestoneFieldChange(
+                                                line.id,
+                                                milestone.id,
+                                                'title',
+                                                event.target.value
+                                              )
+                                            }
+                                            placeholder={t('milestone_title')}
+                                          />
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            value={milestone.amount}
+                                            onChange={(event) =>
+                                              handleManualMilestoneFieldChange(
+                                                line.id,
+                                                milestone.id,
+                                                'amount',
+                                                event.target.value
+                                              )
+                                            }
+                                            placeholder={t('amount')}
+                                          />
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={milestone.percentage}
+                                            onChange={(event) =>
+                                              handleManualMilestoneFieldChange(
+                                                line.id,
+                                                milestone.id,
+                                                'percentage',
+                                                event.target.value
+                                              )
+                                            }
+                                            placeholder={t('percentage_label')}
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Input
+                                            value={milestone.description}
+                                            onChange={(event) =>
+                                              handleManualMilestoneFieldChange(
+                                                line.id,
+                                                milestone.id,
+                                                'description',
+                                                event.target.value
+                                              )
+                                            }
+                                            placeholder={t('milestone_description_optional')}
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleRemoveManualMilestone(line.id, milestone.id)
+                                            }
+                                          >
+                                            {t('delete')}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                                    {t('there_are_no_milestones_on_this_line')}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -5825,9 +6488,7 @@ export default function NewProjectPage() {
                         {briefingDisplay.title || briefResult.title}
                       </h3>
                       <p className="text-sm text-slate-600 dark:text-[#A3ADC2]">
-                        {t('structured_preview_using_data_from')}{' '}
-                        <code>final_brief</code>, <code>final_brief_full</code>{' '}
-                        {t('and')} <code>final_brief_modular</code>.
+                        {t('structured_preview_from_saved_brief')}
                       </p>
                     </div>
 
@@ -6969,6 +7630,22 @@ export default function NewProjectPage() {
                     onChange={(event) => setTotalBudget(event.target.value)}
                     placeholder={t('ex_25000')}
                   />
+                  {budgetValue > 0 ? (
+                    <div className="text-xs text-slate-500 dark:text-[#8FA0B8]">
+                      {t('manual_total_milestones_summary')}: {' '}
+                      <span className="font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
+                        <PriceDisplay value={reviewMilestonesTotal} />
+                      </span>
+                    </div>
+                  ) : null}
+                  {reviewMilestonesExceedTotalBudget ? (
+                    <Alert className="border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                      <AlertDescription>
+                        {t('manual_milestones_exceed_total_budget')}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-[#1E2A3D]">

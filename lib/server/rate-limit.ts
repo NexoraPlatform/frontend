@@ -90,7 +90,7 @@ const RATE_LIMIT_RULES: RateLimitRule[] = [
   }),
   buildRule({
     id: 'api-ai-read',
-    pattern: /^\/api\/ai\/brief-builder\/[^/]+$/i,
+    pattern: /^\/api\/ai\/(brief-builder|final-brief)\/[^/]+$/i,
     defaultLimit: 60,
     defaultWindow: '1 m',
     limitEnv: 'UPSTASH_RATE_LIMIT_AI_READ_MAX',

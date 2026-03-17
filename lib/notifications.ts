@@ -29,6 +29,7 @@ export type NotificationPayload = {
   projectId?: string | number | null;
   groupId?: string | number | null;
   redirectUrl?: string | null;
+  reason?: string | null;
   [key: string]: unknown;
 };
 
@@ -214,6 +215,11 @@ function buildPayload(
   const redirectUrl = pickPayloadValue(payload, rawData, ['redirectUrl', 'redirect_url']);
   if (payload.redirectUrl == null && redirectUrl !== undefined) {
     payload.redirectUrl = String(redirectUrl);
+  }
+
+  const reason = pickPayloadValue(payload, rawData, ['reason']);
+  if (payload.reason == null && reason !== undefined) {
+    payload.reason = String(reason);
   }
 
   const clientTransactionStatus = pickPayloadValue(payload, rawData, [

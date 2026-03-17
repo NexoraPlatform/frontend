@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from '@/lib/navigation';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ProviderDashboardShell } from '@/components/dashboard/provider-dashboard-shell';
 import type { LucideIcon } from 'lucide-react';
 import {
     ArrowLeft,
     ArrowRight,
+    ArrowUp,
     CheckCircle,
     AlertCircle,
     Loader2,
@@ -34,22 +33,47 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
-import { hasRole } from '@/lib/access';
+import { getRoleSlugs } from '@/lib/access';
 
 export default function SelectServicesPage() {
-    const { user, loading, userLoading } = useAuth();
+    const { user, loading, userLoading, refreshUser } = useAuth();
 
     // State for Category Navigation
     const [parentCategory, setParentCategory] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
 
     const [services, setServices] = useState<any[]>([]);
+    const [providerServiceLevels, setProviderServiceLevels] = useState<Record<string, string>>({});
     // Changed from array (multiple) to string (single)
     const [selectedService, setSelectedService] = useState<string>('');
     const [loadingServices, setLoadingServices] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
     const { data: categoriesData, loading: categoriesLoading } = useCategories();
+    const [hasRestoredSelection, setHasRestoredSelection] = useState(false);
+    const storageKey = useMemo(() => 'provider-services-select', []);
+    const roleRefreshAttemptedRef = useRef(false);
+    const [isRefreshingRole, setIsRefreshingRole] = useState(false);
+    const roleSlugs = useMemo(() => getRoleSlugs(user), [user]);
+    const hasRoleInfo = roleSlugs.length > 0;
+    const isProvider = roleSlugs.includes('provider');
+
+    const findCategoryById = useCallback((categories: any[], categoryId: string | number): any | null => {
+        for (const category of categories) {
+            if (String(category.id) === String(categoryId)) {
+                return category;
+            }
+
+            if (Array.isArray(category.children) && category.children.length > 0) {
+                const nestedCategory = findCategoryById(category.children, categoryId);
+                if (nestedCategory) {
+                    return nestedCategory;
+                }
+            }
+        }
+
+        return null;
+    }, []);
 
     useEffect(() => {
         if (userLoading) return;
@@ -58,10 +82,61 @@ export default function SelectServicesPage() {
             router.push('/auth/signin');
             return;
         }
-        if (!hasRole(user, ['provider'])) {
+
+        if (!hasRoleInfo && !roleRefreshAttemptedRef.current) {
+            roleRefreshAttemptedRef.current = true;
+            setIsRefreshingRole(true);
+            void refreshUser().finally(() => {
+                setIsRefreshingRole(false);
+            });
+            return;
+        }
+
+        if (hasRoleInfo && !isProvider) {
             router.push('/dashboard');
         }
-    }, [user, userLoading, router]);
+    }, [hasRoleInfo, isProvider, refreshUser, router, user, userLoading]);
+
+    useEffect(() => {
+        if (!user?.id || !isProvider) {
+            setProviderServiceLevels({});
+            return;
+        }
+
+        let cancelled = false;
+
+        void (async () => {
+            try {
+                const response = await apiClient.getProviderServices(String(user.id));
+                if (cancelled) {
+                    return;
+                }
+
+                const nextLevels = Array.isArray(response)
+                    ? response.reduce<Record<string, string>>((accumulator, providerService) => {
+                        const serviceId = String(providerService?.service_id ?? providerService?.service?.id ?? '');
+                        const level = typeof providerService?.level === 'string' ? providerService.level : '';
+
+                        if (serviceId && level) {
+                            accumulator[serviceId] = level;
+                        }
+
+                        return accumulator;
+                    }, {})
+                    : {};
+
+                setProviderServiceLevels(nextLevels);
+            } catch {
+                if (!cancelled) {
+                    setProviderServiceLevels({});
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isProvider, user?.id]);
 
     useEffect(() => {
         if (selectedCategory) {
@@ -70,6 +145,82 @@ export default function SelectServicesPage() {
             setServices([]);
         }
     }, [selectedCategory]);
+
+    useEffect(() => {
+        if (!selectedService) {
+            return;
+        }
+
+        const selectedServiceData = services.find((service) => String(service.id) === String(selectedService));
+        if (!selectedServiceData) {
+            return;
+        }
+
+        const isRetryLocked =
+            selectedServiceData.provider_test_status === 'FAILED' &&
+            selectedServiceData.provider_can_retry_test === false;
+        const isPassedLocked = selectedServiceData.provider_test_status === 'PASSED';
+
+        if (isRetryLocked || isPassedLocked) {
+            setSelectedService('');
+        }
+    }, [selectedService, services]);
+
+    useEffect(() => {
+        if (categoriesLoading || hasRestoredSelection || typeof window === 'undefined') {
+            return;
+        }
+
+        try {
+            const rawState = window.sessionStorage.getItem(storageKey);
+            if (!rawState) {
+                return;
+            }
+
+            const persistedState = JSON.parse(rawState);
+            if (!persistedState || typeof persistedState !== 'object') {
+                return;
+            }
+
+            const restoredParentCategoryId = persistedState.parentCategoryId;
+            const restoredSelectedCategory = persistedState.selectedCategoryId;
+            const restoredSelectedService = persistedState.selectedServiceId;
+
+            if (restoredParentCategoryId && Array.isArray(categoriesData)) {
+                const restoredParentCategory = findCategoryById(categoriesData, restoredParentCategoryId);
+                if (restoredParentCategory) {
+                    setParentCategory(restoredParentCategory);
+                }
+            }
+
+            if (restoredSelectedCategory != null) {
+                setSelectedCategory(restoredSelectedCategory);
+            }
+
+            if (restoredSelectedService != null) {
+                setSelectedService(restoredSelectedService);
+            }
+        } catch {
+            window.sessionStorage.removeItem(storageKey);
+        } finally {
+            setHasRestoredSelection(true);
+        }
+    }, [categoriesData, categoriesLoading, findCategoryById, hasRestoredSelection, storageKey]);
+
+    useEffect(() => {
+        if (!hasRestoredSelection || typeof window === 'undefined') {
+            return;
+        }
+
+        window.sessionStorage.setItem(
+            storageKey,
+            JSON.stringify({
+                parentCategoryId: parentCategory?.id ?? null,
+                selectedCategoryId: selectedCategory || null,
+                selectedServiceId: selectedService || null,
+            })
+        );
+    }, [hasRestoredSelection, parentCategory, selectedCategory, selectedService, storageKey]);
 
     const loadServicesForCategory = async (categoryId: string) => {
         setLoadingServices(true);
@@ -139,6 +290,16 @@ export default function SelectServicesPage() {
 
     // Modified to handle single selection
     const handleServiceSelect = (serviceId: string) => {
+        const service = services.find((entry) => String(entry.id) === String(serviceId));
+        const isRetryLocked =
+            service?.provider_test_status === 'FAILED' &&
+            service?.provider_can_retry_test === false;
+        const isPassedLocked = service?.provider_test_status === 'PASSED';
+
+        if (isRetryLocked || isPassedLocked) {
+            return;
+        }
+
         // If clicked again, deselect (optional) or just keep selected.
         // Here we toggle it off if clicked again, otherwise replace selection.
         setSelectedService(prev => (prev === serviceId ? '' : serviceId));
@@ -154,7 +315,136 @@ export default function SelectServicesPage() {
         router.push(`/provider/services/levels?services=${selectedService}`);
     };
 
-    if (loading || userLoading || categoriesLoading) {
+    const formatRetakeCountdown = (service: any) => {
+        const daysLeft = Number(service?.provider_retake_days_left ?? 0);
+        if (daysLeft > 0) {
+            return `Poți relua testul peste ${daysLeft} ${daysLeft === 1 ? 'zi' : 'zile'}`;
+        }
+
+        const secondsLeft = Number(service?.provider_retake_seconds_left ?? 0);
+        if (secondsLeft <= 0) {
+            return null;
+        }
+
+        const hoursLeft = Math.ceil(secondsLeft / 3600);
+        if (hoursLeft >= 24) {
+            const remainingDays = Math.ceil(hoursLeft / 24);
+            return `Poți relua testul peste ${remainingDays} ${remainingDays === 1 ? 'zi' : 'zile'}`;
+        }
+
+        if (hoursLeft >= 1) {
+            return `Poți relua testul peste ${hoursLeft} ${hoursLeft === 1 ? 'oră' : 'ore'}`;
+        }
+
+        const minutesLeft = Math.max(1, Math.ceil(secondsLeft / 60));
+        return `Poți relua testul peste ${minutesLeft} ${minutesLeft === 1 ? 'minut' : 'minute'}`;
+    };
+
+    const formatPassedAgo = (service: any) => {
+        const daysAgo = Number(service?.provider_passed_test_days_ago ?? 0);
+        if (daysAgo > 0) {
+            return `Ai trecut testul acum ${daysAgo} ${daysAgo === 1 ? 'zi' : 'zile'}`;
+        }
+
+        const secondsAgo = Number(service?.provider_passed_test_seconds_ago ?? 0);
+        if (secondsAgo <= 0) {
+            return 'Ai trecut deja testul pentru acest serviciu';
+        }
+
+        const hoursAgo = Math.floor(secondsAgo / 3600);
+        if (hoursAgo >= 24) {
+            const calculatedDays = Math.floor(hoursAgo / 24);
+            return `Ai trecut testul acum ${calculatedDays} ${calculatedDays === 1 ? 'zi' : 'zile'}`;
+        }
+
+        if (hoursAgo >= 1) {
+            return `Ai trecut testul acum ${hoursAgo} ${hoursAgo === 1 ? 'oră' : 'ore'}`;
+        }
+
+        const minutesAgo = Math.max(1, Math.floor(secondsAgo / 60));
+        return `Ai trecut testul acum ${minutesAgo} ${minutesAgo === 1 ? 'minut' : 'minute'}`;
+    };
+
+    const normalizeLevel = (value: string) => {
+        const normalized = value.trim().toUpperCase();
+
+        if (normalized === 'MID' || normalized === 'INTERMEDIATE') {
+            return 'MEDIU';
+        }
+
+        return normalized;
+    };
+
+    const getNextLevel = (value: string) => {
+        const orderedLevels = ['JUNIOR', 'MEDIU', 'SENIOR', 'EXPERT'];
+        const normalized = normalizeLevel(value);
+        const currentIndex = orderedLevels.indexOf(normalized);
+
+        if (currentIndex < 0 || currentIndex >= orderedLevels.length - 1) {
+            return null;
+        }
+
+        return orderedLevels[currentIndex + 1];
+    };
+
+    const formatLevelLabel = (value: string) => {
+        const normalized = normalizeLevel(value);
+
+        if (normalized === 'JUNIOR') return 'Junior';
+        if (normalized === 'MEDIU') return 'Mediu';
+        if (normalized === 'SENIOR') return 'Senior';
+        if (normalized === 'EXPERT') return 'Expert';
+
+        return value;
+    };
+
+    const formatLevelUpgradeCountdown = (service: any) => {
+        const daysLeft = Number(service?.provider_level_upgrade_days_left ?? 0);
+        if (daysLeft > 0) {
+            return `Poți da testul de upgrade peste ${daysLeft} ${daysLeft === 1 ? 'zi' : 'zile'}`;
+        }
+
+        const secondsLeft = Number(service?.provider_level_upgrade_seconds_left ?? 0);
+        if (secondsLeft <= 0) {
+            return null;
+        }
+
+        const hoursLeft = Math.ceil(secondsLeft / 3600);
+        if (hoursLeft >= 24) {
+            const remainingDays = Math.ceil(hoursLeft / 24);
+            return `Poți da testul de upgrade peste ${remainingDays} ${remainingDays === 1 ? 'zi' : 'zile'}`;
+        }
+
+        if (hoursLeft >= 1) {
+            return `Poți da testul de upgrade peste ${hoursLeft} ${hoursLeft === 1 ? 'oră' : 'ore'}`;
+        }
+
+        const minutesLeft = Math.max(1, Math.ceil(secondsLeft / 60));
+        return `Poți da testul de upgrade peste ${minutesLeft} ${minutesLeft === 1 ? 'minut' : 'minute'}`;
+    };
+
+    const handleLevelUpgrade = (service: any) => {
+        const currentLevel = providerServiceLevels[String(service.id)] ?? '';
+        const nextLevel = getNextLevel(currentLevel);
+
+        if (!nextLevel) {
+            return;
+        }
+
+        const testData = encodeURIComponent(JSON.stringify({
+            serviceId: String(service.id),
+            serviceName: service.name,
+            level: nextLevel,
+            currentLevel: normalizeLevel(currentLevel),
+            category: service.category?.name ?? '',
+            programming_language: service.programming_language ?? '',
+            flow: 'level_upgrade',
+        }));
+
+        router.push(`/provider/services/tests?data=${testData}`);
+    };
+
+    if (loading || userLoading || categoriesLoading || isRefreshingRole) {
         return (
             <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin" />
@@ -162,7 +452,7 @@ export default function SelectServicesPage() {
         );
     }
 
-    if (!user || !hasRole(user, ['provider'])) {
+    if (!user || (hasRoleInfo && !isProvider)) {
         return null;
     }
 
@@ -172,29 +462,21 @@ export default function SelectServicesPage() {
         : (categoriesData || []);
 
     return (
-        <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient">
-            <TrustoraThemeStyles />
-            <Header />
-
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="flex items-center space-x-4 mb-8">
+        <ProviderDashboardShell
+            title="Selectează Serviciul"
+            description="Alege categoria și serviciul pe care vrei să îl prestezi în fluxul tău de provider."
+            activeMenu="services"
+        >
+            <div className="space-y-8">
+                <div className="flex items-center justify-between gap-4">
                     <Button variant="outline" size="icon" onClick={() => router.push('/dashboard')}>
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
-                    <div className="flex-1">
-                        <h1 className="text-3xl font-bold">Selectează Serviciul</h1>
-                        <p className="text-muted-foreground">
-                            Alege categoria și serviciul pe care vrei să îl prestezi pe platformă
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-sm text-muted-foreground">Pasul 1 din 4</div>
-                        <div className="text-lg font-semibold text-[var(--midnight-blue)] dark:text-white">Selectare Serviciu</div>
-                    </div>
+                    <Badge className="border-0 bg-[#1BC47D]/15 px-3 py-2 text-[#1BC47D]">
+                        Pasul 1 din 4
+                    </Badge>
                 </div>
 
-                {/* Progress */}
                 <div className="mb-8 glass-card p-4">
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
@@ -377,18 +659,43 @@ export default function SelectServicesPage() {
 
                                 <div className="grid xs:grid-cols-1 md:grid-cols-2 gap-4">
                                     {services.map((service: any) => {
-                                        const IconComponent = serviceIcons[service.category?.slug as ServiceSlug] || Code;
+                                        const IconComponent = serviceIcons[service.category?.slug as ServiceSlug] || serviceIcons[service.slug as ServiceSlug] || Code;
                                         const isSelected = selectedService === service.id;
+                                        const hasPassedTest = service.provider_test_status === 'PASSED';
+                                        const hasFailedTest = service.provider_test_status === 'FAILED';
+                                        const canRetryTest = Boolean(service.provider_can_retry_test);
+                                        const isRetryLocked = hasFailedTest && !canRetryTest;
+                                        const isPassedLocked = hasPassedTest;
+                                        const isSelectionLocked = isRetryLocked || isPassedLocked;
+                                        const retryCountdown = !canRetryTest ? formatRetakeCountdown(service) : null;
+                                        const passedAgoLabel = hasPassedTest ? formatPassedAgo(service) : null;
+                                        const currentProviderLevel = providerServiceLevels[String(service.id)] ?? '';
+                                        const nextLevel = currentProviderLevel ? getNextLevel(currentProviderLevel) : null;
+                                        const canTakeLevelUpgradeTest = Boolean(service.provider_can_take_level_upgrade_test);
+                                        const hasLevelUpgradeCooldown = Boolean(service.provider_last_test_within_level_upgrade_cooldown);
+                                        const levelUpgradeCountdown = hasLevelUpgradeCooldown
+                                            ? formatLevelUpgradeCountdown(service)
+                                            : null;
+                                        const serviceTags = Array.isArray(service.tags) ? service.tags : [];
+                                        const providersCount = Number(service.providers_count ?? 0);
 
                                         return (
                                             <Card
                                                 key={service.id}
-                                                className={`cursor-pointer transition-all duration-200 glass-card hover:shadow-lg ${
+                                                className={`transition-all duration-200 glass-card ${
+                                                    isSelectionLocked
+                                                        ? 'cursor-not-allowed border-slate-200/80 bg-slate-50/70 opacity-60 dark:bg-slate-900/30'
+                                                        : 'cursor-pointer hover:shadow-lg'
+                                                } ${
                                                     isSelected
                                                         ? 'border-emerald-400/70 bg-emerald-50/60 dark:bg-emerald-500/10 shadow-md'
                                                         : 'border-white/60 hover:border-emerald-200'
                                                 }`}
-                                                onClick={() => handleServiceSelect(service.id)}
+                                                onClick={() => {
+                                                    if (!isSelectionLocked) {
+                                                        handleServiceSelect(service.id);
+                                                    }
+                                                }}
                                             >
                                                 <CardHeader>
                                                     <div className="flex items-start justify-between">
@@ -402,43 +709,100 @@ export default function SelectServicesPage() {
                                                             </div>
                                                             <div className="flex-1">
                                                                 <CardTitle className="text-lg">{service.name}</CardTitle>
-                                                                <Badge variant="outline" className="mt-1">
-                                                                    {service.category?.name}
-                                                                </Badge>
+                                                                <div className="mt-1 flex flex-wrap gap-2">
+                                                                    <Badge variant="outline">
+                                                                        {service.category?.name}
+                                                                    </Badge>
+                                                                    {hasPassedTest ? (
+                                                                        <Badge className="border-0 bg-emerald-100 text-emerald-700">
+                                                                            Passed
+                                                                        </Badge>
+                                                                    ) : null}
+                                                                    {hasFailedTest ? (
+                                                                        <Badge className="border-0 bg-red-100 text-red-700">
+                                                                            Failed
+                                                                        </Badge>
+                                                                    ) : null}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <Checkbox
                                                             checked={isSelected}
                                                             onCheckedChange={() => handleServiceSelect(service.id)}
+                                                            disabled={isSelectionLocked}
                                                             className="mt-1"
                                                         />
                                                     </div>
                                                 </CardHeader>
                                                 <CardContent>
                                                     <CardDescription className="text-sm mb-4 line-clamp-2">
-                                                        {service.description}
+                                                        {service.description || 'Detaliile pentru acest serviciu vor fi disponibile în curând.'}
                                                     </CardDescription>
 
-                                                    {service.skills && service.skills.length > 0 && (
+                                                    {serviceTags.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mb-3">
-                                                            {service.skills.slice(0, 3).map((skill: string) => (
+                                                            {serviceTags.slice(0, 3).map((skill: string) => (
                                                                 <Badge key={skill} variant="outline" className="text-xs">
                                                                     {skill}
                                                                 </Badge>
                                                             ))}
-                                                            {service.skills.length > 3 && (
+                                                            {serviceTags.length > 3 && (
                                                                 <Badge variant="outline" className="text-xs">
-                                                                    +{service.skills.length - 3}
+                                                                    +{serviceTags.length - 3}
                                                                 </Badge>
                                                             )}
                                                         </div>
                                                     )}
 
+                                                    {hasPassedTest ? (
+                                                        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                                                            {passedAgoLabel}
+                                                        </div>
+                                                    ) : null}
+
+                                                    {hasPassedTest && nextLevel ? (
+                                                        <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-3 py-3">
+                                                            <div className="flex flex-col gap-3">
+                                                                <div className="text-sm text-blue-900">
+                                                                    Poți încerca upgrade-ul de la {formatLevelLabel(currentProviderLevel)} la {formatLevelLabel(nextLevel)}.
+                                                                </div>
+                                                                {hasLevelUpgradeCooldown && !canTakeLevelUpgradeTest ? (
+                                                                    <div className="text-xs text-blue-800">
+                                                                        {levelUpgradeCountdown || 'Testul de upgrade nu este disponibil încă.'}
+                                                                    </div>
+                                                                ) : null}
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    disabled={!canTakeLevelUpgradeTest}
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        if (canTakeLevelUpgradeTest) {
+                                                                            handleLevelUpgrade(service);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full"
+                                                                >
+                                                                    <ArrowUp className="w-4 h-4 mr-2" />
+                                                                    Dă test pentru {formatLevelLabel(nextLevel)}
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ) : null}
+
+                                                    {hasFailedTest ? (
+                                                        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                                            {canRetryTest
+                                                                ? 'Poți relua testul acum'
+                                                                : retryCountdown || 'Testul nu poate fi reluat încă'}
+                                                        </div>
+                                                    ) : null}
+
                                                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                                        <span>{service.providers?.length || 0} prestatori activi</span>
+                                                        <span>{providersCount} prestatori activi</span>
                                                         <span className="text-green-600 font-medium">
-                              {service.providers?.length === 0 ? 'Fii primul!' : 'Alătură-te!'}
-                            </span>
+                                                            {providersCount === 0 ? 'Fii primul!' : 'Alătură-te!'}
+                                                        </span>
                                                     </div>
                                                 </CardContent>
                                             </Card>
@@ -493,8 +857,6 @@ export default function SelectServicesPage() {
                     </Button>
                 </div>
             </div>
-
-            <Footer />
-        </div>
+        </ProviderDashboardShell>
     );
 }

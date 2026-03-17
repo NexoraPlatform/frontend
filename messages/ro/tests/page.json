@@ -41,6 +41,153 @@
         "welcome": "Bun venit, {name}!",
         "description": "Programeaza-te pentru un call 1:1 cu un operator Trustora"
     },
+    "providerFlow": {
+        "shell": {
+            "title": "Teste de Competență",
+            "description": "Demonstrează-ți cunoștințele pentru serviciile selectate și urmărește progresul în timp real.",
+            "waitingResultDescription": "Evaluarea răspunsurilor tale este procesată în fundal.",
+            "generatingDescription": "AI-ul pregătește testele pentru serviciile tale selectate."
+        },
+        "loading": {
+            "generatingPrefix": "Se generează",
+            "waitingResultPrefix": "Se așteaptă",
+            "words": {
+                "questions": "întrebările",
+                "test": "testul",
+                "result": "rezultatul"
+            }
+        },
+        "levels": {
+            "junior": "Junior",
+            "intermediate": "Mediu",
+            "senior": "Senior",
+            "expert": "Expert"
+        },
+        "errors": {
+            "defaultGeneration": "Nu s-a putut genera testul.",
+            "defaultEvaluation": "Nu s-a putut evalua testul.",
+            "evaluationStateWithMessage": "Nu s-a putut încărca starea evaluării: {message}",
+            "unknown": "Eroare necunoscută",
+            "generationState": "Nu s-a putut încărca starea generării testului.",
+            "generationRequestId": "Nu am primit request_id pentru generarea testului.",
+            "cooldownDefault": "Nu poți relua testul încă.",
+            "generationStart": "Nu s-a putut porni generarea testului.",
+            "invalidData": "Date invalide",
+            "evaluationRequestId": "Nu am primit request_id pentru evaluarea testului.",
+            "submitTestWithMessage": "Nu s-a putut trimite testul: {message}",
+            "startTest": "Nu s-a putut începe testul"
+        },
+        "questionTypes": {
+            "singleChoice": "Alegere unică",
+            "multipleChoice": "Alegere multiplă",
+            "codeWriting": "Scriere cod",
+            "textInput": "Răspuns text"
+        },
+        "question": {
+            "points": "{count, plural, one {# punct} few {# puncte} other {# de puncte}}",
+            "counter": "Întrebarea {current} din {total}",
+            "template": "Template:",
+            "testCases": "Cazuri de test:",
+            "input": "Input:",
+            "expectedOutput": "Output așteptat:",
+            "writeCode": "Scrie codul tău:",
+            "writeCodePlaceholder": "Scrie codul aici...",
+            "yourAnswer": "Răspunsul tău:",
+            "writeAnswerPlaceholder": "Scrie răspunsul aici..."
+        },
+        "result": {
+            "title": "Rezultatul Testului",
+            "description": "Vezi scorul final, feedback-ul și pașii următori.",
+            "passedTitle": "Felicitări! Ai trecut testul!",
+            "failedTitle": "Nu ai trecut testul",
+            "passedDescription": "Ai demonstrat competența necesară pentru acest nivel.",
+            "failedDescription": "Poți reîncerca testul după 30 de zile.",
+            "scoreLabel": "Scorul tău",
+            "passingScoreLabel": "Nota de trecere",
+            "timeSpentLabel": "Minute folosite",
+            "hideExplanations": "Ascunde explicațiile",
+            "showExplanations": "Vezi explicațiile",
+            "backToDashboard": "Înapoi la Dashboard",
+            "calendarTitle": "Programează interviul video",
+            "calendarDescription": "Pentru a finaliza procesul de verificare, te rugăm să alegi o dată pentru interviu.",
+            "calendarNote": "Test trecut: {title}",
+            "explanationsTitle": "Explicații răspunsuri",
+            "correct": "Corect",
+            "incorrect": "Incorect",
+            "questionLabel": "Întrebarea {index}",
+            "yourAnswer": "Răspunsul tău:",
+            "noAnswer": "Nu ai răspuns",
+            "correctAnswer": "Răspunsul corect:",
+            "unspecified": "Nespecificat",
+            "explanation": "Explicație:"
+        },
+        "progress": {
+            "label": "Progres",
+            "counter": "{current} din {total}",
+            "previous": "Anterior",
+            "next": "Următoarea",
+            "finishTest": "Finalizează testul"
+        },
+        "list": {
+            "headerDescription": "Demonstrează-ți cunoștințele pentru serviciile selectate",
+            "stepBadge": "Pasul 3 din 4",
+            "levelLabel": "Nivel {level}",
+            "processingTitle": "Se generează testul pentru acest serviciu",
+            "processingDescription": "AI-ul pregătește întrebările și structura finală.",
+            "processingBadge": "În procesare",
+            "cooldownDefault": "Testul nu poate fi reluat încă.",
+            "availableAgainAt": "Disponibil din nou la: {date}",
+            "failedDefault": "Nu s-a putut genera testul pentru acest serviciu.",
+            "testCardDescription": "{service} - Nivel {level}",
+            "questionCount": "{count, plural, one {# întrebare} few {# întrebări} other {# de întrebări}}",
+            "minuteCount": "{count, plural, one {# minut} few {# minute} other {# de minute}}",
+            "passingScore": "Nota de trecere: {score}%",
+            "certification": "Certificare",
+            "startTest": "Începe testul",
+            "emptyTitle": "Nu există teste disponibile",
+            "emptyDescription": "Administratorii nu au creat încă testele pentru serviciile selectate.",
+            "back": "Înapoi"
+        },
+        "startWarning": {
+            "title": "Înainte să începi testul",
+            "description": "Din momentul în care pornești testul, monitorizarea rămâne activă până la finalizarea lui.",
+            "leaveTab": "Dacă părăsești tab-ul, minimizezi fereastra sau pierzi focusul, testul se încheie imediat.",
+            "noReturn": "Nu vei putea reveni la această încercare după ce a fost oprită.",
+            "retry": "Vei putea susține din nou testul peste 14 zile.",
+            "cancel": "Înapoi",
+            "confirm": "Am înțeles, începe testul"
+        }
+    },
+    "examGuard": {
+        "alerts": {
+            "failed": "TEST PĂRĂSIT - Ai fost picat automat.",
+            "warning": "AVERTISMENT! Nu părăsi tab-ul. Abateri: {current}/{limit}"
+        },
+        "errors": {
+            "communication": "Eroare comunicare server"
+        }
+    },
+    "examFailure": {
+        "badge": "Test părăsit",
+        "title": "Ai fost picat automat",
+        "description": "Monitorizarea examenului a detectat că ai părăsit tab-ul sau ai pierdut focusul ferestrei.",
+        "reasons": {
+            "title": "Ce a declanșat oprirea",
+            "leaveTab": "Părăsirea tab-ului sau minimizarea ferestrei este considerată abatere.",
+            "loseFocus": "Schimbarea către altă aplicație sau altă fereastră este înregistrată automat.",
+            "integrity": "Regula există pentru a păstra corectitudinea și integritatea evaluării."
+        },
+        "nextSteps": {
+            "title": "Ce poți face acum",
+            "review": "Revino în dashboard pentru a verifica statusul testului și serviciile tale.",
+            "retry": "Vei putea relua examenul după 14 zile, conform regulilor actuale de cooldown.",
+            "contact": "Dacă a fost o eroare, contactează echipa Trustora pentru verificare."
+        },
+        "actions": {
+            "dashboard": "Înapoi la Dashboard",
+            "services": "Vezi serviciile"
+        }
+    },
     "metadata": {
         "web_development": {
             "name": "Dezvoltare Web",

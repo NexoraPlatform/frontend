@@ -105,9 +105,13 @@ export type AiBriefBuilderStatus =
 
 export interface AiTeamStructureItem {
   role: string;
+  service_id?: number | string;
   service?: string;
+  delivery_provider?: DeliveryProvider;
+  description?: string;
   level?: string;
   count?: number;
+  percentage?: number;
   estimated_cost?: number;
 }
 
@@ -117,6 +121,9 @@ export interface AiMilestoneItem {
   percentage?: number;
   amount?: number;
   duration_days?: number;
+  service_id?: number | string;
+  service_name?: string;
+  delivery_provider?: DeliveryProvider;
 }
 
 export interface AiBusinessAnalysis {
