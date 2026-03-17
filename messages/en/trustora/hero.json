@@ -16,5 +16,35 @@
     "next_milestone": "Next milestone",
     "payout_label": "Payout",
     "payout_value": "Instant"
+  },
+  "hero_visual": {
+    "contract_id": "Contract #TR-9784-VB",
+    "international_verification": "International verification confirmed",
+    "client_label": "Client",
+    "provider_label": "Provider",
+    "client_company": "Mock Client Holdings",
+    "provider_company": "Mock Delivery Studio",
+    "client_verification": "Company verification completed",
+    "provider_verification": "Identity verification completed",
+    "section_title": "Milestones & escrow status",
+    "columns": {
+      "milestone": "Milestone",
+      "timeline": "Timeline",
+      "amount": "Amount",
+      "status": "Status"
+    },
+    "milestone_1": {
+      "title": "M1: Project architecture",
+      "timeline": "10 days"
+    },
+    "milestone_2": {
+      "title": "M2: Core implementation",
+      "timeline": "10 days"
+    },
+    "status": {
+      "released": "Released",
+      "held_in_escrow": "Held in escrow"
+    },
+    "hash_label": "Cryptographic hash:"
   }
 }
