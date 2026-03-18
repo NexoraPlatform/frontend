@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import Script from "next/script";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
@@ -16,7 +16,7 @@ import { NotificationProvider } from "@/contexts/notification-context";
 import { locales } from "@/lib/navigation";
 import { buildGlobalKnowledgeGraph, serializeJsonLd } from "@/lib/seo";
 
-const OneSignalInit = dynamic(() => import("@/components/OneSignalInit"), {
+const OneSignalInit = nextDynamic(() => import("@/components/OneSignalInit"), {
   loading: () => null,
 });
 
@@ -26,6 +26,7 @@ type Props = {
 };
 
 export const dynamicParams = false;
+export const dynamic = 'force-dynamic';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -52,10 +53,13 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <div className="font-sans antialiased">
-      <script
+      <Script
+        id="global-jsonld"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: globalJsonLd }}
-      />
+        strategy="beforeInteractive"
+      >
+        {globalJsonLd}
+      </Script>
       {shouldLoadGtm && gtmId && (
         <Script id="gtm" strategy="lazyOnload">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':Date.now(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(gtmId)});`}

@@ -42,6 +42,7 @@ import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages} from "@/hooks/use-api";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { sanitizeHttpUrl } from '@/lib/navigation-security';
 
 interface ProviderProfileProps {
     id: any;
@@ -583,11 +584,11 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             </div>
                                         )}
 
-                                        {provider.website && (
+                                        {provider.website && sanitizeHttpUrl(provider.website) && (
                                             <div className="flex items-center space-x-2 text-sm">
                                                 <Globe className="w-4 h-4 text-muted-foreground" />
                                                 <a
-                                                    href={provider.website}
+                                                    href={sanitizeHttpUrl(provider.website) ?? undefined}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-[var(--emerald-green)] hover:underline"
@@ -839,12 +840,14 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                 </Badge>
                                             ))}
                                         </div>
-                                        <Button variant="outline" size="sm" className="w-full" asChild>
-                                            <a href={project.url} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="w-4 h-4 mr-2" />
-                                                Vezi Proiectul
-                                            </a>
-                                        </Button>
+                                        {sanitizeHttpUrl(project.url) && (
+                                            <Button variant="outline" size="sm" className="w-full" asChild>
+                                                <a href={sanitizeHttpUrl(project.url) ?? undefined} target="_blank" rel="noopener noreferrer">
+                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                    Vezi Proiectul
+                                                </a>
+                                            </Button>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))}
@@ -1162,14 +1165,18 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             <Globe className="w-5 h-5 text-muted-foreground" />
                                             <div>
                                                 <p className="font-medium">Website</p>
-                                                <a
-                                                    href={provider.website}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-[var(--emerald-green)] hover:underline"
-                                                >
-                                                    {provider.website}
-                                                </a>
+                                                {sanitizeHttpUrl(provider.website) ? (
+                                                    <a
+                                                        href={sanitizeHttpUrl(provider.website) ?? undefined}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-[var(--emerald-green)] hover:underline"
+                                                    >
+                                                        {provider.website}
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">{provider.website}</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -57,6 +57,7 @@ import { billingDetailsSchema, BillingDetailsFormValues } from '@/types/user-for
 import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
 import * as v from 'valibot';
+import { sanitizeHttpUrl } from '@/lib/navigation-security';
 
 type Languages = {
     id: number;
@@ -1946,9 +1947,9 @@ export default function ProviderProfileEditPage() {
                                                                     ))}
                                                                 </div>
                                                             )}
-                                                            {project.url && (
+                                                            {sanitizeHttpUrl(project.url) && (
                                                                 <a
-                                                                    href={project.url}
+                                                                    href={sanitizeHttpUrl(project.url) ?? undefined}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="mt-3 inline-block text-sm font-medium text-blue-600 hover:underline"

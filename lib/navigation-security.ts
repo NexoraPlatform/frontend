@@ -53,6 +53,27 @@ export function sanitizeNavigationTarget(
   }
 }
 
+export function sanitizeHttpUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const target = value.trim();
+  if (!target) return null;
+  if (CONTROL_CHAR_PATTERN.test(target)) return null;
+  if (hasUnsafeRedirectTokens(target)) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(target);
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+  if (parsed.username || parsed.password) return null;
+
+  return parsed.toString();
+}
+
 const normalizeAllowedHost = (value: string) =>
   value.trim().toLowerCase().replace(/^\.+/, '');
 

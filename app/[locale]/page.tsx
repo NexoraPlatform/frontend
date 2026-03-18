@@ -21,6 +21,7 @@ import {
 } from "@/lib/seo";
 import type { Locale } from "@/types/locale";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
@@ -95,10 +96,13 @@ export default async function Home({ params }: HomePageProps) {
       itemScope
       itemType="https://schema.org/WebPage"
     >
-      <script
+      <Script
+        id="homepage-jsonld"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(homepageGraph) }}
-      />
+        strategy="beforeInteractive"
+      >
+        {serializeJsonLd(homepageGraph)}
+      </Script>
 
       <TrustoraThemeStyles />
 

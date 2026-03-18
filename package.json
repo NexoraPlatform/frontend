@@ -87,7 +87,7 @@
     "jose": "^6.0.12",
     "laravel-echo": "^2.3.0",
     "lucide-react": "^0.539.0",
-    "next": "16.1.6",
+    "next": "16.1.7",
     "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.7.0",
     "next-themes": "^0.3.0",
@@ -126,7 +126,6 @@
     "@types/three": "^0.182.0",
     "jsdom": "^24.0.0",
     "sharp": "^0.34.3",
-    "sharp-cli": "^5.2.0",
     "vitest": "^1.0.0"
   },
   "engines": {

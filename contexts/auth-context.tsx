@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import { onApiUnauthorized } from '@/lib/fetch-client';
-import { ensureCsrfCookie } from '@/lib/csrf';
+import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 import { normalizeAuthUser, type AuthUser } from '@/lib/auth/user';
 
 interface AuthContextType {
@@ -80,10 +80,14 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
   const login = useCallback(
     async (email: string, password: string) => {
       await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+      const xsrfToken = getXsrfToken();
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -134,10 +138,14 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     async (userData: any) => {
       try {
         await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+        const xsrfToken = getXsrfToken();
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+          },
           body: JSON.stringify(userData),
         });
         if (!response.ok) {
@@ -177,9 +185,11 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
 
   const logout = useCallback(async () => {
     try {
+      const xsrfToken = getXsrfToken();
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
+        headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : undefined,
       });
     } catch (error) {
       console.error('Logout error:', error);

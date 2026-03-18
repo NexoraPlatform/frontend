@@ -91,12 +91,12 @@ export default function IntegrationsPage() {
             }
         });
 
-        if (user?.github_token) {
+        if (user?.github_connected) {
             connected.add('github');
         }
 
         return connected;
-    }, [user?.connected_accounts, user?.github_token]);
+    }, [user?.connected_accounts, user?.github_connected]);
 
     const handleConnect = (provider: OAuthProvider) => {
         const redirectUrl = buildOAuthRedirectUrl(provider);

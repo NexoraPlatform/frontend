@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import Editor, { loader } from '@monaco-editor/react';
+import { getXsrfToken } from '@/lib/csrf';
 
 loader.config({
     paths: {
@@ -97,6 +98,7 @@ export default function ExamGuard({
                         test_id: testId,
                         type,
                         reason,
+                        xsrf_token: getXsrfToken(),
                     }),
                 ],
                 { type: 'application/json' }
@@ -143,11 +145,13 @@ export default function ExamGuard({
                     headers: {
                         Accept: 'application/json',
                         'Content-Type': 'application/json',
+                        ...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken() as string } : {}),
                     },
                     body: JSON.stringify({
                         test_id: testId,
                         type,
                         reason,
+                        xsrf_token: getXsrfToken(),
                     }),
                 });
 
