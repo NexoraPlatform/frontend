@@ -15,7 +15,7 @@ export default async function ProviderServicesLayout({
   const { locale } = await params;
 
   return (
-    <ScopedIntlProvider locale={locale} extraNamespaces={["tests"]}>
+    <ScopedIntlProvider locale={locale} extraNamespaces={["tests", "dashboard"]}>
       <AuthenticatedRuntimeProviders>{children}</AuthenticatedRuntimeProviders>
     </ScopedIntlProvider>
   );

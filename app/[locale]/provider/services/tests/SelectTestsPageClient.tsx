@@ -81,6 +81,7 @@ type ServiceTestStatus = 'idle' | 'processing' | 'completed' | 'failed' | 'coold
 type ServiceTestCard = {
     serviceInfo: TestData;
     requestId: string | null;
+    userTestId: string | null;
     status: ServiceTestStatus;
     test: any | null;
     error: string | null;
@@ -106,6 +107,7 @@ type TestRequestState = {
     channel: string;
     serviceId: string | null;
     skillTestId: string | null;
+    userTestId: string | null;
     testResultId: string | null;
     result: any;
     error: string | null;
@@ -156,6 +158,35 @@ const parsePersistedDate = (value: unknown): Date | null => {
 
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getNavigationType = (): string | null => {
+    if (typeof window === 'undefined' || typeof window.performance === 'undefined') {
+        return null;
+    }
+
+    const [entry] = window.performance.getEntriesByType('navigation');
+    if (entry && 'type' in entry && typeof entry.type === 'string') {
+        return entry.type;
+    }
+
+    const legacyNavigation = (window.performance as Performance & {
+        navigation?: { type?: number };
+    }).navigation;
+
+    if (legacyNavigation?.type === 1) {
+        return 'reload';
+    }
+
+    if (legacyNavigation?.type === 2) {
+        return 'back_forward';
+    }
+
+    if (legacyNavigation?.type === 0) {
+        return 'navigate';
+    }
+
+    return null;
 };
 
 const parseArrayOfStrings = (value: unknown): string[] => {
@@ -325,6 +356,7 @@ const normalizeTestRequestState = (payload: any): TestRequestState => {
         channel: String(payload?.channel ?? ''),
         serviceId: payload?.service_id != null ? String(payload.service_id) : null,
         skillTestId: payload?.skill_test_id != null ? String(payload.skill_test_id) : null,
+        userTestId: payload?.user_test_id != null ? String(payload.user_test_id) : null,
         testResultId: payload?.test_result_id != null ? String(payload.test_result_id) : null,
         result: normalizedResult,
         error: typeof payload?.error === 'string' ? payload.error : null,
@@ -399,6 +431,7 @@ export default function SelectTestsPageClient() {
     const serviceTestsRef = useRef<Record<string, ServiceTestCard>>({});
     const evaluationRequestIdRef = useRef<string | null>(null);
     const roleRefreshAttemptedRef = useRef(false);
+    const isPageUnloadingRef = useRef(false);
     const storageKey = useMemo(
         () => (dataParam ? `provider-services-tests:${dataParam}` : null),
         [dataParam]
@@ -416,6 +449,7 @@ export default function SelectTestsPageClient() {
                     test: entry.test,
                     serviceInfo: entry.serviceInfo,
                     requestId: entry.requestId,
+                    userTestId: entry.userTestId,
                 })),
         [serviceTests, testData]
     );
@@ -472,6 +506,35 @@ export default function SelectTestsPageClient() {
 
         window.sessionStorage.removeItem(storageKey);
     }, [storageKey]);
+
+    const clearPersistedAttemptState = useCallback(() => {
+        if (!storageKey || typeof window === 'undefined') {
+            return;
+        }
+
+        const persistedState = readPersistedState();
+        const generationRequestIds = persistedState.generationRequestIds ?? {};
+
+        if (Object.keys(generationRequestIds).length === 0) {
+            window.sessionStorage.removeItem(storageKey);
+            return;
+        }
+
+        window.sessionStorage.setItem(
+            storageKey,
+            JSON.stringify({
+                generationRequestIds,
+                currentTest: null,
+                currentQuestionIndex: 0,
+                answers: [],
+                testInProgress: false,
+                timeRemaining: 0,
+                testStartTime: null,
+                questionStartTime: null,
+                evaluationRequestId: null,
+            } satisfies PersistedTestsState)
+        );
+    }, [readPersistedState, storageKey]);
 
     const formatLevelHuman = useCallback((level: string) => {
         const normalized = level.trim().toUpperCase();
@@ -531,6 +594,26 @@ export default function SelectTestsPageClient() {
     }, [evaluationRequestId]);
 
     useEffect(() => {
+        isPageUnloadingRef.current = false;
+
+        const markPageUnloading = () => {
+            isPageUnloadingRef.current = true;
+        };
+
+        window.addEventListener('beforeunload', markPageUnloading);
+        window.addEventListener('pagehide', markPageUnloading);
+
+        return () => {
+            window.removeEventListener('beforeunload', markPageUnloading);
+            window.removeEventListener('pagehide', markPageUnloading);
+
+            if (!isPageUnloadingRef.current) {
+                clearPersistedState();
+            }
+        };
+    }, [clearPersistedState]);
+
+    useEffect(() => {
         if (!hasInitializedState || !storageKey || typeof window === 'undefined') {
             return;
         }
@@ -540,19 +623,29 @@ export default function SelectTestsPageClient() {
                 .filter(([, entry]) => Boolean(entry?.requestId))
                 .map(([serviceKey, entry]) => [serviceKey, entry.requestId as string])
         );
+        const shouldPersistAttemptState =
+            testInProgress || loadingResults || Boolean(evaluationRequestId);
 
         window.sessionStorage.setItem(
             storageKey,
             JSON.stringify({
                 generationRequestIds,
-                currentTest,
-                currentQuestionIndex,
-                answers,
-                testInProgress,
-                timeRemaining,
-                testStartTime: testStartTime?.toISOString() ?? null,
-                questionStartTime: questionStartTime?.toISOString() ?? null,
-                evaluationRequestId,
+                currentTest: shouldPersistAttemptState ? currentTest : null,
+                currentQuestionIndex: shouldPersistAttemptState
+                    ? currentQuestionIndex
+                    : 0,
+                answers: shouldPersistAttemptState ? answers : [],
+                testInProgress: shouldPersistAttemptState ? testInProgress : false,
+                timeRemaining: shouldPersistAttemptState ? timeRemaining : 0,
+                testStartTime: shouldPersistAttemptState
+                    ? testStartTime?.toISOString() ?? null
+                    : null,
+                questionStartTime: shouldPersistAttemptState
+                    ? questionStartTime?.toISOString() ?? null
+                    : null,
+                evaluationRequestId: shouldPersistAttemptState
+                    ? evaluationRequestId
+                    : null,
             } satisfies PersistedTestsState)
         );
     }, [
@@ -561,6 +654,7 @@ export default function SelectTestsPageClient() {
         currentTest,
         evaluationRequestId,
         hasInitializedState,
+        loadingResults,
         questionStartTime,
         serviceTests,
         storageKey,
@@ -588,6 +682,7 @@ export default function SelectTestsPageClient() {
                     [serviceKey]: {
                         serviceInfo,
                         requestId: requestState.requestId,
+                        userTestId: requestState.userTestId,
                         status: 'completed',
                         test: requestState.result.test,
                         error: null,
@@ -603,6 +698,7 @@ export default function SelectTestsPageClient() {
                     [serviceKey]: {
                         serviceInfo,
                         requestId: requestState.requestId,
+                        userTestId: requestState.userTestId,
                         status: 'failed',
                         test: null,
                         error: requestState.error ?? t('errors.defaultGeneration'),
@@ -617,10 +713,12 @@ export default function SelectTestsPageClient() {
                 [serviceKey]: {
                     ...(prev[serviceKey] ?? {
                         serviceInfo,
+                        userTestId: null,
                         test: null,
                     }),
                     serviceInfo,
                     requestId: requestState.requestId,
+                    userTestId: requestState.userTestId,
                     status: 'processing',
                     error: null,
                     nextAvailableAt: null,
@@ -631,9 +729,8 @@ export default function SelectTestsPageClient() {
     );
 
     const applyEvaluationRequestState = useCallback((requestState: TestRequestState) => {
-        setEvaluationRequestId(requestState.requestId);
-
         if (requestState.status === 'COMPLETED') {
+            setEvaluationRequestId(null);
             setTestResult(normalizeEvaluationResult(requestState.result));
             setTestCompleted(true);
             setTestInProgress(false);
@@ -643,6 +740,7 @@ export default function SelectTestsPageClient() {
         }
 
         if (requestState.status === 'FAILED' || requestState.status === 'FAILED_BROADCAST') {
+            setEvaluationRequestId(null);
             setTestCompleted(false);
             setTestInProgress(false);
             setLoadingResults(false);
@@ -650,6 +748,7 @@ export default function SelectTestsPageClient() {
             return;
         }
 
+        setEvaluationRequestId(requestState.requestId);
         setLoadingResults(true);
     }, [t]);
 
@@ -762,10 +861,12 @@ export default function SelectTestsPageClient() {
                                 [serviceKey]: {
                                     ...(prev[serviceKey] ?? {
                                         serviceInfo,
+                                        userTestId: null,
                                         test: null,
                                     }),
                                     serviceInfo,
                                     requestId,
+                                    userTestId: null,
                                     status: 'processing',
                                     error: null,
                                     nextAvailableAt: null,
@@ -784,6 +885,7 @@ export default function SelectTestsPageClient() {
                                     [serviceKey]: {
                                         serviceInfo,
                                         requestId: null,
+                                        userTestId: null,
                                         status: 'cooldown',
                                         test: null,
                                         error:
@@ -801,12 +903,13 @@ export default function SelectTestsPageClient() {
 
                             setServiceTests((prev) => ({
                                 ...prev,
-                                [serviceKey]: {
-                                    serviceInfo,
-                                    requestId: null,
-                                    status: 'failed',
-                                    test: null,
-                                    error:
+                                    [serviceKey]: {
+                                        serviceInfo,
+                                        requestId: null,
+                                        userTestId: null,
+                                        status: 'failed',
+                                        test: null,
+                                        error:
                                         generationError?.message ??
                                         t('errors.generationStart'),
                                     nextAvailableAt: null,
@@ -871,12 +974,26 @@ export default function SelectTestsPageClient() {
                             ? entry.programmingLanguage
                             : '',
             }));
-            const persistedState = readPersistedState();
+            const shouldRestoreAttemptState = getNavigationType() === 'reload';
+            const persistedState = shouldRestoreAttemptState
+                ? readPersistedState()
+                : {};
+
+            if (!shouldRestoreAttemptState) {
+                clearPersistedState();
+            }
+
             const generationRequestIds = persistedState.generationRequestIds ?? {};
-            const restoredCurrentTest = persistedState.currentTest ?? null;
+            const restoredCurrentTest = shouldRestoreAttemptState
+                ? persistedState.currentTest ?? null
+                : null;
             const restoredTestInProgress = Boolean(persistedState.testInProgress && restoredCurrentTest);
-            const restoredTestStartTime = parsePersistedDate(persistedState.testStartTime);
-            const restoredQuestionStartTime = parsePersistedDate(persistedState.questionStartTime);
+            const restoredTestStartTime = shouldRestoreAttemptState
+                ? parsePersistedDate(persistedState.testStartTime)
+                : null;
+            const restoredQuestionStartTime = shouldRestoreAttemptState
+                ? parsePersistedDate(persistedState.questionStartTime)
+                : null;
             const totalTestSeconds = Number(restoredCurrentTest?.test?.timeLimit ?? 0) * 60;
             const elapsedSeconds =
                 restoredTestStartTime != null
@@ -913,6 +1030,7 @@ export default function SelectTestsPageClient() {
                         {
                             serviceInfo,
                             requestId: existingRequestId,
+                            userTestId: null,
                             status: existingRequestId ? 'processing' : 'idle',
                             test: null,
                             error: null,
@@ -926,7 +1044,11 @@ export default function SelectTestsPageClient() {
             setTestData(normalizedTestData);
             setCurrentTest(restoredCurrentTest);
             setCurrentQuestionIndex(restoredQuestionIndex);
-            setAnswers(Array.isArray(persistedState.answers) ? persistedState.answers : []);
+            setAnswers(
+                shouldRestoreAttemptState && Array.isArray(persistedState.answers)
+                    ? persistedState.answers
+                    : []
+            );
             setTestInProgress(restoredTestInProgress);
             setTimeRemaining(restoredTimeRemaining);
             setTestStartTime(restoredTestInProgress ? restoredTestStartTime : null);
@@ -935,13 +1057,17 @@ export default function SelectTestsPageClient() {
                     ? restoredQuestionStartTime ?? new Date()
                     : null
             );
-            setEvaluationRequestId(persistedState.evaluationRequestId ?? null);
+            setEvaluationRequestId(
+                shouldRestoreAttemptState
+                    ? persistedState.evaluationRequestId ?? null
+                    : null
+            );
             setHasInitializedState(true);
             setLoadingTests(!restoredTestInProgress);
 
             void initializeServiceTests(normalizedTestData, generationRequestIds);
 
-            if (persistedState.evaluationRequestId) {
+            if (shouldRestoreAttemptState && persistedState.evaluationRequestId) {
                 setLoadingResults(true);
                 void syncTestRequest(String(persistedState.evaluationRequestId), {
                     expectedType: 'evaluation',
@@ -958,6 +1084,7 @@ export default function SelectTestsPageClient() {
         dataParam,
         initializeServiceTests,
         readPersistedState,
+        clearPersistedState,
         refreshUser,
         router,
         syncTestRequest,
@@ -1066,6 +1193,7 @@ export default function SelectTestsPageClient() {
 
             const formattedData = {
                 testId: currentTest.test.id,
+                userTestId: currentTest?.userTestId ?? null,
                 answers,
                 timeSpent: totalTimeSpent,
                 testData: currentServiceTestData
@@ -1509,7 +1637,7 @@ export default function SelectTestsPageClient() {
         const codeEditor =
             currentQuestion.type === 'CODE_WRITING' ? (
                 <ExamGuard
-                    testId={currentTest.test.id}
+                    testId={currentTest.userTestId ?? currentTest.test.id}
                     initialStrikes={0}
                     editorLanguage={normalizeEditorLanguage(
                         currentTest?.serviceInfo?.programming_language || 'javascript'
@@ -1565,7 +1693,7 @@ export default function SelectTestsPageClient() {
 
                     {currentQuestion.type !== 'CODE_WRITING' ? (
                         <ExamGuard
-                            testId={currentTest.test.id}
+                            testId={currentTest.userTestId ?? currentTest.test.id}
                             initialStrikes={0}
                             onFailed={handleExamViolationFailed}
                         />
@@ -1798,6 +1926,7 @@ export default function SelectTestsPageClient() {
                                                 test: serviceTest.test,
                                                 serviceInfo,
                                                 requestId: serviceTest.requestId,
+                                                userTestId: serviceTest.userTestId,
                                             });
                                             setStartWarningOpen(true);
                                         }}

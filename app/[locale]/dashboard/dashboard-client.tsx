@@ -2139,7 +2139,7 @@ export default function DashboardClient() {
                           {t('dashboard.services.empty.description.provider')}
                         </p>
                         <Button asChild>
-                          <Link href="/provider/services/select">
+                          <Link href="/provider/services/select?reset=1">
                             <Plus className="w-4 h-4 mr-2" />
                             {t('dashboard.services.empty.cta')}
                           </Link>
@@ -2385,7 +2385,7 @@ export default function DashboardClient() {
 
                         <div className="flex justify-end">
                           <Button asChild variant="outline">
-                            <Link href="/provider/services/select">
+                            <Link href="/provider/services/select?reset=1">
                               <Plus className="w-4 h-4 mr-2" />
                               {t('dashboard.services.manage_cta')}
                             </Link>

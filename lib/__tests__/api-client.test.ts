@@ -29,7 +29,9 @@ describe('lib/api ApiClient', () => {
     await client.getPopularServices();
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    const [url] = fetchMock.mock.calls[0];
+    const firstCall = fetchMock.mock.calls[0] as unknown as [RequestInfo | URL, RequestInit?] | undefined;
+    expect(firstCall).toBeTruthy();
+    const [url] = firstCall!;
     expect(String(url)).toContain('/api/services/popular');
   });
 
@@ -106,5 +108,20 @@ describe('lib/api ApiClient', () => {
     const response = await client.getProjectNameByProjectUrl('project-slug');
 
     expect(response).toBe('Project Name');
+  });
+
+  it('uses the exam violations endpoint for exam guard reports', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ action: 'warning' }));
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const client = new ApiClient(baseUrl);
+    await client.logExamViolation({ testId: 1, type: 'minor', reason: 'tab_switch' });
+
+    const violationCall = fetchMock.mock.calls.find((call) =>
+      String((call as unknown as [RequestInfo | URL, RequestInit?])[0]).includes('/api/exams/violation')
+    ) as unknown as [RequestInfo | URL, RequestInit?] | undefined;
+    expect(violationCall).toBeTruthy();
+    expect(String(violationCall![0])).toContain('/api/exams/violation');
+    expect(violationCall![1]?.method).toBe('POST');
   });
 });

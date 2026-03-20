@@ -53,6 +53,7 @@ export default function SelectServicesPage() {
     const [hasRestoredSelection, setHasRestoredSelection] = useState(false);
     const storageKey = useMemo(() => 'provider-services-select', []);
     const roleRefreshAttemptedRef = useRef(false);
+    const resetWizardStateHandledRef = useRef(false);
     const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const roleSlugs = useMemo(() => getRoleSlugs(user), [user]);
     const hasRoleInfo = roleSlugs.length > 0;
@@ -165,6 +166,60 @@ export default function SelectServicesPage() {
             setSelectedService('');
         }
     }, [selectedService, services]);
+
+    const clearPersistedWizardState = useCallback(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        window.sessionStorage.removeItem(storageKey);
+
+        const keysToRemove: string[] = [];
+        for (let index = 0; index < window.sessionStorage.length; index += 1) {
+            const key = window.sessionStorage.key(index);
+            if (
+                key &&
+                (
+                    key.startsWith('provider-services-levels:')
+                    || key.startsWith('provider-services-tests:')
+                )
+            ) {
+                keysToRemove.push(key);
+            }
+        }
+
+        keysToRemove.forEach((key) => {
+            window.sessionStorage.removeItem(key);
+        });
+    }, [storageKey]);
+
+    useEffect(() => {
+        if (resetWizardStateHandledRef.current || typeof window === 'undefined') {
+            return;
+        }
+
+        resetWizardStateHandledRef.current = true;
+
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('reset') !== '1') {
+            return;
+        }
+
+        clearPersistedWizardState();
+        setParentCategory(null);
+        setSelectedCategory('');
+        setSelectedService('');
+        setServices([]);
+        setError('');
+
+        searchParams.delete('reset');
+        const nextQuery = searchParams.toString();
+        const nextUrl = nextQuery
+            ? `${window.location.pathname}?${nextQuery}`
+            : window.location.pathname;
+
+        window.history.replaceState(window.history.state, '', nextUrl);
+    }, [clearPersistedWizardState]);
 
     useEffect(() => {
         if (categoriesLoading || hasRestoredSelection || typeof window === 'undefined') {

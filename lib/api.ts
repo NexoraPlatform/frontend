@@ -1676,7 +1676,7 @@ export class ApiClient {
     type: 'minor' | 'critical';
     reason: string;
   }) {
-    return this.request<any>('/exams/log-violation', {
+    return this.request<any>('/exams/violation', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

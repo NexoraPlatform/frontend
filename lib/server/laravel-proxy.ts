@@ -58,7 +58,8 @@ export const isTrustedOrigin = (req: Request) => {
 
 export const assertTrustedMutationRequest = (
   req: Request,
-  explicitXsrfToken?: string | null
+  explicitXsrfToken?: string | null,
+  options?: { skipCsrfCheck?: boolean }
 ) => {
   if (!isStateChangingMethod(req.method)) {
     return;
@@ -66,6 +67,10 @@ export const assertTrustedMutationRequest = (
 
   if (!isTrustedOrigin(req)) {
     throw new ProxySecurityError('Untrusted origin');
+  }
+
+  if (options?.skipCsrfCheck) {
+    return;
   }
 
   const incomingXsrfHeader = req.headers.get('x-xsrf-token');
@@ -79,9 +84,9 @@ export const assertTrustedMutationRequest = (
 export const buildProxyHeaders = (
   req: Request,
   extra?: HeadersInit,
-  options?: { explicitXsrfToken?: string | null }
+  options?: { explicitXsrfToken?: string | null; skipCsrfCheck?: boolean }
 ) => {
-  assertTrustedMutationRequest(req, options?.explicitXsrfToken);
+  assertTrustedMutationRequest(req, options?.explicitXsrfToken, options);
 
   const headers = new Headers({
     Accept: 'application/json',
