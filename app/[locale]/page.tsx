@@ -21,9 +21,10 @@ import {
 } from "@/lib/seo";
 import type { Locale } from "@/types/locale";
 import type { Metadata } from "next";
-import Script from "next/script";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
+
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 
 export const revalidate = 86400;
 
@@ -96,13 +97,7 @@ export default async function Home({ params }: HomePageProps) {
       itemScope
       itemType="https://schema.org/WebPage"
     >
-      <Script
-        id="homepage-jsonld"
-        type="application/ld+json"
-        strategy="beforeInteractive"
-      >
-        {serializeJsonLd(homepageGraph)}
-      </Script>
+      <JsonLdScript id="homepage" json={serializeJsonLd(homepageGraph)} />
 
       <TrustoraThemeStyles />
 

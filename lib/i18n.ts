@@ -15,6 +15,7 @@ export const localeConfig = {
 };
 
 type NamespaceLoader = () => Promise<any>;
+type Messages = Record<string, any>;
 
 // Basic translations structure - expand as needed
 export const translations: Record<Locale, Record<string, NamespaceLoader | NamespaceLoader[]>> = {
@@ -164,6 +165,79 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
     },
 };
 
+export type TranslationNamespace = keyof (typeof translations)[Locale];
+
+export const sharedClientNamespaces: TranslationNamespace[] = [
+    'navigation',
+    'common',
+    'homepage',
+    'services',
+    'search',
+    'projects',
+    'help',
+    'contact',
+    'trustora',
+    'errors',
+    'auth',
+    'about',
+    'accessDenied',
+];
+
+function mergeDeep(target: Messages, source: Messages) {
+    for (const [key, value] of Object.entries(source)) {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            target[key] ??= {};
+            mergeDeep(target[key], value);
+        } else {
+            target[key] = value;
+        }
+    }
+}
+
+function resolveLocale(locale: Locale | string): Locale {
+    return translations[locale as Locale] ? (locale as Locale) : defaultLocale;
+}
+
+export function buildClientMessageNamespaces(
+    extraNamespaces: TranslationNamespace[] = [],
+): TranslationNamespace[] {
+    return Array.from(new Set([...sharedClientNamespaces, ...extraNamespaces]));
+}
+
+export async function loadMessagesForNamespaces(
+    locale: Locale | string,
+    namespaces?: TranslationNamespace[],
+): Promise<Messages> {
+    const resolvedLocale = resolveLocale(locale);
+    const source = translations[resolvedLocale];
+    const targetNamespaces = namespaces?.length
+        ? namespaces
+        : (Object.keys(source) as TranslationNamespace[]);
+    const messages: Messages = {};
+
+    for (const namespace of targetNamespaces) {
+        const loadersForNamespace = source[namespace];
+        if (!loadersForNamespace) continue;
+
+        const loaders = Array.isArray(loadersForNamespace)
+            ? loadersForNamespace
+            : [loadersForNamespace];
+        const loaded = await Promise.all(
+            loaders.map(async (load) => {
+                const module = await load();
+                return module?.default ?? module;
+            }),
+        );
+
+        messages[namespace] = {};
+        for (const chunk of loaded) {
+            mergeDeep(messages[namespace], chunk);
+        }
+    }
+
+    return messages;
+}
+
 const namespaceCache: Record<Locale, Record<string, any>> = {
     ro: {},
     en: {},
@@ -175,7 +249,7 @@ export async function getTranslation(locale: Locale, key: string): Promise<strin
 
     if (!namespace) return key;
 
-    const resolvedLocale = translations[locale] ? locale : defaultLocale;
+    const resolvedLocale = resolveLocale(locale);
     if (!namespaceCache[resolvedLocale]) {
         namespaceCache[resolvedLocale] = {};
     }

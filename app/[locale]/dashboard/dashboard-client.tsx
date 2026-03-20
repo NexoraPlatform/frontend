@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import dynamic from 'next/dynamic';
 import {useLocale, useTranslations} from 'next-intl';
 import {useSearchParams} from 'next/navigation';
 import {Link, usePathname, useRouter} from '@/lib/navigation';
@@ -53,14 +54,12 @@ import {apiClient, DashboardStatsResponse, ProviderServiceRecord, RecentActivity
 import {ensureEcho} from '@/lib/echo';
 import {toast} from 'sonner';
 import {sanitizeExternalRedirectUrl} from '@/lib/navigation-security';
-import ClientProjectRequests from '../client/project-requests/ClientProjectRequests';
-import SettingsComponent from "@/components/dashboard/SettingsComponent";
-import CompanyInformationsSettingsDialog from '@/components/dashboard/settings/company-informations-settings-dialog';
 import {NotificationBell} from '@/components/notification-bell';
 import {LocaleSwitcher} from '@/components/LocaleSwitcher';
 import {CurrencySwitcher} from '@/components/CurrencySwitcher';
 import {ChatButton} from '@/components/chat/chat-button';
 import ChatLauncher from '@/components/chat/chat-launcher';
+import { useAppTheme } from '@/hooks/use-app-theme';
 
 const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 const RAPYD_REDIRECT_ALLOWED_HOSTS = (
@@ -128,6 +127,37 @@ const fadeUp = {
   },
 };
 
+const ClientProjectRequests = dynamic(
+  () => import('../client/project-requests/ClientProjectRequests'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    ),
+  }
+);
+
+const SettingsComponent = dynamic(
+  () => import('@/components/dashboard/SettingsComponent'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    ),
+  }
+);
+
+const CompanyInformationsSettingsDialog = dynamic(
+  () => import('@/components/dashboard/settings/company-informations-settings-dialog'),
+  {
+    ssr: false,
+  }
+);
+
 const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   'project.created': 'Project created',
   'project.provider.invited': 'Provider invited',
@@ -159,7 +189,7 @@ interface WalletData {
 export default function DashboardClient() {
   const { user, loading, userLoading, updateUser, refreshUser } = useAuth();
   const t = useTranslations();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useAppTheme();
   const [openCompanyInformationsDialog, setOpenCompanyInformationsDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
@@ -175,6 +205,7 @@ export default function DashboardClient() {
   const [providerServices, setProviderServices] = useState<ProviderServiceRecord[]>([]);
   const [loadingProviderServices, setLoadingProviderServices] = useState(false);
   const [providerServicesError, setProviderServicesError] = useState('');
+
   const roleSlugs = useMemo(() => {
     const rolesList = Array.isArray(user?.roles) ? user?.roles : [];
     const fromRoles = (rolesList ?? []).map((role: any) => role?.slug).filter(Boolean);
@@ -228,6 +259,9 @@ export default function DashboardClient() {
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferLoading, setTransferLoading] = useState(false);
   const [rapydConnecting, setRapydConnecting] = useState(false);
+  const projectCollectionRef = useRef<any[]>([]);
+  const projectCollectionLoadedRef = useRef(false);
+  const projectCollectionPromiseRef = useRef<Promise<any[]> | null>(null);
   const hasRapydConnected = Boolean(user?.rapyd_wallet_id);
   const hasPhoneNumber = Boolean(String(user?.phone ?? '').trim());
   const hasCompanyProfile = Boolean(
@@ -249,6 +283,54 @@ export default function DashboardClient() {
   useEffect(() => {
     document.title = 'Trustora | Escrow Dashboard';
   }, []);
+
+  useEffect(() => {
+    projectCollectionRef.current = [];
+    projectCollectionLoadedRef.current = false;
+    projectCollectionPromiseRef.current = null;
+  }, [isProvider, user?.id]);
+
+  const fetchProjectCollection = useCallback(async (force = false) => {
+    if (!user) {
+      projectCollectionRef.current = [];
+      projectCollectionLoadedRef.current = false;
+      return [];
+    }
+
+    if (!force && projectCollectionLoadedRef.current) {
+      return projectCollectionRef.current;
+    }
+
+    if (projectCollectionPromiseRef.current) {
+      return projectCollectionPromiseRef.current;
+    }
+
+    const request = (async () => {
+      const response: any = isProvider
+        ? await apiClient.getProviderProjectRequests()
+        : await apiClient.getClientProjectRequests();
+
+      const collection = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.projects)
+          ? response.projects
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+      projectCollectionRef.current = collection;
+      projectCollectionLoadedRef.current = true;
+      return collection;
+    })();
+
+    projectCollectionPromiseRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      projectCollectionPromiseRef.current = null;
+    }
+  }, [isProvider, user]);
 
   const normalizeProviderLevelKey = useCallback((value: string) => {
     const normalized = value.trim().toUpperCase();
@@ -693,23 +775,11 @@ export default function DashboardClient() {
     }
   };
 
-  const loadProjects = useCallback(async () => {
+  const loadProjects = useCallback(async (force = false) => {
     setLoadingProjects(true);
     setProjectsError('');
     try {
-      let response: any;
-      if (isProvider) {
-        response = await apiClient.getProviderProjectRequests();
-      } else {
-        response = await apiClient.getClientProjectRequests();
-      }
-      let filteredProjects = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.projects)
-              ? response.projects
-              : Array.isArray(response?.data)
-                  ? response.data
-                  : [];
+      let filteredProjects = [...await fetchProjectCollection(force)];
 
       if (focusedProjectId) {
         filteredProjects = [...filteredProjects].sort((a: any, b: any) => {
@@ -797,27 +867,14 @@ export default function DashboardClient() {
     } finally {
       setLoadingProjects(false);
     }
-  }, [currentPage, focusedProjectId, isProvider, searchTerm, sortBy, sortOrder, statusFilter, t]);
+  }, [currentPage, fetchProjectCollection, focusedProjectId, searchTerm, sortBy, sortOrder, statusFilter, t]);
 
-  const loadOverviewProjects = useCallback(async () => {
+  const loadOverviewProjects = useCallback(async (force = false) => {
     if (!user) return;
     setLoadingOverviewProjects(true);
     setOverviewProjectsError('');
     try {
-      let response: any;
-      if (isProvider) {
-        response = await apiClient.getProviderProjectRequests();
-      } else {
-        response = await apiClient.getClientProjectRequests();
-      }
-
-      const projectsCollection = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.projects)
-          ? response.projects
-          : Array.isArray(response?.data)
-            ? response.data
-            : [];
+      const projectsCollection = [...await fetchProjectCollection(force)];
 
       const latestTwo = [...projectsCollection]
         .sort((a: any, b: any) => {
@@ -833,7 +890,7 @@ export default function DashboardClient() {
     } finally {
       setLoadingOverviewProjects(false);
     }
-  }, [isProvider, t, user]);
+  }, [fetchProjectCollection, t, user]);
 
   const loadRecentActivities = useCallback(async () => {
     if (!user) return;
@@ -967,11 +1024,11 @@ export default function DashboardClient() {
         (isProjectEvent || isBudgetAcceptedByProvider || isRapydEvent);
 
       if (shouldRefetchProjects) {
-        void loadProjects();
+        void loadProjects(true);
       }
 
       if (shouldRefreshOverview) {
-        void loadOverviewProjects();
+        void loadOverviewProjects(true);
         void loadRecentActivities();
         void loadStats();
       }
@@ -1024,12 +1081,12 @@ export default function DashboardClient() {
     if (typeof window === 'undefined') return;
 
     const handleFocus = () => {
-      loadProjects();
+      loadProjects(true);
     };
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        loadProjects();
+        loadProjects(true);
       }
     };
 
@@ -1060,8 +1117,8 @@ export default function DashboardClient() {
       else if (payload.response === 'REJECTED') message = t('dashboard.notifications.project_rejected');
       else if (payload.response === 'NEW_PROPOSE') message = t('dashboard.notifications.budget_proposed');
       toast.success(message);
-      await loadProjects();
-      await loadOverviewProjects();
+      await loadProjects(true);
+      await loadOverviewProjects(true);
       await loadRecentActivities();
     } catch (error: any) {
       toast.error(t('dashboard.errors.generic', { message: error.message }));
@@ -1361,6 +1418,13 @@ export default function DashboardClient() {
 
   const overviewStats = getOverviewStats();
   const currentTheme = isDarkMode ? themes.dark : themes.light;
+  const dashboardHeaderUtilityButtonClass = isDarkMode
+    ? '!border-white/50 !bg-[#0B1220] !text-white hover:!bg-white/10 hover:!text-white'
+    : '!border-slate-200/80 !bg-white !text-[#0B1C2D] hover:!bg-slate-100 hover:!text-[#0B1C2D]';
+  const dashboardHeaderUtilityIconClass = isDarkMode ? '!text-white' : '!text-[#0B1C2D]';
+  const dashboardHeaderSelectButtonClass = isDarkMode
+    ? '!text-white hover:!text-white'
+    : '!text-[#0B1C2D] hover:!text-[#0B1C2D]';
   const sidebarItemClass = (tab: string) => `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors w-full text-left ${
     activeTab === tab
       ? 'bg-[#1BC47D]/10 text-[#1BC47D] border border-[#1BC47D]/20'
@@ -1590,17 +1654,19 @@ export default function DashboardClient() {
                     className="rounded-lg border"
                     style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
                   >
-                    <LocaleSwitcher className="h-9 px-2 rounded-lg" />
+                    <LocaleSwitcher className={`h-9 px-2 rounded-lg ${dashboardHeaderSelectButtonClass}`} />
                   </div>
                   <div
                     className="rounded-lg border"
                     style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
                   >
-                    <CurrencySwitcher className="h-9 px-2 rounded-lg text-sm font-semibold" />
+                    <CurrencySwitcher
+                      className={`h-9 px-2 rounded-lg text-sm font-semibold ${dashboardHeaderSelectButtonClass}`}
+                    />
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsDarkMode((prev) => !prev)}
+                  onClick={toggleTheme}
                   className="relative transition-colors hover:text-[var(--text-main)]"
                   style={{ color: 'var(--text-muted)' }}
                   title="Toggle Light/Dark Mode"
@@ -1609,10 +1675,13 @@ export default function DashboardClient() {
                 </button>
 
                 <div className="relative">
-                  <NotificationBell />
+                  <NotificationBell
+                    triggerClassName={dashboardHeaderUtilityButtonClass}
+                    iconClassName={dashboardHeaderUtilityIconClass}
+                  />
                 </div>
                 <div className="relative">
-                  <ChatButton />
+                  <ChatButton triggerClassName={dashboardHeaderUtilityButtonClass} />
                 </div>
 
                 <div className="hidden h-6 w-px transition-colors duration-300 md:block" style={{ backgroundColor: 'var(--border-color)' }} />

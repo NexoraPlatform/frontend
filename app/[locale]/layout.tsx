@@ -1,24 +1,19 @@
 import { ReactNode } from "react";
-import nextDynamic from "next/dynamic";
-import Script from "next/script";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
 
-import ActivityTracker from "@/components/ActivityTracker";
+import { GoogleTagManagerLoader } from "@/components/analytics/google-tag-manager-loader";
+import { DeferredRealtimeProviders } from "@/components/layout/deferred-realtime-providers";
 import { LocaleSync } from "@/components/LocaleSync";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/auth-context";
-import { ChatProvider } from "@/contexts/chat-context";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
-import { NotificationProvider } from "@/contexts/notification-context";
+import { loadMessagesForNamespaces, sharedClientNamespaces } from "@/lib/i18n";
 import { locales } from "@/lib/navigation";
 import { buildGlobalKnowledgeGraph, serializeJsonLd } from "@/lib/seo";
-
-const OneSignalInit = nextDynamic(() => import("@/components/OneSignalInit"), {
-  loading: () => null,
-});
 
 type Props = {
   children: ReactNode;
@@ -26,7 +21,7 @@ type Props = {
 };
 
 export const dynamicParams = false;
-export const dynamic = 'force-dynamic';
+export const dynamic = "auto";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -41,29 +36,20 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
 
-  const messages = await getMessages({ locale });
+  const messages = await loadMessagesForNamespaces(locale, sharedClientNamespaces);
   const initialUser = null;
   const rawGtmId = process.env.GTM_ID?.trim();
   const gtmId = rawGtmId && /^[A-Za-z0-9_-]+$/.test(rawGtmId) ? rawGtmId : null;
   const isProduction = process.env.NODE_ENV === "production";
-  const shouldLoadOneSignal = isProduction && Boolean(process.env.ONESIGNAL_APP_ID);
   const shouldLoadGtm = isProduction && Boolean(gtmId);
 
   const globalJsonLd = serializeJsonLd(buildGlobalKnowledgeGraph());
 
   return (
     <div className="font-sans antialiased">
-      <Script
-        id="global-jsonld"
-        type="application/ld+json"
-        strategy="beforeInteractive"
-      >
-        {globalJsonLd}
-      </Script>
+      <JsonLdScript id="global" json={globalJsonLd} />
       {shouldLoadGtm && gtmId && (
-        <Script id="gtm" strategy="lazyOnload">
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':Date.now(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(gtmId)});`}
-        </Script>
+        <GoogleTagManagerLoader gtmId={gtmId} />
       )}
       {shouldLoadGtm && gtmId && (
         <noscript>
@@ -87,12 +73,8 @@ export default async function LocaleLayout({ children, params }: Props) {
               storageKey="trustora-theme"
             >
               <LocaleSync />
-              <ActivityTracker />
-              <NotificationProvider>
-                <ChatProvider>{children}</ChatProvider>
-              </NotificationProvider>
+              <DeferredRealtimeProviders>{children}</DeferredRealtimeProviders>
               <Toaster position="top-right" expand={false} richColors closeButton />
-              {shouldLoadOneSignal && <OneSignalInit />}
             </ThemeProvider>
           </CurrencyProvider>
         </AuthProvider>

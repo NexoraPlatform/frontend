@@ -54,7 +54,6 @@ export interface AuthUser {
   escrow_next_step?: string | null;
   is_online?: boolean;
   last_seen?: string | null;
-  onesignal_player_id?: string | null;
   roles?: AccessRole[];
   profile_url?: string;
   is_superuser?: boolean;

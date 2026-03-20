@@ -1,190 +1,63 @@
-'use client';
+import { getTranslations } from 'next-intl/server';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
-import { Loader2 } from 'lucide-react';
-import { ProjectWithClient } from '@/lib/projects';
-import { apiClient } from '@/lib/api';
-import { ProjectFilters } from '@/components/ProjectFilters';
-import { ProjectCard } from '@/components/ProjectCard';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
-import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
-import { Badge } from '@/components/ui/badge';
-import { useCurrency } from '@/hooks/useCurrency';
+import { ProjectsPageClient } from './projects-page-client';
+
+import { cachedServerGet } from '@/lib/server/api';
+import {
+  normalizePublicProjectsResponse,
+  normalizeStringOptions,
+} from '@/lib/server/public-listings';
+
+type ProjectsPageProps = {
+  params: Promise<{ locale: string }>;
+};
 
 const ITEMS_PER_PAGE = 8;
+const PUBLIC_LISTINGS_REVALIDATE_SECONDS = 300;
 
-export default function ProjectsPage() {
-  const t = useTranslations();
-  const [projects, setProjects] = useState<ProjectWithClient[]>([]);
-  const [categories, setCategories] = useState<string[]>([t('projects.list.filters.all')]);
-  const [technologies, setTechnologies] = useState<string[]>([]);
+export const revalidate = 300;
 
-  const [selectedCategory, setSelectedCategory] = useState(t('projects.list.filters.all'));
-  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
-  const [selectedBudgetMin, setSelectedBudgetMin] = useState(0);
-  const [selectedBudgetMax, setSelectedBudgetMax] = useState(999999);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { currency } = useCurrency();
+export default async function ProjectsPage({ params }: ProjectsPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'projects.list.filters' });
+  const allCategoryLabel = t('all');
 
-  const [page, setPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitializing, setIsInitializing] = useState(false);
-
-  const observerTarget = useRef<HTMLDivElement>(null);
-  const isLoadingRef = useRef(false);
-
-  const loadProjects = useCallback(
-    async (pageNum: number, isReset: boolean = false) => {
-      if (isLoadingRef.current) return;
-      isLoadingRef.current = true;
-      setIsLoading(true);
-
-      try {
-        const newProjects = await apiClient.getPublicProjects({
-          page: pageNum,
-          search: searchQuery,
-          category: selectedCategory,
-          technologies: selectedTechnologies,
-          budget_min: selectedBudgetMin,
-          budget_max: selectedBudgetMax,
-        });
-
-        if (newProjects.length < ITEMS_PER_PAGE) {
-          setHasMore(false);
-        } else {
-          setHasMore(true);
-        }
-
-        if (isReset) {
-          setProjects(newProjects);
-        } else {
-          setProjects((prev) => [...prev, ...newProjects]);
-        }
-      } catch (error) {
-        console.error('Failed to load projects:', error);
-      } finally {
-        setIsLoading(false);
-        isLoadingRef.current = false;
-      }
-    },
-    [searchQuery, selectedCategory, selectedTechnologies, selectedBudgetMin, selectedBudgetMax]
-  );
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
-          setPage((prev) => prev + 1);
-        }
+  const [projectsResult, categoriesResult, technologiesResult] = await Promise.allSettled([
+    cachedServerGet<unknown>('/projects', {
+      next: { revalidate: PUBLIC_LISTINGS_REVALIDATE_SECONDS },
+      language: locale,
+      query: {
+        page: 0,
       },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, isLoading]);
-
-  useEffect(() => {
-    setPage(0);
-    setHasMore(true);
-    loadProjects(0, true);
-  }, [
-    selectedCategory,
-    selectedTechnologies,
-    selectedBudgetMin,
-    selectedBudgetMax,
-    searchQuery,
-    currency,
-    loadProjects,
+    }),
+    cachedServerGet<unknown>('/categories', {
+      next: { revalidate: PUBLIC_LISTINGS_REVALIDATE_SECONDS },
+      language: locale,
+    }),
+    cachedServerGet<unknown>('/technologies', {
+      next: { revalidate: PUBLIC_LISTINGS_REVALIDATE_SECONDS },
+      language: locale,
+    }),
   ]);
 
-  useEffect(() => {
-    if (page > 0) {
-      loadProjects(page);
-    }
-  }, [page, loadProjects]);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
-        <TrustoraThemeStyles />
-        <Header />
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-emerald-green animate-spin" />
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  const initialProjects =
+    projectsResult.status === 'fulfilled'
+      ? normalizePublicProjectsResponse(projectsResult.value)
+      : [];
+  const normalizedCategories =
+    categoriesResult.status === 'fulfilled'
+      ? normalizeStringOptions(categoriesResult.value, locale as 'ro' | 'en')
+      : [];
+  const normalizedTechnologies =
+    technologiesResult.status === 'fulfilled'
+      ? normalizeStringOptions(technologiesResult.value, locale as 'ro' | 'en')
+      : [];
 
   return (
-    <div className="min-h-screen bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
-      <TrustoraThemeStyles />
-      <Header />
-      <main className="min-h-screen bg-slate-50 dark:bg-[#070C14] pt-8">
-        <section className="pt-32 pb-12 px-6 hero-gradient">
-          <div className="max-w-7xl mx-auto">
-            <Badge className="mb-5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[#0B1C2D] text-xs font-bold dark:bg-[#111B2D] dark:border-[#1E2A3D] dark:text-[#E6EDF3]">
-              <span className="text-[#1BC47D]">●</span> {t('projects.list.hero.badge')}
-            </Badge>
-            <h1 className="text-4xl lg:text-5xl font-bold text-midnight-blue mb-3 dark:text-[#E6EDF3]">
-              {t('projects.list.hero.title')}
-            </h1>
-            <p className="text-lg text-slate-600 max-w-3xl dark:text-[#A3ADC2]">
-              {t('projects.list.hero.description')}
-            </p>
-          </div>
-        </section>
-
-        <ProjectFilters
-          categories={categories}
-          technologies={technologies}
-          onSearchChange={setSearchQuery}
-          onCategoryChange={setSelectedCategory}
-          onTechnologiesChange={setSelectedTechnologies}
-          onBudgetChange={(min, max) => {
-            setSelectedBudgetMin(min);
-            setSelectedBudgetMax(max);
-          }}
-          selectedCategory={selectedCategory}
-          selectedTechnologies={selectedTechnologies}
-          selectedBudgetMin={selectedBudgetMin}
-          selectedBudgetMax={selectedBudgetMax}
-        />
-
-        <section className="py-12 px-6 bg-slate-50 dark:bg-[#070C14]">
-          <div className="max-w-7xl mx-auto">
-            <div className="space-y-4 mb-12">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-
-            {isLoading && (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 text-emerald-green animate-spin" />
-              </div>
-            )}
-
-            {!isLoading && projects.length === 0 && (
-              <div className="text-center py-16">
-                <p className="text-lg text-slate-500 dark:text-[#7C8799]">
-                  {t('projects.list.empty')}
-                </p>
-              </div>
-            )}
-
-            <div ref={observerTarget} className="h-4" />
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </div>
+    <ProjectsPageClient
+      initialProjects={initialProjects.slice(0, ITEMS_PER_PAGE)}
+      initialCategories={[allCategoryLabel, ...normalizedCategories]}
+      initialTechnologies={normalizedTechnologies}
+    />
   );
 }

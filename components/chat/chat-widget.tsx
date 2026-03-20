@@ -97,6 +97,7 @@ export function ChatWidget() {
         markAsRead,
         typingUsers,
         isConnected,
+        loading,
         loadingMessages,
         getTotalUnreadCount,
         loadMessages,
@@ -621,7 +622,13 @@ export function ChatWidget() {
                                                 )
                                             })}
 
-                                            {filteredGroups.length === 0 && (
+                                            {loading && filteredGroups.length === 0 && (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-emerald-600" />
+                                                </div>
+                                            )}
+
+                                            {!loading && filteredGroups.length === 0 && (
                                                 <div className="text-center py-8">
                                                     <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                                                     <p className="text-muted-foreground">Nu ai conversații</p>

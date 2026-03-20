@@ -62,6 +62,7 @@ describe('UI core components', () => {
     });
 
     const trigger = screen.getByRole('button', { name: /schimb/i });
+    fireEvent.pointerDown(trigger);
     fireEvent.click(trigger);
 
     const englishItem = await screen.findByText('English');

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,6 +10,7 @@ import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { NotificationBell } from '@/components/notification-bell';
 import { ChatButton } from '@/components/chat/chat-button';
 import { useAuth } from '@/contexts/auth-context';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import {
   CheckCircle2,
   FileText,
@@ -76,7 +77,7 @@ export function ProviderDashboardShell({
   const { user } = useAuth();
   const t = useTranslations();
   const router = useRouter();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useAppTheme();
 
   const roleSlugs = useMemo(() => {
     const rolesList = (Array.isArray(user?.roles) ? user?.roles : []) as any[];
@@ -96,6 +97,13 @@ export function ProviderDashboardShell({
   const isProvider = roleSlugs.includes('provider') || true;
   const isClient = roleSlugs.includes('client');
   const currentTheme = isDarkMode ? dashboardThemes.dark : dashboardThemes.light;
+  const dashboardHeaderUtilityButtonClass = isDarkMode
+    ? '!border-white/50 !bg-[#0B1220] !text-white hover:!bg-white/10 hover:!text-white'
+    : '!border-slate-200/80 !bg-white !text-[#0B1C2D] hover:!bg-slate-100 hover:!text-[#0B1C2D]';
+  const dashboardHeaderUtilityIconClass = isDarkMode ? '!text-white' : '!text-[#0B1C2D]';
+  const dashboardHeaderSelectButtonClass = isDarkMode
+    ? '!text-white hover:!text-white'
+    : '!text-[#0B1C2D] hover:!text-[#0B1C2D]';
   const userInitials =
     `${(user?.firstName?.[0] ?? '')}${(user?.lastName?.[0] ?? '')}`.toUpperCase() || 'AC';
   const userDisplayName =
@@ -244,19 +252,21 @@ export function ProviderDashboardShell({
                   className="rounded-lg border"
                   style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
                 >
-                  <LocaleSwitcher className="h-9 rounded-lg px-2" />
+                  <LocaleSwitcher className={`h-9 rounded-lg px-2 ${dashboardHeaderSelectButtonClass}`} />
                 </div>
                 <div
                   className="rounded-lg border"
                   style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--input-bg)' }}
                 >
-                  <CurrencySwitcher className="h-9 rounded-lg px-2 text-sm font-semibold" />
+                  <CurrencySwitcher
+                    className={`h-9 rounded-lg px-2 text-sm font-semibold ${dashboardHeaderSelectButtonClass}`}
+                  />
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setIsDarkMode((prev) => !prev)}
+                onClick={toggleTheme}
                 className="relative transition-colors hover:text-[var(--text-main)]"
                 style={{ color: 'var(--text-muted)' }}
                 title="Toggle Light/Dark Mode"
@@ -265,10 +275,13 @@ export function ProviderDashboardShell({
               </button>
 
               <div className="relative">
-                <NotificationBell />
+                <NotificationBell
+                  triggerClassName={dashboardHeaderUtilityButtonClass}
+                  iconClassName={dashboardHeaderUtilityIconClass}
+                />
               </div>
               <div className="relative">
-                <ChatButton />
+                <ChatButton triggerClassName={dashboardHeaderUtilityButtonClass} />
               </div>
 
               <div

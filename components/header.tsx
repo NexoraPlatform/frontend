@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, usePathname } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
-import { useTheme } from 'next-themes';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -19,6 +18,7 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { Can } from "@/components/Can";
 import { getRoleSlugs, isSuperUser } from '@/lib/access';
+import { useAppTheme } from '@/hooks/use-app-theme';
 
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
@@ -59,14 +59,13 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hasPassedHero, setHasPassedHero] = useState(false);
-  const [isThemeMounted, setIsThemeMounted] = useState(false);
   const earlyAccessEnabled = process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true';
   const basicAuthEnabled =
     process.env.NEXT_PUBLIC_BASIC_AUTH_ENABLED === 'true' ||
     process.env.NEXT_PUBLIC_BASIC_AUTH === 'true' ||
     process.env.BASIC_AUTH_ENABLED === 'true' ||
     process.env.BASIC_AUTH === 'true';
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { isDarkMode: isDarkTheme, isThemeMounted, toggleTheme } = useAppTheme();
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const t = useTranslations();
@@ -138,12 +137,6 @@ export function Header() {
     { name: contactText, href: '/contact' },
   ];
 
-  useEffect(() => {
-    setIsThemeMounted(true);
-  }, []);
-
-  const activeTheme = isThemeMounted ? (resolvedTheme ?? theme ?? 'light') : 'light';
-  const isDarkTheme = activeTheme === 'dark';
   const isHomePage = pathname === '/';
   const useDarkHeaderSurface = isDarkTheme || (isHomePage && !hasPassedHero);
   const themeToggleLabel = `${changeThemeToText} ${isDarkTheme ? lightText : darkText}`;
@@ -189,7 +182,7 @@ export function Header() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
+      onClick={toggleTheme}
       className={cn(
         "w-11 h-11 rounded-xl transition-all duration-200 hover:scale-105",
         useDarkHeaderSurface
@@ -219,10 +212,26 @@ export function Header() {
   const navHoverSurfaceClass = useDarkHeaderSurface
     ? 'bg-white/5'
     : 'bg-emerald-50/70 dark:bg-emerald-500/10';
+  const utilityActionClass = useDarkHeaderSurface
+    ? 'border !border-white/60 bg-white/5 text-white shadow-none hover:!border-white hover:bg-white/10 hover:text-white'
+    : 'border border-emerald-100/60 bg-white text-[#0B1C2D] shadow-sm hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:!border-white/60 dark:bg-[#0B1220] dark:text-white dark:hover:!border-white dark:hover:bg-emerald-500/10 dark:hover:text-white';
+  const utilityActionIconClass = useDarkHeaderSurface ? 'text-white' : undefined;
+  const utilityActionBadgeClass = useDarkHeaderSurface
+    ? 'border-[#060B19] dark:border-[#060B19]'
+    : undefined;
+  const userMenuTriggerClass = useDarkHeaderSurface
+    ? 'relative h-11 w-11 rounded-xl border border-transparent bg-transparent text-white shadow-none hover:bg-white/10 hover:text-white'
+    : 'relative h-11 w-11 rounded-xl border border-transparent bg-transparent text-[#0B1C2D] hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white';
+  const avatarFallbackClass = useDarkHeaderSurface
+    ? 'bg-[#0B1220] text-white'
+    : 'bg-muted text-foreground dark:bg-[#0B1220] dark:text-white';
   const switcherClass = useDarkHeaderSurface ? 'text-white hover:bg-white/10 hover:text-white' : '';
   const authOutlineClass = useDarkHeaderSurface
-    ? 'border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105'
+    ? 'border border-white/60 bg-white/5 text-white hover:bg-white/10 hover:border-white rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105'
     : 'border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105';
+  const authPrimaryClass = useDarkHeaderSurface
+    ? 'bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-white dark:text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105'
+    : 'bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-white dark:text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105';
   const mobileMenuButtonClass = useDarkHeaderSurface
     ? 'w-11 h-11 rounded-xl text-white hover:bg-white/10'
     : 'w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl';
@@ -279,7 +288,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
+                onClick={toggleTheme}
                 className={cn(
                   "w-11 h-11 rounded-xl transition-all duration-200 hover:scale-105",
                   useDarkHeaderSurface
@@ -455,10 +464,17 @@ export function Header() {
             {user && (
               <>
                 {/* Notifications */}
-                <NotificationBell />
+                <NotificationBell
+                  triggerClassName={utilityActionClass}
+                  iconClassName={utilityActionIconClass}
+                  badgeClassName={utilityActionBadgeClass}
+                />
 
                 {/* Messages */}
-                <ChatButton />
+                <ChatButton
+                  triggerClassName={utilityActionClass}
+                  badgeClassName={utilityActionBadgeClass}
+                />
               </>
             )}
 
@@ -472,10 +488,10 @@ export function Header() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-11 w-11 rounded-xl" aria-label={openMainUserMenuText}>
+                  <Button variant="ghost" className={userMenuTriggerClass} aria-label={openMainUserMenuText}>
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={user.avatar ?? undefined} alt={userDisplayName} />
-                      <AvatarFallback>
+                      <AvatarFallback className={avatarFallbackClass}>
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
@@ -512,7 +528,7 @@ export function Header() {
                 <Button variant="outline" aria-label="Deschide meniul principal" className={authOutlineClass} asChild>
                   <Link href="/auth/signin">{loginText}</Link>
                 </Button>
-                <Button className="bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105" asChild>
+                <Button className={authPrimaryClass} asChild>
                   <Link href="/auth/signup">{registerText}</Link>
                 </Button>
               </div>
@@ -550,7 +566,7 @@ export function Header() {
                       <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 rounded-xl py-3 font-semibold" asChild>
                         <Link href="/auth/signin">{loginText}</Link>
                       </Button>
-                      <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-[#071A12] rounded-xl py-3 font-semibold shadow-lg" asChild>
+                      <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-white dark:text-white rounded-xl py-3 font-semibold shadow-lg" asChild>
                         <Link href="/auth/signup">{registerText}</Link>
                       </Button>
                     </div>

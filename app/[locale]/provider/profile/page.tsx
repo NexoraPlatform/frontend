@@ -58,6 +58,7 @@ import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useForm } from 'react-hook-form';
 import * as v from 'valibot';
 import { sanitizeHttpUrl } from '@/lib/navigation-security';
+import { useAppTheme } from '@/hooks/use-app-theme';
 
 type Languages = {
     id: number;
@@ -392,11 +393,11 @@ const providerProfileErrorPathMap: Record<string, string> = {
 export default function ProviderProfileEditPage() {
     const t = useTranslations();
     const { user, loading, userLoading } = useAuth();
+    const { isDarkMode, toggleTheme } = useAppTheme();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
-    const [isDarkMode, setIsDarkMode] = useState(false);
     const router = useRouter();
     const {
         data: providerProfile,
@@ -462,7 +463,6 @@ export default function ProviderProfileEditPage() {
         // Portfolio
         portfolio: []
     });
-
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -1026,7 +1026,7 @@ export default function ProviderProfileEditPage() {
                     <div className="flex items-center gap-2 md:gap-3">
                         <button
                             type="button"
-                            onClick={() => setIsDarkMode((prev) => !prev)}
+                            onClick={toggleTheme}
                             className="rounded-lg border px-2 py-2 transition-colors hover:bg-white/5"
                             style={headerControlStyle}
                             title="Toggle Light/Dark Mode"

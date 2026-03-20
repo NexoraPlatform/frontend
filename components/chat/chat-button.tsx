@@ -13,6 +13,7 @@ import { ro } from "date-fns/locale";
 import { useChat } from "@/contexts/chat-context";
 import { Input } from "@/components/ui/input";
 import {useAuth} from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
 
 function getGroupIcon(type: string) {
     switch (type) {
@@ -23,18 +24,30 @@ function getGroupIcon(type: string) {
     }
 }
 
-export function ChatButton() {
+type ChatButtonProps = {
+    triggerClassName?: string;
+    badgeClassName?: string;
+};
+
+export function ChatButton({
+    triggerClassName,
+    badgeClassName,
+}: ChatButtonProps = {}) {
     const {
+        active,
+        activate,
         groups,
         setActiveGroup,
         getTotalUnreadCount,
         markAsRead,
         openPanel,
+        loading,
     } = useChat();
     const { user } = useAuth();
 
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
+    const isBootstrapping = open && !active;
 
     const totalUnread = getTotalUnreadCount();
 
@@ -65,17 +78,33 @@ export function ChatButton() {
 
     const userLang = user?.language ?? 'ro';
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover
+            open={open}
+            onOpenChange={(nextOpen) => {
+                setOpen(nextOpen);
+                if (nextOpen && !active) {
+                    activate();
+                }
+            }}
+        >
             <PopoverTrigger asChild>
                 <Button
                     aria-label="Deschide conversațiile"
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 rounded-2xl border border-emerald-100/60 bg-white text-[#0B1C2D] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:border-emerald-500/20 dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
+                    className={cn(
+                        "relative w-11 h-11 rounded-2xl border border-emerald-100/60 bg-white text-[#0B1C2D] shadow-sm transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:border-emerald-500/20 dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white",
+                        triggerClassName
+                    )}
                 >
                     <MessageCircle className="h-5 w-5" />
                     {totalUnread > 0 && (
-                        <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-[#1BC47D] to-[#21D19F] text-white text-xs border-2 border-white shadow-sm dark:border-[#0B1220]">
+                        <Badge
+                            className={cn(
+                                "absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gradient-to-r from-[#1BC47D] to-[#21D19F] text-white text-xs border-2 border-white shadow-sm dark:border-[#0B1220]",
+                                badgeClassName
+                            )}
+                        >
                             {totalUnread > 99 ? "99+" : totalUnread}
                         </Badge>
                     )}
@@ -125,7 +154,11 @@ export function ChatButton() {
 
                     <CardContent className="p-0">
                         <ScrollArea className="h-96">
-                            {filtered.length === 0 ? (
+                            {loading || isBootstrapping ? (
+                                <div className="flex items-center justify-center py-10 px-4 text-muted-foreground">
+                                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-emerald-600" />
+                                </div>
+                            ) : filtered.length === 0 ? (
                                 <div className="text-center py-10 px-4 text-muted-foreground">
                                     Nimic aici. Începe o conversație!
                                 </div>

@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { defaultLocale } from '@/lib/i18n';
 
@@ -49,6 +50,23 @@ type ServerRequestOptions = {
   headers?: HeadersInit;
   cache?: RequestCache;
   language?: string | null;
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+};
+
+type CachedServerGetOptions = Omit<ServerRequestOptions, 'method' | 'body'>;
+
+type SerializedCachedServerGetOptions = {
+  cache?: RequestCache;
+  headers?: Record<string, string>;
+  language?: string | null;
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+  query?: Record<string, string>;
 };
 
 export class ServerRequestError extends Error {
@@ -62,6 +80,89 @@ export class ServerRequestError extends Error {
     this.data = data;
   }
 }
+
+const normalizeMethod = (method?: string) => (method ?? 'GET').toUpperCase();
+
+const resolveRequestCache = (
+  method: string,
+  options: Pick<ServerRequestOptions, 'cache' | 'next'>
+): RequestCache => {
+  if (options.cache) {
+    return options.cache;
+  }
+
+  if (method !== 'GET') {
+    return 'no-store';
+  }
+
+  if (options.next?.revalidate === 0) {
+    return 'no-store';
+  }
+
+  return 'force-cache';
+};
+
+const normalizeCachedHeaders = (headers?: HeadersInit) => {
+  if (!headers) {
+    return undefined;
+  }
+
+  const normalizedHeaders = new Headers(headers);
+  const entries = Array.from(normalizedHeaders.entries()).sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
+
+  return Object.fromEntries(entries);
+};
+
+const normalizeCachedQuery = (
+  query?: Record<string, string | number | boolean | null | undefined>
+) => {
+  if (!query) {
+    return undefined;
+  }
+
+  const entries = Object.entries(query)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => [key, String(value)] as const)
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+};
+
+const normalizeCachedNextOptions = (next?: ServerRequestOptions['next']) => {
+  if (!next) {
+    return undefined;
+  }
+
+  const normalizedTags =
+    next.tags && next.tags.length > 0 ? [...new Set(next.tags)].sort() : undefined;
+
+  return {
+    ...(next.revalidate !== undefined ? { revalidate: next.revalidate } : {}),
+    ...(normalizedTags ? { tags: normalizedTags } : {}),
+  };
+};
+
+const serializeCachedServerGetOptions = (options: CachedServerGetOptions) =>
+  JSON.stringify({
+    ...(options.cache ? { cache: options.cache } : {}),
+    ...(options.headers ? { headers: normalizeCachedHeaders(options.headers) } : {}),
+    ...(options.language !== undefined ? { language: options.language } : {}),
+    ...(options.next ? { next: normalizeCachedNextOptions(options.next) } : {}),
+    ...(options.query ? { query: normalizeCachedQuery(options.query) } : {}),
+  } satisfies SerializedCachedServerGetOptions);
+
+const cachedServerGetInternal = cache(
+  async (endpoint: string, serializedOptions: string): Promise<unknown> => {
+    const parsedOptions = JSON.parse(serializedOptions) as SerializedCachedServerGetOptions;
+
+    return serverRequest(endpoint, {
+      ...parsedOptions,
+      method: 'GET',
+    });
+  }
+);
 
 export async function serverRequest<T>(
   endpoint: string,
@@ -110,11 +211,15 @@ export async function serverRequest<T>(
     body = JSON.stringify(body);
   }
 
+  const method = normalizeMethod(options.method);
+  const requestCache = resolveRequestCache(method, options);
+
   const response = await fetch(url.toString(), {
-    method: options.method ?? 'GET',
+    method,
     headers,
     body: body as BodyInit | undefined,
-    cache: options.cache ?? 'no-store',
+    cache: requestCache,
+    ...(options.next ? { next: options.next } : {}),
   });
 
   if (!response.ok) {
@@ -145,4 +250,26 @@ export async function serverRequest<T>(
   }
 
   return {} as T;
+}
+
+export async function cachedServerGet<T>(
+  endpoint: string,
+  options: CachedServerGetOptions = {}
+): Promise<T> {
+  const normalizedOptions = {
+    ...options,
+    cache: resolveRequestCache('GET', options),
+  };
+
+  if (normalizedOptions.cache === 'no-store') {
+    return serverRequest<T>(endpoint, {
+      ...normalizedOptions,
+      method: 'GET',
+    });
+  }
+
+  return (await cachedServerGetInternal(
+    endpoint,
+    serializeCachedServerGetOptions(normalizedOptions)
+  )) as T;
 }

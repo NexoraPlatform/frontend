@@ -9,13 +9,23 @@ function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
 }
 
+type UseApiOptions<T> = {
+  initialData?: T | null;
+  revalidateOnMount?: boolean;
+};
+
 export function useApi<T>(
     apiCall: () => Promise<T>,
     dependencies: any[] = [],
-    enabled: boolean = true
+    enabled: boolean = true,
+    options?: UseApiOptions<T>
 ) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const hasInitialData = options ? Object.prototype.hasOwnProperty.call(options, 'initialData') : false;
+  const revalidateOnMount = options?.revalidateOnMount ?? !hasInitialData;
+  const [data, setData] = useState<T | null>(() => (
+    hasInitialData ? options?.initialData ?? null : null
+  ));
+  const [loading, setLoading] = useState(() => enabled && (!hasInitialData || revalidateOnMount));
   const [error, setError] = useState<string | null>(null);
   const { currency } = useCurrency();
 
@@ -43,6 +53,7 @@ export function useApi<T>(
 
   // eliminăm deps duplicate cu stable stringify
   const lastDeps = useRef<string>("");
+  const skipInitialFetchRef = useRef(hasInitialData && !revalidateOnMount);
   const depsString = stableStringify([...dependencies, currency]);
 
   useEffect(() => {
@@ -52,6 +63,11 @@ export function useApi<T>(
     }
     if (depsString === lastDeps.current) return; // nu a schimbat efectiv deps
     lastDeps.current = depsString;
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      setLoading(false);
+      return;
+    }
     fetchData();
   }, [depsString, fetchData, enabled]);
 

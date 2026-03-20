@@ -1,16 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
-import Editor, { loader } from '@monaco-editor/react';
 import { getXsrfToken } from '@/lib/csrf';
-
-loader.config({
-    paths: {
-        vs: '/monaco/vs',
-    },
-});
 
 type ExamGuardProps = {
     testId: string | number;
@@ -23,6 +17,16 @@ type ExamGuardProps = {
 
 const STRIKE_LIMIT = 2;
 const DUPLICATE_VIOLATION_WINDOW_MS = 1500;
+
+const ExamMonacoEditor = dynamic(
+    () => import('@/components/exams/exam-monaco-editor'),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="h-[420px] w-full animate-pulse rounded-2xl bg-slate-900/80" />
+        ),
+    }
+);
 
 export default function ExamGuard({
     testId,
@@ -219,22 +223,10 @@ export default function ExamGuard({
 
     return (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm dark:border-slate-800">
-            <Editor
-                height="420px"
-                theme="vs-dark"
+            <ExamMonacoEditor
                 language={editorLanguage}
                 value={value}
-                onChange={(nextValue) => onChange?.(nextValue ?? '')}
-                options={{
-                    automaticLayout: true,
-                    contextmenu: false,
-                    fontSize: 15,
-                    minimap: { enabled: false },
-                    padding: {
-                        top: 16,
-                    },
-                    scrollBeyondLastLine: false,
-                }}
+                onChange={onChange}
             />
         </div>
     );

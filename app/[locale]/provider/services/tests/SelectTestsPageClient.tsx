@@ -1,28 +1,18 @@
 'use client';
 
 import parseJson from "parse-json";
-import Cal, { getCalApi } from "@calcom/embed-react";
+import nextDynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useRouter } from '@/lib/navigation';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,20 +27,16 @@ import {
     Target,
     Award,
     BookOpen,
-    Trophy,
     Code,
     Type,
     CheckSquare,
     Square,
     Timer,
-    Send,
-    Eye,
-    EyeOff
+    Send
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 import { getRoleSlugs } from '@/lib/access';
-import { AnimatePresence, motion } from "framer-motion";
 import { ensureEcho } from '@/lib/echo';
 import { ProviderDashboardShell } from '@/components/dashboard/provider-dashboard-shell';
 import ExamGuard from '@/components/exams/ExamGuard';
@@ -90,15 +76,6 @@ interface TestAnswer {
     timeSpent?: number;
 }
 
-type ExplanationQuestion = {
-    questionId: string;
-    score: number;
-    comment: string;
-    isCorrect: boolean;
-    explanation?: string;
-    correctAnswer?: string | string[];
-};
-
 type ServiceTestStatus = 'idle' | 'processing' | 'completed' | 'failed' | 'cooldown';
 
 type ServiceTestCard = {
@@ -136,6 +113,38 @@ type TestRequestState = {
     message: string | null;
     restMessages: boolean;
 };
+
+const AnimatedStatusWord = lazy(() => import('@/components/exams/animated-status-word'));
+
+const LazyTestResultView = nextDynamic(
+    () => import('@/components/exams/test-result-view'),
+    {
+        ssr: false,
+        loading: () => (
+            <Card className="glass-card border-2 border-border/60">
+                <CardContent className="space-y-6 p-8">
+                    <div className="mx-auto h-20 w-20 animate-pulse rounded-full bg-muted/70" />
+                    <div className="space-y-3">
+                        <div className="mx-auto h-8 w-56 animate-pulse rounded bg-muted/70" />
+                        <div className="mx-auto h-5 w-80 animate-pulse rounded bg-muted/60" />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <div className="h-24 animate-pulse rounded-xl bg-muted/60" />
+                        <div className="h-24 animate-pulse rounded-xl bg-muted/60" />
+                        <div className="h-24 animate-pulse rounded-xl bg-muted/60" />
+                    </div>
+                </CardContent>
+            </Card>
+        ),
+    }
+);
+
+const LazyTestStartWarningDialog = nextDynamic(
+    () => import('@/components/exams/test-start-warning-dialog'),
+    {
+        ssr: false,
+    }
+);
 
 const getServiceTestKey = (serviceInfo: TestData) =>
     `${serviceInfo.serviceId}:${serviceInfo.level}`.toLowerCase();
@@ -374,7 +383,6 @@ export default function SelectTestsPageClient() {
     const [testInProgress, setTestInProgress] = useState(false);
     const [testCompleted, setTestCompleted] = useState(false);
     const [testResult, setTestResult] = useState<any>(null);
-    const [showExplanations, setShowExplanations] = useState(false);
     const [error, setError] = useState('');
     const [loadingTests, setLoadingTests] = useState(true);
     const [isRefreshingRole, setIsRefreshingRole] = useState(false);
@@ -566,11 +574,6 @@ export default function SelectTestsPageClient() {
             setShowQuestions((prev) => !prev);
             setKey((k) => k + 1);
         }, 3000);
-
-        (async function () {
-            const cal = await getCalApi({ apiKey: process.env.CAL_API_KEY } as any);
-            cal("ui", { "styles": { "branding": { "brandColor": "#000000" } }, "hideEventTypeDetails": false, "layout": "month_view" });
-        })();
 
         return () => clearInterval(interval);
     }, []);
@@ -852,7 +855,6 @@ export default function SelectTestsPageClient() {
             setError('');
             setTestCompleted(false);
             setTestResult(null);
-            setShowExplanations(false);
 
             const parsedData = JSON.parse(decodeURIComponent(dataParam));
             const normalizedTestData = (Array.isArray(parsedData)
@@ -1144,7 +1146,6 @@ export default function SelectTestsPageClient() {
             setTestResult(null);
             setEvaluationRequestId(null);
             setLoadingResults(false);
-            setShowExplanations(false);
             setError('');
         } catch (error: any) {
             setError(t('errors.startTest'));
@@ -1392,18 +1393,17 @@ export default function SelectTestsPageClient() {
                     <Loader2 className="w-10 h-10 text-[var(--emerald-green)] animate-spin mb-4" />
                     <p className="text-lg text-slate-700 dark:text-slate-200 font-medium h-8">
                         {t('loading.generatingPrefix')}{" "}
-                        <AnimatePresence mode="wait">
-                            <motion.span
-                                key={key}
-                                initial={{ opacity: 0, y: -4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 4 }}
-                                transition={{ duration: 0.4 }}
-                                className="font-bold text-[var(--emerald-green)] inline-block"
-                            >
+                        <Suspense
+                            fallback={
+                                <span className="inline-block font-bold text-[var(--emerald-green)]">
+                                    {showQuestions ? t('loading.words.questions') : t('loading.words.test')}
+                                </span>
+                            }
+                        >
+                            <AnimatedStatusWord animationKey={key}>
                                 {showQuestions ? t('loading.words.questions') : t('loading.words.test')}
-                            </motion.span>
-                        </AnimatePresence>
+                            </AnimatedStatusWord>
+                        </Suspense>
                         !
                     </p>
                 </div>
@@ -1427,18 +1427,17 @@ export default function SelectTestsPageClient() {
                         <Loader2 className="mb-4 h-10 w-10 animate-spin text-[var(--emerald-green)]" />
                         <p className="h-8 text-lg font-medium text-slate-700 dark:text-slate-200">
                             {t('loading.waitingResultPrefix')}{" "}
-                            <AnimatePresence mode="wait">
-                                <motion.span
-                                    key={key}
-                                    initial={{ opacity: 0, y: -4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 4 }}
-                                    transition={{ duration: 0.4 }}
-                                    className="inline-block font-bold text-[var(--emerald-green)]"
-                                >
+                            <Suspense
+                                fallback={
+                                    <span className="inline-block font-bold text-[var(--emerald-green)]">
+                                        {t('loading.words.result')}
+                                    </span>
+                                }
+                            >
+                                <AnimatedStatusWord animationKey={key}>
                                     {t('loading.words.result')}
-                                </motion.span>
-                            </AnimatePresence>
+                                </AnimatedStatusWord>
+                            </Suspense>
                             !
                         </p>
                     </div>
@@ -1459,18 +1458,17 @@ export default function SelectTestsPageClient() {
                         <Loader2 className="mb-4 h-10 w-10 animate-spin text-[var(--emerald-green)]" />
                         <p className="h-8 text-lg font-medium text-slate-700 dark:text-slate-200">
                             {t('loading.generatingPrefix')}{" "}
-                            <AnimatePresence mode="wait">
-                                <motion.span
-                                    key={key}
-                                    initial={{ opacity: 0, y: -4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 4 }}
-                                    transition={{ duration: 0.4 }}
-                                    className="inline-block font-bold text-[var(--emerald-green)]"
-                                >
+                            <Suspense
+                                fallback={
+                                    <span className="inline-block font-bold text-[var(--emerald-green)]">
+                                        {showQuestions ? t('loading.words.questions') : t('loading.words.test')}
+                                    </span>
+                                }
+                            >
+                                <AnimatedStatusWord animationKey={key}>
                                     {showQuestions ? t('loading.words.questions') : t('loading.words.test')}
-                                </motion.span>
-                            </AnimatePresence>
+                                </AnimatedStatusWord>
+                            </Suspense>
                             !
                         </p>
                     </div>
@@ -1488,135 +1486,12 @@ export default function SelectTestsPageClient() {
                 activeMenu="services"
             >
                 <div className="mx-auto max-w-4xl">
-                        <Card
-                            className={`glass-card border-2 ${testResult.passed ? 'border-emerald-200/80 bg-emerald-50/70' : 'border-red-200/80 bg-red-50/70'}`}
-                        >
-                            <CardHeader className="text-center">
-                                <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${testResult.passed ? 'bg-green-500' : 'bg-red-500'
-                                    }`}>
-                                    {testResult.passed ? (
-                                        <Trophy className="w-10 h-10 text-white" />
-                                    ) : (
-                                        <AlertCircle className="w-10 h-10 text-white" />
-                                    )}
-                                </div>
-                                <CardTitle className="text-3xl mb-2">
-                                    {testResult.passed ? t('result.passedTitle') : t('result.failedTitle')}
-                                </CardTitle>
-                                <CardDescription className="text-lg">
-                                    {testResult.passed
-                                        ? t('result.passedDescription')
-                                        : t('result.failedDescription')
-                                    }
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid xs:grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <div className="text-center">
-                                        <div className={`text-4xl font-bold mb-2 ${testResult.passed ? 'text-green-600' : 'text-red-600'}`}>
-                                            {testResult.score}%
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">{t('result.scoreLabel')}</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-4xl font-bold mb-2 text-blue-600">
-                                            {currentTest.test.passingScore}%
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">{t('result.passingScoreLabel')}</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-4xl font-bold mb-2 text-purple-600">
-                                            {testResult.timeSpent || 0}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">{t('result.timeSpentLabel')}</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-center space-x-4">
-                                    <Button onClick={() => setShowExplanations(!showExplanations)} variant="outline">
-                                        {showExplanations ? (
-                                            <>
-                                                <EyeOff className="w-4 h-4 mr-2" />
-                                                {t('result.hideExplanations')}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Eye className="w-4 h-4 mr-2" />
-                                                {t('result.showExplanations')}
-                                            </>
-                                        )}
-                                    </Button>
-                                    <Button onClick={() => router.push('/dashboard')}>
-                                        {t('result.backToDashboard')}
-                                    </Button>
-                                </div>
-
-                                {testResult.passed ? (
-                                    <div className="mt-8 border-t border-border/50 pt-8">
-                                        <h3 className="text-xl font-semibold mb-4 text-center">{t('result.calendarTitle')}</h3>
-                                        <p className="text-center text-muted-foreground mb-6">
-                                            {t('result.calendarDescription')}
-                                        </p>
-                                        <div className="w-full h-[600px] overflow-hidden rounded-xl border border-border/50 bg-background/50">
-                                            <Cal
-                                                namespace="verificare-identitate"
-                                                calLink={`Trustora-app/verificare-identitate?name=${user.firstName} ${user.lastName}&email=${user.email}&notes=${t('result.calendarNote', { title: currentTest.test.title })}&service_id=${currentTest.serviceInfo.serviceId}`}
-                                                style={{ width: "100%", height: "100%", overflow: "scroll" }}
-                                                config={{ layout: 'month_view' }}
-                                            />
-                                        </div>
-                                    </div>
-                                ) : null}
-
-                                {/* Explicații răspunsuri */}
-                                {showExplanations && (
-                                    <div className="mt-8 space-y-6">
-                                        <h3 className="text-xl font-semibold">{t('result.explanationsTitle')}</h3>
-                                        {testResult.explanations.map((question: ExplanationQuestion, index: number) => {
-                                            const userAnswer = answers.find(a => a.questionId === question.questionId);
-
-                                            return (
-                                                <Card
-                                                    key={question.questionId}
-                                                    className={`glass-card border ${question.isCorrect ? 'border-emerald-200/80' : 'border-red-200/80'}`}
-                                                >
-                                                    <CardHeader>
-                                                        <div className="flex items-center space-x-2">
-                                                            <Badge className={question.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                                                {question.isCorrect ? t('result.correct') : t('result.incorrect')}
-                                                            </Badge>
-                                                            <span className="font-medium">{t('result.questionLabel', { index: index + 1 })}</span>
-                                                        </div>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <div className="space-y-2 mb-4">
-                                                            <div>
-                                                                <strong>{t('result.yourAnswer')}</strong>{' '}
-                                                                {Array.isArray(userAnswer?.answer)
-                                                                    ? userAnswer?.answer.join(', ')
-                                                                    : userAnswer?.answer || t('result.noAnswer')}
-                                                            </div>
-                                                            <div>
-                                                                <strong>{t('result.correctAnswer')}</strong>{' '}
-                                                                {Array.isArray(question.correctAnswer)
-                                                                    ? question.correctAnswer.join(', ')
-                                                                    : question.correctAnswer || t('result.unspecified')}
-                                                            </div>
-                                                        </div>
-
-                                                        {question.explanation && (
-                                                            <div className="bg-muted p-3 rounded-lg">
-                                                                <strong>{t('result.explanation')}</strong> {question.explanation}
-                                                            </div>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                    <LazyTestResultView
+                        answers={answers}
+                        currentTest={currentTest}
+                        testResult={testResult}
+                        user={user}
+                    />
                 </div>
             </ProviderDashboardShell>
         );
@@ -1950,7 +1825,7 @@ export default function SelectTestsPageClient() {
                     )}
                 </div>
             </div>
-            <AlertDialog
+            <LazyTestStartWarningDialog
                 open={startWarningOpen}
                 onOpenChange={(open) => {
                     setStartWarningOpen(open);
@@ -1958,29 +1833,8 @@ export default function SelectTestsPageClient() {
                         setPendingStartTest(null);
                     }
                 }}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('startWarning.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t('startWarning.description')}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                        <p>{t('startWarning.leaveTab')}</p>
-                        <p>{t('startWarning.noReturn')}</p>
-                        <p className="font-medium text-foreground">
-                            {t('startWarning.retry')}
-                        </p>
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('startWarning.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleStartWarningConfirm}>
-                            {t('startWarning.confirm')}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                onConfirm={handleStartWarningConfirm}
+            />
         </ProviderDashboardShell>
     );
 }

@@ -65,14 +65,9 @@ const buildPageCsp = (nonce: string) => {
 
   const scriptSrc = [
     "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
-    ...(isDev ? ["'unsafe-eval'"] : []),
+    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [`'nonce-${nonce}'`]),
     'https://www.googletagmanager.com',
     'https://www.google-analytics.com',
-    'https://cdn.onesignal.com',
-    'https://onesignal.com',
-    'https://api.onesignal.com',
     'https://cdn.cookie-script.com',
     'https://applepay.cdn-apple.com',
     'https://sandboxcheckouttoolkit.rapyd.net',
@@ -80,7 +75,7 @@ const buildPageCsp = (nonce: string) => {
 
   const styleSrc = [
     "'self'",
-    `'nonce-${nonce}'`,
+    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`]),
     'https://cdn.cookie-script.com',
   ];
 
@@ -94,9 +89,6 @@ const buildPageCsp = (nonce: string) => {
     'https://api.unisvg.com',
     'https://www.google-analytics.com',
     'https://www.googletagmanager.com',
-    'https://cdn.onesignal.com',
-    'https://onesignal.com',
-    'https://api.onesignal.com',
     'https://cdn.cookie-script.com',
     'https://sandboxcheckouttoolkit.rapyd.net',
   ];
@@ -116,7 +108,6 @@ const buildPageCsp = (nonce: string) => {
 
   const frameSrc = [
     "'self'",
-    'https://onesignal.com',
     'https://sandboxcheckout.rapyd.net',
     'https://www.googletagmanager.com',
   ];
@@ -358,11 +349,6 @@ function isAdminUser(user: AccessUser | null) {
 
 export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;
-  const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
-
-  if (isServiceWorkerScript) {
-    return NextResponse.next();
-  }
 
   if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
     return new NextResponse('Authentication required.', {
@@ -435,7 +421,7 @@ export const proxy = auth(async (req) => {
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
 
-  if (!pathLocale || pathLocale !== preferredLocale) {
+  if (!pathLocale) {
     const url = req.nextUrl.clone();
     url.pathname = `/${preferredLocale}${normalizedPath === '/' ? '' : normalizedPath}`;
     return NextResponse.redirect(url);

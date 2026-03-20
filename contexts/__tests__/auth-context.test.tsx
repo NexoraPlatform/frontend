@@ -187,4 +187,49 @@ describe('contexts/auth-context', () => {
     );
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/me'))).toBe(true);
   });
+
+  it('falls back to login payload roles and permissions when profile refresh fails', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+
+      if (url.includes('/sanctum/csrf-cookie')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.includes('/api/auth/login')) {
+        return jsonResponse({
+          access_token: 'token',
+          user: {
+            id: 9,
+            email: 'roles@example.com',
+            firstName: 'Role',
+            lastName: 'User',
+          },
+          roles: [{ slug: 'provider' }],
+          permissions: ['projects.create'],
+        });
+      }
+
+      if (url.includes('/api/auth/me')) {
+        return jsonResponse({ message: 'Unavailable' }, 500);
+      }
+
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await act(async () => {
+      await result.current.login('roles@example.com', 'secret');
+    });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('9'));
+    expect(result.current.user?.role_slugs).toEqual(['provider']);
+    expect(result.current.user?.permissions).toEqual(['projects.create']);
+  });
 });
