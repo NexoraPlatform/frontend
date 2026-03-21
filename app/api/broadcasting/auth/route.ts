@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { serverRequest, ServerRequestError } from '@/lib/server/api';
+import { assertTrustedMutationRequest } from '@/lib/server/laravel-proxy';
 
 export async function POST(request: Request) {
+  try {
+    assertTrustedMutationRequest(request);
+  } catch {
+    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+  }
+
   let payload: Record<string, unknown> = {};
 
   try {

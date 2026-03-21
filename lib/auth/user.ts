@@ -54,12 +54,10 @@ export interface AuthUser {
   escrow_next_step?: string | null;
   is_online?: boolean;
   last_seen?: string | null;
-  onesignal_player_id?: string | null;
   roles?: AccessRole[];
   profile_url?: string;
   is_superuser?: boolean;
-  github_token?: string;
-  github_refresh_token?: string | null;
+  github_connected?: boolean;
   github_nickname?: string;
   connected_accounts?: ConnectedAccount[];
   user_permissions?: Record<string, any> | any[];
@@ -68,33 +66,74 @@ export interface AuthUser {
   [key: string]: any;
 }
 
+const OMITTED_AUTH_USER_FIELDS = [
+  'company',
+  'company_id',
+  'company_name',
+  'tax_id',
+  'trade_registry_number',
+  'billing_address',
+  'billing_city',
+  'billing_state',
+  'billing_postal_code',
+  'id_type',
+  'id_number',
+  'company_country',
+  'company_county',
+  'company_city',
+  'company_zip',
+  'company_address',
+  'company_bank_iban',
+  'company_bank_bic',
+  'company_bank_name',
+  'bank_currency',
+  'first_name',
+  'last_name',
+  'name',
+  'github_token',
+  'github_refresh_token',
+] as const;
+
+const resolveGithubConnected = (input: any) =>
+  Boolean(input?.github_connected) ||
+  Boolean(input?.github_token) ||
+  (Array.isArray(input?.connected_accounts)
+    ? input.connected_accounts.some((account: any) => account?.provider === 'github')
+    : false);
+
+export const sanitizeAuthResponsePayload = (payload: any) => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return payload;
+  }
+
+  if ('user' in payload) {
+    return {
+      ...payload,
+      user: normalizeAuthUser(payload.user),
+    };
+  }
+
+  const looksLikeUserPayload =
+    'id' in payload ||
+    'email' in payload ||
+    'connected_accounts' in payload ||
+    'role' in payload ||
+    'role_slugs' in payload;
+
+  if (!looksLikeUserPayload) {
+    return payload;
+  }
+
+  return normalizeAuthUser(payload);
+};
+
 export const normalizeAuthUser = (input: any): AuthUser | null => {
   if (!input) return null;
 
   const rest = { ...input };
-  delete rest.company;
-  delete rest.company_id;
-  delete rest.company_name;
-  delete rest.tax_id;
-  delete rest.trade_registry_number;
-  delete rest.billing_address;
-  delete rest.billing_city;
-  delete rest.billing_state;
-  delete rest.billing_postal_code;
-  delete rest.id_type;
-  delete rest.id_number;
-  delete rest.company_country;
-  delete rest.company_county;
-  delete rest.company_city;
-  delete rest.company_zip;
-  delete rest.company_address;
-  delete rest.company_bank_iban;
-  delete rest.company_bank_bic;
-  delete rest.company_bank_name;
-  delete rest.bank_currency;
-  delete rest.first_name;
-  delete rest.last_name;
-  delete rest.name;
+  OMITTED_AUTH_USER_FIELDS.forEach((field) => {
+    delete rest[field];
+  });
 
   const rawCompany = input.company;
   const companyFromObject =
@@ -170,6 +209,7 @@ export const normalizeAuthUser = (input: any): AuthUser | null => {
     : [];
   const roleSlugs = Array.from(new Set([...roleSlugsFromPayload, ...roleSlugsFromRoles]));
   const permissions = input.permissions ?? input.permission_slugs;
+  const githubConnected = resolveGithubConnected(input);
 
   return {
     ...rest,
@@ -182,5 +222,6 @@ export const normalizeAuthUser = (input: any): AuthUser | null => {
     role_slugs: roleSlugs,
     company,
     permissions,
+    github_connected: githubConnected,
   } as AuthUser;
 };

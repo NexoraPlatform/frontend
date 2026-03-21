@@ -30,6 +30,11 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 import { getRoleSlugs } from '@/lib/access';
+import { getDashboardHomeHref } from '@/lib/dashboard-navigation';
+import {
+    getProviderServicesSelectHref,
+    getProviderServicesTestsHref,
+} from '@/lib/provider-services-wizard';
 
 export default function SelectLevelsPageClient() {
     const { user, loading, userLoading, refreshUser } = useAuth();
@@ -87,7 +92,7 @@ export default function SelectLevelsPageClient() {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push('/dashboard');
+            router.push(getDashboardHomeHref());
             return;
         }
 
@@ -95,7 +100,7 @@ export default function SelectLevelsPageClient() {
             const persistedState = readPersistedLevels();
             loadServices(servicesParam.split(','), persistedState.serviceLevels ?? {});
         } else {
-            router.push('/provider/services/select');
+            router.push(getProviderServicesSelectHref({ reset: true }));
         }
     }, [hasRoleInfo, isProvider, readPersistedLevels, refreshUser, router, servicesParam, user, userLoading]);
 
@@ -223,7 +228,7 @@ export default function SelectLevelsPageClient() {
         // Redirecționează către pagina de teste
         const testParam = encodeURIComponent(JSON.stringify(testData));
 
-        router.push(`/provider/services/tests?data=${testParam}`);
+        router.push(getProviderServicesTestsHref(testParam));
     };
 
     const getLevelInfo = (levelValue: string) => {

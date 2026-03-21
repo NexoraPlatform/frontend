@@ -38,6 +38,15 @@ import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { useLocale, useTranslations } from "next-intl";
 import { Locale } from "@/types/locale";
+import { sanitizeExternalRedirectUrl } from "@/lib/navigation-security";
+
+const VIDEO_CALL_ALLOWED_HOSTS = (
+    process.env.NEXT_PUBLIC_VIDEO_CALL_ALLOWED_HOSTS ||
+    'cal.com,meet.google.com,zoom.us,teams.microsoft.com,whereby.com,webex.com,meet.jit.si'
+)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
 
 /** Custom hook care grupează toate traducerile pentru pagina de Calls */
 function useCallsT(locale: Locale) {
@@ -324,7 +333,10 @@ export default function CallsPage() {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {filteredCalls.map((call: any) => (
+                            {filteredCalls.map((call: any) => {
+                                const safeCallUrl = sanitizeExternalRedirectUrl(call.call_url, VIDEO_CALL_ALLOWED_HOSTS);
+
+                                return (
                                 <div
                                     key={call.id}
                                     className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-500/40 hover:bg-sky-500/5 dark:border-slate-800/70 dark:bg-slate-950/60"
@@ -391,12 +403,14 @@ export default function CallsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild>
-                                                    <Link target="_blank" href={call.call_url}>
-                                                        <Eye className="w-4 h-4 mr-2" />
-                                                        {t.connectToInterview}
-                                                    </Link>
-                                                </DropdownMenuItem>
+                                                {safeCallUrl && (
+                                                    <DropdownMenuItem asChild>
+                                                        <a target="_blank" rel="noopener noreferrer" href={safeCallUrl}>
+                                                            <Eye className="w-4 h-4 mr-2" />
+                                                            {t.connectToInterview}
+                                                        </a>
+                                                    </DropdownMenuItem>
+                                                )}
 
                                                 {call.status !== "WAITING" && (
                                                     <DropdownMenuItem onClick={() => handleCallAction(call.id, "WAITING", null)}>
@@ -465,7 +479,7 @@ export default function CallsPage() {
                                         </DropdownMenu>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
 
                             {filteredCalls.length === 0 && (
                                 <div className="rounded-2xl border border-dashed border-border/60 bg-background/60 py-12 text-center dark:border-slate-800/70 dark:bg-slate-950/60">

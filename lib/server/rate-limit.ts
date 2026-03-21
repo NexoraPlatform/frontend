@@ -169,22 +169,83 @@ const getPathname = (req: RequestLike): string => {
   }
 };
 
-const getClientIdentifier = (headers: Headers): string => {
-  const candidates = [
-    headers.get('x-real-ip'),
-    headers.get('cf-connecting-ip'),
-    headers.get('x-vercel-forwarded-for'),
-    headers.get('x-forwarded-for'),
-  ];
+const SESSION_COOKIE_NAMES = [
+  'laravel_session',
+  '__Secure-authjs.session-token',
+  'authjs.session-token',
+  '__Secure-next-auth.session-token',
+  'next-auth.session-token',
+] as const;
 
-  for (const raw of candidates) {
-    if (!raw) continue;
-    const first = raw.split(',')[0]?.trim();
-    if (first) return first;
+const hashIdentifier = (value: string): string => {
+  let hash = 5381;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(index);
   }
 
+  return (hash >>> 0).toString(16);
+};
+
+const extractCookieValue = (cookieHeader: string, name: string): string | null => {
+  const prefix = `${name}=`;
+  const cookie = cookieHeader
+    .split(';')
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(prefix));
+
+  if (!cookie) return null;
+
+  const rawValue = cookie.slice(prefix.length).trim();
+  if (!rawValue) return null;
+
+  try {
+    return decodeURIComponent(rawValue);
+  } catch {
+    return rawValue;
+  }
+};
+
+export const getTrustedClientIp = (headers: Headers): string | null => {
+  const vercelIp = headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim();
+  if (vercelIp) return vercelIp;
+
+  const cloudflareIp = headers.get('cf-connecting-ip')?.trim();
+  if (cloudflareIp) return cloudflareIp;
+
+  if (process.env.TRUST_PROXY_IP_HEADERS === 'true') {
+    const proxyIp =
+      headers.get('x-real-ip')?.trim() ||
+      headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    if (proxyIp) return proxyIp;
+  }
+
+  return null;
+};
+
+const getSessionIdentifier = (headers: Headers): string | null => {
+  const cookieHeader = headers.get('cookie') ?? '';
+  if (!cookieHeader) return null;
+
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    const cookieValue = extractCookieValue(cookieHeader, cookieName);
+    if (cookieValue) {
+      return `session:${cookieName}:${hashIdentifier(cookieValue)}`;
+    }
+  }
+
+  return null;
+};
+
+export const getClientIdentifier = (headers: Headers): string => {
+  const trustedIp = getTrustedClientIp(headers);
+  if (trustedIp) return trustedIp;
+
+  const sessionIdentifier = getSessionIdentifier(headers);
+  if (sessionIdentifier) return sessionIdentifier;
+
   const userAgent = (headers.get('user-agent') ?? 'unknown').slice(0, 120);
-  return `anonymous:${userAgent}`;
+  return `anonymous:${hashIdentifier(userAgent)}`;
 };
 
 const shouldSkipByMethod = (method: string | undefined) => {

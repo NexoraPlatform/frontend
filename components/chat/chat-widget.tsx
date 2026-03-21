@@ -36,6 +36,7 @@ import { chatService } from "@/lib/chat"
 import Image from "next/image"
 import dynamic from "next/dynamic"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { sanitizeHttpUrl } from "@/lib/navigation-security"
 
 interface ChatMessage {
     id: string
@@ -96,6 +97,7 @@ export function ChatWidget() {
         markAsRead,
         typingUsers,
         isConnected,
+        loading,
         loadingMessages,
         getTotalUnreadCount,
         loadMessages,
@@ -620,7 +622,13 @@ export function ChatWidget() {
                                                 )
                                             })}
 
-                                            {filteredGroups.length === 0 && (
+                                            {loading && filteredGroups.length === 0 && (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-emerald-600" />
+                                                </div>
+                                            )}
+
+                                            {!loading && filteredGroups.length === 0 && (
                                                 <div className="text-center py-8">
                                                     <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                                                     <p className="text-muted-foreground">Nu ai conversații</p>
@@ -898,7 +906,10 @@ function MessageBubble({
                         <div className="text-sm">
                             {message.attachments?.length > 0 && (
                                 <div className="mt-2 space-y-2">
-                                    {message.attachments.map((att: any) => (
+                                    {message.attachments.map((att: any) => {
+                                        const safeAttachmentUrl = sanitizeHttpUrl(att.url)
+
+                                        return (
                                         <div key={att.id} className="flex items-center gap-2 text-xs">
                                             {att.status === "scanning" && <span className="italic">Se scanează…</span>}
                                             {att.status === "blocked_malware" && (
@@ -910,27 +921,35 @@ function MessageBubble({
                                             {att.status === "scan_timeout" && <span className="text-amber-600">⚠️ Scan timeout</span>}
                                             {att.status === "ok" &&
                                                 (att.type?.startsWith("image/") ? (
-                                                    <a href={att.url} target="_blank" className="underline hover:opacity-80" rel="noreferrer">
+                                                    safeAttachmentUrl ? (
+                                                    <a href={safeAttachmentUrl} target="_blank" className="underline hover:opacity-80" rel="noopener noreferrer">
                                                         <Image
-                                                            src={att.url || "/placeholder.svg"}
+                                                            src={safeAttachmentUrl}
                                                             alt={att.name}
                                                             width={160}
                                                             height={120}
                                                             className="max-w-[160px] max-h-[120px] rounded border object-contain"
                                                         />
                                                     </a>
+                                                    ) : (
+                                                        <span className="opacity-80">🖼️ {att.name}</span>
+                                                    )
                                                 ) : (
-                                                    <a
-                                                        href={att.url}
-                                                        target="_blank"
-                                                        className={`underline hover:opacity-80 ${isOwn && "text-white"}`}
-                                                        rel="noreferrer"
-                                                    >
-                                                        📄 {att.name}
-                                                    </a>
+                                                    safeAttachmentUrl ? (
+                                                        <a
+                                                            href={safeAttachmentUrl}
+                                                            target="_blank"
+                                                            className={`underline hover:opacity-80 ${isOwn && "text-white"}`}
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            📄 {att.name}
+                                                        </a>
+                                                    ) : (
+                                                        <span className={`${isOwn && "text-white"} opacity-80`}>📄 {att.name}</span>
+                                                    )
                                                 ))}
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             )}
                             <div>{translated ?? message.content}</div>

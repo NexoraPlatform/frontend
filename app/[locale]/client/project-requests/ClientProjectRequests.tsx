@@ -50,6 +50,7 @@ import { enUS, ro } from 'date-fns/locale';
 import { MuiIcon } from "@/components/MuiIcons";
 import { PriceDisplay } from '@/components/PriceDisplay';
 import BriefCopilot from '@/components/projects/BriefCopilot';
+import { getDashboardHomeHref, getNewProjectHref } from '@/lib/dashboard-navigation';
 import { AI_BRIEF_DRAFT_STORAGE_KEY, type AiBriefFormDraft } from '@/types/ai';
 import {
     getProjectMilestoneChangeRequestsForMilestone,
@@ -718,7 +719,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
 
         if (hasRoleInfo && !isClientRole) {
             if (withLayout) {
-                router.push('/dashboard');
+                router.push(getDashboardHomeHref());
             }
             return;
         }
@@ -1312,7 +1313,7 @@ export default function ClientProjectRequests({ withLayout = true }: ClientProje
                                     <p className="text-slate-500 dark:text-[#A3ADC2] mb-6">
                                         {t('client.project_requests.empty.description')}
                                     </p>
-                                    <Button onClick={() => router.push('/projects/new')} className="btn-primary">
+                                    <Button onClick={() => router.push(getNewProjectHref())} className="btn-primary">
                                         <Target className="w-4 h-4 mr-2" />
                                         {t('client.project_requests.empty.cta')}
                                     </Button>

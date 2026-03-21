@@ -42,6 +42,8 @@ import { apiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import {useGetLanguages} from "@/hooks/use-api";
 import { TrustoraThemeStyles } from '@/components/trustora/theme-styles';
+import { sanitizeHttpUrl } from '@/lib/navigation-security';
+import { mapPublicProviderProfile } from '@/lib/provider-public-profile';
 
 interface ProviderProfileProps {
     id: any;
@@ -111,166 +113,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
         try {
             // Load provider profile
             const providerData = await apiClient.getProviderProfileByUrl(id);
-            const providerCompanyName =
-                typeof providerData.company === 'string'
-                    ? providerData.company
-                    : providerData.company?.name || providerData.company_name || '';
-
-            const userLanguages = (providerData.languages || []).map((lang: any) => {
-                const match = languages.find((l: Languages) => l.name.toLowerCase() === lang.language?.toLowerCase());
-
-                return {
-                    name: lang.language || '',
-                    level: lang.proficiency || '',
-                    flag: match?.flag || '🇷🇴',
-                };
-            });
-
-            const providerInfo = {
-                id: providerData.id,
-                profileUrl: providerData.profile_url || id,
-                firstName: providerData.firstName,
-                lastName: providerData.lastName,
-                email: providerData.email,
-                phone: providerData.phone,
-                avatar: providerData.avatar,
-                bio: providerData.profile.bio,
-                company: providerCompanyName,
-                website: providerData.website,
-                location: providerData.profile.location,
-                rating: 4.9,
-                reviewCount: 127,
-                completedProjects: providerData.portfolios.length,
-                responseTime: providerData.profile.answer_hour,
-                isVerified: providerData.callVerified && providerData.testVerified,
-                memberSince: providerData.created_at,
-                firstJob: providerData.work_history.length > 0 ? providerData.oldest_work_experience : new Date(),
-                lastActive: providerData.last_active_at,
-
-                // Availability
-                availability: {
-                    status: providerData.profile.availability, // available, busy, unavailable
-                    hoursPerWeek: providerData.profile.working_hours_per_week,
-                    timezone: providerData.timezone,
-                    workingHours: {
-                        monday: providerData.profile.working_monday_enabled === 1 &&
-                        providerData.profile.working_monday_from &&
-                        providerData.profile.working_monday_to
-                            ? {
-                                start: providerData.profile.working_monday_from,
-                                end: providerData.profile.working_monday_to,
-                                enabled: true
-                            }
-                            : null,
-                        tuesday: providerData.profile.working_tuesday_enabled === 1 &&
-                        providerData.profile.working_tuesday_from &&
-                        providerData.profile.working_tuesday_to
-                            ? {
-                                start: providerData.profile.working_tuesday_from,
-                                end: providerData.profile.working_tuesday_to,
-                                enabled: true
-                            }
-                            : null,
-                        wednesday: providerData.profile.working_wednesday_enabled === 1 &&
-                        providerData.profile.working_wednesday_from &&
-                        providerData.profile.working_wednesday_to
-                            ? {
-                                start: providerData.profile.working_wednesday_from,
-                                end: providerData.profile.working_wednesday_to,
-                                enabled: true
-                            }
-                            : null,
-                        thursday: providerData.profile.working_thursday_enabled === 1 &&
-                        providerData.profile.working_thursday_from &&
-                        providerData.profile.working_thursday_to
-                            ? {
-                                start: providerData.profile.working_thursday_from,
-                                end: providerData.profile.working_thursday_to,
-                                enabled: true
-                            }
-                            : null,
-                        friday: providerData.profile.working_friday_enabled === 1 &&
-                        providerData.profile.working_friday_from &&
-                        providerData.profile.working_friday_to
-                            ? {
-                                start: providerData.profile.working_friday_from,
-                                end: providerData.profile.working_friday_to,
-                                enabled: true
-                            }
-                            : null,
-                        saturday:providerData.profile.working_saturday_enabled === 1 &&
-                        providerData.profile.working_saturday_from &&
-                        providerData.profile.working_saturday_to
-                            ? {
-                                start: providerData.profile.working_saturday_from,
-                                end: providerData.profile.working_saturday_to,
-                                enabled: true
-                            }
-                            : null,
-                        sunday: providerData.profile.working_sunday_enabled === 1 &&
-                        providerData.profile.working_sunday_from &&
-                        providerData.profile.working_sunday_to
-                            ? {
-                                start: providerData.profile.working_sunday_from,
-                                end: providerData.profile.working_sunday_to,
-                                enabled: true
-                            }
-                            : null
-                    },
-                    nextAvailable: providerData.next_available_job
-                },
-                // Languages
-                languages: userLanguages,
-
-                // Skills & Certifications
-                // skills: [
-                //     { name: 'React', level: 'Expert', years: 5 },
-                //     { name: 'Node.js', level: 'Expert', years: 6 },
-                //     { name: 'TypeScript', level: 'Avansat', years: 4 },
-                //     { name: 'MongoDB', level: 'Avansat', years: 4 },
-                //     { name: 'AWS', level: 'Intermediar', years: 3 },
-                //     { name: 'Docker', level: 'Intermediar', years: 2 }
-                // ],
-
-                certifications: (providerData.certifications || []).map((cert: any) => ({
-                    name: cert.name || '',
-                    issuer: cert.issuer_name || '',
-                    date: cert.issued_at || '',
-                    credentialId: cert.credential_id || '',
-                    verified: cert.verified || ''
-                })),
-
-                // Education
-                education: (providerData.education || []).map((edu: any) => ({
-                    degree: edu.degree || '',
-                    institution: edu.institution || '',
-                    attended_from: edu.attended_from || '',
-                    attended_to: edu.attended_to || '',
-                    study_area: edu.study_area || '',
-                })),
-
-                // Work History
-                workHistory: (providerData.work_history || []).map((work: any) => ({
-                    position: work.position || '',
-                    company: work.company || '',
-                    city: work.city || '',
-                    country: work.country || '',
-                    start_date: work.start_date || '',
-                    end_date: work.end_date || '',
-                    description: work.description || '',
-                    current_working: work.current_working || ''
-                })),
-
-                // Portfolio highlights
-                portfolio: (providerData.portfolio || []).map((item: any) => ({
-                    title: item.project_title || '',
-                    description: item.description || '',
-                    image: item.image || '',
-                    role: item.role || '',
-                    technologies: item.technologies_used || [],
-                    url: item.url || '',
-                }))
-            };
+            const providerInfo = mapPublicProviderProfile(providerData, String(id), languages || []);
 
             const providerServices = await apiClient.getProviderServices(providerData.id);
 
@@ -326,7 +169,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
     }, [id, languages]);
 
     useEffect(() => {
-        if (!languagesLoading && languages?.length) {
+        if (!languagesLoading) {
             loadProviderData().catch(err => {
                 console.error('Error loading provider data:', err);
             });
@@ -337,7 +180,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
         switch (status) {
             case 'AVAILABLE':
                 return { color: 'bg-green-100 text-green-800', label: 'Disponibil', icon: CheckCircle };
-            case 'BUYS':
+            case 'BUSY':
                 return { color: 'bg-yellow-100 text-yellow-800', label: 'Ocupat', icon: Clock };
             case 'UNAVAILABLE':
                 return { color: 'bg-red-100 text-red-800', label: 'Indisponibil', icon: AlertCircle };
@@ -441,7 +284,9 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
 
     const cardClass = emptySections >= 2 ? 'lg:grid-cols-1' : 'lg:grid-cols-2';
 
-    const lastActiveProvider = Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60));
+    const lastActiveProvider = provider.lastActive
+        ? Math.floor((Date.now() - new Date(provider.lastActive).getTime()) / (1000 * 60 * 60))
+        : null;
     const sessionCompanyName =
         typeof user?.company === 'string'
             ? user.company
@@ -518,10 +363,12 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                 </div>
                                             )}
 
-                                            <div className="flex items-center space-x-1">
-                                                <Calendar className="w-4 h-4" />
-                                                <span>Membru din {new Date(provider.memberSince).getFullYear()}</span>
-                                            </div>
+                                            {provider.memberSince && (
+                                                <div className="flex items-center space-x-1">
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>Membru din {new Date(provider.memberSince).getFullYear()}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center justify-center lg:justify-start space-x-1 mb-4">
@@ -559,7 +406,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             <div className="text-sm text-muted-foreground">Proiecte finalizate</div>
                                         </div>
                                         <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
-                                            <div className="text-2xl font-bold text-[var(--emerald-green)]">{provider.responseTime} {provider.responseTime == 1 ? 'ora' : 'ore'}</div>
+                                            <div className="text-2xl font-bold text-[var(--emerald-green)]">{provider.responseTime ? `${provider.responseTime} ${String(provider.responseTime) === '1' ? 'ora' : 'ore'}` : '—'}</div>
                                             <div className="text-sm text-muted-foreground">Timp de răspuns</div>
                                         </div>
                                         <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
@@ -568,7 +415,7 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                         </div>
                                         <div className="text-center p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-white/60">
                                             <div className="text-2xl font-bold text-amber-500">
-                                                {new Date().getFullYear() - new Date(provider.firstJob).getFullYear()}+
+                                                {provider.firstJob ? `${Math.max(0, new Date().getFullYear() - new Date(provider.firstJob).getFullYear())}+` : '—'}
                                             </div>
                                             <div className="text-sm text-muted-foreground">Ani experiență</div>
                                         </div>
@@ -583,11 +430,11 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             </div>
                                         )}
 
-                                        {provider.website && (
+                                        {provider.website && sanitizeHttpUrl(provider.website) && (
                                             <div className="flex items-center space-x-2 text-sm">
                                                 <Globe className="w-4 h-4 text-muted-foreground" />
                                                 <a
-                                                    href={provider.website}
+                                                    href={sanitizeHttpUrl(provider.website) ?? undefined}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-[var(--emerald-green)] hover:underline"
@@ -597,17 +444,21 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             </div>
                                         )}
 
-                                        <div className="flex items-center space-x-2 text-sm">
-                                            <Clock className="w-4 h-4 text-muted-foreground" />
+                                        {lastActiveProvider !== null && (
+                                            <div className="flex items-center space-x-2 text-sm">
+                                                <Clock className="w-4 h-4 text-muted-foreground" />
 
-                                            <span className={`${lastActiveProvider === 0 && 'text-[var(--emerald-green)]'}`}>
-                                                Activ acum {lastActiveProvider !== 0 && lastActiveProvider + `ore`}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-sm">
-                                            <Globe className="w-4 h-4 text-muted-foreground" />
-                                            <span>{provider.availability.timezone}</span>
-                                        </div>
+                                                <span className={`${lastActiveProvider === 0 ? 'text-[var(--emerald-green)]' : ''}`}>
+                                                    {lastActiveProvider === 0 ? 'Activ acum' : `Activ acum ${lastActiveProvider} ore`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {provider.availability.timezone && (
+                                            <div className="flex items-center space-x-2 text-sm">
+                                                <Globe className="w-4 h-4 text-muted-foreground" />
+                                                <span>{provider.availability.timezone}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -839,12 +690,14 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                                 </Badge>
                                             ))}
                                         </div>
-                                        <Button variant="outline" size="sm" className="w-full" asChild>
-                                            <a href={project.url} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="w-4 h-4 mr-2" />
-                                                Vezi Proiectul
-                                            </a>
-                                        </Button>
+                                        {sanitizeHttpUrl(project.url) && (
+                                            <Button variant="outline" size="sm" className="w-full" asChild>
+                                                <a href={sanitizeHttpUrl(project.url) ?? undefined} target="_blank" rel="noopener noreferrer">
+                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                    Vezi Proiectul
+                                                </a>
+                                            </Button>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))}
@@ -1056,21 +909,23 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             <span>Ore pe săptămână:</span>
                                             <span className="font-medium">{provider.availability.hoursPerWeek}h</span>
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <span>Fus orar:</span>
-                                            <span className="font-medium">{provider.availability.timezone}</span>
-                                        </div>
+                                        {provider.availability.timezone && (
+                                            <div className="flex items-center justify-between">
+                                                <span>Fus orar:</span>
+                                                <span className="font-medium">{provider.availability.timezone}</span>
+                                            </div>
+                                        )}
                                         <div className="flex items-center justify-between">
                                             <span>Următoarea disponibilitate:</span>
                                             <span className="font-medium">
                                                 {provider.availability.status === 'AVAILABLE' ? (
                                                     <span className="text-[var(--emerald-green)]">Imediat</span>
-                                                ) : new Date(provider.availability.nextAvailable).toLocaleDateString('ro-RO')}
+                                                ) : provider.availability.nextAvailable ? new Date(provider.availability.nextAvailable).toLocaleDateString('ro-RO') : '—'}
                       </span>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span>Timp de răspuns:</span>
-                                            <span className="font-medium text-green-600">{provider.responseTime}</span>
+                                            <span className="font-medium text-green-600">{provider.responseTime || '—'}</span>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -1162,14 +1017,18 @@ export default function ProviderProfile({ id }: ProviderProfileProps) {
                                             <Globe className="w-5 h-5 text-muted-foreground" />
                                             <div>
                                                 <p className="font-medium">Website</p>
-                                                <a
-                                                    href={provider.website}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-[var(--emerald-green)] hover:underline"
-                                                >
-                                                    {provider.website}
-                                                </a>
+                                                {sanitizeHttpUrl(provider.website) ? (
+                                                    <a
+                                                        href={sanitizeHttpUrl(provider.website) ?? undefined}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-sm text-[var(--emerald-green)] hover:underline"
+                                                    >
+                                                        {provider.website}
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">{provider.website}</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

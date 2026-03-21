@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Search, TrendingUp, Clock, X } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useTranslations } from 'next-intl';
+import { buildLocalSearchSuggestions } from '@/lib/search-suggestions';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -100,22 +101,22 @@ export function SearchBar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const loadSuggestions = async (searchQuery: string) => {
+  const loadSuggestions = (searchQuery: string) => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    try {
-      const response = await apiClient.getSearchSuggestions(searchQuery);
-      setSuggestions(response.suggestions || []);
-    } catch (error) {
-      console.error('Failed to load suggestions:', error);
-      setSuggestions([]);
-    } finally {
-      setLoading(false);
-    }
+    const nextSuggestions = buildLocalSearchSuggestions(
+      searchQuery,
+      recentSearches,
+      trending,
+      trendingDefaults,
+    );
+    setSuggestions(nextSuggestions);
+    setLoading(false);
   };
 
   const handleInputChange = (value: string) => {

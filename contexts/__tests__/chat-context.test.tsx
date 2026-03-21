@@ -121,6 +121,10 @@ describe('contexts/chat-context', () => {
     const { result } = renderHook(() => useChat(), { wrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.refreshGroups();
+    });
+    await waitFor(() => expect(result.current.groups).toHaveLength(1));
 
     await act(async () => {
       await result.current.loadMessages('g1', 1, 10);
@@ -162,6 +166,10 @@ describe('contexts/chat-context', () => {
     const { result } = renderHook(() => useChat(), { wrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.refreshGroups();
+    });
+    await waitFor(() => expect(result.current.groups).toHaveLength(1));
 
     await act(async () => {
       await result.current.loadMessages('g1', 1, 10);
@@ -176,35 +184,28 @@ describe('contexts/chat-context', () => {
     expect(result.current.messages['g1'][0].isRead).toBe(true);
   });
 
-  it('incoming message event updates groups and unreadCount', async () => {
+  it('openPanel activates lazy chat state and refreshGroups hydrates groups', async () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <ChatProvider>{children}</ChatProvider>
+      <ChatProvider lazy>{children}</ChatProvider>
     );
 
     const { result } = renderHook(() => useChat(), { wrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.active).toBe(false);
+    expect(result.current.groups).toHaveLength(0);
 
     await act(async () => {
-      result.current.setActiveGroup(result.current.groups[0]);
+      result.current.openPanel();
     });
 
-    const message = {
-      id: 'm2',
-      groupId: 'g1',
-      sender_id: 'u2',
-      senderName: 'User Two',
-      content: 'new msg',
-      isRead: false,
-      timestamp: '2025-01-01T12:00:00Z',
-    };
+    await waitFor(() => expect(result.current.active).toBe(true));
+    expect(result.current.isPanelOpen).toBe(true);
 
-    act(() => {
-      (chatService as any).emit('message', message);
+    await act(async () => {
+      await result.current.refreshGroups();
     });
 
-    expect(result.current.groups[0].unreadCount).toBe(1);
-    expect(result.current.groups[0].last_message?.id).toBe('m2');
-    expect(result.current.messages['g1'].find(m => m.id === 'm2')).toBeTruthy();
+    await waitFor(() => expect(result.current.groups).toHaveLength(1));
   });
 });

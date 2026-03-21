@@ -1,5 +1,6 @@
 import { Locale } from "@/types/locale";
 import { getTranslations } from "next-intl/server";
+import { Link } from "@/lib/navigation";
 
 export async function TrustoraMessagingSection({ locale }: { locale: Locale }) {
     const t = await getTranslations({ locale, namespace: "trustora" });
@@ -36,9 +37,9 @@ export async function TrustoraMessagingSection({ locale }: { locale: Locale }) {
                                 <span className="text-[#1BC47D]">✅</span> {clientsBenefitTwo}
                             </li>
                         </ul>
-                        <a href="#" className="font-bold text-[#0B1C2D] border-b-2 border-[#1BC47D] pb-1 dark:text-[#E6EDF3]">
+                        <Link href="/early-access/client" className="font-bold text-[#0B1C2D] border-b-2 border-[#1BC47D] pb-1 dark:text-[#E6EDF3]">
                             {clientsLink}
-                        </a>
+                        </Link>
                     </div>
                     <div className="bg-[#0B1C2D] p-12 lg:p-20 text-white dark:bg-[#0B1220]">
                         <span className="text-[10px] font-bold text-white bg-white/10 px-2 py-1 rounded mb-6 inline-block dark:bg-[#111B2D]">
@@ -56,9 +57,9 @@ export async function TrustoraMessagingSection({ locale }: { locale: Locale }) {
                                 <span className="text-[#1BC47D]">✅</span> {prosBenefitTwo}
                             </li>
                         </ul>
-                        <a href="#" className="font-bold text-white border-b-2 border-[#1BC47D] pb-1">
+                        <Link href="/early-access/provider" className="font-bold text-white border-b-2 border-[#1BC47D] pb-1">
                             {prosLink}
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>

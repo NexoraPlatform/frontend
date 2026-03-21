@@ -18,7 +18,7 @@ import {
   Calendar,
   DollarSign
 } from 'lucide-react';
-import { useAdminOrders } from '@/hooks/use-api';
+import { getAdminOrdersFallback } from '@/lib/admin-orders-fallback';
 import { useLocale, useTranslations } from 'next-intl';
 import { PriceDisplay } from '@/components/PriceDisplay';
 
@@ -78,7 +78,8 @@ export default function AdminOrdersPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const { data: ordersData, loading: ordersLoading } = useAdminOrders();
+  const ordersData = useMemo(() => ({ orders: getAdminOrdersFallback() }), []);
+  const ordersLoading = false;
 
   const filteredOrders = useMemo(() => {
     return (ordersData?.orders || []).filter((order: any) => {

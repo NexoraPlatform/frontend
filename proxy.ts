@@ -47,6 +47,155 @@ const ROUTE_RULES: RouteRule[] = [
 const AUTH_PAGES = new Set(['/auth/signin', '/auth/signup']);
 const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/client', '/provider', '/tests', '/integrations'];
 
+const mergeHeaderValues = (currentValue: string | null, nextValue: string) => {
+  if (!currentValue) return nextValue;
+  const merged = new Set(
+    `${currentValue},${nextValue}`
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+  return Array.from(merged).join(', ');
+};
+
+const createCspNonce = () => btoa(crypto.randomUUID());
+
+const buildPageCsp = (nonce: string) => {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const scriptSrc = [
+    "'self'",
+    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    'https://www.googletagmanager.com',
+    'https://www.google-analytics.com',
+    'https://cdn.cookie-script.com',
+    'https://applepay.cdn-apple.com',
+    'https://sandboxcheckouttoolkit.rapyd.net',
+  ];
+
+  const styleSrc = [
+    "'self'",
+    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    'https://cdn.cookie-script.com',
+  ];
+
+  const connectSrc = [
+    "'self'",
+    'https://trustorabe.dacars.ro',
+    'https://backend.trustora.ro',
+    'https://previewbe.trustora.ro',
+    'https://api.iconify.design',
+    'https://api.simplesvg.com',
+    'https://api.unisvg.com',
+    'https://www.google-analytics.com',
+    'https://www.googletagmanager.com',
+    'https://cdn.cookie-script.com',
+    'https://sandboxcheckouttoolkit.rapyd.net',
+  ];
+
+  if (isDev) {
+    connectSrc.push('http://127.0.0.1:8000', 'http://localhost:8000', 'ws:', 'wss:');
+  }
+
+  const imgSrc = [
+    "'self'",
+    'data:',
+    'blob:',
+    'https:',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+  ];
+
+  const frameSrc = [
+    "'self'",
+    'https://sandboxcheckout.rapyd.net',
+    'https://www.googletagmanager.com',
+  ];
+
+  return [
+    "default-src 'self'",
+    "object-src 'none'",
+    `script-src ${scriptSrc.join(' ')}`,
+    "script-src-attr 'none'",
+    `style-src ${styleSrc.join(' ')}`,
+    `style-src-elem ${styleSrc.join(' ')}`,
+    "style-src-attr 'unsafe-inline'",
+    `img-src ${imgSrc.join(' ')}`,
+    "font-src 'self' data:",
+    `connect-src ${connectSrc.join(' ')}`,
+    `frame-src ${frameSrc.join(' ')}`,
+    "worker-src 'self' blob:",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "manifest-src 'self'",
+  ].join('; ');
+};
+
+const createPageSecurityContext = (req: any) => {
+  const nonce = createCspNonce();
+  const csp = buildPageCsp(nonce);
+  const requestHeaders = new Headers(req.headers);
+
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('content-security-policy', csp);
+
+  return { csp, requestHeaders };
+};
+
+const applyPageCspHeader = (response: NextResponse, csp: string) => {
+  response.headers.set('Content-Security-Policy', csp);
+  return response;
+};
+
+const copyMiddlewareHeaders = (
+  target: NextResponse,
+  source?: NextResponse | Response | null
+) => {
+  if (!source) return target;
+
+  source.headers.forEach((value, key) => {
+    if (key.toLowerCase() === 'set-cookie') {
+      target.headers.append(key, value);
+      return;
+    }
+
+    if (key.toLowerCase() === 'vary') {
+      target.headers.set(key, mergeHeaderValues(target.headers.get(key), value));
+      return;
+    }
+
+    target.headers.set(key, value);
+  });
+
+  return target;
+};
+
+const createPageContinuationResponse = (
+  intlResponse: NextResponse | Response | null,
+  requestHeaders: Headers,
+  csp: string
+) => {
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  copyMiddlewareHeaders(response, intlResponse);
+  return applyPageCspHeader(response, csp);
+};
+
+const createPageRewriteResponse = (url: URL, requestHeaders: Headers, csp: string) => {
+  const response = NextResponse.rewrite(url, {
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  return applyPageCspHeader(response, csp);
+};
+
 const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
@@ -200,11 +349,6 @@ function isAdminUser(user: AccessUser | null) {
 
 export const proxy = auth(async (req) => {
   const { pathname } = req.nextUrl;
-  const isServiceWorkerScript = /^\/OneSignalSDK(?:Updater)?Worker\.js$/i.test(pathname);
-
-  if (isServiceWorkerScript) {
-    return NextResponse.next();
-  }
 
   if (isBasicAuthEnabled() && !isBasicAuthAuthorized(req)) {
     return new NextResponse('Authentication required.', {
@@ -277,12 +421,13 @@ export const proxy = auth(async (req) => {
   const preferredLocale = resolvePreferredLocale(user?.language, country);
   const locale = pathLocale ?? preferredLocale ?? defaultLocale;
 
-  if (!pathLocale || pathLocale !== preferredLocale) {
+  if (!pathLocale) {
     const url = req.nextUrl.clone();
     url.pathname = `/${preferredLocale}${normalizedPath === '/' ? '' : normalizedPath}`;
     return NextResponse.redirect(url);
   }
 
+  const pageSecurity = createPageSecurityContext(req);
   const intlResponse = intlMiddleware(req);
 
   if (
@@ -292,7 +437,11 @@ export const proxy = auth(async (req) => {
     return intlResponse;
   }
 
-  const baseResponse = intlResponse ?? NextResponse.next();
+  const baseResponse = createPageContinuationResponse(
+    intlResponse,
+    pageSecurity.requestHeaders,
+    pageSecurity.csp
+  );
   baseResponse.headers.set('X-Client-Geo-Country', country);
   if (ip) {
     baseResponse.headers.set('X-Client-Geo-IP', ip as string);
@@ -323,7 +472,7 @@ export const proxy = auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/open-soon`, req.url);
       if (normalizedPath === '/') {
-        return NextResponse.rewrite(url);
+        return createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp);
       }
       return NextResponse.redirect(url);
     }
@@ -354,7 +503,7 @@ export const proxy = auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/early-access`, req.url);
       if (normalizedPath === '/') {
-        return NextResponse.rewrite(url);
+        return createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp);
       }
       return NextResponse.redirect(url);
     }
@@ -400,7 +549,7 @@ export const proxy = auth(async (req) => {
 
 const securityHeadersMiddleware = chainMatch(isPageRequest)(
   nextSafe({
-    // CSP stays managed by existing config to avoid regressions with scripts/services.
+    // CSP is generated per request above so we can attach a nonce without weakening it.
     disableCsp: true,
     frameOptions: 'DENY',
     contentTypeOptions: 'nosniff',

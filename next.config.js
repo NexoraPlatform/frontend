@@ -165,51 +165,6 @@ const nextConfig = {
             value: 'Viewport-Width, Width, DPR',
           },
           {
-            key: 'Content-Security-Policy',
-            value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ''}
-                https://www.googletagmanager.com
-                https://cdn.onesignal.com
-                https://onesignal.com
-                https://api.onesignal.com
-                https://cdn.cookie-script.com
-                https://applepay.cdn-apple.com
-                https://cdnjs.cloudflare.com
-                https://backend.trustora.ro
-                https://sandboxcheckouttoolkit.rapyd.net;
-              style-src 'self' 'unsafe-inline'
-                https://cdn.cookie-script.com;
-              img-src 'self' data: blob: https:
-                http://127.0.0.1:8000
-                https://trustorabe.dacars.ro
-                https://backend.trustora.ro
-                https://previewbe.trustora.ro;
-              font-src 'self' data:;
-              connect-src 'self'
-                https://trustorabe.dacars.ro
-                https://backend.trustora.ro
-                https://previewbe.trustora.ro
-                https://api.iconify.design
-                https://api.simplesvg.com
-                https://api.unisvg.com
-                https://www.google-analytics.com
-                https://cdn.onesignal.com
-                https://onesignal.com
-                https://api.onesignal.com
-                https://cdn.cookie-script.com
-                https://sandboxcheckouttoolkit.rapyd.net
-                ${isDev ? 'http://127.0.0.1:8000 http://localhost:8000 ws: wss:' : ''};
-              frame-src 'self'
-              https://onesignal.com
-              https://sandboxcheckout.rapyd.net;
-              worker-src 'self' blob:;
-              frame-ancestors 'none';
-              base-uri 'self';
-              form-action 'self';
-            `.replace(/\s+/g, ' ').trim(),
-          },
-          {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },

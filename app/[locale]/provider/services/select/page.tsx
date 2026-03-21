@@ -34,6 +34,15 @@ import { useAuth } from '@/contexts/auth-context';
 import { useCategories } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api';
 import { getRoleSlugs } from '@/lib/access';
+import { getDashboardHomeHref } from '@/lib/dashboard-navigation';
+import {
+    PROVIDER_SERVICES_SELECT_STORAGE_KEY,
+    buildProviderServicesSelectParamsAfterReset,
+    getProviderServicesLevelsHref,
+    getProviderServicesTestsHref,
+    getProviderServicesWizardStorageKeysToClear,
+    shouldResetProviderServicesWizard,
+} from '@/lib/provider-services-wizard';
 
 export default function SelectServicesPage() {
     const { user, loading, userLoading, refreshUser } = useAuth();
@@ -51,8 +60,9 @@ export default function SelectServicesPage() {
     const router = useRouter();
     const { data: categoriesData, loading: categoriesLoading } = useCategories();
     const [hasRestoredSelection, setHasRestoredSelection] = useState(false);
-    const storageKey = useMemo(() => 'provider-services-select', []);
+    const storageKey = useMemo(() => PROVIDER_SERVICES_SELECT_STORAGE_KEY, []);
     const roleRefreshAttemptedRef = useRef(false);
+    const resetWizardStateHandledRef = useRef(false);
     const [isRefreshingRole, setIsRefreshingRole] = useState(false);
     const roleSlugs = useMemo(() => getRoleSlugs(user), [user]);
     const hasRoleInfo = roleSlugs.length > 0;
@@ -93,7 +103,7 @@ export default function SelectServicesPage() {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push('/dashboard');
+            router.push(getDashboardHomeHref());
         }
     }, [hasRoleInfo, isProvider, refreshUser, router, user, userLoading]);
 
@@ -165,6 +175,54 @@ export default function SelectServicesPage() {
             setSelectedService('');
         }
     }, [selectedService, services]);
+
+    const clearPersistedWizardState = useCallback(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const existingStorageKeys: string[] = [];
+        for (let index = 0; index < window.sessionStorage.length; index += 1) {
+            const key = window.sessionStorage.key(index);
+            if (key) {
+                existingStorageKeys.push(key);
+            }
+        }
+
+        const keysToRemove = getProviderServicesWizardStorageKeysToClear(existingStorageKeys);
+
+        keysToRemove.forEach((key) => {
+            window.sessionStorage.removeItem(key);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (resetWizardStateHandledRef.current || typeof window === 'undefined') {
+            return;
+        }
+
+        resetWizardStateHandledRef.current = true;
+
+        const searchParams = new URLSearchParams(window.location.search);
+        if (!shouldResetProviderServicesWizard(searchParams)) {
+            return;
+        }
+
+        clearPersistedWizardState();
+        setParentCategory(null);
+        setSelectedCategory('');
+        setSelectedService('');
+        setServices([]);
+        setError('');
+
+        const nextParams = buildProviderServicesSelectParamsAfterReset(searchParams);
+        const nextQuery = nextParams.toString();
+        const nextUrl = nextQuery
+            ? `${window.location.pathname}?${nextQuery}`
+            : window.location.pathname;
+
+        window.history.replaceState(window.history.state, '', nextUrl);
+    }, [clearPersistedWizardState]);
 
     useEffect(() => {
         if (categoriesLoading || hasRestoredSelection || typeof window === 'undefined') {
@@ -312,7 +370,7 @@ export default function SelectServicesPage() {
         }
 
         // Redirect to levels page with single service
-        router.push(`/provider/services/levels?services=${selectedService}`);
+        router.push(getProviderServicesLevelsHref(selectedService));
     };
 
     const formatRetakeCountdown = (service: any) => {
@@ -441,7 +499,7 @@ export default function SelectServicesPage() {
             flow: 'level_upgrade',
         }));
 
-        router.push(`/provider/services/tests?data=${testData}`);
+        router.push(getProviderServicesTestsHref(testData));
     };
 
     if (loading || userLoading || categoriesLoading || isRefreshingRole) {
@@ -469,7 +527,7 @@ export default function SelectServicesPage() {
         >
             <div className="space-y-8">
                 <div className="flex items-center justify-between gap-4">
-                    <Button variant="outline" size="icon" onClick={() => router.push('/dashboard')}>
+                    <Button variant="outline" size="icon" onClick={() => router.push(getDashboardHomeHref())}>
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                     <Badge className="border-0 bg-[#1BC47D]/15 px-3 py-2 text-[#1BC47D]">
@@ -842,7 +900,7 @@ export default function SelectServicesPage() {
 
                 {/* Actions */}
                 <div className="flex justify-between mt-8">
-                    <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                    <Button variant="outline" onClick={() => router.push(getDashboardHomeHref())}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Înapoi la Dashboard
                     </Button>

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
@@ -67,6 +68,14 @@ import { ensureEcho, getEcho } from '@/lib/echo';
 import { Link, usePathname, useRouter } from '@/lib/navigation';
 import { aiService, type AiRecommendServicesResponse, type RecommendedServiceCandidate } from '@/services/ai.service';
 import { projectsService } from '@/services/projects';
+import { useAppTheme } from '@/hooks/use-app-theme';
+import {
+  getDashboardHomeHref,
+  getDashboardTabHref,
+  getNewProjectHref,
+  getPrimaryDashboardTabHref,
+  getSecondaryDashboardTabHref,
+} from '@/lib/dashboard-navigation';
 import {
   type AiAssistantMessage,
   type AiBriefResponse,
@@ -258,6 +267,34 @@ const AI_WIZARD_STEPS: Array<{ id: WizardStep; labelKey: string }> = [
   { id: 'connections', labelKey: 'step_label_connections' },
   { id: 'review', labelKey: 'step_label_review' },
 ];
+
+const LazyProjectProvidersStep = dynamic(
+  () => import('./_components/project-providers-step'),
+  {
+    ssr: false,
+    loading: () => (
+      <Card className="border border-slate-200 shadow-sm dark:border-[#1E2A3D]">
+        <CardContent className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1BC47D]" />
+        </CardContent>
+      </Card>
+    ),
+  }
+);
+
+const LazyProjectConnectionsStep = dynamic(
+  () => import('./_components/project-connections-step'),
+  {
+    ssr: false,
+    loading: () => (
+      <Card className="border border-slate-200 shadow-sm dark:border-[#1E2A3D]">
+        <CardContent className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1BC47D]" />
+        </CardContent>
+      </Card>
+    ),
+  }
+);
 
 const MANUAL_WIZARD_STEPS: Array<{ id: WizardStep; labelKey: string }> = [
   { id: 'intent', labelKey: 'step_label_project_details' },
@@ -1968,7 +2005,7 @@ export default function NewProjectPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, loading, userLoading, refreshUser } = useAuth();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useAppTheme();
   const roleSlugs = useMemo(() => {
     const rolesList = Array.isArray(user?.roles) ? (user?.roles ?? []) : [];
     const fromRoles = rolesList.map((role: any) => role?.slug).filter(Boolean);
@@ -2210,11 +2247,6 @@ export default function NewProjectPage() {
     if (typeof window === 'undefined') return;
 
     try {
-      const hasDraft = Boolean(window.sessionStorage.getItem(AI_BRIEF_DRAFT_STORAGE_KEY));
-      if (hasDraft) {
-        return;
-      }
-
       const rawState = window.sessionStorage.getItem(PROJECT_NEW_WIZARD_STATE_KEY);
       if (!rawState) {
         return;
@@ -2562,7 +2594,9 @@ export default function NewProjectPage() {
     } catch (error) {
       console.error('Failed to restore persisted project wizard state:', error);
     } finally {
-      wizardStateHydratedRef.current = true;
+      queueMicrotask(() => {
+        wizardStateHydratedRef.current = true;
+      });
     }
   }, []);
 
@@ -4266,12 +4300,12 @@ export default function NewProjectPage() {
       }
     });
 
-    if (user?.github_token) {
+    if (user?.github_connected) {
       connected.add('github');
     }
 
     return connected;
-  }, [user?.connected_accounts, user?.github_token]);
+  }, [user?.connected_accounts, user?.github_connected]);
 
   const requiredOAuthProviders = useMemo(() => {
     const required: OAuthProvider[] = [];
@@ -5526,19 +5560,19 @@ export default function NewProjectPage() {
           <nav className="p-4 space-y-1">
             <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{tDashboard('quick_actions.title')}</p>
 
-            <button type="button" onClick={() => router.push('/dashboard')} className={dashboardSidebarItemClass('overview')}>
+            <button type="button" onClick={() => router.push(getDashboardHomeHref())} className={dashboardSidebarItemClass('overview')}>
               <LayoutDashboard size={18} />
               {tDashboard('tabs.overview')}
             </button>
             {isClient && !isProvider ? (
-              <button type="button" onClick={() => router.push('/projects/new')} className={dashboardSidebarItemClass('new-project')}>
+              <button type="button" onClick={() => router.push(getNewProjectHref())} className={dashboardSidebarItemClass('new-project')}>
                 <Plus size={18} />
                 {tDashboard('projects.new_project')}
               </button>
             ) : null}
             <button
               type="button"
-              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+              onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
               className={dashboardSidebarItemClass(isProvider ? 'finance' : 'projects')}
             >
               <Lock size={18} />
@@ -5546,13 +5580,13 @@ export default function NewProjectPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+              onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
               className={dashboardSidebarItemClass(isProvider ? 'projects' : 'services')}
             >
               <Layers size={18} />
               {isProvider ? tDashboard('tabs.projects') : tDashboard('tabs.services')}
             </button>
-            <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={dashboardSidebarItemClass('messages')}>
+            <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={dashboardSidebarItemClass('messages')}>
               <History size={18} />
               {tDashboard('tabs.messages')}
             </button>
@@ -5561,7 +5595,7 @@ export default function NewProjectPage() {
                 <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">
                   {servicesTitle}
                 </p>
-                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={dashboardSidebarItemClass('services')}>
+                <button type="button" onClick={() => router.push(getDashboardTabHref('services'))} className={dashboardSidebarItemClass('services')}>
                   <Users size={18} />
                   {tDashboard('tabs.services')}
                 </button>
@@ -5571,7 +5605,7 @@ export default function NewProjectPage() {
         </div>
 
         <div className="p-4 border-t border-white/5">
-          <button type="button" onClick={() => router.push('/dashboard?tab=settings')} className={`${dashboardSidebarItemClass('settings')} mb-2`}>
+          <button type="button" onClick={() => router.push(getDashboardTabHref('settings'))} className={`${dashboardSidebarItemClass('settings')} mb-2`}>
             <Settings size={18} />
             {tDashboard('tabs.settings')}
           </button>
@@ -5624,7 +5658,7 @@ export default function NewProjectPage() {
             </div>
             <button
               type="button"
-              onClick={() => setIsDarkMode((prev) => !prev)}
+              onClick={toggleTheme}
               className="relative transition-colors hover:text-[var(--text-main)]"
               style={{ color: 'var(--text-muted)' }}
             >
@@ -5896,7 +5930,7 @@ export default function NewProjectPage() {
                                   key={`manual-service-category-${group.category_name}`}
                                   className="space-y-2 rounded-md border border-slate-200 bg-slate-50/60 p-2 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
                                 >
-                                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
+                                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-[#8FA0B8]">
                                     {group.category_name}
                                   </div>
                                   {group.subcategories.map((subcategory) => (
@@ -5905,7 +5939,7 @@ export default function NewProjectPage() {
                                       className="space-y-1"
                                     >
                                       {subcategory.subcategory_name ? (
-                                        <div className="text-[11px] font-medium text-slate-500 dark:text-[#8FA0B8]">
+                                        <div className="text-[11px] font-medium text-slate-600 dark:text-[#8FA0B8]">
                                           {subcategory.subcategory_name}
                                         </div>
                                       ) : null}
@@ -6893,407 +6927,45 @@ export default function NewProjectPage() {
           ) : null}
 
           {step === 'providers' ? (
-            <Card className={wizardCardClass} style={wizardCardStyle}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
-                  {t('step_2')} {currentStepNumber ?? 4}:{' '}
-                  {t('provider_selection')}
-                </CardTitle>
-                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {t('for_each_service_select_recommended_providers_or_choose_alternatives_from_the_extended')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {providerSelectionGroups.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {t('there_are_no_provider_recommendations_yet_you_can_continue_to_connections_without')}
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="space-y-4">
-                    {providerSelectionGroups.map((group, groupIndex) => {
-                      const serviceKey = getServiceKey(group.service_name);
-                      const selectedCount = selectedProvidersCountByService.get(serviceKey) ?? 0;
-                      const serviceMilestones = reviewMilestonesByService.get(serviceKey) ?? [];
-                      const unassignedMilestones = serviceMilestones.filter(
-                        (entry) => milestoneAssignments[entry.key] === undefined
-                      );
-
-                      const renderProviderCard = (
-                        provider: AiBriefProvider,
-                        tone: 'recommended' | 'other'
-                      ) => {
-                        const providerId = getProviderId(provider);
-                        const checked = isProviderSelected(group.service_name, provider);
-                        const assignedMilestones =
-                          providerId === null
-                            ? []
-                            : serviceMilestones.filter(
-                                (entry) => milestoneAssignments[entry.key] === providerId
-                              );
-                        const activeClass =
-                          tone === 'recommended'
-                            ? 'border-emerald-500 bg-emerald-50/70 dark:border-emerald-500/50 dark:bg-emerald-500/10'
-                            : 'border-blue-500 bg-blue-50/70 dark:border-blue-500/50 dark:bg-blue-500/10';
-
-                        return (
-                          <Card
-                            key={`${tone}-${group.service_name}-${providerId ?? getProviderDisplayName(provider)}`}
-                            className={`cursor-pointer border transition ${
-                              checked ? activeClass : 'border-slate-200 dark:border-[#1E2A3D]'
-                            }`}
-                            onClick={() => handleToggleProvider(group.service_name, provider)}
-                          >
-                            <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="space-y-1">
-                                  <CardTitle className="text-base">
-                                    {getProviderDisplayName(provider)}
-                                  </CardTitle>
-                                  <CardDescription>
-                                    {t('match_score')}:{' '}
-                                    {typeof provider.matchScore === 'number'
-                                      ? `${provider.matchScore}%`
-                                      : t('n_a')}
-                                  </CardDescription>
-                                  <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-[#A3ADC2]">
-                                    <span>
-                                      {t('rating')}:{' '}
-                                      {typeof provider.rating === 'number'
-                                        ? provider.rating.toFixed(2)
-                                        : t('n_a')}
-                                    </span>
-                                    <span>
-                                      {t('reviews')}:{' '}
-                                      {typeof provider.reviewCount === 'number'
-                                        ? provider.reviewCount
-                                        : t('n_a')}
-                                    </span>
-                                  </div>
-                                </div>
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={() =>
-                                    handleToggleProvider(group.service_name, provider)
-                                  }
-                                  aria-label={t('select_item_aria', {
-                                    name: getProviderDisplayName(provider),
-                                  })}
-                                />
-                              </div>
-                            </CardHeader>
-
-                            <CardContent className="space-y-3">
-                              {Array.isArray(provider.matchReasons) &&
-                              provider.matchReasons.length > 0 ? (
-                                <ul className="space-y-1 text-xs text-slate-600 dark:text-[#A3ADC2]">
-                                  {provider.matchReasons.slice(0, 3).map((reason, reasonIndex) => (
-                                    <li key={`${tone}-reason-${providerId ?? reasonIndex}-${reasonIndex}`}>
-                                      • {reason}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : null}
-
-                              {checked ? (
-                                <div className="space-y-3 rounded-md border border-slate-200/80 bg-white/70 p-2 dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                                  <div className="space-y-1">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                                      {t('milestones_available_for_assignment')}
-                                    </div>
-                                    {unassignedMilestones.length > 0 ? (
-                                      <div className="space-y-1">
-                                        {unassignedMilestones.map((entry) => (
-                                          <div
-                                            key={`available-${entry.key}-${providerId ?? 'unknown'}`}
-                                            className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs dark:border-[#1E2A3D] dark:bg-[#0F172A]"
-                                          >
-                                            <span className="truncate text-slate-700 dark:text-[#C9D4E7]">
-                                              {entry.milestone.title}
-                                              {formatMilestoneDurationDays(entry.milestone.duration_days)
-                                                ? ` • ${formatMilestoneDurationDays(entry.milestone.duration_days)}`
-                                                : ''}
-                                            </span>
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-6 w-6"
-                                              onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                                handleAssignMilestoneToProvider(
-                                                  group.service_name,
-                                                  entry.key,
-                                                  provider
-                                                );
-                                              }}
-                                              aria-label={t('assign_milestone_to_provider_aria', {
-                                                milestone: entry.milestone.title,
-                                                provider: getProviderDisplayName(provider),
-                                              })}
-                                            >
-                                              <Plus className="h-3.5 w-3.5" />
-                                            </Button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
-                                        {t('no_unassigned_milestones_for_this_service')}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  <div className="space-y-1">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                                      {t('assigned_milestones')}
-                                    </div>
-                                    {assignedMilestones.length > 0 ? (
-                                      <div className="space-y-1">
-                                        {assignedMilestones.map((entry) => (
-                                          <div
-                                            key={`assigned-${entry.key}-${providerId ?? 'unknown'}`}
-                                            className="flex items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs dark:border-emerald-500/40 dark:bg-emerald-500/10"
-                                          >
-                                            <span className="truncate text-emerald-800 dark:text-emerald-100">
-                                              {entry.milestone.title}
-                                              {formatMilestoneDurationDays(entry.milestone.duration_days)
-                                                ? ` • ${formatMilestoneDurationDays(entry.milestone.duration_days)}`
-                                                : ''}
-                                            </span>
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-6 w-6 text-emerald-700 hover:text-emerald-900 dark:text-emerald-200 dark:hover:text-emerald-100"
-                                              onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                                handleRemoveMilestoneAssignment(entry.key);
-                                              }}
-                                              aria-label={t('remove_milestone_assignment_aria', {
-                                                milestone: entry.milestone.title,
-                                                provider: getProviderDisplayName(provider),
-                                              })}
-                                            >
-                                              <X className="h-3.5 w-3.5" />
-                                            </Button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-slate-500 dark:text-[#8FA0B8]">
-                                        {t('no_milestones_assigned_to_this_provider')}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : null}
-                            </CardContent>
-                          </Card>
-                        );
-                      };
-
-                      return (
-                        <div
-                          key={`provider-group-${group.service_name}-${group.service_id ?? groupIndex}`}
-                          className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-[#1E2A3D] dark:bg-[#0F172A]"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="text-base font-semibold text-[#0B1C2D] dark:text-[#E6EDF3]">
-                              {group.service_name}
-                            </div>
-                            <Badge variant="outline">
-                              {t('selected')}: {selectedCount}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                              {t('recommended_providers')}
-                            </div>
-                            {group.recommended.length > 0 ? (
-                              <div className="grid gap-3 md:grid-cols-2">
-                                {group.recommended.map((provider) =>
-                                  renderProviderCard(provider, 'recommended')
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-slate-500 dark:text-[#8FA0B8]">
-                                {t('no_recommended_providers_for_this_service')}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8FA0B8]">
-                                {t('other_providers')}
-                              </div>
-                              <Badge variant="secondary">{t('optional')}</Badge>
-                            </div>
-                            {group.others.length > 0 ? (
-                              <div className="grid gap-3 md:grid-cols-2">
-                                {group.others.map((provider) =>
-                                  renderProviderCard(provider, 'other')
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-slate-500 dark:text-[#8FA0B8]">
-                                {t('no_other_providers_available_for_this_service')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="rounded-md border border-slate-200 bg-white/80 p-3 text-sm dark:border-[#1E2A3D] dark:bg-[#0B1220]">
-                  <span className="font-semibold">
-                    {t('total_selected_providers')}:
-                  </span>{' '}
-                  {selectedProviders.length}
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      transitionTo(projectInputMode === 'manual' ? 'intent' : 'briefing')
-                    }
-                    className="border transition-colors"
-                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    {projectInputMode === 'manual'
-                      ? t('back_to_project_details')
-                      : t('back_to_briefing')}
-                  </Button>
-
-                  <Button
-                    onClick={() => transitionTo('connections')}
-                    disabled={!briefResult || briefStatus !== 'FINAL'}
-                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
-                  >
-                    {t('continue_to_connections')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <LazyProjectProvidersStep
+              briefResult={briefResult}
+              briefStatus={briefStatus}
+              currentStepNumber={currentStepNumber}
+              formatMilestoneDurationDays={formatMilestoneDurationDays}
+              getProviderDisplayName={getProviderDisplayName}
+              getProviderId={getProviderId}
+              getServiceKey={getServiceKey}
+              handleAssignMilestoneToProvider={handleAssignMilestoneToProvider}
+              handleRemoveMilestoneAssignment={handleRemoveMilestoneAssignment}
+              handleToggleProvider={handleToggleProvider}
+              isProviderSelected={isProviderSelected}
+              milestoneAssignments={milestoneAssignments}
+              projectInputMode={projectInputMode}
+              providerSelectionGroups={providerSelectionGroups}
+              reviewMilestonesByService={reviewMilestonesByService}
+              selectedProviders={selectedProviders}
+              selectedProvidersCountByService={selectedProvidersCountByService}
+              transitionTo={transitionTo}
+              wizardCardClass={wizardCardClass}
+              wizardCardStyle={wizardCardStyle}
+            />
           ) : null}
 
           {step === 'connections' ? (
-            <Card className={wizardCardClass} style={wizardCardStyle}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-main)' }}>
-                  {t('step_2')} {currentStepNumber ?? 5}: {t('provider_connections')}
-                </CardTitle>
-                <CardDescription className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {t('connect_required_delivery_providers_for_selected_services')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {requiredOAuthProviders.length === 0 ? (
-                  <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertDescription>
-                      {t('no_delivery_provider_connections_required')}
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {requiredOAuthProviders.map((provider) => {
-                      const isConnected = connectedOAuthProviders.has(provider);
-                      const requiredServices = requiredOAuthProvidersByService.get(provider) ?? [];
-
-                      return (
-                        <Card
-                          key={`oauth-provider-${provider}`}
-                          className={`border transition ${
-                            isConnected
-                              ? 'border-emerald-300 bg-emerald-50/70 dark:border-emerald-500/40 dark:bg-emerald-500/10'
-                              : 'border-slate-200 dark:border-[#1E2A3D]'
-                          }`}
-                        >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2">
-                                {getOAuthProviderIcon(provider)}
-                                <CardTitle className="text-base">
-                                  {getLocalizedOAuthProviderLabel(provider)}
-                                </CardTitle>
-                              </div>
-                              <Badge variant={isConnected ? 'default' : 'secondary'}>
-                                {isConnected ? t('connected') : t('not_connected')}
-                              </Badge>
-                            </div>
-                            {requiredServices.length > 0 ? (
-                              <CardDescription>
-                                {t('required_for_services')}: {requiredServices.join(', ')}
-                              </CardDescription>
-                            ) : null}
-                          </CardHeader>
-                          <CardContent>
-                            <Button
-                              type="button"
-                              variant={isConnected ? 'outline' : 'default'}
-                              className="w-full"
-                              disabled={isConnected}
-                              onClick={() => handleConnectOAuthProvider(provider)}
-                            >
-                              {isConnected ? t('connected') : t('connect_provider')}
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {requiredOAuthProviders.length > 0 ? (
-                  missingOAuthProviders.length > 0 ? (
-                    <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        {t('connect_required_providers_before_review')}
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <AlertDescription>
-                        {t('all_required_delivery_providers_are_connected')}
-                      </AlertDescription>
-                    </Alert>
-                  )
-                ) : null}
-
-                <div className="flex items-center justify-between pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => transitionTo('providers')}
-                    className="border transition-colors"
-                    style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--stat-bg)', color: 'var(--text-main)' }}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    {t('back_to_providers')}
-                  </Button>
-
-                  <Button
-                    onClick={() => transitionTo('review')}
-                    disabled={!canContinueFromConnections}
-                    className="bg-[#1BC47D] text-white hover:bg-[#18A96B]"
-                  >
-                    {t('continue_to_review')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <LazyProjectConnectionsStep
+              canContinueFromConnections={canContinueFromConnections}
+              connectedOAuthProviders={connectedOAuthProviders}
+              currentStepNumber={currentStepNumber}
+              getLocalizedOAuthProviderLabel={getLocalizedOAuthProviderLabel}
+              getOAuthProviderIcon={getOAuthProviderIcon}
+              handleConnectOAuthProvider={handleConnectOAuthProvider}
+              missingOAuthProviders={missingOAuthProviders}
+              requiredOAuthProviders={requiredOAuthProviders}
+              requiredOAuthProvidersByService={requiredOAuthProvidersByService}
+              transitionTo={transitionTo}
+              wizardCardClass={wizardCardClass}
+              wizardCardStyle={wizardCardStyle}
+            />
           ) : null}
 
           {step === 'review' ? (

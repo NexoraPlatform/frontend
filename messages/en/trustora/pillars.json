@@ -1,12 +1,12 @@
 {
   "pillars": {
-    "verified_title": "Verified People",
-    "verified_description": "No one works without a technical test and mandatory video verification.",
-    "protected_title": "Protected Money",
-    "protected_description": "Every euro is held in escrow until delivery is confirmed.",
-    "delivery_title": "Enforced Delivery",
-    "delivery_description": "Payment is released only on accepted milestones.",
-    "legal_title": "Legal-grade contracts",
-    "legal_description": "Every job is a digital contract with full legal value."
+    "verified_title": "Real verification",
+    "verified_description": "Access is limited to professionals who pass a technical test and video verification.",
+    "protected_title": "Escrow by default",
+    "protected_description": "Funds for every milestone stay locked until delivery is approved.",
+    "delivery_title": "Milestone control",
+    "delivery_description": "Budgets, statuses, and approvals remain visible and easy to track step by step.",
+    "legal_title": "Complete digital contract",
+    "legal_description": "Every collaboration starts from a clear contractual flow with history and audit trail."
   }
 }

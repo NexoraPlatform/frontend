@@ -26,7 +26,7 @@ import {
     Clock,
     XCircle, LucideIcon
 } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { getAdminOrderFallbackById } from '@/lib/admin-orders-fallback';
 import { useLocale, useTranslations } from 'next-intl';
 import { Locale } from '@/types/locale';
 import { PriceDisplay } from '@/components/PriceDisplay';
@@ -162,45 +162,15 @@ export default function OrderDetailsPage({ id }: { id: string }) {
 
     const loadOrder = useCallback(async () => {
         try {
-            const mockOrder: OrderType = {
-                id: id,
-                orderNumber: `ORD-${Date.now()}`,
-                amount: 2500,
-                status: 'IN_PROGRESS',
-                paymentStatus: 'PAID',
-                createdAt: new Date().toISOString(),
-                deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                requirements: 'Vreau un website modern pentru afacerea mea...',
-                clientNotes: 'Prefer culorile albastre și design minimalist',
-                providerNotes: 'Am început lucrul la design. Voi trimite primul draft în 2 zile.',
-                client: {
-                    id: '1',
-                    firstName: 'Maria',
-                    lastName: 'Popescu',
-                    email: 'maria@example.com',
-                    avatar: 'https://images.pexels.com/photos/3785077/pexels-photo-3785077.jpeg?auto=compress&cs=tinysrgb&w=150'
-                },
-                provider: {
-                    id: '2',
-                    firstName: 'Alexandru',
-                    lastName: 'Ionescu',
-                    email: 'alex@example.com',
-                    avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150'
-                },
-                service: {
-                    id: '1',
-                    title: 'Dezvoltare Website Modern cu React',
-                    category: { name: 'Dezvoltare Web' }
-                },
-                deliverables: [
-                    'Design mockup-uri',
-                    'Cod sursă complet',
-                    'Documentație tehnică'
-                ]
-            };
+            const fallbackOrder = getAdminOrderFallbackById(id);
 
-            setOrder(mockOrder);
-            setNewStatus(mockOrder.status);
+            if (!fallbackOrder) {
+                setOrder(null);
+                return;
+            }
+
+            setOrder(fallbackOrder);
+            setNewStatus(fallbackOrder.status);
         } catch (error: any) {
             setError(t('admin.orders.load_error'));
         } finally {
@@ -215,17 +185,13 @@ export default function OrderDetailsPage({ id }: { id: string }) {
     const updateOrderStatus = async () => {
         setUpdating(true);
         try {
-            await apiClient.updateOrder(id, {
-                status: newStatus,
-                adminNotes
-            });
-
             setOrder(prev => {
                 if (!prev) return prev;
 
                 return {
                     ...prev,
                     status: newStatus as OrderStatus,
+                    providerNotes: adminNotes || prev.providerNotes,
                 };
             });
             setError('');

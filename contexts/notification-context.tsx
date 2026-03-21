@@ -34,9 +34,12 @@ type CursorResponse<T> = {
     prevCursor: string | null;
     hasMore: boolean;
     unreadCount?: number;
+    unread_count?: number;
 };
 
 type Ctx = {
+    active: boolean;
+    activate: () => void;
     notifications: AppNotification[];
     unreadCount: number;
     loading: boolean;
@@ -68,6 +71,24 @@ function getInitials(value?: string) {
     if (parts.length === 0) return 'N';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function extractUnreadCount(value: any): number {
+    const count = Number(
+        (typeof value === 'number' ? value : undefined) ??
+        value?.count ??
+        value?.unreadCount ??
+        value?.unread_count ??
+        value?.data?.count ??
+        value?.data?.unreadCount ??
+        value?.data?.unread_count ??
+        value?.meta?.count ??
+        value?.meta?.unreadCount ??
+        value?.meta?.unread_count ??
+        0
+    );
+
+    return Number.isFinite(count) ? count : 0;
 }
 
 const ACTOR_KEYS = [
@@ -293,13 +314,22 @@ async function getOrCreateEcho(): Promise<Echo<any> | null> {
 const INITIAL_LIMIT = 20;
 const LOAD_MORE_LIMIT = 20;
 
-export function NotificationProvider({ children }: { children: React.ReactNode }) {
+type NotificationProviderProps = {
+    children: React.ReactNode;
+    lazy?: boolean;
+};
+
+export function NotificationProvider({
+    children,
+    lazy = false,
+}: NotificationProviderProps) {
     const { user, refreshUser } = useAuth();
     const t = useTranslations();
     const locale = useLocale();
+    const [active, setActive] = useState(!lazy);
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!lazy);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -314,6 +344,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const seenToastIdsRef = useRef<Set<string>>(new Set());
     const lastUserIdRef = useRef<string | null>(null);
     const notificationLanguage = user?.language ?? locale;
+    const activate = useCallback(() => {
+        setActive(true);
+    }, []);
 
     const mergeNotifications = useCallback((
         current: AppNotification[],
@@ -340,26 +373,49 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const fetchUnreadCount = useCallback(async () => {
         if (!user) {
-            return;
+            return 0;
         }
 
         try {
             const response = await apiClient.getUnreadNotificationsCount();
-            const count = Number(
-                response?.count ??
-                response?.unreadCount ??
-                response?.data?.count ??
-                response?.data?.unreadCount ??
-                0
-            );
-            setUnreadCount(Number.isFinite(count) ? count : 0);
+            const count = extractUnreadCount(response);
+            setUnreadCount(count);
+            return count;
         } catch {
             // Ignore badge refresh failures and keep the current value
+            return 0;
         }
     }, [user]);
 
+    const bootstrapUnreadIndicator = useCallback(async () => {
+        if (!user) {
+            return;
+        }
+
+        const directCount = await fetchUnreadCount();
+        if (directCount > 0) {
+            return;
+        }
+
+        try {
+            const res: CursorResponse<RawLaravelNotification> = await apiClient.getNotifications({
+                unread: true,
+                limit: 1,
+                language: notificationLanguage,
+            } as any);
+            const items = Array.isArray(res.data) ? res.data : [];
+            const responseUnreadCount = extractUnreadCount(res);
+            const unreadFromItems = items.filter((item) => !item?.read_at).length;
+            if (responseUnreadCount > 0 || unreadFromItems > 0) {
+                setUnreadCount(responseUnreadCount > 0 ? responseUnreadCount : unreadFromItems);
+            }
+        } catch {
+            // Keep the current value if the lightweight unread probe fails
+        }
+    }, [fetchUnreadCount, notificationLanguage, user]);
+
     const refresh = useCallback(async () => {
-        if (!user) return;
+        if (!user || !active) return;
 
         setLoading(true);
         try {
@@ -371,14 +427,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             setNotifications(items.map(normalizeNotification));
             setHasMore(!!res.hasMore);
             setNextCursor(res.nextCursor ?? null);
-            await fetchUnreadCount();
+            const responseUnreadCount = extractUnreadCount(res);
+            const unreadFromItems = items.filter((item) => !item?.read_at).length;
+            if (responseUnreadCount > 0 || unreadFromItems > 0) {
+                setUnreadCount(responseUnreadCount > 0 ? responseUnreadCount : unreadFromItems);
+            } else {
+                await fetchUnreadCount();
+            }
         } finally {
             setLoading(false);
         }
-    }, [fetchUnreadCount, notificationLanguage, user]);
+    }, [active, fetchUnreadCount, notificationLanguage, user]);
 
     const loadMore = useCallback(async () => {
-        if (!nextCursor || !hasMore || loadingMore) return;
+        if (!active || !nextCursor || !hasMore || loadingMore) return;
         setLoadingMore(true);
         try {
             const res: CursorResponse<RawLaravelNotification> = await apiClient.getNotifications({
@@ -394,7 +456,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         } finally {
             setLoadingMore(false);
         }
-    }, [hasMore, loadingMore, mergeNotifications, nextCursor, notificationLanguage]);
+    }, [active, hasMore, loadingMore, mergeNotifications, nextCursor, notificationLanguage]);
 
     const markAsRead = useCallback(async (id: string) => {
         await apiClient.markNotificationAsRead(id);
@@ -499,8 +561,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             setHasMore(false);
             setNextCursor(null);
             setLoading(false);
+            setIsWebPushEnabled(false);
+            setWebPushPermission(getNotificationPermission());
             seenToastIdsRef.current.clear();
             lastUserIdRef.current = null;
+            setActive(!lazy);
+            return;
+        }
+        if (!active) {
+            setLoading(false);
             return;
         }
         const currentUserId = String(user.id);
@@ -509,10 +578,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             lastUserIdRef.current = currentUserId;
         }
         void refresh();
-    }, [user, refresh]);
+    }, [active, lazy, refresh, user]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || active) return;
+
+        void bootstrapUnreadIndicator();
+
+        const refreshBadge = () => {
+            if (document.visibilityState === 'visible') {
+                void bootstrapUnreadIndicator();
+            }
+        };
+
+        const refreshOnFocus = () => {
+            void bootstrapUnreadIndicator();
+        };
+
+        window.addEventListener('focus', refreshOnFocus);
+        document.addEventListener('visibilitychange', refreshBadge);
+
+        return () => {
+            window.removeEventListener('focus', refreshOnFocus);
+            document.removeEventListener('visibilitychange', refreshBadge);
+        };
+    }, [active, bootstrapUnreadIndicator, user]);
+
+    useEffect(() => {
+        if (!user || !active) return;
         let cancelled = false;
         let localEcho: Echo<any> | null = null;
         let channelName = '';
@@ -547,7 +640,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             }
             privateChannelRef.current = null;
         };
-    }, [fetchUnreadCount, mergeNotifications, refreshUser, showNotificationToast, user]);
+    }, [active, fetchUnreadCount, mergeNotifications, refreshUser, showNotificationToast, user]);
 
     const readPushStatus = useCallback(async () => {
         if (!isWebPushSupported) return;
@@ -558,9 +651,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }, [isWebPushSupported]);
 
     useEffect(() => {
-        if (!isWebPushSupported) return;
+        if (!active || !isWebPushSupported) return;
         void readPushStatus();
-    }, [isWebPushSupported, readPushStatus]);
+    }, [active, isWebPushSupported, readPushStatus]);
 
     const enableWebPush = useCallback(async () => {
         if (!isWebPushSupported) return;
@@ -588,6 +681,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }, [isWebPushSupported]);
 
     const value = useMemo<Ctx>(() => ({
+        active,
+        activate,
         notifications,
         unreadCount,
         loading,
@@ -604,6 +699,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         markAllAsRead,
         deleteNotification,
     }), [
+        active, activate,
         notifications, unreadCount, loading, loadingMore, hasMore,
         refresh, loadMore,
         isWebPushSupported, webPushPermission, isWebPushEnabled,

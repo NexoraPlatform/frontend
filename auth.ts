@@ -48,10 +48,11 @@ const authConfig: NextAuthConfig = {
         token.laravelSession = __laravelSession;
         token.xsrfToken = __xsrfToken;
       } else if (trigger === 'update' && session?.user) {
-        token.user = {
+        const mergedUser = normalizeAuthUser({
           ...(token.user as Record<string, unknown> | undefined),
           ...(session.user as Record<string, unknown>),
-        };
+        });
+        token.user = mergedUser ?? token.user;
       }
 
       return token;
