@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { getDashboardHomeHref, getDashboardTabHref } from '@/lib/dashboard-navigation';
 
 export default function ExamResultFailedClient() {
     const t = useTranslations('tests.examFailure');
@@ -41,7 +42,7 @@ export default function ExamResultFailedClient() {
         <div className="min-h-screen bg-[var(--bg-light)] dark:bg-[#070C14] hero-gradient px-4 py-10">
             <div className="mx-auto max-w-4xl">
                 <div className="mb-8 flex items-center justify-between gap-4">
-                    <Button variant="outline" size="icon" onClick={() => router.push('/dashboard')}>
+                    <Button variant="outline" size="icon" onClick={() => router.push(getDashboardHomeHref())}>
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                     <Badge className="border-0 bg-red-100 px-3 py-2 text-red-700">
@@ -88,11 +89,11 @@ export default function ExamResultFailedClient() {
                         </div>
 
                         <div className="flex flex-wrap justify-center gap-3">
-                            <Button onClick={() => router.push('/dashboard')}>
+                            <Button onClick={() => router.push(getDashboardHomeHref())}>
                                 <LayoutDashboard className="mr-2 h-4 w-4" />
                                 {t('actions.dashboard')}
                             </Button>
-                            <Button variant="outline" onClick={() => router.push('/dashboard?tab=services')}>
+                            <Button variant="outline" onClick={() => router.push(getDashboardTabHref('services'))}>
                                 {t('actions.services')}
                             </Button>
                         </div>

@@ -164,22 +164,9 @@ export default function EditUserClient({ id }: { id: number }) {
 
         setFormData((prev: any) => {
             const current = asSlugList(prev.roles as any[], userRoles);
-            const next = current.includes(want)
-                ? current.filter((s) => s !== want)
-                : [...current, want];
-            return { ...prev, roles: next }; // stocăm SLUG-uri
+            const next = current.includes(want) ? [] : [want];
+            return { ...prev, roles: next };
         });
-    };
-
-    // map slug selection -> role IDs (number[])
-    const roleIdsFromSelection = (sel: any[], options: RoleOption[]): number[] => {
-        const slugs = asSlugList(sel, options); // SLUG-uri UPPER
-        const ids = slugs
-            .map((s) => options.find((o) => String(o.slug).toUpperCase() === s)?.id)
-            .filter((id): id is number | string => id != null)
-            .map((id) => Number(id));
-        // dedupe
-        return Array.from(new Set(ids));
     };
 
     // ------- fetch roles list -------
@@ -216,7 +203,7 @@ export default function EditUserClient({ id }: { id: number }) {
                 setFormData((prev: any) => ({
                     ...prev,
                     ...response,
-                    roles: rolesFromApi,        // SLUG-uri pentru UI
+                    roles: rolesFromApi.slice(0, 1), // un singur rol pentru UI
                     user_permissions: mappedPerms,
                 }));
 
@@ -264,22 +251,22 @@ export default function EditUserClient({ id }: { id: number }) {
                 email,
                 phone,
                 password,
-                roles, // SLUG-uri din UI
+                roles,
             } = formData;
 
-            // 🔹 trimitem ID-urile rolurilor
-            const roleIds = roleIdsFromSelection(roles, userRoles); // number[]
+            const selectedRole = asSlugList(roles, userRoles)[0];
 
             const payload: any = {
                 firstName,
                 lastName,
                 email,
                 phone,
-                roles: roleIds, // <-- acum ID-uri
+                ...(selectedRole ? { role: selectedRole } : {}),
             };
 
             if (password && password.length > 0) {
                 payload.password = password;
+                payload.password_confirmation = formData.confirm_password;
             }
 
             await apiClient.updateUser(id, payload);
@@ -547,7 +534,7 @@ export default function EditUserClient({ id }: { id: number }) {
                                                                     onChange={(e) =>
                                                                         setFormData((prev: any) => ({ ...prev, password: e.target.value }))
                                                                     }
-                                                                    minLength={6}
+                                                                    minLength={8}
                                                                     className="bg-white/80 dark:bg-slate-900/60"
                                                                 />
                                                                 <button
@@ -568,7 +555,7 @@ export default function EditUserClient({ id }: { id: number }) {
                                                                     onChange={(e) =>
                                                                         setFormData((prev: any) => ({ ...prev, confirm_password: e.target.value }))
                                                                     }
-                                                                    minLength={6}
+                                                                    minLength={8}
                                                                     className="bg-white/80 dark:bg-slate-900/60"
                                                                 />
                                                                 <button

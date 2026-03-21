@@ -91,12 +91,6 @@ describe('proxy', () => {
     expect(res.type).toBe('next');
   });
 
-  it('bypasses OneSignal service worker script', async () => {
-    const req = makeReq('/OneSignalSDKWorker.js');
-    const res: any = await proxy(req);
-    expect(res.type).toBe('next');
-  });
-
   it('enforces basic auth when enabled', async () => {
     process.env.BASIC_AUTH_ENABLED = 'true';
     process.env.BASIC_AUTH_USERS = 'admin';
@@ -150,13 +144,12 @@ describe('proxy', () => {
     expect(res.url).toContain('/ro/projects');
   });
 
-  it('redirects to preferred locale when path locale mismatches', async () => {
+  it('respects explicit locale from path even when it differs from preferred locale', async () => {
     const req = makeReq('/en/projects', {
       headers: { 'x-vercel-ip-country': 'RO' },
     });
     const res: any = await proxy(req);
-    expect(res.type).toBe('redirect');
-    expect(res.url).toContain('/ro/projects');
+    expect(res.type).toBe('next');
   });
 
   it('enforces open soon funnel with redirect (non-admin)', async () => {

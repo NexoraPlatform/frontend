@@ -11,6 +11,7 @@ import apiClient from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
 import { hasRole } from '@/lib/access';
+import { getDashboardHomeHref } from '@/lib/dashboard-navigation';
 
 export default function ScheduleCallClient({ id }: { id: string; }) {
     const t = useTranslations('tests.schedule');
@@ -64,7 +65,7 @@ export default function ScheduleCallClient({ id }: { id: string; }) {
     }
 
     if (user.id !== service?.user_id || (!service && !service?.call_schedule) || service?.call_schedule?.date_time) {
-        router.push('/dashboard');
+        router.push(getDashboardHomeHref());
     }
 
     return (

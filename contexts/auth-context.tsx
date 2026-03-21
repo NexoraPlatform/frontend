@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { SessionProvider, signIn, signOut, useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import { onApiUnauthorized } from '@/lib/fetch-client';
-import { ensureCsrfCookie } from '@/lib/csrf';
+import { getXsrfToken } from '@/lib/csrf';
 import { normalizeAuthUser, type AuthUser } from '@/lib/auth/user';
 
 interface AuthContextType {
@@ -52,6 +52,18 @@ const fetchCurrentUser = async () => {
   return normalizeAuthUser(payload?.user ?? payload);
 };
 
+const normalizeLoginPayloadUser = (payload: any) => {
+  if (!payload?.user) {
+    return null;
+  }
+
+  return normalizeAuthUser({
+    ...payload.user,
+    ...(Array.isArray(payload.roles) ? { roles: payload.roles } : {}),
+    ...(Array.isArray(payload.permissions) ? { permissions: payload.permissions } : {}),
+  });
+};
+
 function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) {
   const normalizedInitialUser = useMemo(() => normalizeAuthUser(initialUser), [initialUser]);
   const { data: session, status, update } = useSession();
@@ -71,19 +83,17 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     setUser(null);
   }, [normalizedInitialUser, sessionUser, status]);
 
-  useEffect(() => {
-    ensureCsrfCookie().catch((error) => {
-      console.warn('Failed to initialize CSRF cookie:', error);
-    });
-  }, []);
-
   const login = useCallback(
     async (email: string, password: string) => {
       await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+      const xsrfToken = getXsrfToken();
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -114,6 +124,7 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
         throw new Error(authResult?.error || 'Login failed');
       }
 
+      const loginUser = normalizeLoginPayloadUser(payload);
       let refreshedUser: AuthUser | null = null;
       try {
         refreshedUser = await fetchCurrentUser();
@@ -123,6 +134,9 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
       if (refreshedUser) {
         setUser(refreshedUser);
         await update({ user: refreshedUser } as any);
+      } else if (loginUser) {
+        setUser(loginUser);
+        await update({ user: loginUser } as any);
       } else {
         await update();
       }
@@ -134,10 +148,14 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     async (userData: any) => {
       try {
         await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+        const xsrfToken = getXsrfToken();
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+          },
           body: JSON.stringify(userData),
         });
         if (!response.ok) {
@@ -177,9 +195,12 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
 
   const logout = useCallback(async () => {
     try {
+      await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
+      const xsrfToken = getXsrfToken();
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
+        headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : undefined,
       });
     } catch (error) {
       console.error('Logout error:', error);
@@ -209,6 +230,7 @@ function AuthProviderInner({ children, initialUser = null }: AuthProviderProps) 
     async (language: string) => {
       if (!language) return null;
       try {
+        await fetch('/api/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' });
         const updatedUser = await apiClient.updateUserLanguage(language);
         const normalizedUser = normalizeAuthUser(updatedUser?.user ?? updatedUser);
 

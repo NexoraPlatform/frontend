@@ -85,7 +85,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+    <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3] mt-20">
       <TrustoraThemeStyles />
       <Header />
 
@@ -119,7 +119,7 @@ export default function SignInPage() {
               </div>
             </div>
 
-            <Card className="glass-card border border-slate-200/60 bg-white/90 shadow-2xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
+            <Card className="glass-card border my-6 border-slate-200/60 bg-white/90 shadow-2xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
               <CardHeader className="space-y-2 text-left">
                 <CardTitle className="text-2xl text-[#0F172A] dark:text-white">{cardTitle}</CardTitle>
                 <CardDescription className="text-sm text-slate-500 dark:text-slate-400">

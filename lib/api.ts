@@ -9,6 +9,33 @@ export type RoleLite = {
   slug: string;
 };
 
+export type AuthApiResponse = {
+  access_token: string;
+  user: any;
+  roles?: any[];
+  permissions?: string[];
+};
+
+export type ChatPagination = {
+  current_page: number;
+  per_page: number;
+  total?: number;
+  last_page: number;
+  has_more_pages?: boolean;
+};
+
+export type ChatGroupsResponse = {
+  groups: any[];
+  pagination: ChatPagination | null;
+};
+
+export type ChatMessagesResponse = {
+  messages: any[];
+  total?: number;
+  hasMore?: boolean;
+  pagination: ChatPagination | null;
+};
+
 export type LegalClauseContent = Record<string, string>;
 
 export type LegalClause = {
@@ -758,6 +785,58 @@ export interface AuditLogResponse {
 export class ApiClient {
   constructor(_baseURL: string) { }
 
+  private normalizeChatPagination(input: any): ChatPagination | null {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      return null;
+    }
+
+    const currentPage = Number(input.current_page);
+    const perPage = Number(input.per_page);
+    const lastPage = Number(input.last_page);
+    const total = input.total !== undefined ? Number(input.total) : undefined;
+
+    if (
+      Number.isNaN(currentPage) ||
+      Number.isNaN(perPage) ||
+      Number.isNaN(lastPage)
+    ) {
+      return null;
+    }
+
+    return {
+      current_page: currentPage,
+      per_page: perPage,
+      ...(total !== undefined && !Number.isNaN(total) ? { total } : {}),
+      last_page: lastPage,
+      ...(typeof input.has_more_pages === 'boolean'
+        ? { has_more_pages: input.has_more_pages }
+        : {}),
+    };
+  }
+
+  private normalizeChatGroupsResponse(response: any): ChatGroupsResponse {
+    if (Array.isArray(response)) {
+      return {
+        groups: response,
+        pagination: null,
+      };
+    }
+
+    return {
+      groups: Array.isArray(response?.groups) ? response.groups : [],
+      pagination: this.normalizeChatPagination(response?.pagination),
+    };
+  }
+
+  private normalizeChatMessagesResponse(response: any): ChatMessagesResponse {
+    return {
+      messages: Array.isArray(response?.messages) ? response.messages : [],
+      ...(typeof response?.total === 'number' ? { total: response.total } : {}),
+      ...(typeof response?.hasMore === 'boolean' ? { hasMore: response.hasMore } : {}),
+      pagination: this.normalizeChatPagination(response?.pagination),
+    };
+  }
+
   private async request<T>(
     endpoint: string,
     options: ApiFetchOptions = {}
@@ -785,10 +864,7 @@ export class ApiClient {
 
   // Auth endpoints
   async login(credentials: { email: string; password: string }) {
-    const response = await this.request<{
-      access_token: string;
-      user: any;
-    }>('/auth/login', {
+    const response = await this.request<AuthApiResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
@@ -817,10 +893,7 @@ export class ApiClient {
     billing_state?: string;
     billing_postal_code?: string;
   }) {
-    const response = await this.request<{
-      access_token: string;
-      user: any;
-    }>('/auth/register', {
+    const response = await this.request<AuthApiResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -1378,7 +1451,7 @@ export class ApiClient {
   async updateUser(userId: number, userData: any) {
     return this.request<any>(`/admin/users/${userId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ userData }),
+      body: JSON.stringify(userData),
 
     });
   }
@@ -1389,70 +1462,10 @@ export class ApiClient {
     });
   }
 
-  async getProviders(params?: any) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          value.forEach(v => searchParams.append(key, v.toString()));
-        } else {
-          searchParams.append(key, value.toString());
-        }
-      }
-    });
-
-    return this.request<any>(`/users/providers?${searchParams.toString()}`);
-  }
-
   async updateUserStatus(userId: string, status: string) {
     return this.request<any>(`/admin/users/${userId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
-    });
-  }
-
-  // Orders endpoints
-  async getOrders(params?: any) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    return this.request<any>(`/admin/orders?${searchParams.toString()}`);
-  }
-
-  async createOrder(orderData: any) {
-    return this.request<any>('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData),
-    });
-  }
-
-  async updateOrder(id: string, orderData: any) {
-    return this.request<any>(`/orders/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(orderData),
-    });
-  }
-
-  // Reviews endpoints
-  async getReviews(params?: any) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    return this.request<any>(`/reviews?${searchParams.toString()}`);
-  }
-
-  async createReview(reviewData: any) {
-    return this.request<any>('/reviews', {
-      method: 'POST',
-      body: JSON.stringify(reviewData),
     });
   }
 
@@ -1477,10 +1490,6 @@ export class ApiClient {
     });
 
     return this.request<any>(`/search?${searchParams.toString()}`);
-  }
-
-  async getSearchSuggestions(query: string) {
-    return this.request<any>(`/search/suggestions?q=${encodeURIComponent(query)}`);
   }
 
   async getTrendingSearches() {
@@ -1523,10 +1532,6 @@ export class ApiClient {
     });
 
     return this.request<any>(`/admin/tests?${searchParams.toString()}`);
-  }
-
-  async getAvailableTests() {
-    return this.request<any>('/tests/available');
   }
 
   async getTest(id: string) {
@@ -1603,7 +1608,7 @@ export class ApiClient {
     type: 'minor' | 'critical';
     reason: string;
   }) {
-    return this.request<any>('/exams/log-violation', {
+    return this.request<any>('/exams/violation', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1777,24 +1782,6 @@ export class ApiClient {
           : [];
 
     return services.map(normalizeProviderService);
-  }
-
-  async getProviderReviews(providerId: string, params?: {
-    page?: number;
-    limit?: number;
-  }) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    return this.request<any>(`/reviews?revieweeId=${providerId}&${searchParams.toString()}`);
-  }
-
-  async getProviderPortfolio(providerId: string) {
-    return this.request<any>(`/users/providers/${providerId}/portfolio`);
   }
 
   async getLanguages() {
@@ -2273,10 +2260,6 @@ export class ApiClient {
     });
   }
 
-  async getTechnologies() {
-    return this.request<any>('/technologies');
-  }
-
   async getTechnologiesByCategory(categoryId: string) {
     return this.request<any>(`/services/category/${categoryId}`);
   }
@@ -2509,19 +2492,10 @@ export class ApiClient {
 
 
 
-  async updateOneSignalToken(token: string) {
-    return this.request<any>(`/user/update-push-token`, {
-      method: 'POST',
-      body: JSON.stringify({ push_token: token }),
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-  }
-
   // Chat endpoints
   async getChatGroups() {
-    return this.request<any>('/chat/groups');
+    const response = await this.request<any>('/chat/groups');
+    return this.normalizeChatGroupsResponse(response);
   }
 
   async createChatGroup(groupData: {
@@ -2540,7 +2514,10 @@ export class ApiClient {
   }
 
   async getChatMessages(groupId: string, page = 1, limit = 50) {
-    return this.request<any>(`/chat/groups/${groupId}/messages?page=${page}&limit=${limit}`);
+    const response = await this.request<any>(
+      `/chat/groups/${groupId}/messages?page=${page}&limit=${limit}`
+    );
+    return this.normalizeChatMessagesResponse(response);
   }
 
   async sendChatMessage(groupId: string, content: string, attachments?: any[], language?: string) {
@@ -2593,7 +2570,17 @@ export class ApiClient {
   }
 
   async getProjectNameByProjectUrl(projectUrl: string) {
-    return this.request<any>(`/project/${projectUrl}/name`);
+    const response = await this.request<any>(`/project/${projectUrl}/name`);
+
+    if (typeof response === 'string') {
+      return response;
+    }
+
+    if (typeof response?.name === 'string') {
+      return response.name;
+    }
+
+    return undefined;
   }
 
   async getRoles(params: {

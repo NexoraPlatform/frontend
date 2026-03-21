@@ -13,16 +13,86 @@ const resolveAppOrigin = (req?: Request | null) =>
   process.env.NEXTAUTH_URL ||
   'http://127.0.0.1:3000';
 
-const extractXsrfToken = (cookieHeader: string) => {
-  const match = cookieHeader
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith('XSRF-TOKEN='));
-  if (!match) return null;
-  return decodeURIComponent(match.slice('XSRF-TOKEN='.length));
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
+
+export class ProxySecurityError extends Error {
+  status: number;
+
+  constructor(message: string, status = 403) {
+    super(message);
+    this.name = 'ProxySecurityError';
+    this.status = status;
+  }
+}
+
+const isStateChangingMethod = (method?: string | null) =>
+  !CSRF_SAFE_METHODS.has((method ?? 'GET').toUpperCase());
+
+export type ProxyHeaderOptions = {
+  explicitXsrfToken?: string | null;
+  skipCsrfCheck?: boolean;
 };
 
-export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
+const getAllowedOrigins = (req: Request) => {
+  const allowed = new Set<string>();
+
+  [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.AUTH_URL,
+  ]
+    .filter(Boolean)
+    .forEach((value) => {
+      try {
+        allowed.add(new URL(String(value)).origin);
+      } catch {}
+    });
+
+  try {
+    allowed.add(new URL(req.url).origin);
+  } catch {}
+
+  return allowed;
+};
+
+export const isTrustedOrigin = (req: Request) => {
+  const origin = req.headers.get('origin');
+  if (!origin) return true;
+  return getAllowedOrigins(req).has(origin);
+};
+
+export const assertTrustedMutationRequest = (
+  req: Request,
+  explicitXsrfToken?: string | null,
+  options?: Pick<ProxyHeaderOptions, 'skipCsrfCheck'>
+) => {
+  if (!isStateChangingMethod(req.method)) {
+    return;
+  }
+
+  if (!isTrustedOrigin(req)) {
+    throw new ProxySecurityError('Untrusted origin');
+  }
+
+  if (options?.skipCsrfCheck) {
+    return;
+  }
+
+  const incomingXsrfHeader = req.headers.get('x-xsrf-token');
+  const suppliedXsrfToken = explicitXsrfToken?.trim() || incomingXsrfHeader?.trim();
+
+  if (!suppliedXsrfToken) {
+    throw new ProxySecurityError('Missing CSRF token');
+  }
+};
+
+export const buildProxyHeaders = (
+  req: Request,
+  extra?: HeadersInit,
+  options?: ProxyHeaderOptions
+) => {
+  assertTrustedMutationRequest(req, options?.explicitXsrfToken, options);
+
   const headers = new Headers({
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
@@ -36,16 +106,11 @@ export const buildProxyHeaders = (req: Request, extra?: HeadersInit) => {
   const cookieHeader = req.headers.get('cookie') ?? '';
   if (cookieHeader) {
     headers.set('Cookie', cookieHeader);
-    // Non-standard request header mirror requested for backend compatibility.
-    headers.set('Set-Cookie', cookieHeader);
-    const xsrfToken = extractXsrfToken(cookieHeader);
-    if (xsrfToken) {
-      headers.set('X-XSRF-TOKEN', xsrfToken);
-    }
   }
 
-  const incomingXsrfHeader = req.headers.get('x-xsrf-token');
-  if (incomingXsrfHeader && !headers.has('X-XSRF-TOKEN')) {
+  const incomingXsrfHeader =
+    options?.explicitXsrfToken?.trim() || req.headers.get('x-xsrf-token')?.trim();
+  if (incomingXsrfHeader) {
     headers.set('X-XSRF-TOKEN', incomingXsrfHeader);
   }
 

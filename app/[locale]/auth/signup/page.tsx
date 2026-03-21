@@ -139,7 +139,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]">
+    <div className="min-h-screen bg-[#F5F7FA] text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3] mt-20">
       <TrustoraThemeStyles />
       <Header />
 
@@ -147,7 +147,7 @@ export default function SignUpPage() {
         <div className="absolute inset-0 hero-gradient" />
         <div className="relative container mx-auto px-4 py-20">
           <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] items-start">
-            <div className="space-y-8">
+            <div className="my-6 space-y-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-emerald-100/60 px-4 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 {badgeText}
@@ -173,7 +173,7 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            <Card className="glass-card border border-slate-200/60 bg-white/90 shadow-2xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
+            <Card className="my-6 glass-card border border-slate-200/60 bg-white/90 shadow-2xl backdrop-blur dark:border-[#1E2A3D] dark:bg-[#0B1220]/90">
               <CardHeader className="space-y-2 text-left">
                 <CardTitle className="text-2xl text-[#0F172A] dark:text-white">{cardTitle}</CardTitle>
                 <CardDescription className="text-sm text-slate-500 dark:text-slate-400">

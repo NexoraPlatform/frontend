@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import {
     Bell, BellRing, Check, CheckCheck, Settings, Eye, Clock,
     Rocket, Package, MessageSquare, Cog, DollarSign, AlertTriangle, CheckCircle2
@@ -25,7 +26,17 @@ import {
     getNotificationTone,
 } from '@/lib/notifications';
 
-export function NotificationBell() {
+type NotificationBellProps = {
+    triggerClassName?: string;
+    iconClassName?: string;
+    badgeClassName?: string;
+};
+
+export function NotificationBell({
+    triggerClassName,
+    iconClassName,
+    badgeClassName,
+}: NotificationBellProps = {}) {
     const router = useRouter();
     const locale = useLocale();
     const t = useTranslations();
@@ -41,6 +52,8 @@ export function NotificationBell() {
     const endOfListText = t('common.notifications.end_of_list');
     const seeAllText = t('common.notifications.see_all');
     const {
+        active,
+        activate,
         notifications,
         unreadCount,
         markAsRead,
@@ -61,6 +74,7 @@ export function NotificationBell() {
 
     const [showSettings, setShowSettings] = useState(false);
     const [open, setOpen] = useState(false);
+    const isBootstrapping = open && !active;
 
     const viewportRef = useRef<HTMLDivElement | null>(null);
 
@@ -150,7 +164,12 @@ export function NotificationBell() {
         <Popover
             onOpenChange={(isOpen) => {
                 setOpen(isOpen);
-                if (isOpen && notifications.length === 0) void refresh();
+                if (!isOpen) return;
+                if (!active) {
+                    activate();
+                    return;
+                }
+                if (notifications.length === 0) void refresh();
             }}
         >
             <PopoverTrigger asChild>
@@ -158,13 +177,25 @@ export function NotificationBell() {
                     aria-label={openNotificationsAria}
                     variant="ghost"
                     size="icon"
-                    className="relative w-11 h-11 rounded-xl text-[#0B1C2D] transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white"
+                    className={cn(
+                        "relative overflow-visible w-11 h-11 rounded-xl text-[#0B1C2D] transition-all duration-200 hover:scale-105 hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white",
+                        triggerClassName
+                    )}
                 >
-                    {unreadCount > 0 ? <BellRing className="h-5 w-5 text-emerald-600" /> : <Bell className="h-5 w-5" />}
+                    {unreadCount > 0 ? (
+                        <BellRing className={cn("h-5 w-5 text-emerald-600", iconClassName)} />
+                    ) : (
+                        <Bell className={cn("h-5 w-5", iconClassName)} />
+                    )}
                     {unreadCount > 0 && (
-                        <Badge className="absolute -top-1 right-0 w-6 h-6 p-0 flex items-center justify-center bg-gradient-to-r from-[#E5484D] to-[#F5A623] text-white text-xs border-2 border-background">
-                            {unreadCount > 99 ? '99+' : unreadCount}
-                        </Badge>
+                        <span
+                            data-testid="notification-unread-indicator"
+                            aria-hidden="true"
+                            className={cn(
+                                "absolute -right-0.5 -top-0.5 z-10 h-3 w-3 rounded-full border-2 border-background bg-[#E5484D] shadow-[0_0_0_3px_rgba(229,72,77,0.16)]",
+                                badgeClassName
+                            )}
+                        />
                     )}
                 </Button>
             </PopoverTrigger>
@@ -226,7 +257,7 @@ export function NotificationBell() {
                             role="list"
                             aria-label={notificationsListLabel}
                         >
-                            {loading ? (
+                            {loading || isBootstrapping ? (
                                 <div className="flex items-center justify-center py-8">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
                                 </div>

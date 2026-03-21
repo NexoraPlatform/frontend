@@ -8,6 +8,28 @@ import { useAuth } from '@/contexts/auth-context';
 
 let locale = 'en';
 
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({
+    children,
+    onSelect,
+    ...props
+  }: {
+    children: React.ReactNode;
+    onSelect?: (event: { preventDefault: () => void }) => void | Promise<void>;
+  }) => (
+    <button
+      type="button"
+      onClick={() => onSelect?.({ preventDefault: () => undefined })}
+      {...props}
+    >
+      {children}
+    </button>
+  ),
+}));
+
 vi.mock('next-intl', () => ({
   useLocale: () => locale,
   useTranslations: () => (key: string, values?: { count?: number }) =>
@@ -60,9 +82,6 @@ describe('UI core components', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /schimb/i })).toBeTruthy();
     });
-
-    const trigger = screen.getByRole('button', { name: /schimb/i });
-    fireEvent.click(trigger);
 
     const englishItem = await screen.findByText('English');
     fireEvent.click(englishItem);

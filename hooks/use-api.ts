@@ -9,13 +9,23 @@ function stableStringify(obj: any) {
   return JSON.stringify(obj, Object.keys(obj).sort());
 }
 
+type UseApiOptions<T> = {
+  initialData?: T | null;
+  revalidateOnMount?: boolean;
+};
+
 export function useApi<T>(
     apiCall: () => Promise<T>,
     dependencies: any[] = [],
-    enabled: boolean = true
+    enabled: boolean = true,
+    options?: UseApiOptions<T>
 ) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const hasInitialData = options ? Object.prototype.hasOwnProperty.call(options, 'initialData') : false;
+  const revalidateOnMount = options?.revalidateOnMount ?? !hasInitialData;
+  const [data, setData] = useState<T | null>(() => (
+    hasInitialData ? options?.initialData ?? null : null
+  ));
+  const [loading, setLoading] = useState(() => enabled && (!hasInitialData || revalidateOnMount));
   const [error, setError] = useState<string | null>(null);
   const { currency } = useCurrency();
 
@@ -43,6 +53,7 @@ export function useApi<T>(
 
   // eliminăm deps duplicate cu stable stringify
   const lastDeps = useRef<string>("");
+  const skipInitialFetchRef = useRef(hasInitialData && !revalidateOnMount);
   const depsString = stableStringify([...dependencies, currency]);
 
   useEffect(() => {
@@ -52,6 +63,11 @@ export function useApi<T>(
     }
     if (depsString === lastDeps.current) return; // nu a schimbat efectiv deps
     lastDeps.current = depsString;
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      setLoading(false);
+      return;
+    }
     fetchData();
   }, [depsString, fetchData, enabled]);
 
@@ -91,14 +107,6 @@ export function useGetServicesGroupedByCategory(
     );
 }
 
-export function useProviders(params?: any) {
-  return useApi(() => apiClient.getProviders(params), [JSON.stringify(params)]);
-}
-
-export function useOrders(params?: any) {
-  return useApi(() => apiClient.getOrders(params), [JSON.stringify(params)]);
-}
-
 export function useProfile() {
   return useApi(() => apiClient.getProfile(), []);
 }
@@ -123,10 +131,6 @@ export function useAdminServices() {
   return useApi(() => apiClient.getAllServices(), []);
 }
 
-export function useAdminOrders() {
-  return useApi(() => apiClient.getOrders(), []);
-}
-
 export function useAdminCalls() {
   return useApi(() => apiClient.getCalls(), []);
 }
@@ -142,10 +146,6 @@ export function useAdminTests() {
 
 export function useTest(id: string) {
   return useApi(() => apiClient.getTest(id), [id]);
-}
-
-export function useAvailableTests() {
-  return useApi(() => apiClient.getAvailableTests(), []);
 }
 
 export function useTestResults(params?: any) {
@@ -177,14 +177,6 @@ export function useProviderServices(providerId: string) {
   return useApi(() => apiClient.getProviderServices(providerId), [providerId]);
 }
 
-export function useProviderReviews(providerId: string, params?: any) {
-  return useApi(() => apiClient.getProviderReviews(providerId, params), [providerId, JSON.stringify(params)]);
-}
-
-export function useProviderPortfolio(providerId: string) {
-  return useApi(() => apiClient.getProviderPortfolio(providerId), [providerId]);
-}
-
 export function useGetLanguages() {
   return useApi(() => apiClient.getLanguages(), []);
 }
@@ -198,6 +190,3 @@ export function useProject(id: string) {
   return useApi(() => apiClient.getProject(id), [id]);
 }
 
-export function useTechnologies() {
-  return useApi(() => apiClient.getTechnologies(), []);
-}

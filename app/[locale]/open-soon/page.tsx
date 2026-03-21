@@ -1,10 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import Image from "next/image";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale, useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
 import {
   ArrowRightIcon, CheckCircle,
   CheckCircle2,
@@ -24,12 +23,12 @@ import { Label } from "@/components/ui/label";
 import apiClient from "@/lib/api";
 import {Alert, AlertDescription} from "@/components/ui/alert";
 import { Locale } from "@/types/locale";
+import { useAppTheme } from "@/hooks/use-app-theme";
 
 export default function OpenSoonPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations();
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { isDarkMode: isDark, toggleTheme } = useAppTheme();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [userType, setUserType] = useState<"client" | "provider" | "">("");
@@ -75,11 +74,6 @@ export default function OpenSoonPage() {
   const footerCopy = t("trustora.open_soon.footer_copy");
   const fileLabel = t("trustora.open_soon.file_label");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isDark = mounted ? resolvedTheme === "dark" : false;
   const isSubmitDisabled = isSubmitting || !email || !userType;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -131,7 +125,7 @@ export default function OpenSoonPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
+            onClick={toggleTheme}
             className="h-11 w-11 hover:text-[#0B1C2D] dark:bg-[#0B1220] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-105"
             aria-label={`${themeLabel} ${isDark ? themeLight : themeDark}`}
             suppressHydrationWarning

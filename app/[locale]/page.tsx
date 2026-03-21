@@ -24,6 +24,8 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
+import { JsonLdScript } from "@/components/seo/json-ld-script";
+
 export const revalidate = 86400;
 
 interface HomePageProps {
@@ -95,10 +97,7 @@ export default async function Home({ params }: HomePageProps) {
       itemScope
       itemType="https://schema.org/WebPage"
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(homepageGraph) }}
-      />
+      <JsonLdScript id="homepage" json={serializeJsonLd(homepageGraph)} />
 
       <TrustoraThemeStyles />
 

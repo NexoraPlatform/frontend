@@ -181,12 +181,12 @@ export default function ProviderService({ project }: ProviderServiceProps) {
       }
     });
 
-    if (user?.github_token) {
+    if (user?.github_connected) {
       connected.add('github');
     }
 
     return connected;
-  }, [user?.connected_accounts, user?.github_token]);
+  }, [user?.connected_accounts, user?.github_connected]);
 
   if (loading || userLoading) {
     return (

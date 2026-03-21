@@ -31,7 +31,7 @@ export const userService = {
      * Update user (admin)
      */
     async updateUser(userId: number, userData: any) {
-        return http.patch(`/admin/users/${userId}`, { userData });
+        return http.patch(`/admin/users/${userId}`, userData);
     },
 
     /**

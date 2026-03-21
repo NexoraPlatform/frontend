@@ -31,6 +31,8 @@ export type RegisterData = {
 export type AuthResponse = {
     access_token: string;
     user: any;
+    roles?: any[];
+    permissions?: string[];
 };
 
 export const authService = {
