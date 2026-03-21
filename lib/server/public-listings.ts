@@ -24,7 +24,8 @@ export interface Service {
   skills?: LocalizedText[];
   isFeatured: boolean;
   category: ServiceCategory;
-  providers: ServiceProvider[];
+  providers?: ServiceProvider[];
+  providers_count?: number;
 }
 
 export interface ServicesResponse {
@@ -94,6 +95,34 @@ export function getLocalizedText(
   return value[locale] ?? value.ro ?? value.en ?? Object.values(value)[0] ?? '';
 }
 
+
+function normalizeServiceEntity(value: unknown, fallbackIndex = 0): Service {
+  const service = asObject(value) ?? {};
+  const categoryValue = asObject(service.category);
+  const categoryId =
+    toFiniteNumber(service.category_id ?? service.categoryId ?? categoryValue?.id) ?? 0;
+  const categoryName =
+    (categoryValue?.name as LocalizedText | undefined) ??
+    (typeof service.category === 'string' ? service.category : '');
+  const providersCount = toFiniteNumber(service.providers_count ?? service.providersCount);
+  const numericId = toFiniteNumber(service.id) ?? fallbackIndex;
+
+  return {
+    id: numericId,
+    name: (service.name as LocalizedText | undefined) ?? '',
+    description: (service.description as LocalizedText | undefined) ?? '',
+    tags: asArray<string>(service.tags),
+    skills: asArray<LocalizedText>(service.skills),
+    isFeatured: Boolean(service.isFeatured ?? service.is_featured),
+    category: {
+      id: categoryId,
+      name: categoryName,
+    },
+    providers: asArray<ServiceProvider>(service.providers),
+    ...(providersCount !== null ? { providers_count: providersCount } : {}),
+  };
+}
+
 function normalizeServicesByCategoryResponse(
   response: Record<string, unknown>
 ): Service[] {
@@ -123,7 +152,7 @@ function normalizeServicesByCategoryResponse(
             ? Number(service.id)
             : index;
 
-      return {
+      return normalizeServiceEntity({
         id: numericId,
         name: service.name ?? categoryName ?? category,
         description: '',
@@ -135,7 +164,7 @@ function normalizeServicesByCategoryResponse(
             : categoryValue,
         tags: [],
         skills: [],
-      };
+      });
     })
   );
 }
@@ -171,14 +200,25 @@ export function getServicesFromResponse(
   }
 
   if (Array.isArray(response)) {
-    return response;
+    return response.map((service, index) => normalizeServiceEntity(service, index));
   }
 
   if (isServicesResponse(response)) {
-    return response.services || [];
+    return asArray(response.services).map((service, index) => normalizeServiceEntity(service, index));
   }
 
   return normalizeServicesByCategoryResponse(response);
+}
+
+
+export function getServiceProviderCount(service: Service): number {
+  const providersCount = toFiniteNumber(service.providers_count);
+
+  if (providersCount !== null) {
+    return providersCount;
+  }
+
+  return asArray(service.providers).length;
 }
 
 export function getServicesHasMore(

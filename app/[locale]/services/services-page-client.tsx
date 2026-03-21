@@ -12,6 +12,7 @@ import apiClient from '@/lib/api';
 import {
   dedupeServices,
   getLocalizedText,
+  getServiceProviderCount,
   getServicesFromResponse,
   mergeUniqueServices,
   type CategoryOption,
@@ -276,8 +277,9 @@ function ServiceCard({
 }) {
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const t = useTranslations('services.results');
-  const providerCount = service.providers?.length || 0;
-  const remainingProviders = Math.max(0, providerCount - 3);
+  const providerPreview = Array.isArray(service.providers) ? service.providers.slice(0, 3) : [];
+  const providerCount = getServiceProviderCount(service);
+  const remainingProviders = Math.max(0, providerCount - providerPreview.length);
   const serviceType = service.isFeatured ? t('recommended') : t('standard');
 
   const providersAvailableTemplate = t.raw('providers_available');
@@ -322,10 +324,10 @@ function ServiceCard({
           </p>
 
           <div className="flex items-center gap-2">
-            {service.providers && service.providers.length > 0 ? (
+            {providerPreview.length > 0 ? (
               <>
                 <div className="flex -space-x-2">
-                  {service.providers.slice(0, 3).map((provider) => {
+                  {providerPreview.map((provider) => {
                     const providerName = `${provider.firstName} ${provider.lastName}`;
                     return (
                       <div key={provider.id} className="relative group">
@@ -349,9 +351,9 @@ function ServiceCard({
                   </span>
                 )}
               </>
-            ) : (
+            ) : providerCount === 0 ? (
               <span className="text-sm text-slate-500 dark:text-[#A3ADC2]">{t('no_providers')}</span>
-            )}
+            ) : null}
           </div>
         </div>
 

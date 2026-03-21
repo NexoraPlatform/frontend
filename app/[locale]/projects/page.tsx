@@ -22,7 +22,7 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
   const t = await getTranslations({ locale, namespace: 'projects.list.filters' });
   const allCategoryLabel = t('all');
 
-  const [projectsResult, categoriesResult, technologiesResult] = await Promise.allSettled([
+  const [projectsResult, categoriesResult] = await Promise.allSettled([
     cachedServerGet<unknown>('/projects', {
       next: { revalidate: PUBLIC_LISTINGS_REVALIDATE_SECONDS },
       language: locale,
@@ -31,10 +31,6 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
       },
     }),
     cachedServerGet<unknown>('/categories', {
-      next: { revalidate: PUBLIC_LISTINGS_REVALIDATE_SECONDS },
-      language: locale,
-    }),
-    cachedServerGet<unknown>('/technologies', {
       next: { revalidate: PUBLIC_LISTINGS_REVALIDATE_SECONDS },
       language: locale,
     }),
@@ -48,10 +44,15 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
     categoriesResult.status === 'fulfilled'
       ? normalizeStringOptions(categoriesResult.value, locale as 'ro' | 'en')
       : [];
-  const normalizedTechnologies =
-    technologiesResult.status === 'fulfilled'
-      ? normalizeStringOptions(technologiesResult.value, locale as 'ro' | 'en')
-      : [];
+  const normalizedTechnologies = Array.from(
+    new Set(
+      initialProjects.flatMap((project) =>
+        Array.isArray(project.technologies)
+          ? project.technologies.map((technology) => String(technology).trim()).filter(Boolean)
+          : [],
+      ),
+    ),
+  );
 
   return (
     <ProjectsPageClient

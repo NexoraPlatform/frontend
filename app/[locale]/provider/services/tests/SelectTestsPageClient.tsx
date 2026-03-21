@@ -40,6 +40,12 @@ import { getRoleSlugs } from '@/lib/access';
 import { ensureEcho } from '@/lib/echo';
 import { ProviderDashboardShell } from '@/components/dashboard/provider-dashboard-shell';
 import ExamGuard from '@/components/exams/ExamGuard';
+import { getDashboardHomeHref } from '@/lib/dashboard-navigation';
+import {
+    consumeProviderTestsReloadIntent,
+    markProviderTestsReloadIntent,
+} from '@/lib/provider-tests-persistence';
+import { getProviderServicesSelectHref } from '@/lib/provider-services-wizard';
 
 interface TestData {
     serviceId: string;
@@ -431,7 +437,6 @@ export default function SelectTestsPageClient() {
     const serviceTestsRef = useRef<Record<string, ServiceTestCard>>({});
     const evaluationRequestIdRef = useRef<string | null>(null);
     const roleRefreshAttemptedRef = useRef(false);
-    const isPageUnloadingRef = useRef(false);
     const storageKey = useMemo(
         () => (dataParam ? `provider-services-tests:${dataParam}` : null),
         [dataParam]
@@ -594,24 +599,22 @@ export default function SelectTestsPageClient() {
     }, [evaluationRequestId]);
 
     useEffect(() => {
-        isPageUnloadingRef.current = false;
+        if (!storageKey || typeof window === 'undefined') {
+            return;
+        }
 
-        const markPageUnloading = () => {
-            isPageUnloadingRef.current = true;
+        const markPageReloadIntent = () => {
+            markProviderTestsReloadIntent(window.sessionStorage, storageKey);
         };
 
-        window.addEventListener('beforeunload', markPageUnloading);
-        window.addEventListener('pagehide', markPageUnloading);
+        window.addEventListener('beforeunload', markPageReloadIntent);
+        window.addEventListener('pagehide', markPageReloadIntent);
 
         return () => {
-            window.removeEventListener('beforeunload', markPageUnloading);
-            window.removeEventListener('pagehide', markPageUnloading);
-
-            if (!isPageUnloadingRef.current) {
-                clearPersistedState();
-            }
+            window.removeEventListener('beforeunload', markPageReloadIntent);
+            window.removeEventListener('pagehide', markPageReloadIntent);
         };
-    }, [clearPersistedState]);
+    }, [storageKey]);
 
     useEffect(() => {
         if (!hasInitializedState || !storageKey || typeof window === 'undefined') {
@@ -943,12 +946,12 @@ export default function SelectTestsPageClient() {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push('/dashboard');
+            router.push(getDashboardHomeHref());
             return;
         }
 
         if (!dataParam) {
-            router.push('/provider/services/select');
+            router.push(getProviderServicesSelectHref({ reset: true }));
             return;
         }
 
@@ -974,7 +977,13 @@ export default function SelectTestsPageClient() {
                             ? entry.programmingLanguage
                             : '',
             }));
-            const shouldRestoreAttemptState = getNavigationType() === 'reload';
+            const shouldRestoreAttemptState =
+                storageKey != null &&
+                consumeProviderTestsReloadIntent(
+                    window.sessionStorage,
+                    storageKey,
+                    getNavigationType()
+                );
             const persistedState = shouldRestoreAttemptState
                 ? readPersistedState()
                 : {};
@@ -1078,7 +1087,7 @@ export default function SelectTestsPageClient() {
         } catch (loadError) {
             setError(t('errors.invalidData'));
             setLoadingTests(false);
-            router.push('/provider/services/select');
+            router.push(getProviderServicesSelectHref({ reset: true }));
         }
     }, [
         dataParam,

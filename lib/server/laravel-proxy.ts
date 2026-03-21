@@ -28,6 +28,11 @@ export class ProxySecurityError extends Error {
 const isStateChangingMethod = (method?: string | null) =>
   !CSRF_SAFE_METHODS.has((method ?? 'GET').toUpperCase());
 
+export type ProxyHeaderOptions = {
+  explicitXsrfToken?: string | null;
+  skipCsrfCheck?: boolean;
+};
+
 const getAllowedOrigins = (req: Request) => {
   const allowed = new Set<string>();
 
@@ -59,7 +64,7 @@ export const isTrustedOrigin = (req: Request) => {
 export const assertTrustedMutationRequest = (
   req: Request,
   explicitXsrfToken?: string | null,
-  options?: { skipCsrfCheck?: boolean }
+  options?: Pick<ProxyHeaderOptions, 'skipCsrfCheck'>
 ) => {
   if (!isStateChangingMethod(req.method)) {
     return;
@@ -84,7 +89,7 @@ export const assertTrustedMutationRequest = (
 export const buildProxyHeaders = (
   req: Request,
   extra?: HeadersInit,
-  options?: { explicitXsrfToken?: string | null; skipCsrfCheck?: boolean }
+  options?: ProxyHeaderOptions
 ) => {
   assertTrustedMutationRequest(req, options?.explicitXsrfToken, options);
 

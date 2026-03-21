@@ -107,14 +107,6 @@ export function useGetServicesGroupedByCategory(
     );
 }
 
-export function useProviders(params?: any) {
-  return useApi(() => apiClient.getProviders(params), [JSON.stringify(params)]);
-}
-
-export function useOrders(params?: any) {
-  return useApi(() => apiClient.getOrders(params), [JSON.stringify(params)]);
-}
-
 export function useProfile() {
   return useApi(() => apiClient.getProfile(), []);
 }
@@ -139,10 +131,6 @@ export function useAdminServices() {
   return useApi(() => apiClient.getAllServices(), []);
 }
 
-export function useAdminOrders() {
-  return useApi(() => apiClient.getOrders(), []);
-}
-
 export function useAdminCalls() {
   return useApi(() => apiClient.getCalls(), []);
 }
@@ -158,10 +146,6 @@ export function useAdminTests() {
 
 export function useTest(id: string) {
   return useApi(() => apiClient.getTest(id), [id]);
-}
-
-export function useAvailableTests() {
-  return useApi(() => apiClient.getAvailableTests(), []);
 }
 
 export function useTestResults(params?: any) {
@@ -193,14 +177,6 @@ export function useProviderServices(providerId: string) {
   return useApi(() => apiClient.getProviderServices(providerId), [providerId]);
 }
 
-export function useProviderReviews(providerId: string, params?: any) {
-  return useApi(() => apiClient.getProviderReviews(providerId, params), [providerId, JSON.stringify(params)]);
-}
-
-export function useProviderPortfolio(providerId: string) {
-  return useApi(() => apiClient.getProviderPortfolio(providerId), [providerId]);
-}
-
 export function useGetLanguages() {
   return useApi(() => apiClient.getLanguages(), []);
 }
@@ -214,6 +190,3 @@ export function useProject(id: string) {
   return useApi(() => apiClient.getProject(id), [id]);
 }
 
-export function useTechnologies() {
-  return useApi(() => apiClient.getTechnologies(), []);
-}

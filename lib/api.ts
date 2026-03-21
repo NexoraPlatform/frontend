@@ -1451,7 +1451,7 @@ export class ApiClient {
   async updateUser(userId: number, userData: any) {
     return this.request<any>(`/admin/users/${userId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ userData }),
+      body: JSON.stringify(userData),
 
     });
   }
@@ -1462,70 +1462,10 @@ export class ApiClient {
     });
   }
 
-  async getProviders(params?: any) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          value.forEach(v => searchParams.append(key, v.toString()));
-        } else {
-          searchParams.append(key, value.toString());
-        }
-      }
-    });
-
-    return this.request<any>(`/users/providers?${searchParams.toString()}`);
-  }
-
   async updateUserStatus(userId: string, status: string) {
     return this.request<any>(`/admin/users/${userId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
-    });
-  }
-
-  // Orders endpoints
-  async getOrders(params?: any) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    return this.request<any>(`/admin/orders?${searchParams.toString()}`);
-  }
-
-  async createOrder(orderData: any) {
-    return this.request<any>('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData),
-    });
-  }
-
-  async updateOrder(id: string, orderData: any) {
-    return this.request<any>(`/orders/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(orderData),
-    });
-  }
-
-  // Reviews endpoints
-  async getReviews(params?: any) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    return this.request<any>(`/reviews?${searchParams.toString()}`);
-  }
-
-  async createReview(reviewData: any) {
-    return this.request<any>('/reviews', {
-      method: 'POST',
-      body: JSON.stringify(reviewData),
     });
   }
 
@@ -1550,10 +1490,6 @@ export class ApiClient {
     });
 
     return this.request<any>(`/search?${searchParams.toString()}`);
-  }
-
-  async getSearchSuggestions(query: string) {
-    return this.request<any>(`/search/suggestions?q=${encodeURIComponent(query)}`);
   }
 
   async getTrendingSearches() {
@@ -1596,10 +1532,6 @@ export class ApiClient {
     });
 
     return this.request<any>(`/admin/tests?${searchParams.toString()}`);
-  }
-
-  async getAvailableTests() {
-    return this.request<any>('/tests/available');
   }
 
   async getTest(id: string) {
@@ -1850,24 +1782,6 @@ export class ApiClient {
           : [];
 
     return services.map(normalizeProviderService);
-  }
-
-  async getProviderReviews(providerId: string, params?: {
-    page?: number;
-    limit?: number;
-  }) {
-    const searchParams = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    return this.request<any>(`/reviews?revieweeId=${providerId}&${searchParams.toString()}`);
-  }
-
-  async getProviderPortfolio(providerId: string) {
-    return this.request<any>(`/users/providers/${providerId}/portfolio`);
   }
 
   async getLanguages() {
@@ -2344,10 +2258,6 @@ export class ApiClient {
         'Content-Type': 'application/json',
       },
     });
-  }
-
-  async getTechnologies() {
-    return this.request<any>('/technologies');
   }
 
   async getTechnologiesByCategory(categoryId: string) {

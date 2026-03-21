@@ -110,6 +110,35 @@ describe('lib/api ApiClient', () => {
     expect(response).toBe('Project Name');
   });
 
+  it('sends admin user updates as top-level fields with a singular role', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ message: 'ok' }));
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const client = new ApiClient(baseUrl);
+    await client.updateUser(7, {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      role: 'ADMIN',
+      password: 'password123',
+      password_confirmation: 'password123',
+    });
+
+    const updateCall = fetchMock.mock.calls.find((call) =>
+      String((call as unknown as [RequestInfo | URL, RequestInit?])[0]).includes('/api/admin/users/7')
+    ) as unknown as [RequestInfo | URL, RequestInit?] | undefined;
+    expect(updateCall).toBeTruthy();
+    expect(updateCall![1]?.method).toBe('PATCH');
+    expect(JSON.parse(String(updateCall![1]?.body))).toEqual({
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      role: 'ADMIN',
+      password: 'password123',
+      password_confirmation: 'password123',
+    });
+  });
+
   it('uses the exam violations endpoint for exam guard reports', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ action: 'warning' }));
     vi.stubGlobal('fetch', fetchMock as any);

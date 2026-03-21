@@ -54,6 +54,21 @@ import {apiClient, DashboardStatsResponse, ProviderServiceRecord, RecentActivity
 import {ensureEcho} from '@/lib/echo';
 import {toast} from 'sonner';
 import {sanitizeExternalRedirectUrl} from '@/lib/navigation-security';
+import {
+  getAvailableDashboardTabs,
+  getDefaultDashboardTab,
+  buildDashboardSearchParams,
+  hasProjectScopedDashboardParams,
+  resolveDashboardTab,
+} from '@/lib/dashboard-tabs';
+import {
+  getNewProjectHref,
+  getProviderProfileHref,
+} from '@/lib/dashboard-navigation';
+import {
+  getProviderServicesSelectHref,
+  getProviderServicesTestsHref,
+} from '@/lib/provider-services-wizard';
 import {NotificationBell} from '@/components/notification-bell';
 import {LocaleSwitcher} from '@/components/LocaleSwitcher';
 import {CurrencySwitcher} from '@/components/CurrencySwitcher';
@@ -61,7 +76,6 @@ import {ChatButton} from '@/components/chat/chat-button';
 import ChatLauncher from '@/components/chat/chat-launcher';
 import { useAppTheme } from '@/hooks/use-app-theme';
 
-const BASE_TABS = ['overview', 'projects', 'services', 'messages', 'settings'];
 const RAPYD_REDIRECT_ALLOWED_HOSTS = (
   process.env.NEXT_PUBLIC_RAPYD_REDIRECT_ALLOWED_HOSTS || 'rapyd.net'
 )
@@ -223,13 +237,11 @@ export default function DashboardClient() {
   const isProvider = roleSlugs.includes('provider');
   const isClient = roleSlugs.includes('client');
   const hasRoleInfo = roleSlugs.length > 0;
-  const availableTabs = useMemo(() => {
-    if (hasRoleInfo && !isProvider) {
-      return BASE_TABS;
-    }
-    return [...BASE_TABS, 'finance'];
-  }, [hasRoleInfo, isProvider]);
-  const defaultTab = availableTabs[0] ?? 'overview';
+  const availableTabs = useMemo(
+    () => getAvailableDashboardTabs({ hasRoleInfo, isProvider }),
+    [hasRoleInfo, isProvider]
+  );
+  const defaultTab = getDefaultDashboardTab(availableTabs);
 
   // Filters and pagination for projects
   const [searchTerm, setSearchTerm] = useState('');
@@ -247,7 +259,11 @@ export default function DashboardClient() {
   const tabParam = searchParams.get('tab');
   const focusedProjectId = searchParams.get('projectId');
   const focusedMilestoneId = searchParams.get('activeMilestoneId');
-  const [activeTab, setActiveTab] = useState('overview');
+  const hasProjectScopedQuery = hasProjectScopedDashboardParams(searchParams);
+  const resolvedTabFromUrl = resolveDashboardTab(tabParam, availableTabs, defaultTab);
+  const [activeTab, setActiveTab] = useState(() =>
+    resolveDashboardTab(tabParam, availableTabs, defaultTab)
+  );
   const [wallets, setWallets] = useState<WalletData[]>([]);
   const [balance, setBalance] = useState<WalletData | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -542,12 +558,7 @@ export default function DashboardClient() {
   }, [fetchBalance, isProvider, user?.rapyd_wallet_id]);
 
   const updateTabQuery = useCallback((value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === 'overview') {
-      params.delete('tab');
-    } else {
-      params.set('tab', value);
-    }
+    const params = buildDashboardSearchParams(searchParams, value, defaultTab);
     const query = params.toString();
     const basePath = pathname || '/dashboard';
     const nextUrl = query ? `${basePath}?${query}` : basePath;
@@ -558,7 +569,7 @@ export default function DashboardClient() {
     }
 
     router.replace(nextUrl, { scroll: false });
-  }, [pathname, router, searchParams]);
+  }, [defaultTab, pathname, router, searchParams]);
 
   useEffect(() => {
     if (activeTab !== 'finance' || !isProvider || !user?.rapyd_wallet_id) return;
@@ -569,35 +580,40 @@ export default function DashboardClient() {
     if (userLoading || !user) return;
 
     if (tabParam) {
-      if (availableTabs.includes(tabParam)) {
-        setActiveTab((current) => (current === tabParam ? current : tabParam));
+      if (resolvedTabFromUrl === tabParam) {
+        setActiveTab((current) => (current === resolvedTabFromUrl ? current : resolvedTabFromUrl));
         return;
       }
 
-      setActiveTab(defaultTab);
-      updateTabQuery(defaultTab);
+      setActiveTab(resolvedTabFromUrl);
+      updateTabQuery(resolvedTabFromUrl);
       return;
     }
 
     setActiveTab((current) => (
-      availableTabs.includes(current) ? current : defaultTab
+      current === resolvedTabFromUrl ? current : resolvedTabFromUrl
     ));
-  }, [availableTabs, defaultTab, tabParam, updateTabQuery, userLoading, user]);
+  }, [resolvedTabFromUrl, tabParam, updateTabQuery, userLoading, user]);
 
   useEffect(() => {
     if (userLoading || !user) return;
     if (!availableTabs.includes(activeTab)) return;
 
+    const needsProjectScopedCleanup = activeTab !== 'projects' && hasProjectScopedQuery;
+
     if (activeTab === defaultTab) {
+      if (needsProjectScopedCleanup) {
+        updateTabQuery(activeTab);
+      }
       return;
     }
 
-    if (tabParam === activeTab) {
+    if (tabParam === activeTab && !needsProjectScopedCleanup) {
       return;
     }
 
     updateTabQuery(activeTab);
-  }, [activeTab, availableTabs, defaultTab, tabParam, updateTabQuery, user, userLoading]);
+  }, [activeTab, availableTabs, defaultTab, hasProjectScopedQuery, tabParam, updateTabQuery, user, userLoading]);
 
   useEffect(() => {
     if (activeTab !== 'projects') return;
@@ -693,7 +709,7 @@ export default function DashboardClient() {
       flow: 'level_upgrade',
     }));
 
-    router.push(`/provider/services/tests?data=${payload}`);
+    router.push(getProviderServicesTestsHref(payload));
   }, [getNextProviderLevel, normalizeProviderLevelKey, router]);
 
   const handleWalletChange = (walletId: string) => {
@@ -1498,7 +1514,7 @@ export default function DashboardClient() {
             {isClient && !isProvider ? (
               <button
                 type="button"
-                onClick={() => router.push('/projects/new')}
+                onClick={() => router.push(getNewProjectHref())}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
               >
                 <Plus size={18} />
@@ -1528,7 +1544,7 @@ export default function DashboardClient() {
             {isProvider ? (
               <button
                 type="button"
-                onClick={() => router.push('/provider/profile')}
+                onClick={() => router.push(getProviderProfileHref())}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
               >
                 <FileText size={18} />
@@ -1692,7 +1708,7 @@ export default function DashboardClient() {
                     if (isProvider) {
                       handleTabChange('finance');
                     } else {
-                      router.push('/projects/new');
+                      router.push(getNewProjectHref());
                     }
                   }}
                   className="bg-[#1BC47D] hover:bg-[#18A96B] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-md shadow-[#1BC47D]/20 flex items-center gap-2"
@@ -1720,7 +1736,7 @@ export default function DashboardClient() {
                 {isClient && !isProvider ? (
                   <button
                     type="button"
-                    onClick={() => router.push('/projects/new')}
+                    onClick={() => router.push(getNewProjectHref())}
                     className="px-3 py-2 rounded-lg text-xs font-semibold border"
                     style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-main)' }}
                   >
@@ -2139,7 +2155,7 @@ export default function DashboardClient() {
                           {t('dashboard.services.empty.description.provider')}
                         </p>
                         <Button asChild>
-                          <Link href="/provider/services/select?reset=1">
+                          <Link href={getProviderServicesSelectHref({ reset: true })}>
                             <Plus className="w-4 h-4 mr-2" />
                             {t('dashboard.services.empty.cta')}
                           </Link>
@@ -2385,7 +2401,7 @@ export default function DashboardClient() {
 
                         <div className="flex justify-end">
                           <Button asChild variant="outline">
-                            <Link href="/provider/services/select?reset=1">
+                            <Link href={getProviderServicesSelectHref({ reset: true })}>
                               <Plus className="w-4 h-4 mr-2" />
                               {t('dashboard.services.manage_cta')}
                             </Link>

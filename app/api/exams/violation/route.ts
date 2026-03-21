@@ -3,6 +3,7 @@ import {
   API_BASE_URL,
   appendSetCookie,
   buildProxyHeaders,
+  type ProxyHeaderOptions,
   ProxySecurityError,
 } from '@/lib/server/laravel-proxy';
 
@@ -142,15 +143,17 @@ export async function POST(req: Request) {
 
   let headers: Headers;
   try {
+    const proxyHeaderOptions: ProxyHeaderOptions = {
+      explicitXsrfToken,
+      skipCsrfCheck: true,
+    };
+
     headers = buildProxyHeaders(
       req,
       {
         'Content-Type': contentType,
       },
-      {
-        explicitXsrfToken,
-        skipCsrfCheck: true,
-      }
+      proxyHeaderOptions
     );
   } catch (error) {
     const status =

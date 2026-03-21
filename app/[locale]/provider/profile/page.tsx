@@ -1,8 +1,9 @@
 "use client";
 
 import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import {useSearchParams} from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/lib/navigation';
+import { usePathname, useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,19 @@ import { useForm } from 'react-hook-form';
 import * as v from 'valibot';
 import { sanitizeHttpUrl } from '@/lib/navigation-security';
 import { useAppTheme } from '@/hooks/use-app-theme';
+import {
+    getDashboardTabHref,
+    getNewProjectHref,
+    getPrimaryDashboardTabHref,
+    getProviderProfileHref,
+    getSecondaryDashboardTabHref,
+} from '@/lib/dashboard-navigation';
+import {
+    buildProviderProfileSearchParams,
+    getDefaultProviderProfileTab,
+    resolveProviderProfileTab,
+    type ProviderProfileTab,
+} from '@/lib/provider-profile-tabs';
 
 type Languages = {
     id: number;
@@ -397,8 +411,13 @@ export default function ProviderProfileEditPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [activeTab, setActiveTab] = useState('basic');
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const defaultTab = getDefaultProviderProfileTab();
+    const sectionParam = searchParams.get('section');
+    const resolvedTabFromUrl = resolveProviderProfileTab(sectionParam, defaultTab);
+    const [activeTab, setActiveTab] = useState<ProviderProfileTab>(resolvedTabFromUrl);
     const {
         data: providerProfile,
         loading: profileLoading,
@@ -423,6 +442,27 @@ export default function ProviderProfileEditPage() {
             billing_postal_code: '',
         },
     });
+
+    const updateSectionQuery = useCallback((value: ProviderProfileTab) => {
+        const params = buildProviderProfileSearchParams(searchParams, value, defaultTab);
+        const query = params.toString();
+        const basePath = pathname || getProviderProfileHref();
+        const nextUrl = query ? `${basePath}?${query}` : basePath;
+        const currentQuery = searchParams.toString();
+        const currentUrl = currentQuery ? `${basePath}?${currentQuery}` : basePath;
+
+        if (nextUrl === currentUrl) {
+            return;
+        }
+
+        router.replace(nextUrl, { scroll: false });
+    }, [defaultTab, pathname, router, searchParams]);
+
+    const handleTabChange = useCallback((value: string) => {
+        const nextTab = resolveProviderProfileTab(value, defaultTab);
+        setActiveTab((current) => (current === nextTab ? current : nextTab));
+        updateSectionQuery(nextTab);
+    }, [defaultTab, updateSectionQuery]);
 
     const [profileData, setProfileData] = useState<ProfileDataState>({
         // Basic Info
@@ -463,6 +503,22 @@ export default function ProviderProfileEditPage() {
         // Portfolio
         portfolio: []
     });
+
+    useEffect(() => {
+        if (sectionParam !== null) {
+            const normalizedSection = sectionParam.trim();
+            const shouldNormalizeQuery =
+                normalizedSection !== resolvedTabFromUrl || resolvedTabFromUrl === defaultTab;
+
+            if (shouldNormalizeQuery) {
+                setActiveTab((current) => (current === resolvedTabFromUrl ? current : resolvedTabFromUrl));
+                updateSectionQuery(resolvedTabFromUrl);
+                return;
+            }
+        }
+
+        setActiveTab((current) => (current === resolvedTabFromUrl ? current : resolvedTabFromUrl));
+    }, [defaultTab, resolvedTabFromUrl, sectionParam, updateSectionQuery]);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -930,14 +986,14 @@ export default function ProviderProfileEditPage() {
                     <nav className="space-y-1 p-4">
                         <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{t('dashboard.quick_actions.title')}</p>
 
-                        <button type="button" onClick={() => router.push('/dashboard?tab=overview')} className={sidebarItemClass('overview')}>
+                        <button type="button" onClick={() => router.push(getDashboardTabHref('overview'))} className={sidebarItemClass('overview')}>
                             <LayoutDashboard size={18} />
                             {t('dashboard.tabs.overview')}
                         </button>
                         {isClient && !isProvider ? (
                             <button
                                 type="button"
-                                onClick={() => router.push('/projects/new')}
+                                onClick={() => router.push(getNewProjectHref())}
                                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 font-medium text-sm transition-colors w-full text-left"
                             >
                                 <Plus size={18} />
@@ -946,7 +1002,7 @@ export default function ProviderProfileEditPage() {
                         ) : null}
                         <button
                             type="button"
-                            onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+                            onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
                             className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
                         >
                             <Lock size={18} />
@@ -954,20 +1010,20 @@ export default function ProviderProfileEditPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+                            onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
                             className={sidebarItemClass(isProvider ? 'projects' : 'services')}
                         >
                             <Layers size={18} />
                             {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
                         </button>
-                        <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={sidebarItemClass('messages')}>
+                        <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={sidebarItemClass('messages')}>
                             <History size={18} />
                             {t('dashboard.tabs.messages')}
                         </button>
                         {isProvider ? (
                             <button
                                 type="button"
-                                onClick={() => router.push('/provider/profile')}
+                                onClick={() => router.push(getProviderProfileHref())}
                                 className={sidebarItemClass('edit-profile')}
                             >
                                 <FileText size={18} />
@@ -978,7 +1034,7 @@ export default function ProviderProfileEditPage() {
                         {isProvider && (
                             <>
                                 <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">{servicesTitle}</p>
-                                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={sidebarItemClass('services')}>
+                                <button type="button" onClick={() => router.push(getDashboardTabHref('services'))} className={sidebarItemClass('services')}>
                                     <Users size={18} />
                                     {t('dashboard.tabs.services')}
                                 </button>
@@ -988,7 +1044,7 @@ export default function ProviderProfileEditPage() {
                 </div>
 
                 <div className="p-4 border-t border-white/5">
-                    <button type="button" onClick={() => router.push('/dashboard?tab=settings')} className={`${sidebarItemClass('settings')} mb-2`}>
+                    <button type="button" onClick={() => router.push(getDashboardTabHref('settings'))} className={`${sidebarItemClass('settings')} mb-2`}>
                         <Settings size={18} />
                         {t('dashboard.tabs.settings')}
                     </button>
@@ -1066,8 +1122,8 @@ export default function ProviderProfileEditPage() {
                             Navigare rapidă
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=overview')}>Dashboard</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=projects')}>Proiecte</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('overview'))}>Dashboard</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('projects'))}>Proiecte</Button>
                             <Button size="sm" variant="outline" onClick={() => router.push(`/provider/${user.profile_url}`)}>Previzualizare</Button>
                         </div>
                     </div>
@@ -1087,7 +1143,7 @@ export default function ProviderProfileEditPage() {
                     )}
 
                     {/* Profile Edit Tabs */}
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                     <TabsList
                         className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border p-1 md:grid-cols-3 xl:grid-cols-6"
                         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}

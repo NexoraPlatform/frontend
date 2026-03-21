@@ -22,6 +22,7 @@ import {
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
 import { getRoleSlugs } from '@/lib/access';
+import { getDashboardHomeHref, getDashboardTabHref } from '@/lib/dashboard-navigation';
 
 type ClientProps = {
     serviceId?: string; // vine din searchParams
@@ -78,7 +79,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
         }
 
         if (hasRoleInfo && !isProvider) {
-            router.push('/dashboard');
+            router.push(getDashboardHomeHref());
             return;
         }
 
@@ -124,7 +125,7 @@ export default function NewProviderServiceClient({ serviceId }: ClientProps) {
             };
 
             await apiClient.addServiceProvider(serviceId, providerData);
-            router.push('/dashboard?tab=services');
+            router.push(getDashboardTabHref('services'));
         } catch (err: any) {
             setError(err?.message || 'A apărut o eroare');
         } finally {

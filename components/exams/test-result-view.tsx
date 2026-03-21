@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Eye, EyeOff, Trophy } from 'lucide-react';
+import { getDashboardHomeHref } from '@/lib/dashboard-navigation';
 
 type TestAnswer = {
     questionId: string;
@@ -116,7 +117,7 @@ export default function TestResultView({
                             </>
                         )}
                     </Button>
-                    <Button onClick={() => router.push('/dashboard')}>
+                    <Button onClick={() => router.push(getDashboardHomeHref())}>
                         {t('result.backToDashboard')}
                     </Button>
                 </div>

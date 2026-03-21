@@ -12,6 +12,13 @@ import { ChatButton } from '@/components/chat/chat-button';
 import { useAuth } from '@/contexts/auth-context';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import {
+  getDashboardTabHref,
+  getNewProjectHref,
+  getPrimaryDashboardTabHref,
+  getProviderProfileHref,
+  getSecondaryDashboardTabHref,
+} from '@/lib/dashboard-navigation';
+import {
   CheckCircle2,
   FileText,
   History,
@@ -94,7 +101,7 @@ export function ProviderDashboardShell({
     );
   }, [user?.role, user?.role_slugs, user?.roles]);
 
-  const isProvider = roleSlugs.includes('provider') || true;
+  const isProvider = roleSlugs.includes('provider');
   const isClient = roleSlugs.includes('client');
   const currentTheme = isDarkMode ? dashboardThemes.dark : dashboardThemes.light;
   const dashboardHeaderUtilityButtonClass = isDarkMode
@@ -144,14 +151,14 @@ export function ProviderDashboardShell({
               {t('dashboard.quick_actions.title')}
             </p>
 
-            <button type="button" onClick={() => router.push('/dashboard?tab=overview')} className={sidebarItemClass('overview')}>
+            <button type="button" onClick={() => router.push(getDashboardTabHref('overview'))} className={sidebarItemClass('overview')}>
               <LayoutDashboard size={18} />
               {t('dashboard.tabs.overview')}
             </button>
             {isClient && !isProvider ? (
               <button
                 type="button"
-                onClick={() => router.push('/projects/new')}
+                onClick={() => router.push(getNewProjectHref())}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <Plus size={18} />
@@ -160,7 +167,7 @@ export function ProviderDashboardShell({
             ) : null}
             <button
               type="button"
-              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+              onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
               className={sidebarItemClass(isProvider ? 'finance' : 'projects')}
             >
               <Lock size={18} />
@@ -168,20 +175,20 @@ export function ProviderDashboardShell({
             </button>
             <button
               type="button"
-              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+              onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
               className={sidebarItemClass(isProvider ? 'projects' : 'services')}
             >
               <Layers size={18} />
               {isProvider ? t('dashboard.tabs.projects') : t('dashboard.tabs.services')}
             </button>
-            <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={sidebarItemClass('messages')}>
+            <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={sidebarItemClass('messages')}>
               <History size={18} />
               {t('dashboard.tabs.messages')}
             </button>
             {isProvider ? (
               <button
                 type="button"
-                onClick={() => router.push('/provider/profile')}
+                onClick={() => router.push(getProviderProfileHref())}
                 className={sidebarItemClass('edit-profile')}
               >
                 <FileText size={18} />
@@ -194,7 +201,7 @@ export function ProviderDashboardShell({
                 <p className="mb-3 mt-8 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {servicesTitle}
                 </p>
-                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={sidebarItemClass('services')}>
+                <button type="button" onClick={() => router.push(getDashboardTabHref('services'))} className={sidebarItemClass('services')}>
                   <Users size={18} />
                   {t('dashboard.tabs.services')}
                 </button>
@@ -206,7 +213,7 @@ export function ProviderDashboardShell({
         <div className="border-t border-white/5 p-4">
           <button
             type="button"
-            onClick={() => router.push('/dashboard?tab=settings')}
+            onClick={() => router.push(getDashboardTabHref('settings'))}
             className={`${sidebarItemClass('settings')} mb-2`}
           >
             <Settings size={18} />
@@ -291,7 +298,7 @@ export function ProviderDashboardShell({
 
               <Button
                 type="button"
-                onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+                onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
                 className="flex items-center gap-2 rounded-lg bg-[#1BC47D] px-5 py-2 text-sm font-semibold text-white shadow-md shadow-[#1BC47D]/20 transition-all hover:bg-[#18A96B]"
               >
                 {isProvider ? <Wallet size={16} /> : <MessageSquare size={16} />}
@@ -322,13 +329,13 @@ export function ProviderDashboardShell({
                 Navigare rapidă
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=overview')}>
+                <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('overview'))}>
                   Dashboard
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=projects')}>
+                <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('projects'))}>
                   Proiecte
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => router.push('/dashboard?tab=services')}>
+                <Button size="sm" variant="outline" onClick={() => router.push(getDashboardTabHref('services'))}>
                   Servicii
                 </Button>
               </div>

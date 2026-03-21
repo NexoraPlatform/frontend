@@ -70,6 +70,13 @@ import { aiService, type AiRecommendServicesResponse, type RecommendedServiceCan
 import { projectsService } from '@/services/projects';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import {
+  getDashboardHomeHref,
+  getDashboardTabHref,
+  getNewProjectHref,
+  getPrimaryDashboardTabHref,
+  getSecondaryDashboardTabHref,
+} from '@/lib/dashboard-navigation';
+import {
   type AiAssistantMessage,
   type AiBriefResponse,
   type AiMilestoneItem,
@@ -5553,19 +5560,19 @@ export default function NewProjectPage() {
           <nav className="p-4 space-y-1">
             <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-4">{tDashboard('quick_actions.title')}</p>
 
-            <button type="button" onClick={() => router.push('/dashboard')} className={dashboardSidebarItemClass('overview')}>
+            <button type="button" onClick={() => router.push(getDashboardHomeHref())} className={dashboardSidebarItemClass('overview')}>
               <LayoutDashboard size={18} />
               {tDashboard('tabs.overview')}
             </button>
             {isClient && !isProvider ? (
-              <button type="button" onClick={() => router.push('/projects/new')} className={dashboardSidebarItemClass('new-project')}>
+              <button type="button" onClick={() => router.push(getNewProjectHref())} className={dashboardSidebarItemClass('new-project')}>
                 <Plus size={18} />
                 {tDashboard('projects.new_project')}
               </button>
             ) : null}
             <button
               type="button"
-              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'finance' : 'projects'}`)}
+              onClick={() => router.push(getPrimaryDashboardTabHref(isProvider))}
               className={dashboardSidebarItemClass(isProvider ? 'finance' : 'projects')}
             >
               <Lock size={18} />
@@ -5573,13 +5580,13 @@ export default function NewProjectPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push(`/dashboard?tab=${isProvider ? 'projects' : 'services'}`)}
+              onClick={() => router.push(getSecondaryDashboardTabHref(isProvider))}
               className={dashboardSidebarItemClass(isProvider ? 'projects' : 'services')}
             >
               <Layers size={18} />
               {isProvider ? tDashboard('tabs.projects') : tDashboard('tabs.services')}
             </button>
-            <button type="button" onClick={() => router.push('/dashboard?tab=messages')} className={dashboardSidebarItemClass('messages')}>
+            <button type="button" onClick={() => router.push(getDashboardTabHref('messages'))} className={dashboardSidebarItemClass('messages')}>
               <History size={18} />
               {tDashboard('tabs.messages')}
             </button>
@@ -5588,7 +5595,7 @@ export default function NewProjectPage() {
                 <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3 mt-8">
                   {servicesTitle}
                 </p>
-                <button type="button" onClick={() => router.push('/dashboard?tab=services')} className={dashboardSidebarItemClass('services')}>
+                <button type="button" onClick={() => router.push(getDashboardTabHref('services'))} className={dashboardSidebarItemClass('services')}>
                   <Users size={18} />
                   {tDashboard('tabs.services')}
                 </button>
@@ -5598,7 +5605,7 @@ export default function NewProjectPage() {
         </div>
 
         <div className="p-4 border-t border-white/5">
-          <button type="button" onClick={() => router.push('/dashboard?tab=settings')} className={`${dashboardSidebarItemClass('settings')} mb-2`}>
+          <button type="button" onClick={() => router.push(getDashboardTabHref('settings'))} className={`${dashboardSidebarItemClass('settings')} mb-2`}>
             <Settings size={18} />
             {tDashboard('tabs.settings')}
           </button>
