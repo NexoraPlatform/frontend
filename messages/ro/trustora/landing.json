@@ -1,0 +1,266 @@
+{
+  "landing": {
+    "navigation": {
+      "cta": "Începe",
+      "mobile_toggle": "Deschide meniul de navigare"
+    },
+    "hero": {
+      "badge": "Platformă fintech next-gen",
+      "title": "Încredere financiară,",
+      "title_highlight": "automatizată.",
+      "description": "Securizează tranzacțiile și automatizează conformitatea cu motorul fintech next-gen Trustora.",
+      "primary_cta": "Începe acum",
+      "secondary_cta": "Vezi demo",
+      "metrics": {
+        "uptime_label": "SLA uptime",
+        "secured_label": "Securizat",
+        "transactions_label": "Tranzacții"
+      },
+      "panel": {
+        "balance_label": "Sold total",
+        "balance_value": "$2,847,392.00",
+        "balance_growth": "+12.5%",
+        "income": {
+          "label": "Venituri",
+          "value": "$842.5K",
+          "trend": "+8.2%"
+        },
+        "expenses": {
+          "label": "Cheltuieli",
+          "value": "$234.1K",
+          "trend": "-2.4%"
+        },
+        "transactions": {
+          "first": {
+            "name": "Tranzacția A",
+            "amount": "+$12,400",
+            "time": "acum 2m"
+          },
+          "second": {
+            "name": "Tranzacția B",
+            "amount": "+$8,200",
+            "time": "acum 5m"
+          },
+          "third": {
+            "name": "Tranzacția C",
+            "amount": "+$5,600",
+            "time": "acum 12m"
+          }
+        }
+      }
+    },
+    "social_proof": {
+      "title": "De încredere pentru instituții financiare de top"
+    },
+    "problem_solution": {
+      "problem_badge": "Problema",
+      "problem_title": "Fintech-ul tradițional este",
+      "problem_title_highlight": "defect",
+      "solution_badge": "Soluția noastră",
+      "solution_title": "Descoperă",
+      "solution_title_highlight": "viitorul",
+      "solution_title_end": "fintech-ului",
+      "problems": {
+        "first": {
+          "title": "Conformitate manuală",
+          "description": "Ore pierdute pe hârtii de reglementare și verificări de conformitate."
+        },
+        "second": {
+          "title": "Riscuri de securitate",
+          "description": "Sisteme de tranzacționare vulnerabile care expun date financiare."
+        },
+        "third": {
+          "title": "Procesare lentă",
+          "description": "Tranzacții întârziate care afectează operațiunile de business."
+        }
+      },
+      "solutions": {
+        "first": {
+          "title": "Conformitate automatizată",
+          "description": "Automatizare de conformitate bazată pe AI care reduce munca manuală cu 95%."
+        },
+        "second": {
+          "title": "Securitate la nivel bancar",
+          "description": "Criptare end-to-end cu protocoale de securitate pe mai multe straturi."
+        },
+        "third": {
+          "title": "Decontare instantă",
+          "description": "Procesare în timp real a tranzacțiilor cu confirmări sub o secundă."
+        }
+      }
+    },
+    "features": {
+      "badge": "Funcționalități",
+      "title": "Tot ce ai nevoie pentru a",
+      "title_highlight": "scala",
+      "subtitle": "Infrastructură fintech enterprise construită pentru business-uri moderne",
+      "items": {
+        "first": {
+          "title": "Securitate de nivel militar",
+          "description": "Criptarea avansată și autentificarea multi-factor protejează fiecare tranzacție cu securitate enterprise."
+        },
+        "second": {
+          "title": "Ultra rapid",
+          "description": "Procesează mii de tranzacții pe secundă cu infrastructura noastră optimizată și rutare inteligentă."
+        },
+        "third": {
+          "title": "Analize în timp real",
+          "description": "Dashboard-uri și insight-uri complete care te ajută să iei decizii bazate pe date instant."
+        },
+        "fourth": {
+          "title": "Conformitate automată",
+          "description": "Rămâi conform automat cu framework-uri de reglementare și audit trail integrate."
+        },
+        "fifth": {
+          "title": "Acoperire globală",
+          "description": "Suport pentru peste 120 de valute și metode de plată în peste 180 de țări."
+        },
+        "sixth": {
+          "title": "Contracte inteligente",
+          "description": "Acorduri automate, fără intermediar, executate pe blockchain cu transparență completă."
+        },
+        "seventh": {
+          "title": "Insight-uri bazate pe AI",
+          "description": "Algoritmii de machine learning detectează anomalii și optimizează operațiunile tale financiare."
+        },
+        "eighth": {
+          "title": "Monitorizare de performanță",
+          "description": "Monitorizare 24/7 a sistemului cu SLA de uptime 99.9% și rezolvare instantă a incidentelor."
+        }
+      }
+    },
+    "how_it_works": {
+      "badge": "Cum funcționează",
+      "title": "Începi în",
+      "title_highlight": "3 pași simpli",
+      "subtitle": "De la înscriere la prima tranzacție în mai puțin de 10 minute",
+      "steps": {
+        "first": {
+          "title": "Înscriere",
+          "description": "Creează-ți contul în câteva minute. Nu este necesar card pentru trial."
+        },
+        "second": {
+          "title": "Configurare",
+          "description": "Setează preferințele, integrează API-uri și personalizează fluxurile de lucru."
+        },
+        "third": {
+          "title": "Scalează",
+          "description": "Intră live și procesează tranzacții la scară fără downtime."
+        }
+      },
+      "footer": "Alătură-te celor peste 500 de companii care folosesc deja Trustora"
+    },
+    "security": {
+      "badge": "Încredere și securitate",
+      "title": "Securitatea ta este",
+      "title_highlight": "prioritatea noastră",
+      "subtitle": "Infrastructură de securitate enterprise în care au încredere instituțiile financiare",
+      "items": {
+        "first": {
+          "title": "Certificat SOC 2 Type II",
+          "description": "Auditat independent pentru securitate și conformitate"
+        },
+        "second": {
+          "title": "Criptare end-to-end",
+          "description": "Criptare AES-256 pentru toate datele în tranzit și în repaus"
+        },
+        "third": {
+          "title": "Monitorizare în timp real",
+          "description": "Detectare 24/7 a amenințărilor și sisteme de răspuns instant"
+        },
+        "fourth": {
+          "title": "Audit trail complet",
+          "description": "Istoric complet al tranzacțiilor pentru conformitate și raportare"
+        }
+      },
+      "panel": {
+        "title": "Protecție la nivel bancar",
+        "description": "Arhitectură de securitate pe mai multe straturi care protejează peste 2 miliarde de dolari în tranzacții",
+        "checklist": {
+          "first": "Arhitectură zero-knowledge",
+          "second": "Module hardware de securitate",
+          "third": "Autentificare biometrică",
+          "fourth": "Răspuns automat la amenințări",
+          "fifth": "Audituri zilnice de securitate",
+          "sixth": "Echipă de răspuns la incidente"
+        }
+      },
+      "compliance_title": "Certificat și conform",
+      "compliance_description": "Respectă cele mai înalte standarde din industrie pentru securitate și conformitate",
+      "documentation_cta": "Vezi documentația de securitate",
+      "certifications": {
+        "first": "PCI DSS Nivel 1",
+        "second": "ISO 27001",
+        "third": "Conform GDPR",
+        "fourth": "SOC 2 Type II",
+        "fifth": "Aprobat FINRA",
+        "sixth": "Securitate la nivel bancar"
+      }
+    },
+    "final_cta": {
+      "badge": "Începe călătoria ta",
+      "title": "Ești gata să transformi",
+      "title_highlight": "operațiunile tale fintech",
+      "subtitle": "Alătură-te sutelor de companii care își scalează infrastructura financiară cu Trustora. Începe gratuit, fără card necesar.",
+      "primary_cta": "Începe trial-ul gratuit",
+      "secondary_cta": "Programează un demo",
+      "benefits": {
+        "first": "Trial gratuit 14 zile",
+        "second": "Fără card necesar",
+        "third": "Poți anula oricând"
+      }
+    },
+    "footer": {
+      "description": "Infrastructură fintech de nouă generație pentru business-uri moderne. Sigură, rapidă și conformă.",
+      "copyright": "© 2026 Trustora. Toate drepturile rezervate.",
+      "bottom": {
+        "first": "Construit cu precizie",
+        "second": "Propulsat de inovație"
+      },
+      "social": {
+        "twitter": "Twitter",
+        "github": "GitHub",
+        "linkedin": "LinkedIn",
+        "email": "Email"
+      },
+      "sections": {
+        "product": {
+          "title": "Produs",
+          "links": {
+            "features": "Funcționalități",
+            "security": "Securitate",
+            "pricing": "Prețuri",
+            "api_docs": "Documentație API"
+          }
+        },
+        "company": {
+          "title": "Companie",
+          "links": {
+            "about": "Despre",
+            "careers": "Cariere",
+            "blog": "Blog",
+            "press": "Presă"
+          }
+        },
+        "resources": {
+          "title": "Resurse",
+          "links": {
+            "documentation": "Documentație",
+            "help_center": "Centru de ajutor",
+            "community": "Comunitate",
+            "contact": "Contact"
+          }
+        },
+        "legal": {
+          "title": "Legal",
+          "links": {
+            "privacy": "Confidențialitate",
+            "terms": "Termeni",
+            "security": "Securitate",
+            "compliance": "Conformitate"
+          }
+        }
+      }
+    }
+  }
+}

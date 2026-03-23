@@ -37,7 +37,11 @@
   "vision": {
     "kicker": "Vision 2030",
     "title": "Become the reference platform",
-    "description": "for IT services in Eastern Europe, focused on trust, transparency, and sustainable collaboration."
+    "description": "for IT services in Eastern Europe, focused on trust, transparency, and sustainable collaboration.",
+    "highlights": {
+      "trustora_body": "A product built for trust, clarity, and a better operating rhythm between companies and experts.",
+      "future_body": "More than matching: digital infrastructure for secure and scalable collaborations."
+    }
   },
   "values": {
     "kicker": "Our values",
@@ -65,6 +69,15 @@
   "timeline": {
     "title": "Our story",
     "description": "From a simple idea to the trusted platform for thousands of Romanian entrepreneurs.",
+    "panel": {
+      "title": "We build trust as infrastructure, not just as a promise.",
+      "description": "Each product stage has been guided by the same question: how do we make digital collaborations clearer, safer, and easier to complete?",
+      "points": [
+        "Better matching between needs and expertise",
+        "Simpler processes for teams and providers",
+        "More trust in delivery and collaboration"
+      ]
+    },
     "items": [
       {
         "title": "Trustora founded",

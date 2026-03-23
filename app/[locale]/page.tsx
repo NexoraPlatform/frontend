@@ -1,18 +1,5 @@
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import {
-  HomeFinalCtaSkeleton,
-  HomeHeroSkeleton,
-  HomeMessagingSkeleton,
-  HomePillarsSkeleton,
-  HomeVisualSkeleton,
-} from "@/components/loading/homepage-sections-skeleton";
-import { TrustoraFinalCtaSection } from "@/components/trustora/final-cta-section";
-import { TrustoraHeroSection } from "@/components/trustora/hero-section";
-import { TrustoraMessagingSection } from "@/components/trustora/messaging-section";
-import { TrustoraPillarsSection } from "@/components/trustora/pillars-section";
+import { TrustoraLandingHomepage } from "@/components/homepage/trustora-landing-homepage";
 import { TrustoraThemeStyles } from "@/components/trustora/theme-styles";
-import { TrustoraVisualLanguageSection } from "@/components/trustora/visual-language-section";
 import {
   buildPageKnowledgeGraph,
   generateSEO,
@@ -22,7 +9,6 @@ import {
 import type { Locale } from "@/types/locale";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Suspense } from "react";
 
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 
@@ -40,19 +26,18 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
     locale,
     pathname: "/",
     title: isRo
-      ? "Marketplace de Freelancing IT cu Plăți Securizate prin Escrow | Trustora"
-      : "IT Freelancing Marketplace with Escrow-Secured Payments | Trustora",
+      ? "Încredere financiară automatizată | Trustora"
+      : "Financial Trust, Automated | Trustora",
     description: isRo
-      ? "Intră pe lista de acces anticipat pentru proiecte IT cu profesioniști verificați, plăți protejate prin escrow și contracte digitale clare."
-      : "Join early access for IT projects with verified professionals, escrow-protected payments, and clear digital contracts.",
+      ? "Securizează tranzacțiile și automatizează conformitatea cu platforma fintech next-gen Trustora."
+      : "Secure your transactions and automate compliance with Trustora's next-gen fintech platform.",
     keywords: [
       "trustora",
-      "early access",
-      "waitlist",
+      "fintech",
+      "financial infrastructure",
       "escrow",
-      "verified IT experts",
       "digital contracts",
-      "software projects",
+      "compliance automation",
     ],
   });
 }
@@ -61,11 +46,10 @@ export default async function Home({ params }: HomePageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale });
 
-  const heroTitle = t("trustora.hero.title");
-  const heroTitleHighlight = t("trustora.hero.title_highlight");
-  const heroSubtitle = t("trustora.hero.subtitle");
+  const heroTitle = t("trustora.landing.hero.title");
+  const heroTitleHighlight = t("trustora.landing.hero.title_highlight");
+  const heroSubtitle = t("trustora.landing.hero.description");
   const mainContentLabel = t("common.main_content");
-  const finalCtaTitle = t("trustora.final_cta.title");
 
   const pageTitle = `${heroTitle} ${heroTitleHighlight}`.replace(/\s+/g, " ").trim();
   const homepageGraph = buildPageKnowledgeGraph({
@@ -81,16 +65,6 @@ export default async function Home({ params }: HomePageProps) {
     ],
   });
 
-  const pillarsHeading =
-    locale === "ro"
-      ? "De ce se înscriu membrii fondatori Trustora"
-      : "Why founding members join Trustora";
-  const messagingHeading =
-    locale === "ro"
-      ? "Acces anticipat pentru companii și profesioniști IT"
-      : "Early access for companies and IT professionals";
-  const visualHeading = t("trustora.visual.title");
-
   return (
     <div
       className="bg-white text-[#0F172A] dark:bg-[#070C14] dark:text-[#E6EDF3]"
@@ -100,10 +74,6 @@ export default async function Home({ params }: HomePageProps) {
       <JsonLdScript id="homepage" json={serializeJsonLd(homepageGraph)} />
 
       <TrustoraThemeStyles />
-
-      <header role="banner" itemScope itemType="https://schema.org/WPHeader">
-        <Header />
-      </header>
 
       <main
         role="main"
@@ -118,61 +88,14 @@ export default async function Home({ params }: HomePageProps) {
             itemProp="serviceType"
             content={
               locale === "ro"
-                ? "Marketplace de freelancing IT cu plăți securizate prin escrow"
-                : "IT freelancing marketplace with escrow-secured payments"
+                ? "Platformă fintech next-gen pentru tranzacții securizate și conformitate automatizată"
+                : "Next-gen fintech platform for secure transactions and automated compliance"
             }
           />
           <meta itemProp="areaServed" content="Romania" />
-
-          <div className="bg-[#060B19]">
-            <section aria-labelledby="trustora-home-hero-heading">
-              <h2 id="trustora-home-hero-heading" className="sr-only">
-                {pageTitle}
-              </h2>
-              <Suspense fallback={<HomeHeroSkeleton />}>
-                <TrustoraHeroSection locale={locale} />
-              </Suspense>
-            </section>
-          </div>
-
-          <section aria-labelledby="trustora-home-pillars-heading">
-            <h2 id="trustora-home-pillars-heading" className="sr-only">
-              {pillarsHeading}
-            </h2>
-            <Suspense fallback={<HomePillarsSkeleton />}>
-              <TrustoraPillarsSection locale={locale} />
-            </Suspense>
-          </section>
-
-          <section aria-labelledby="trustora-home-messaging-heading">
-            <h2 id="trustora-home-messaging-heading" className="sr-only">
-              {messagingHeading}
-            </h2>
-            <Suspense fallback={<HomeMessagingSkeleton />}>
-              <TrustoraMessagingSection locale={locale} />
-            </Suspense>
-          </section>
-
-          <section aria-labelledby="trustora-home-visual-heading">
-            <h2 id="trustora-home-visual-heading" className="sr-only">
-              {visualHeading}
-            </h2>
-            <Suspense fallback={<HomeVisualSkeleton />}>
-              <TrustoraVisualLanguageSection locale={locale} />
-            </Suspense>
-          </section>
-
-          <aside aria-label={finalCtaTitle}>
-            <Suspense fallback={<HomeFinalCtaSkeleton />}>
-              <TrustoraFinalCtaSection locale={locale} />
-            </Suspense>
-          </aside>
+          <TrustoraLandingHomepage />
         </article>
       </main>
-
-      <footer role="contentinfo" itemScope itemType="https://schema.org/WPFooter">
-        <Footer />
-      </footer>
     </div>
   );
 }
