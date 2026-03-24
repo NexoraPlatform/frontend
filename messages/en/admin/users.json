@@ -11,6 +11,14 @@
     "filter_admins": "Administrators",
     "list_title": "User List",
     "list_description": "{count} users found",
+    "table": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "registered": "Registered",
+      "actions": "Actions"
+    },
     "statuses": {
       "ACTIVE": "Active",
       "SUSPENDED": "Suspended",
@@ -55,6 +63,18 @@
       "creating": "Creating...",
       "create_user": "Create User",
       "cancel": "Cancel",
+      "overview": {
+        "title": "Account Overview",
+        "description": "Review the access level before creating the account.",
+        "role": "Selected Role",
+        "email": "Login Email",
+        "phone": "Phone Number",
+        "empty": "Not provided"
+      },
+      "actions": {
+        "title": "Create Account",
+        "description": "Save the account and make it available in the admin user list."
+      },
       "roles": {
         "CLIENT": "Client",
         "PROVIDER": "Provider",
@@ -88,7 +108,16 @@
         "select_permissions": "Select Permissions",
         "no_permission_selected": "No permissions selected.",
         "allow": "Allow",
-        "deny": "Deny"
+        "deny": "Deny",
+        "overview_title": "Account Overview",
+        "overview_description": "Review the active profile data before saving changes.",
+        "selected_role": "Selected Role",
+        "email_short": "Email",
+        "verification_status": "Verification",
+        "verification_complete": "Fully verified",
+        "verification_pending": "Needs review",
+        "permission_overrides": "Permission Overrides",
+        "permissions_description": "Enable custom allow or deny overrides for this user."
       }
     },
     "detail_card": {

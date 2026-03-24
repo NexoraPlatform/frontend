@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { locales } from '@/lib/navigation';
 import { localeConfig } from '@/lib/i18n';
 import { usePathname, useRouter } from '@/lib/navigation';
-import { useAuth } from '@/contexts/auth-context';
+import { useOptionalAuth } from '@/contexts/auth-context';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { usePublicAuth } from '@/hooks/use-public-auth';
 
 interface LocaleSwitcherProps {
     className?: string;
@@ -23,7 +24,10 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
     const pathname = usePathname();
     const router = useRouter();
     const locale = useLocale();
-    const { user, setUserLanguage } = useAuth();
+    const authContext = useOptionalAuth();
+    const publicAuth = usePublicAuth(!authContext);
+    const user = authContext?.user ?? publicAuth.user;
+    const setUserLanguage = authContext?.setUserLanguage ?? publicAuth.setUserLanguage;
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -41,7 +45,10 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
-                    className={cn('h-11 w-auto px-3 flex items-center gap-2 rounded-xl', className)}
+                    className={cn(
+                        'h-11 w-auto px-3 flex items-center gap-2 rounded-xl text-foreground hover:text-foreground dark:text-white dark:hover:text-white',
+                        className
+                    )}
                     aria-label="Schimbă limba"
                 >
                     <span className="text-[24px] leading-none relative top-[1px]"

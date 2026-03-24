@@ -236,7 +236,7 @@ describe('proxy', () => {
     const req = makeReq('/ro/admin', {
       headers: {
         'x-vercel-ip-country': 'RO',
-        cookie: 'laravel_session=test; XSRF-TOKEN=test',
+        cookie: 'authjs.session-token=test',
       },
       auth: { user: { id: '1', isSuperAdmin: true } },
     });

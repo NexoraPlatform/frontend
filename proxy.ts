@@ -17,8 +17,13 @@ import {
   type AccessUser,
   type Requirement,
 } from '@/lib/access';
+import {
+  BROWSER_SESSION_COOKIE_NAME,
+  NEXT_AUTH_SESSION_COOKIE_NAMES,
+  REMEMBER_ME_COOKIE_NAME,
+  isBrowserSessionExpired,
+} from '@/lib/auth/session-preferences';
 import { enforceApiRateLimit } from '@/lib/server/rate-limit';
-import { fetchLaravelUserFromCookieHeader } from '@/lib/auth/laravel-session';
 import { normalizeAuthUser } from '@/lib/auth/user';
 import { defaultLocale } from '@/lib/i18n';
 import { locales, localePrefix } from '@/lib/navigation';
@@ -268,6 +273,15 @@ function redirectToSignin(req: any, locale: string) {
   return NextResponse.redirect(url);
 }
 
+function clearRememberedAuthCookies(response: NextResponse) {
+  for (const cookieName of NEXT_AUTH_SESSION_COOKIE_NAMES) {
+    response.cookies.set(cookieName, '', { maxAge: 0, path: '/' });
+  }
+  response.cookies.set(REMEMBER_ME_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+  response.cookies.set(BROWSER_SESSION_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+  return response;
+}
+
 function isEarlyAccessEnabled() {
   return (
     process.env.NEXT_PUBLIC_EARLY_ACCESS_FUNNEL === 'true' ||
@@ -401,21 +415,15 @@ export const proxy = auth(async (req) => {
 
   const session = (req as any).auth;
   const sessionUser = session?.user as AccessUser | null | undefined;
-  let user: AccessUser | null = null;
-
-  if (sessionUser) {
-    // Start from signed NextAuth session user and upgrade with backend data when available.
-    user = sessionUser;
-    const cookieHeader = req.headers.get('cookie') ?? '';
-    if (cookieHeader.includes('laravel_session=')) {
-      const requestOrigin = req.headers.get('origin');
-      const rawUser = await fetchLaravelUserFromCookieHeader(cookieHeader, requestOrigin);
-      const normalizedBackendUser = (normalizeAuthUser(rawUser) as AccessUser | null) ?? null;
-      if (normalizedBackendUser) {
-        user = normalizedBackendUser;
-      }
-    }
-  }
+  const rememberMe = session?.rememberMe === true;
+  const browserSessionExpired =
+    Boolean(sessionUser) && isBrowserSessionExpired(rememberMe, req.cookies);
+  const user =
+    !browserSessionExpired && sessionUser
+      ? ((normalizeAuthUser(sessionUser) as AccessUser | null) ?? sessionUser)
+      : null;
+  const finalizeResponse = <T extends NextResponse>(response: T) =>
+    browserSessionExpired ? (clearRememberedAuthCookies(response) as T) : response;
 
   const isAuthenticated = Boolean(user);
   const preferredLocale = resolvePreferredLocale(user?.language, country);
@@ -424,7 +432,7 @@ export const proxy = auth(async (req) => {
   if (!pathLocale) {
     const url = req.nextUrl.clone();
     url.pathname = `/${preferredLocale}${normalizedPath === '/' ? '' : normalizedPath}`;
-    return NextResponse.redirect(url);
+    return finalizeResponse(NextResponse.redirect(url));
   }
 
   const pageSecurity = createPageSecurityContext(req);
@@ -434,7 +442,7 @@ export const proxy = auth(async (req) => {
     intlResponse?.headers.get('location') ||
     intlResponse?.headers.get('x-middleware-rewrite')
   ) {
-    return intlResponse;
+    return finalizeResponse(intlResponse as NextResponse);
   }
 
   const baseResponse = createPageContinuationResponse(
@@ -461,7 +469,7 @@ export const proxy = auth(async (req) => {
       normalizedPath === '/' ? false : openSoonRoutes.has(normalizedPath);
 
     if (isOpenSoonRoute) {
-      return baseResponse;
+      return finalizeResponse(baseResponse);
     }
 
     let adminBypass = false;
@@ -472,9 +480,11 @@ export const proxy = auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/open-soon`, req.url);
       if (normalizedPath === '/') {
-        return createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp);
+        return finalizeResponse(
+          createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp)
+        );
       }
-      return NextResponse.redirect(url);
+      return finalizeResponse(NextResponse.redirect(url));
     }
   }
 
@@ -492,7 +502,7 @@ export const proxy = auth(async (req) => {
       normalizedPath === '/' ? false : earlyAccessRoutes.has(normalizedPath);
 
     if (isEarlyAccessRoute) {
-      return baseResponse;
+      return finalizeResponse(baseResponse);
     }
 
     let adminBypass = false;
@@ -503,9 +513,11 @@ export const proxy = auth(async (req) => {
     if (!adminBypass) {
       const url = new URL(`/${locale}/early-access`, req.url);
       if (normalizedPath === '/') {
-        return createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp);
+        return finalizeResponse(
+          createPageRewriteResponse(url, pageSecurity.requestHeaders, pageSecurity.csp)
+        );
       }
-      return NextResponse.redirect(url);
+      return finalizeResponse(NextResponse.redirect(url));
     }
   }
 
@@ -515,25 +527,25 @@ export const proxy = auth(async (req) => {
   // A cookie might exist but be invalid/expired
   if (AUTH_PAGES.has(normalizedPath) && user) {
     const url = new URL(`/${locale}/dashboard`, req.url);
-    return NextResponse.redirect(url);
+    return finalizeResponse(NextResponse.redirect(url));
   }
 
   // Explicitly protect authenticated-only sections and preserve callbackUrl.
   if (!isAuthenticated && isAuthRequiredPath(normalizedPath)) {
-    return redirectToSignin(req, locale);
+    return finalizeResponse(redirectToSignin(req, locale));
   }
 
   // 3. Protected Routes
   const requirement = findRequirement(normalizedPath);
 
   if (!requirement) {
-    return baseResponse;
+    return finalizeResponse(baseResponse);
   }
 
   // 4. Token & Permission Checks
-  if (!isAuthenticated) return redirectToSignin(req, locale);
+  if (!isAuthenticated) return finalizeResponse(redirectToSignin(req, locale));
 
-  if (requirement === 'auth-only') return baseResponse;
+  if (requirement === 'auth-only') return finalizeResponse(baseResponse);
 
   const allowed = checkRequirement(user || null, requirement);
 
@@ -541,10 +553,10 @@ export const proxy = auth(async (req) => {
     const url = req.nextUrl.clone();
     url.pathname = `/${locale}/access-denied`;
     url.searchParams.set('from', req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return finalizeResponse(NextResponse.redirect(url));
   }
 
-  return baseResponse;
+  return finalizeResponse(baseResponse);
 });
 
 const securityHeadersMiddleware = chainMatch(isPageRequest)(

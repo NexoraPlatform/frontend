@@ -1,0 +1,91 @@
+{
+  "activity": {
+    "manage_title": "Manage Activity History",
+    "manage_subtitle": "Review automated events, financial updates, and project workflow changes from a single dashboard view.",
+    "search_placeholder": "Search activities by message, ID or metadata...",
+    "actions": {
+      "refresh": "Refresh"
+    },
+    "summary": {
+      "cards": {
+        "total": "Total Logged Events",
+        "unread": "Unread on Page",
+        "finance": "Financial Events",
+        "projects": "Project Workflow"
+      }
+    },
+    "filters": {
+      "type_placeholder": "Select type",
+      "status_placeholder": "Select status",
+      "all_types": "All activity types",
+      "all_statuses": "All statuses",
+      "read": "Read",
+      "unread": "Unread"
+    },
+    "list_title": "Activity Log",
+    "list_description": "{count} activities on this page",
+    "table": {
+      "event": "Event",
+      "context": "Context",
+      "category": "Category",
+      "recorded": "Recorded",
+      "status": "Status",
+      "event_id": "ID #{id}",
+      "metadata_empty": "No additional metadata",
+      "status_read": "Read",
+      "status_unread": "New"
+    },
+    "types": {
+      "project_created": "Project created",
+      "invoice_paid": "Invoice paid",
+      "proposal_received": "Proposal received",
+      "project_paid": "Project paid"
+    },
+    "categories": {
+      "project": "Project",
+      "finance": "Finance",
+      "proposal": "Proposal",
+      "system": "System"
+    },
+    "messages": {
+      "project_created": "Project \"{projectName}\" was created",
+      "invoice_paid": "Invoice {invoiceId} was paid for {amount}",
+      "proposal_received": "A new proposal was received for \"{projectName}\"",
+      "project_paid": "Project \"{projectName}\" was paid for {amount}",
+      "system_default": "Activity recorded in the system"
+    },
+    "context": {
+      "project": "Project",
+      "invoice": "Invoice",
+      "amount": "Amount",
+      "status": "Status",
+      "created": "Created",
+      "received": "Received"
+    },
+    "sidebar_title": "Activity Snapshot",
+    "sidebar_description": "Quick diagnostics for the currently loaded activity page.",
+    "sidebar": {
+      "page": "Current page",
+      "loaded": "Loaded rows",
+      "total": "Total rows",
+      "unread": "Unread rows",
+      "last_page": "Last page",
+      "refresh_note": "Use refresh after moderation, payments, or webhook tests to pull the latest activity stream."
+    },
+    "legend_title": "Event Legend",
+    "legend_description": "Each event type keeps the same visual mapping used inside the activity table.",
+    "empty_title": "No activities found",
+    "empty_description": "Try adjusting the filters or search query.",
+    "error_message": "We couldn't load the activity feed.",
+    "error_prefix": "Error: ",
+    "pagination": {
+      "page": "Page {page} of {lastPage}",
+      "total": "{total} total events"
+    },
+    "fallbacks": {
+      "project": "Unknown project",
+      "invoice": "Unknown invoice",
+      "amount": "Unknown amount"
+    }
+  }
+}

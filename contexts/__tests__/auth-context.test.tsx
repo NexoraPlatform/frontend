@@ -6,12 +6,14 @@ import { apiClient } from '@/lib/api';
 
 const mockSignIn = vi.fn();
 const mockSignOut = vi.fn();
+const mockGetSession = vi.fn();
 const mockUpdate = vi.fn();
 const mockUseSession = vi.fn();
 
 vi.mock('next-auth/react', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useSession: () => mockUseSession(),
+  getSession: () => mockGetSession(),
   signIn: (...args: any[]) => mockSignIn(...args),
   signOut: (...args: any[]) => mockSignOut(...args),
 }));
@@ -35,11 +37,13 @@ describe('contexts/auth-context', () => {
     mockedApi.updateUserLanguage.mockReset();
     mockSignIn.mockReset();
     mockSignOut.mockReset();
+    mockGetSession.mockReset();
     mockUpdate.mockReset();
     mockUseSession.mockReset();
 
     mockSignIn.mockResolvedValue({ ok: true, error: null, status: 200, url: null });
     mockSignOut.mockResolvedValue(undefined);
+    mockGetSession.mockResolvedValue(null);
     mockUpdate.mockResolvedValue(null);
     mockUseSession.mockReturnValue({
       data: null,
@@ -49,9 +53,6 @@ describe('contexts/auth-context', () => {
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
-      if (url.includes('/sanctum/csrf-cookie')) {
-        return new Response(null, { status: 204 });
-      }
       return jsonResponse({}, 404);
     });
     vi.stubGlobal('fetch', fetchMock as any);
@@ -63,6 +64,12 @@ describe('contexts/auth-context', () => {
   });
 
   it('hydrates user from SSR initialUser', async () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'loading',
+      update: mockUpdate,
+    });
+
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider
         initialUser={{
@@ -81,6 +88,41 @@ describe('contexts/auth-context', () => {
     await waitFor(() => expect(result.current.user).not.toBeNull());
     expect(result.current.user?.id).toBe('123');
     expect(result.current.user?.email).toBe('test@example.com');
+  });
+
+  it('clears stale SSR initialUser when session becomes unauthenticated', async () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'loading',
+      update: mockUpdate,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider
+        initialUser={{
+          id: 123,
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+        } as any}
+      >
+        {children}
+      </AuthProvider>
+    );
+
+    const { result, rerender } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.user?.id).toBe('123'));
+
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'unauthenticated',
+      update: mockUpdate,
+    });
+
+    rerender();
+
+    await waitFor(() => expect(result.current.user).toBeNull());
   });
 
   it('handles unauthenticated session state', async () => {
@@ -137,21 +179,6 @@ describe('contexts/auth-context', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
 
-      if (url.includes('/sanctum/csrf-cookie')) {
-        return new Response(null, { status: 204 });
-      }
-
-      if (url.includes('/api/auth/login')) {
-        return jsonResponse({
-          user: {
-            id: 7,
-            email: 'login@example.com',
-            firstName: 'Log',
-            lastName: 'In',
-          },
-        });
-      }
-
       if (url.includes('/api/auth/me')) {
         return jsonResponse({
           user: {
@@ -166,6 +193,14 @@ describe('contexts/auth-context', () => {
       return jsonResponse({}, 404);
     });
     vi.stubGlobal('fetch', fetchMock as any);
+    mockGetSession.mockResolvedValue({
+      user: {
+        id: 7,
+        email: 'login@example.com',
+        firstName: 'Log',
+        lastName: 'In',
+      },
+    });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider>{children}</AuthProvider>
@@ -182,33 +217,12 @@ describe('contexts/auth-context', () => {
       'credentials',
       expect.objectContaining({ email: 'login@example.com', password: 'secret', redirect: false })
     );
-    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/login'))).toBe(
-      true
-    );
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/auth/me'))).toBe(true);
   });
 
   it('falls back to login payload roles and permissions when profile refresh fails', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
-
-      if (url.includes('/sanctum/csrf-cookie')) {
-        return new Response(null, { status: 204 });
-      }
-
-      if (url.includes('/api/auth/login')) {
-        return jsonResponse({
-          access_token: 'token',
-          user: {
-            id: 9,
-            email: 'roles@example.com',
-            firstName: 'Role',
-            lastName: 'User',
-          },
-          roles: [{ slug: 'provider' }],
-          permissions: ['projects.create'],
-        });
-      }
 
       if (url.includes('/api/auth/me')) {
         return jsonResponse({ message: 'Unavailable' }, 500);
@@ -217,6 +231,16 @@ describe('contexts/auth-context', () => {
       return jsonResponse({}, 404);
     });
     vi.stubGlobal('fetch', fetchMock as any);
+    mockGetSession.mockResolvedValue({
+      user: {
+        id: 9,
+        email: 'roles@example.com',
+        firstName: 'Role',
+        lastName: 'User',
+        roles: [{ slug: 'provider' }],
+        permissions: ['projects.create'],
+      },
+    });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <AuthProvider>{children}</AuthProvider>
@@ -231,5 +255,40 @@ describe('contexts/auth-context', () => {
     await waitFor(() => expect(result.current.user?.id).toBe('9'));
     expect(result.current.user?.role_slugs).toEqual(['provider']);
     expect(result.current.user?.permissions).toEqual(['projects.create']);
+  });
+
+  it('surfaces backend login error details when credentials sign-in fails', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+
+      if (url.includes('/api/auth/login') && init?.method === 'POST') {
+        return jsonResponse(
+          { message: 'Laravel Passport password grant is not enabled on the backend.' },
+          401
+        );
+      }
+
+      return jsonResponse({}, 404);
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+    mockSignIn.mockResolvedValue({
+      ok: false,
+      error: 'CredentialsSignin',
+      code: 'passport_grant',
+      status: 200,
+      url: null,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthProvider>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await expect(
+      act(async () => {
+        await result.current.login('broken@example.com', 'secret');
+      })
+    ).rejects.toThrow('Laravel Passport password grant is not enabled on the backend.');
   });
 });

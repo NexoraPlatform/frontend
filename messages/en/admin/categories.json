@@ -3,8 +3,26 @@
     "manage_title": "Manage Categories",
     "manage_subtitle": "Administer service categories",
     "add_category": "Add Category",
+    "search_placeholder": "Search by category name, slug or description...",
     "list_title": "Category List",
     "total_summary": "{count} total categories ({parents} parent categories, {children} subcategories)",
+    "table": {
+      "category": "Category",
+      "parent": "Parent",
+      "order": "Order",
+      "status": "Status",
+      "icon": "Icon",
+      "actions": "Actions"
+    },
+    "summary": {
+      "cards": {
+        "total": "Total Categories",
+        "parents": "Parent Categories",
+        "children": "Subcategories",
+        "inactive": "Inactive"
+      }
+    },
+    "active": "Active",
     "inactive": "Inactive",
     "order_label": "Order",
     "subcategories_label": "subcategories",
@@ -38,6 +56,22 @@
     "create_category": "Create Category",
     "creating": "Creating...",
     "cancel": "Cancel",
+    "overview": {
+      "title": "Category Overview",
+      "description_create": "Review the category structure before creating a new catalog entry.",
+      "description_edit": "Review the hierarchy and metadata before saving the updated category.",
+      "parent": "Parent Category",
+      "icon": "Selected Icon",
+      "sort_order": "Sort Order",
+      "slug": "Slug",
+      "empty": "Not selected"
+    },
+    "actions_card": {
+      "create_title": "Create Category",
+      "create_description": "Save the category and make it available in the admin catalog structure.",
+      "edit_title": "Save Category",
+      "edit_description": "Update the category details and keep the service taxonomy in sync."
+    },
     "modify_title": "Edit Category",
     "modify_subtitle": "Edit a service category",
     "modify_button": "Update Category",

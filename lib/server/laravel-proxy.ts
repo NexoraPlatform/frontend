@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -7,13 +8,33 @@ export const API_BASE_URL =
 
 export const API_ROOT_URL = API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/, '');
 
+const resolveForwardedOrigin = (req?: Request | null) => {
+  if (!req) return null;
+
+  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const forwardedProto =
+    req.headers.get('x-forwarded-proto') ||
+    (() => {
+      try {
+        return new URL(req.url).protocol.replace(':', '');
+      } catch {
+        return null;
+      }
+    })();
+
+  if (!forwardedHost || !forwardedProto) {
+    return null;
+  }
+
+  return `${forwardedProto}://${forwardedHost}`;
+};
+
 const resolveAppOrigin = (req?: Request | null) =>
+  resolveForwardedOrigin(req) ||
   req?.headers.get('origin') ||
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.NEXTAUTH_URL ||
   'http://127.0.0.1:3000';
-
-const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 
 export class ProxySecurityError extends Error {
   status: number;
@@ -25,13 +46,10 @@ export class ProxySecurityError extends Error {
   }
 }
 
-const isStateChangingMethod = (method?: string | null) =>
-  !CSRF_SAFE_METHODS.has((method ?? 'GET').toUpperCase());
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 
-export type ProxyHeaderOptions = {
-  explicitXsrfToken?: string | null;
-  skipCsrfCheck?: boolean;
-};
+const isStateChangingMethod = (method?: string | null) =>
+  !SAFE_METHODS.has((method ?? 'GET').toUpperCase());
 
 const getAllowedOrigins = (req: Request) => {
   const allowed = new Set<string>();
@@ -52,6 +70,11 @@ const getAllowedOrigins = (req: Request) => {
     allowed.add(new URL(req.url).origin);
   } catch {}
 
+  const forwardedOrigin = resolveForwardedOrigin(req);
+  if (forwardedOrigin) {
+    allowed.add(forwardedOrigin);
+  }
+
   return allowed;
 };
 
@@ -62,9 +85,7 @@ export const isTrustedOrigin = (req: Request) => {
 };
 
 export const assertTrustedMutationRequest = (
-  req: Request,
-  explicitXsrfToken?: string | null,
-  options?: Pick<ProxyHeaderOptions, 'skipCsrfCheck'>
+  req: Request
 ) => {
   if (!isStateChangingMethod(req.method)) {
     return;
@@ -73,25 +94,13 @@ export const assertTrustedMutationRequest = (
   if (!isTrustedOrigin(req)) {
     throw new ProxySecurityError('Untrusted origin');
   }
-
-  if (options?.skipCsrfCheck) {
-    return;
-  }
-
-  const incomingXsrfHeader = req.headers.get('x-xsrf-token');
-  const suppliedXsrfToken = explicitXsrfToken?.trim() || incomingXsrfHeader?.trim();
-
-  if (!suppliedXsrfToken) {
-    throw new ProxySecurityError('Missing CSRF token');
-  }
 };
 
 export const buildProxyHeaders = (
   req: Request,
-  extra?: HeadersInit,
-  options?: ProxyHeaderOptions
+  extra?: HeadersInit
 ) => {
-  assertTrustedMutationRequest(req, options?.explicitXsrfToken, options);
+  assertTrustedMutationRequest(req);
 
   const headers = new Headers({
     Accept: 'application/json',
@@ -101,17 +110,6 @@ export const buildProxyHeaders = (
   if (extra) {
     const incoming = new Headers(extra);
     incoming.forEach((value, key) => headers.set(key, value));
-  }
-
-  const cookieHeader = req.headers.get('cookie') ?? '';
-  if (cookieHeader) {
-    headers.set('Cookie', cookieHeader);
-  }
-
-  const incomingXsrfHeader =
-    options?.explicitXsrfToken?.trim() || req.headers.get('x-xsrf-token')?.trim();
-  if (incomingXsrfHeader) {
-    headers.set('X-XSRF-TOKEN', incomingXsrfHeader);
   }
 
   const origin = resolveAppOrigin(req);
@@ -131,6 +129,35 @@ export const buildProxyHeaders = (
     }
   });
 
+  return headers;
+};
+
+export const buildAuthenticatedProxyHeaders = async (
+  req: Request,
+  extra?: HeadersInit
+) => {
+  const headers = buildProxyHeaders(req, extra);
+  const incomingAuthorization = req.headers.get('authorization');
+  if (incomingAuthorization) {
+    headers.set('Authorization', incomingAuthorization);
+    return headers;
+  }
+
+  const session = await auth();
+  const accessToken =
+    typeof session?.accessToken === 'string' && session.accessToken.length > 0
+      ? session.accessToken
+      : null;
+  const tokenType =
+    typeof session?.tokenType === 'string' && session.tokenType.length > 0
+      ? session.tokenType
+      : 'Bearer';
+
+  if (!accessToken) {
+    return headers;
+  }
+
+  headers.set('Authorization', `${tokenType} ${accessToken}`);
   return headers;
 };
 

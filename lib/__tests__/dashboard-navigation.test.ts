@@ -14,19 +14,19 @@ describe('lib/dashboard-navigation', () => {
   });
 
   it('returns explicit dashboard tab hrefs', () => {
-    expect(getDashboardTabHref('overview')).toBe('/dashboard?tab=overview');
-    expect(getDashboardTabHref('projects')).toBe('/dashboard?tab=projects');
-    expect(getDashboardTabHref('services')).toBe('/dashboard?tab=services');
-    expect(getDashboardTabHref('messages')).toBe('/dashboard?tab=messages');
-    expect(getDashboardTabHref('settings')).toBe('/dashboard?tab=settings');
-    expect(getDashboardTabHref('finance')).toBe('/dashboard?tab=finance');
+    expect(getDashboardTabHref('overview')).toBe('/dashboard');
+    expect(getDashboardTabHref('projects')).toBe('/dashboard/projects');
+    expect(getDashboardTabHref('services')).toBe('/dashboard/services');
+    expect(getDashboardTabHref('messages')).toBe('/dashboard/messages');
+    expect(getDashboardTabHref('settings')).toBe('/dashboard/settings');
+    expect(getDashboardTabHref('finance')).toBe('/dashboard/finance');
   });
 
   it('returns the shared role-dependent dashboard hrefs', () => {
-    expect(getPrimaryDashboardTabHref(true)).toBe('/dashboard?tab=finance');
-    expect(getPrimaryDashboardTabHref(false)).toBe('/dashboard?tab=projects');
-    expect(getSecondaryDashboardTabHref(true)).toBe('/dashboard?tab=projects');
-    expect(getSecondaryDashboardTabHref(false)).toBe('/dashboard?tab=services');
+    expect(getPrimaryDashboardTabHref(true)).toBe('/dashboard/finance');
+    expect(getPrimaryDashboardTabHref(false)).toBe('/dashboard/projects');
+    expect(getSecondaryDashboardTabHref(true)).toBe('/dashboard/projects');
+    expect(getSecondaryDashboardTabHref(false)).toBe('/dashboard/services');
   });
 
   it('returns the shared auxiliary navigation hrefs', () => {

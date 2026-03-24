@@ -1,4 +1,4 @@
-import React, {Dispatch, SetStateAction, useEffect, useMemo, useRef, useState} from "react";
+import React, {Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
@@ -22,11 +22,11 @@ import { CreditCard, Hash, Landmark, Mail, MapPin, Shield } from "lucide-react";
 import {useTranslations} from "next-intl";
 import {useAuth} from "@/contexts/auth-context";
 import { postcodeValidator, postcodeValidatorExistsForCountry } from 'postcode-validator';
-import { Country, State, City }  from 'country-state-city';
 import apiClient from "@/lib/api";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
-import Flag from "react-world-flags";
+import { resolveStateIsoFromOptions, sortByName, toFlagEmoji } from "@/lib/location-utils";
+import type { LocationCity, LocationCountry, LocationState } from "@/types/locations";
 
 interface CompanyInformationsSettingsProps {
     openCompanyInformationsDialog: boolean;
@@ -49,6 +49,48 @@ type CurrencyOption = {
     name: string;
     country_code?: string | null;
 };
+
+type LocationResponse<T> = {
+    data: T;
+};
+
+const FIELD_ID_ALIASES: Record<string, string> = {
+    identification_value: "id_number",
+    postcode: "company_zip",
+    address: "company_address",
+    state: "company_county",
+    city: "company_city",
+    bank_name: "company_bank_name",
+    bic_swift: "company_bank_bic",
+};
+
+const buildCityCacheKey = (countryIso: string, stateIso: string) => `${countryIso}:${stateIso}`;
+
+async function fetchLocationPayload<T>(params: URLSearchParams): Promise<T> {
+    const response = await fetch(`/api/locations?${params.toString()}`, {
+        method: "GET",
+        headers: {
+            "Accept": "application/json",
+        },
+        credentials: "same-origin",
+        cache: "force-cache",
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+        | LocationResponse<T>
+        | { message?: string }
+        | null;
+
+    if (!response.ok) {
+        throw new Error(
+            payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
+                ? payload.message
+                : "Nu am putut încărca locațiile."
+        );
+    }
+
+    return (payload as LocationResponse<T>).data;
+}
 
 function useDebouncedValue<T>(value: T, delay = 300) {
     const [debounced, setDebounced] = useState(value);
@@ -157,8 +199,6 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
 
     // State-uri pentru gestionarea dropdown-urilor (ISO Codes)
     const [selectedCountryIso, setSelectedCountryIso] = useState("");
-    const [selectedCountryName, setSelectedCountryName] = useState<any>("");
-    const [selectedCountryFlag, setSelectedCountryFlag] = useState<any>("");
     const [selectedStateIso, setSelectedStateIso] = useState("");
     const [postalCodeError, setPostalCodeError] = useState("");
     const companySearchRef = useRef<HTMLDivElement | null>(null);
@@ -180,31 +220,258 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
     const [currencyError, setCurrencyError] = useState("");
     const [selectedCurrency, setSelectedCurrency] = useState<CurrencyOption | null>(null);
     const currencyRequestId = useRef(0);
+    const [countryOptionsByIso, setCountryOptionsByIso] = useState<Record<string, LocationCountry>>({});
+    const [countriesLoaded, setCountriesLoaded] = useState(false);
+    const [countriesLoading, setCountriesLoading] = useState(false);
+    const [countryLoadError, setCountryLoadError] = useState("");
+    const [statesByCountry, setStatesByCountry] = useState<Record<string, LocationState[]>>({});
+    const [stateLoadError, setStateLoadError] = useState("");
+    const [citiesByRegion, setCitiesByRegion] = useState<Record<string, LocationCity[]>>({});
+    const [cityLoadError, setCityLoadError] = useState("");
+    const [statesLoadingCountry, setStatesLoadingCountry] = useState("");
+    const [citiesLoadingKey, setCitiesLoadingKey] = useState("");
+    const countriesRequestRef = useRef<Promise<LocationCountry[]> | null>(null);
+    const countryRequestRef = useRef<Map<string, Promise<LocationCountry | null>>>(new Map());
+    const statesRequestRef = useRef<Map<string, Promise<LocationState[]>>>(new Map());
+    const citiesRequestRef = useRef<Map<string, Promise<LocationCity[]>>>(new Map());
+    const countryChangeRequestId = useRef(0);
+    const stateChangeRequestId = useRef(0);
 
-    const resolveStateIso = (countryIso: string, stateValue?: string | null) => {
-        const raw = String(stateValue ?? "").trim();
-        if (!countryIso || !raw) return "";
-        const countryStates = State.getStatesOfCountry(countryIso);
-        const byIso = countryStates.find((item) => item.isoCode === raw);
-        if (byIso) return byIso.isoCode;
-        const byName = countryStates.find(
-            (item) => item.name.toLowerCase() === raw.toLowerCase()
-        );
-        return byName?.isoCode ?? raw;
-    };
+    const mergeCountries = useCallback((incomingCountries: LocationCountry[]) => {
+        if (incomingCountries.length === 0) return;
 
-    // Memoizare liste
-    const countries = useMemo(() => Country.getAllCountries(), []);
+        setCountryOptionsByIso((prev) => {
+            const next = { ...prev };
+            let changed = false;
 
-    const states = useMemo(() => {
-        if (!selectedCountryIso) return [];
-        return State.getStatesOfCountry(selectedCountryIso);
-    }, [selectedCountryIso]);
+            incomingCountries.forEach((country) => {
+                const existing = next[country.isoCode];
+                if (
+                    existing?.name === country.name &&
+                    existing?.flag === country.flag
+                ) {
+                    return;
+                }
+
+                next[country.isoCode] = country;
+                changed = true;
+            });
+
+            return changed ? next : prev;
+        });
+    }, []);
+
+    const countries = useMemo(
+        () => Object.values(countryOptionsByIso).sort(sortByName),
+        [countryOptionsByIso]
+    );
+
+    const selectedCountry = selectedCountryIso ? countryOptionsByIso[selectedCountryIso] ?? null : null;
+    const selectedCountryName = selectedCountry?.name ?? "";
+    const selectedCountryFlag = selectedCountry?.flag ?? "";
+    const states = selectedCountryIso ? statesByCountry[selectedCountryIso] ?? [] : [];
+    const cityCacheKey = selectedCountryIso && selectedStateIso
+        ? buildCityCacheKey(selectedCountryIso, selectedStateIso)
+        : "";
+    const cities = cityCacheKey ? citiesByRegion[cityCacheKey] ?? [] : [];
+    const showStatePicker = Boolean(selectedCountryIso) && (
+        Object.prototype.hasOwnProperty.call(statesByCountry, selectedCountryIso)
+            ? states.length > 0
+            : true
+    );
+    const showCityPicker = Boolean(selectedStateIso) && Boolean(cityCacheKey) && (
+        Object.prototype.hasOwnProperty.call(citiesByRegion, cityCacheKey)
+            ? cities.length > 0
+            : true
+    );
+
+    const ensureCountriesLoaded = useCallback(async () => {
+        if (countriesLoaded) {
+            return countries;
+        }
+
+        if (countriesRequestRef.current) {
+            return countriesRequestRef.current;
+        }
+
+        setCountriesLoading(true);
+        setCountryLoadError("");
+
+        const request = fetchLocationPayload<LocationCountry[]>(
+            new URLSearchParams({ scope: "countries" })
+        )
+            .then((loadedCountries) => {
+                mergeCountries(loadedCountries);
+                setCountriesLoaded(true);
+                return loadedCountries;
+            })
+            .catch((error: any) => {
+                setCountryLoadError(error?.message ?? "Nu am putut încărca lista de țări.");
+                throw error;
+            })
+            .finally(() => {
+                countriesRequestRef.current = null;
+                setCountriesLoading(false);
+            });
+
+        countriesRequestRef.current = request;
+        return request;
+    }, [countries, countriesLoaded, mergeCountries]);
+
+    const ensureCountryLoaded = useCallback(async (countryIso: string) => {
+        const normalizedCountryIso = countryIso.trim().toUpperCase();
+        if (!normalizedCountryIso) return null;
+
+        const existingCountry = countryOptionsByIso[normalizedCountryIso];
+        if (existingCountry) {
+            return existingCountry;
+        }
+
+        if (countriesLoaded) {
+            return null;
+        }
+
+        const pendingRequest = countryRequestRef.current.get(normalizedCountryIso);
+        if (pendingRequest) {
+            return pendingRequest;
+        }
+
+        const request = fetchLocationPayload<LocationCountry>(
+            new URLSearchParams({
+                scope: "country",
+                country: normalizedCountryIso,
+            })
+        )
+            .then((country) => {
+                mergeCountries([country]);
+                return country;
+            })
+            .catch((error: any) => {
+                setCountryLoadError(error?.message ?? "Nu am putut încărca țara selectată.");
+                return null;
+            })
+            .finally(() => {
+                countryRequestRef.current.delete(normalizedCountryIso);
+            });
+
+        countryRequestRef.current.set(normalizedCountryIso, request);
+        return request;
+    }, [countriesLoaded, countryOptionsByIso, mergeCountries]);
+
+    const ensureStatesLoaded = useCallback(async (countryIso: string) => {
+        const normalizedCountryIso = countryIso.trim().toUpperCase();
+        if (!normalizedCountryIso) return [];
+
+        const existingStates = statesByCountry[normalizedCountryIso];
+        if (existingStates) {
+            return existingStates;
+        }
+
+        const pendingRequest = statesRequestRef.current.get(normalizedCountryIso);
+        if (pendingRequest) {
+            return pendingRequest;
+        }
+
+        setStatesLoadingCountry(normalizedCountryIso);
+        if (selectedCountryIso === normalizedCountryIso) {
+            setStateLoadError("");
+        }
+
+        const request = fetchLocationPayload<LocationState[]>(
+            new URLSearchParams({
+                scope: "states",
+                country: normalizedCountryIso,
+            })
+        )
+            .then((loadedStates) => {
+                const normalizedStates = [...loadedStates].sort(sortByName);
+                setStatesByCountry((prev) => {
+                    if (prev[normalizedCountryIso]) return prev;
+                    return {
+                        ...prev,
+                        [normalizedCountryIso]: normalizedStates,
+                    };
+                });
+                return normalizedStates;
+            })
+            .catch((error: any) => {
+                if (selectedCountryIso === normalizedCountryIso) {
+                    setStateLoadError(error?.message ?? "Nu am putut încărca județele.");
+                }
+                throw error;
+            })
+            .finally(() => {
+                statesRequestRef.current.delete(normalizedCountryIso);
+                setStatesLoadingCountry((current) =>
+                    current === normalizedCountryIso ? "" : current
+                );
+            });
+
+        statesRequestRef.current.set(normalizedCountryIso, request);
+        return request;
+    }, [selectedCountryIso, statesByCountry]);
+
+    const ensureCitiesLoaded = useCallback(async (countryIso: string, stateIso: string) => {
+        const normalizedCountryIso = countryIso.trim().toUpperCase();
+        const normalizedStateIso = stateIso.trim().toUpperCase();
+
+        if (!normalizedCountryIso || !normalizedStateIso) return [];
+
+        const nextCacheKey = buildCityCacheKey(normalizedCountryIso, normalizedStateIso);
+        const existingCities = citiesByRegion[nextCacheKey];
+        if (existingCities) {
+            return existingCities;
+        }
+
+        const pendingRequest = citiesRequestRef.current.get(nextCacheKey);
+        if (pendingRequest) {
+            return pendingRequest;
+        }
+
+        setCitiesLoadingKey(nextCacheKey);
+        if (cityCacheKey === nextCacheKey) {
+            setCityLoadError("");
+        }
+
+        const request = fetchLocationPayload<LocationCity[]>(
+            new URLSearchParams({
+                scope: "cities",
+                country: normalizedCountryIso,
+                state: normalizedStateIso,
+            })
+        )
+            .then((loadedCities) => {
+                const normalizedCities = [...loadedCities].sort(sortByName);
+                setCitiesByRegion((prev) => {
+                    if (prev[nextCacheKey]) return prev;
+                    return {
+                        ...prev,
+                        [nextCacheKey]: normalizedCities,
+                    };
+                });
+                return normalizedCities;
+            })
+            .catch((error: any) => {
+                if (cityCacheKey === nextCacheKey) {
+                    setCityLoadError(error?.message ?? "Nu am putut încărca orașele.");
+                }
+                throw error;
+            })
+            .finally(() => {
+                citiesRequestRef.current.delete(nextCacheKey);
+                setCitiesLoadingKey((current) =>
+                    current === nextCacheKey ? "" : current
+                );
+            });
+
+        citiesRequestRef.current.set(nextCacheKey, request);
+        return request;
+    }, [citiesByRegion, cityCacheKey]);
 
     // Generăm lista de opțiuni pentru Tip Act (Tip + Nume Țară pentru claritate)
     const idTypeOptions = useMemo(() => {
         return Object.entries(COUNTRY_ID_TYPES).map(([iso, type]) => {
-            const country = Country.getCountryByCode(iso);
+            const country = countryOptionsByIso[iso];
             return {
                 iso,
                 type,
@@ -212,7 +479,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 label: `${type} (${country?.name || iso})`
             };
         }).sort((a, b) => a.countryName.localeCompare(b.countryName));
-    }, []);
+    }, [countryOptionsByIso]);
 
     const debouncedCompanyQuery = useDebouncedValue(formDataCompany.name, 300);
     const debouncedCurrencyQuery = useDebouncedValue(currencySearch, 300);
@@ -224,7 +491,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         if (user) {
             const company = user.company ?? null;
             const companyCountryIso = company?.company_country ?? '';
-            const normalizedCounty = resolveStateIso(companyCountryIso, company?.company_county);
+            const initialCountyValue = company?.company_county ?? '';
 
             setFormDataCompany({
                 company_id: company?.id,
@@ -233,7 +500,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 email: user.email,
                 company_address: company?.company_address ?? '',
                 company_city: company?.company_city ?? '',
-                company_county: normalizedCounty,
+                company_county: initialCountyValue,
                 company_zip: company?.company_zip ?? '',
                 company_country: companyCountryIso,
                 company_bank_iban: company?.company_bank_iban ?? '',
@@ -243,17 +510,6 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                 id_number: company?.id_number ?? '',
                 bank_currency: company?.bank_currency ?? '',
             });
-
-            if (companyCountryIso) {
-                const countryData = Country.getCountryByCode(companyCountryIso);
-                setSelectedCountryIso(companyCountryIso);
-                setSelectedCountryName(countryData?.name);
-                setSelectedCountryFlag(countryData?.flag);
-            }
-
-            if (normalizedCounty) {
-                setSelectedStateIso(normalizedCounty);
-            }
 
             if (company?.bank_currency) {
                 const currencyCode = company.bank_currency as string;
@@ -265,8 +521,59 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
             } else {
                 setSelectedCurrency(null);
             }
+            setSelectedCountryIso(companyCountryIso);
+            setSelectedStateIso(initialCountyValue);
+
+            if (!companyCountryIso) {
+                return;
+            }
+
+            let cancelled = false;
+
+            const hydrateLocations = async () => {
+                await ensureCountryLoaded(companyCountryIso);
+
+                const availableStates = await ensureStatesLoaded(companyCountryIso).catch(() => []);
+                if (cancelled) return;
+
+                const normalizedCounty = resolveStateIsoFromOptions(
+                    availableStates,
+                    initialCountyValue
+                );
+
+                setSelectedStateIso(normalizedCounty);
+                setFormDataCompany((prev: any) => ({
+                    ...prev,
+                    company_county: normalizedCounty,
+                }));
+
+                if (normalizedCounty) {
+                    void ensureCitiesLoaded(companyCountryIso, normalizedCounty).catch(() => []);
+                }
+            };
+
+            void hydrateLocations();
+
+            return () => {
+                cancelled = true;
+            };
         }
-    }, [user, userLoading]);
+    }, [ensureCitiesLoaded, ensureCountryLoaded, ensureStatesLoaded, user, userLoading]);
+
+    useEffect(() => {
+        if (!openCountry) return;
+        void ensureCountriesLoaded().catch(() => {});
+    }, [ensureCountriesLoaded, openCountry]);
+
+    useEffect(() => {
+        if (!openState || !selectedCountryIso) return;
+        void ensureStatesLoaded(selectedCountryIso).catch(() => {});
+    }, [ensureStatesLoaded, openState, selectedCountryIso]);
+
+    useEffect(() => {
+        if (!openCity || !selectedCountryIso || !selectedStateIso) return;
+        void ensureCitiesLoaded(selectedCountryIso, selectedStateIso).catch(() => {});
+    }, [ensureCitiesLoaded, openCity, selectedCountryIso, selectedStateIso]);
 
     useEffect(() => {
         if (!companySearchTouched) return;
@@ -333,11 +640,6 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
-    const cities = useMemo(() => {
-        if (!selectedCountryIso || !selectedStateIso) return [];
-        return City.getCitiesOfState(selectedCountryIso, selectedStateIso);
-    }, [selectedCountryIso, selectedStateIso]);
-
     useEffect(() => {
         if (!openCurrency) return;
         const query = debouncedCurrencyQuery.trim();
@@ -397,7 +699,8 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
-        setFormDataCompany((prev: any) => ({ ...prev, [id]: value }));
+        const targetField = FIELD_ID_ALIASES[id] || id;
+        setFormDataCompany((prev: any) => ({ ...prev, [targetField]: value }));
     };
 
     const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -436,7 +739,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
 
     const handlePostcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const code = e.target.value;
-        setFormDataCompany((prev: any) => ({ ...prev, postcode: code }));
+        setFormDataCompany((prev: any) => ({ ...prev, company_zip: code }));
         if (code && !validateZip(code, selectedCountryIso)) {
             setPostalCodeError(t('dashboard.settings.profile.errors.invalid_zip'));
         } else {
@@ -444,19 +747,23 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         }
     };
 
-    const applyCompanySearchResult = (company: CompanySearchResult) => {
+    const applyCompanySearchResult = async (company: CompanySearchResult) => {
         const nextCountryIso = company.company_country || formDataCompany.company_country;
         const nextPostcode = company.company_zip || formDataCompany.company_zip;
+        let nextCountyIso = formDataCompany.company_county;
 
         if (company.company_country) {
-            const countryData = Country.getCountryByCode(company.company_country);
             setSelectedCountryIso(company.company_country);
-            setSelectedCountryName(countryData?.name);
-            setSelectedCountryFlag(countryData?.flag);
+            await ensureCountryLoaded(company.company_country);
 
-            const availableStates = State.getStatesOfCountry(company.company_country);
+            const availableStates = await ensureStatesLoaded(company.company_country).catch(() => []);
             const hasCurrentState = availableStates.some((state) => state.isoCode === formDataCompany.company_county);
-            setSelectedStateIso(hasCurrentState ? formDataCompany.company_county : "");
+            nextCountyIso = hasCurrentState ? formDataCompany.company_county : "";
+            setSelectedStateIso(nextCountyIso);
+
+            if (nextCountyIso) {
+                void ensureCitiesLoaded(company.company_country, nextCountyIso).catch(() => {});
+            }
         }
 
         setFormDataCompany((prev: any) => ({
@@ -465,6 +772,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
             id_number: company.tax_id || company.trade_registry_number || prev.id_number,
             company_address: company.company_address || prev.company_address,
             company_city: company.company_city || prev.company_city,
+            company_county: company.company_country ? nextCountyIso : prev.company_county,
             company_zip: company.company_zip || prev.company_zip,
             company_country: company.company_country || prev.company_country,
             id_type: company.company_country
@@ -479,36 +787,21 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         }
     };
 
-    const handleCountryChange = (isoCode: string) => {
-        const countryData = Country.getCountryByCode(isoCode);
-        const availableStates = State.getStatesOfCountry(isoCode);
-
-        let firstStateIso = "";
-        let firstStateName = "";
-        let firstCityName = "";
-
-        if (availableStates.length > 0) {
-            firstStateIso = availableStates[0].isoCode;
-            firstStateName = availableStates[0].name;
-            const availableCities = City.getCitiesOfState(isoCode, firstStateIso);
-            if (availableCities.length > 0) {
-                firstCityName = availableCities[0].name;
-            }
-        }
-
+    const handleCountryChange = async (isoCode: string) => {
+        const requestId = ++countryChangeRequestId.current;
         // Sugerăm automat tipul de act
         const suggestedIdType = COUNTRY_ID_TYPES[isoCode] || "";
 
         setSelectedCountryIso(isoCode);
-        setSelectedCountryFlag(countryData?.flag);
-        setSelectedCountryName(countryData?.name);
-        setSelectedStateIso(firstStateIso);
+        setSelectedStateIso("");
+        setOpenState(false);
+        setOpenCity(false);
 
         setFormDataCompany((prev: any) => ({
             ...prev,
             company_country: isoCode,
-            company_county: firstStateIso,
-            company_city: firstCityName,
+            company_county: "",
+            company_city: "",
             company_zip: prev.company_zip,
             id_type: suggestedIdType // Auto-select
         }));
@@ -518,20 +811,52 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
         } else {
             setPostalCodeError("");
         }
+
+        await ensureCountryLoaded(isoCode);
+
+        const availableStates = await ensureStatesLoaded(isoCode).catch(() => []);
+        if (countryChangeRequestId.current !== requestId) {
+            return;
+        }
+
+        let firstStateIso = "";
+        let firstCityName = "";
+
+        if (availableStates.length > 0) {
+            firstStateIso = availableStates[0].isoCode;
+            const availableCities = await ensureCitiesLoaded(isoCode, firstStateIso).catch(() => []);
+            if (countryChangeRequestId.current !== requestId) {
+                return;
+            }
+            if (availableCities.length > 0) {
+                firstCityName = availableCities[0].name;
+            }
+        }
+
+        setSelectedStateIso(firstStateIso);
+        setFormDataCompany((prev: any) => ({
+            ...prev,
+            company_country: isoCode,
+            company_county: firstStateIso,
+            company_city: firstCityName,
+            company_zip: prev.company_zip,
+            id_type: suggestedIdType,
+        }));
     };
 
-    const handleStateChange = (isoCode: string) => {
-        const stateData = State.getStateByCodeAndCountry(isoCode, selectedCountryIso);
-        const availableCities = City.getCitiesOfState(selectedCountryIso, isoCode);
-        let firstCityName = "";
-        if (availableCities.length > 0) {
-            firstCityName = availableCities[0].name;
+    const handleStateChange = async (isoCode: string) => {
+        const requestId = ++stateChangeRequestId.current;
+        const availableCities = await ensureCitiesLoaded(selectedCountryIso, isoCode).catch(() => []);
+        if (stateChangeRequestId.current !== requestId) {
+            return;
         }
+
+        const firstCityName = availableCities[0]?.name ?? "";
 
         setSelectedStateIso(isoCode);
         setFormDataCompany((prev: any) => ({
             ...prev,
-            company_county: stateData?.isoCode || "",
+            company_county: isoCode,
             company_city: firstCityName
         }));
     };
@@ -630,7 +955,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                                 key={company.id}
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    applyCompanySearchResult(company);
+                                                                    void applyCompanySearchResult(company);
                                                                     setCompanySearchOpen(false);
                                                                     setCompanySearchResults([]);
                                                                 }}
@@ -785,8 +1110,14 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                             >
                                                 {selectedCountryName
                                                     ? <span className="pl-5">{selectedCountryName}</span>
-                                                    : <span className="pl-5 text-muted-foreground ">{t('dashboard.settings.profile.placeholders.country')}</span>}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    : selectedCountryIso
+                                                        ? <span className="pl-5">{selectedCountryIso}</span>
+                                                        : <span className="pl-5 text-muted-foreground ">{t('dashboard.settings.profile.placeholders.country')}</span>}
+                                                {countriesLoading ? (
+                                                    <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
+                                                ) : (
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                )}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[350px] p-0" align="start">
@@ -794,29 +1125,44 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                 <CommandInput placeholder="Search country..." />
                                                 {/* 👇 FIX AICI: Adăugat max-h și overflow */}
                                                 <CommandList className="max-h-[300px] overflow-y-auto">
-                                                    <CommandEmpty>No country found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {countries.map((country) => (
-                                                            <CommandItem
-                                                                key={country.isoCode}
-                                                                value={country.name}
-                                                                keywords={[country.name, country.isoCode]}
-                                                                onSelect={() => {
-                                                                    handleCountryChange(country.isoCode);
-                                                                    setOpenCountry(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        selectedCountryIso === country.isoCode ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                <span className="pl-10 mr-2 text-lg">{country.flag}</span>
-                                                                {country.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
+                                                    {countriesLoading && countries.length === 0 && (
+                                                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            Se încarcă țările...
+                                                        </div>
+                                                    )}
+                                                    {!countriesLoading && countryLoadError && countries.length === 0 && (
+                                                        <div className="px-3 py-2 text-sm text-red-500">
+                                                            {countryLoadError}
+                                                        </div>
+                                                    )}
+                                                    {countries.length > 0 && (
+                                                        <>
+                                                            <CommandEmpty>No country found.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {countries.map((country) => (
+                                                                    <CommandItem
+                                                                        key={country.isoCode}
+                                                                        value={country.name}
+                                                                        keywords={[country.name, country.isoCode]}
+                                                                        onSelect={() => {
+                                                                            void handleCountryChange(country.isoCode);
+                                                                            setOpenCountry(false);
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 h-4 w-4",
+                                                                                selectedCountryIso === country.isoCode ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        <span className="pl-10 mr-2 text-lg">{country.flag}</span>
+                                                                        {country.name}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </>
+                                                    )}
                                                 </CommandList>
                                             </Command>
                                         </PopoverContent>
@@ -828,7 +1174,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                             <div className="space-y-2">
                                 <Label htmlFor="state">{t('dashboard.settings.profile.state')}</Label>
                                 <div className="relative">
-                                    {states.length > 0 ? (
+                                    {showStatePicker ? (
                                         <Popover open={openState} onOpenChange={setOpenState}>
                                             <PopoverTrigger asChild>
                                                 <Button
@@ -838,11 +1184,17 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                     disabled={!selectedCountryIso}
                                                     className="w-full justify-between font-normal border-slate-200 dark:border-slate-800 hover:bg-background hover:text-[#0F172A] dark:hover:text-white"
                                                 >
-                                                    {formDataCompany.company_county
+                                                    {statesLoadingCountry === selectedCountryIso
+                                                        ? <span className="text-muted-foreground">{t('dashboard.settings.profile.placeholders.state')}</span>
+                                                        : formDataCompany.company_county
                                                         ? states.find((s) => s.isoCode === formDataCompany.company_county)?.name || formDataCompany.company_county
                                                         : <span className="text-muted-foreground">{t('dashboard.settings.profile.placeholders.state')}</span>}
 
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    {statesLoadingCountry === selectedCountryIso ? (
+                                                        <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
+                                                    ) : (
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    )}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-[350px] p-0" align="start">
@@ -850,28 +1202,43 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                     <CommandInput placeholder="Search state..." />
                                                     {/* 👇 FIX AICI: Adăugat max-h și overflow */}
                                                     <CommandList className="max-h-[300px] overflow-y-auto">
-                                                        <CommandEmpty>No state found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {states.map((state) => (
-                                                                <CommandItem
-                                                                    key={state.isoCode}
-                                                                    value={state.isoCode}
-                                                                    keywords={[state.name]}
-                                                                    onSelect={() => {
-                                                                        handleStateChange(state.isoCode);
-                                                                        setOpenState(false);
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "mr-2 h-4 w-4",
-                                                                            formDataCompany.company_county === state.isoCode ? "opacity-100" : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                    {state.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
+                                                        {statesLoadingCountry === selectedCountryIso && states.length === 0 && (
+                                                            <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                Se încarcă județele...
+                                                            </div>
+                                                        )}
+                                                        {states.length === 0 && stateLoadError && (
+                                                            <div className="px-3 py-2 text-sm text-red-500">
+                                                                {stateLoadError}
+                                                            </div>
+                                                        )}
+                                                        {states.length > 0 && (
+                                                            <>
+                                                                <CommandEmpty>No state found.</CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {states.map((state) => (
+                                                                        <CommandItem
+                                                                            key={state.isoCode}
+                                                                            value={state.isoCode}
+                                                                            keywords={[state.name]}
+                                                                            onSelect={() => {
+                                                                                void handleStateChange(state.isoCode);
+                                                                                setOpenState(false);
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    formDataCompany.company_county === state.isoCode ? "opacity-100" : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            {state.name}
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </>
+                                                        )}
                                                     </CommandList>
                                                 </Command>
                                             </PopoverContent>
@@ -892,7 +1259,7 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                             <div className="space-y-2">
                                 <Label htmlFor="city">{t('dashboard.settings.profile.city')}</Label>
                                 <div className="relative">
-                                    {cities.length > 0 ? (
+                                    {showCityPicker ? (
                                         <Popover open={openCity} onOpenChange={setOpenCity} modal={true}>
                                             <PopoverTrigger asChild>
                                                 <Button
@@ -902,10 +1269,16 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                     disabled={!selectedStateIso}
                                                     className="w-full justify-between font-normal border-slate-200 dark:border-slate-800 hover:bg-background hover:text-[#0F172A] dark:hover:text-white"
                                                 >
-                                                    {formDataCompany.company_city
+                                                    {citiesLoadingKey === cityCacheKey
+                                                        ? <span className="text-muted-foreground">{t('dashboard.settings.profile.placeholders.city')}</span>
+                                                        : formDataCompany.company_city
                                                         ? formDataCompany.company_city
                                                         : <span className="text-muted-foreground">{t('dashboard.settings.profile.placeholders.city')}</span>}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    {citiesLoadingKey === cityCacheKey ? (
+                                                        <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
+                                                    ) : (
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    )}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-[350px] p-0" align="start">
@@ -913,27 +1286,42 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                     <CommandInput placeholder="Search city..." />
                                                     {/* 👇 FIX AICI: Adăugat max-h și overflow */}
                                                     <CommandList className="max-h-[300px] overflow-y-auto">
-                                                        <CommandEmpty>No city found.</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {cities.map((city) => (
-                                                                <CommandItem
-                                                                    key={city.name}
-                                                                    value={city.name}
-                                                                    onSelect={() => {
-                                                                        handleCityChange(city.name);
-                                                                        setOpenCity(false);
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "mr-2 h-4 w-4",
-                                                                            formDataCompany.company_city === city.name ? "opacity-100" : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                    {city.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
+                                                        {citiesLoadingKey === cityCacheKey && cities.length === 0 && (
+                                                            <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                Se încarcă orașele...
+                                                            </div>
+                                                        )}
+                                                        {cities.length === 0 && cityLoadError && (
+                                                            <div className="px-3 py-2 text-sm text-red-500">
+                                                                {cityLoadError}
+                                                            </div>
+                                                        )}
+                                                        {cities.length > 0 && (
+                                                            <>
+                                                                <CommandEmpty>No city found.</CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {cities.map((city) => (
+                                                                        <CommandItem
+                                                                            key={city.name}
+                                                                            value={city.name}
+                                                                            onSelect={() => {
+                                                                                handleCityChange(city.name);
+                                                                                setOpenCity(false);
+                                                                            }}
+                                                                        >
+                                                                            <Check
+                                                                                className={cn(
+                                                                                    "mr-2 h-4 w-4",
+                                                                                    formDataCompany.company_city === city.name ? "opacity-100" : "opacity-0"
+                                                                                )}
+                                                                            />
+                                                                            {city.name}
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </>
+                                                        )}
                                                     </CommandList>
                                                 </Command>
                                             </PopoverContent>
@@ -1002,12 +1390,9 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                         >
                                             {selectedCurrency ? (
                                                 <span className="flex items-center gap-2">
-                                                    <Flag
-                                                        code={selectedCurrency.country_code?.toUpperCase() ?? 'ro'}
-                                                        fallback={<Globe className="text-muted-foreground" />}
-                                                        width="20"
-                                                        height="15"
-                                                    />
+                                                    <span className="text-lg leading-none">
+                                                        {toFlagEmoji(selectedCurrency.country_code) || "🌐"}
+                                                    </span>
                                                     <span className="truncate">{selectedCurrency.name}</span>
                                                     <span className="text-xs text-muted-foreground">{selectedCurrency.code}</span>
                                                 </span>
@@ -1054,13 +1439,9 @@ export default function CompanyInformationsSettingsDialog({ openCompanyInformati
                                                                     setOpenCurrency(false);
                                                                 }}
                                                             >
-                                                                <Flag
-                                                                    code={currency.country_code?.toUpperCase() ?? 'ro'}
-                                                                    fallback={<Globe className="h-1 w-1 text-muted-foreground" />}
-                                                                    width="20"
-                                                                    height="15"
-                                                                    className="mr-2"
-                                                                />
+                                                                <span className="mr-2 text-lg leading-none">
+                                                                    {toFlagEmoji(currency.country_code) || "🌐"}
+                                                                </span>
                                                                 <span className="flex-1 truncate">{currency.name}</span>
                                                                 <span className="text-xs text-muted-foreground ml-2">{currency.code}</span>
                                                                 <Check

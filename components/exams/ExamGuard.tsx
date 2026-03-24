@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
-import { ensureCsrfCookie, getXsrfToken } from '@/lib/csrf';
 
 type ExamGuardProps = {
     testId: string | number;
@@ -76,12 +75,6 @@ export default function ExamGuard({
         currentStrikesRef.current = initialStrikes;
     }, [initialStrikes]);
 
-    useEffect(() => {
-        void ensureCsrfCookie().catch((error) => {
-            console.error(t('errors.communication'), error);
-        });
-    }, [t]);
-
     const clearFocusLossTimer = useCallback(() => {
         if (focusLossTimerRef.current !== null) {
             window.clearTimeout(focusLossTimerRef.current);
@@ -126,7 +119,6 @@ export default function ExamGuard({
                         test_id: testId,
                         type,
                         reason,
-                        xsrf_token: getXsrfToken(),
                     }),
                 ],
                 { type: 'application/json' }
@@ -143,34 +135,20 @@ export default function ExamGuard({
             reason: ExamViolationReason,
             options?: { keepalive?: boolean }
         ) => {
-            const attempt = async () => {
-                const xsrfToken = getXsrfToken();
-
-                return fetch('/api/exams/violation', {
-                    method: 'POST',
-                    credentials: 'include',
-                    keepalive: options?.keepalive ?? true,
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-                    },
-                    body: JSON.stringify({
-                        test_id: testId,
-                        type,
-                        reason,
-                        xsrf_token: xsrfToken,
-                    }),
-                });
-            };
-
-            await ensureCsrfCookie().catch(() => undefined);
-
-            let response = await attempt();
-            if (response.status === 403 || response.status === 419) {
-                await ensureCsrfCookie().catch(() => undefined);
-                response = await attempt();
-            }
+            const response = await fetch('/api/exams/violation', {
+                method: 'POST',
+                credentials: 'include',
+                keepalive: options?.keepalive ?? true,
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    test_id: testId,
+                    type,
+                    reason,
+                }),
+            });
 
             const payload = await response.json().catch(() => null);
             if (response.status === 409 && payload?.action === 'failed') {

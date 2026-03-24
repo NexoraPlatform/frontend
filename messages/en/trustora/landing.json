@@ -1,0 +1,272 @@
+{
+  "landing": {
+    "navigation": {
+      "cta": "Get Started",
+      "mobile_toggle": "Toggle navigation menu"
+    },
+    "hero": {
+      "badge": "Next-gen fintech platform",
+      "title": "Financial trust,",
+      "title_highlight": "automated.",
+      "description": "Secure your transactions and automate compliance with Trustora's next-gen fintech engine.",
+      "primary_cta": "Get Started",
+      "secondary_cta": "Watch Demo",
+      "metrics": {
+        "uptime_label": "Uptime SLA",
+        "secured_label": "Secured",
+        "transactions_label": "Transactions"
+      },
+      "panel": {
+        "browser_url": "trustora.com/dashboard",
+        "stats": {
+          "first": {
+            "label": "Volume",
+            "value": "$2.4M",
+            "change": "+12.5%"
+          },
+          "second": {
+            "label": "Compliance",
+            "value": "99.8%",
+            "change": "+0.3%"
+          },
+          "third": {
+            "label": "Active",
+            "value": "1,247",
+            "change": "+89"
+          }
+        },
+        "chart": {
+          "title": "Transaction Volume",
+          "live": "Live"
+        },
+        "checks": {
+          "first": {
+            "name": "KYC Verification",
+            "status": "Passed"
+          },
+          "second": {
+            "name": "AML Screening",
+            "status": "Clear"
+          },
+          "third": {
+            "name": "Risk Assessment",
+            "status": "Low"
+          }
+        }
+      }
+    },
+    "social_proof": {
+      "title": "Trusted by leading financial institutions"
+    },
+    "problem_solution": {
+      "problem_badge": "The Problem",
+      "problem_title": "Traditional fintech is",
+      "problem_title_highlight": "broken",
+      "solution_badge": "Our Solution",
+      "solution_title": "Meet the",
+      "solution_title_highlight": "future",
+      "solution_title_end": "of fintech",
+      "problems": {
+        "first": {
+          "title": "Manual Compliance",
+          "description": "Hours wasted on regulatory paperwork and compliance checks."
+        },
+        "second": {
+          "title": "Security Risks",
+          "description": "Vulnerable transaction systems exposing financial data."
+        },
+        "third": {
+          "title": "Slow Processing",
+          "description": "Delayed transactions affecting business operations."
+        }
+      },
+      "solutions": {
+        "first": {
+          "title": "Automated Compliance",
+          "description": "AI-powered compliance automation reducing manual work by 95%."
+        },
+        "second": {
+          "title": "Bank-Grade Security",
+          "description": "End-to-end encryption with multi-layer security protocols."
+        },
+        "third": {
+          "title": "Instant Settlement",
+          "description": "Real-time transaction processing with sub-second confirmations."
+        }
+      }
+    },
+    "features": {
+      "badge": "Features",
+      "title": "Everything you need to",
+      "title_highlight": "scale",
+      "subtitle": "Enterprise-grade fintech infrastructure built for modern businesses",
+      "items": {
+        "first": {
+          "title": "Military-Grade Security",
+          "description": "Advanced encryption and multi-factor authentication protect every transaction with enterprise-level security."
+        },
+        "second": {
+          "title": "Lightning Fast",
+          "description": "Process thousands of transactions per second with our optimized infrastructure and smart routing."
+        },
+        "third": {
+          "title": "Real-Time Analytics",
+          "description": "Comprehensive dashboards and insights help you make data-driven decisions instantly."
+        },
+        "fourth": {
+          "title": "Auto Compliance",
+          "description": "Stay compliant automatically with built-in regulatory frameworks and audit trails."
+        },
+        "fifth": {
+          "title": "Global Coverage",
+          "description": "Support for 120+ currencies and payment methods across 180+ countries worldwide."
+        },
+        "sixth": {
+          "title": "Smart Contracts",
+          "description": "Automated, trustless agreements executed on blockchain with complete transparency."
+        },
+        "seventh": {
+          "title": "AI-Powered Insights",
+          "description": "Machine learning algorithms detect anomalies and optimize your financial operations."
+        },
+        "eighth": {
+          "title": "Performance Monitoring",
+          "description": "24/7 system monitoring with 99.9% uptime SLA and instant issue resolution."
+        }
+      }
+    },
+    "how_it_works": {
+      "badge": "How it Works",
+      "title": "Get started in",
+      "title_highlight": "3 simple steps",
+      "subtitle": "From signup to first transaction in under 10 minutes",
+      "steps": {
+        "first": {
+          "title": "Sign Up",
+          "description": "Create your account in minutes. No credit card required for trial."
+        },
+        "second": {
+          "title": "Configure",
+          "description": "Set up your preferences, integrate APIs, and customize workflows."
+        },
+        "third": {
+          "title": "Scale",
+          "description": "Go live and process transactions at scale with zero downtime."
+        }
+      },
+      "footer": "Join 500+ companies already using Trustora"
+    },
+    "security": {
+      "badge": "Trust & Security",
+      "title": "Your security is",
+      "title_highlight": "our priority",
+      "subtitle": "Enterprise-grade security infrastructure trusted by financial institutions",
+      "items": {
+        "first": {
+          "title": "SOC 2 Type II Certified",
+          "description": "Independently audited for security and compliance"
+        },
+        "second": {
+          "title": "End-to-End Encryption",
+          "description": "AES-256 encryption for all data in transit and at rest"
+        },
+        "third": {
+          "title": "Real-Time Monitoring",
+          "description": "24/7 threat detection and instant response systems"
+        },
+        "fourth": {
+          "title": "Full Audit Trails",
+          "description": "Complete transaction history for compliance and reporting"
+        }
+      },
+      "panel": {
+        "title": "Bank-Grade Protection",
+        "description": "Multi-layered security architecture protecting over $2B in transactions",
+        "checklist": {
+          "first": "Zero-knowledge architecture",
+          "second": "Hardware security modules",
+          "third": "Biometric authentication",
+          "fourth": "Automated threat response",
+          "fifth": "Daily security audits",
+          "sixth": "Incident response team"
+        }
+      },
+      "compliance_title": "Certified & Compliant",
+      "compliance_description": "Meeting the highest industry standards for security and compliance",
+      "documentation_cta": "View Security Documentation",
+      "certifications": {
+        "first": "PCI DSS Level 1",
+        "second": "ISO 27001",
+        "third": "GDPR Compliant",
+        "fourth": "SOC 2 Type II",
+        "fifth": "FINRA Approved",
+        "sixth": "Bank-Grade Security"
+      }
+    },
+    "final_cta": {
+      "badge": "Start Your Journey",
+      "title": "Ready to transform your",
+      "title_highlight": "fintech operations",
+      "subtitle": "Join hundreds of companies scaling their financial infrastructure with Trustora. Start free, no credit card required.",
+      "primary_cta": "Start Free Trial",
+      "secondary_cta": "Schedule Demo",
+      "benefits": {
+        "first": "Free 14-day trial",
+        "second": "No credit card required",
+        "third": "Cancel anytime"
+      }
+    },
+    "footer": {
+      "description": "Next-generation fintech infrastructure for modern businesses. Secure, fast, and compliant.",
+      "copyright": "© 2026 Trustora. All rights reserved.",
+      "bottom": {
+        "first": "Built with precision",
+        "second": "Powered by innovation"
+      },
+      "social": {
+        "twitter": "Twitter",
+        "github": "GitHub",
+        "linkedin": "LinkedIn",
+        "email": "Email"
+      },
+      "sections": {
+        "product": {
+          "title": "Product",
+          "links": {
+            "features": "Features",
+            "security": "Security",
+            "pricing": "Pricing",
+            "api_docs": "API Docs"
+          }
+        },
+        "company": {
+          "title": "Company",
+          "links": {
+            "about": "About",
+            "careers": "Careers",
+            "blog": "Blog",
+            "press": "Press"
+          }
+        },
+        "resources": {
+          "title": "Resources",
+          "links": {
+            "documentation": "Documentation",
+            "help_center": "Help Center",
+            "community": "Community",
+            "contact": "Contact"
+          }
+        },
+        "legal": {
+          "title": "Legal",
+          "links": {
+            "privacy": "Privacy",
+            "terms": "Terms",
+            "security": "Security",
+            "compliance": "Compliance"
+          }
+        }
+      }
+    }
+  }
+}

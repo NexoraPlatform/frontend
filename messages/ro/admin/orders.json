@@ -4,6 +4,14 @@
     "manage_subtitle": "Monitorizează și administrează comenzile",
     "search_placeholder": "Caută comenzi după număr, serviciu sau client...",
     "status_filter_placeholder": "Filtru status",
+    "summary": {
+      "cards": {
+        "total": "Total proiecte",
+        "active": "Proiecte active",
+        "completed": "Finalizate",
+        "value": "Valoare portofoliu"
+      }
+    },
     "statuses": {
       "all": "Toate comenzile",
       "pending": "În așteptare",
@@ -22,9 +30,21 @@
     },
     "list_title": "Lista Comenzi",
     "list_description": "{count} comenzi găsite",
+    "table": {
+      "project": "Proiect",
+      "client": "Client",
+      "provider": "Prestator",
+      "value": "Valoare",
+      "timeline": "Timeline",
+      "status": "Status",
+      "actions": "Acțiuni",
+      "created_at": "Creată {date}",
+      "delivery_due": "Termen {date}"
+    },
     "client_label": "Client",
     "provider_label": "Prestator",
     "due_prefix": "Termen:",
+    "view_details": "Vezi detalii",
     "no_orders_title": "Nu s-au găsit comenzi",
     "no_orders_description": "Încearcă să modifici filtrele sau termenii de căutare",
     "order_label": "Comandă",

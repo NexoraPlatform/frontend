@@ -9,16 +9,16 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from 
 import { Menu, Moon, Sun, LogOut, Mail, Phone, MapPin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/auth-context';
 import { SearchBar } from '@/components/search-bar';
 import Image from 'next/image';
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { CurrencySwitcher } from '@/components/CurrencySwitcher';
-import { Can } from "@/components/Can";
 import { getRoleSlugs, isSuperUser } from '@/lib/access';
 import { useAppTheme } from '@/hooks/use-app-theme';
+import { useOptionalAuth } from '@/contexts/auth-context';
+import { usePublicAuth } from '@/hooks/use-public-auth';
 
 const NotificationBell = dynamic(
   () => import('@/components/notification-bell').then((mod) => mod.NotificationBell),
@@ -66,7 +66,12 @@ export function Header() {
     process.env.BASIC_AUTH_ENABLED === 'true' ||
     process.env.BASIC_AUTH === 'true';
   const { isDarkMode: isDarkTheme, isThemeMounted, toggleTheme } = useAppTheme();
-  const { user, logout } = useAuth();
+  const authContext = useOptionalAuth();
+  const publicAuth = usePublicAuth(!authContext);
+  const user = authContext?.user ?? publicAuth.user;
+  const loading = authContext?.loading ?? publicAuth.loading;
+  const logout = authContext?.logout ?? publicAuth.logout;
+  const canUseRealtimeControls = Boolean(authContext?.user);
   const pathname = usePathname();
   const t = useTranslations();
   const homeText = t('navigation.home');
@@ -178,6 +183,13 @@ export function Header() {
     void logout();
   };
 
+  const authActionsPlaceholder = (
+    <div className="hidden items-center space-x-3 md:flex" aria-hidden="true">
+      <div className="h-11 w-28 animate-pulse rounded-xl border border-emerald-100/60 bg-muted/60 dark:border-white/10 dark:bg-white/10" />
+      <div className="h-11 w-32 animate-pulse rounded-xl bg-muted/70 dark:bg-white/15" />
+    </div>
+  );
+
   const ThemeToggle = ({ className }: { className?: string }) => (
     <Button
       variant="ghost"
@@ -225,16 +237,18 @@ export function Header() {
   const avatarFallbackClass = useDarkHeaderSurface
     ? 'bg-[#0B1220] text-white'
     : 'bg-muted text-foreground dark:bg-[#0B1220] dark:text-white';
-  const switcherClass = useDarkHeaderSurface ? 'text-white hover:bg-white/10 hover:text-white' : '';
+  const switcherClass = useDarkHeaderSurface
+    ? 'text-white hover:bg-white/10 hover:text-white'
+    : 'text-[#0B1C2D] hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white';
   const authOutlineClass = useDarkHeaderSurface
     ? 'border border-white/60 bg-white/5 text-white hover:bg-white/10 hover:border-white rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105'
-    : 'border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105';
+    : 'border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:border-emerald-300 hover:text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/60 dark:hover:text-emerald-200 rounded-xl px-6 py-2 font-semibold transition-all duration-200 hover:scale-105';
   const authPrimaryClass = useDarkHeaderSurface
     ? 'bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-white dark:text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105'
     : 'bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-white dark:text-white rounded-xl px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105';
   const mobileMenuButtonClass = useDarkHeaderSurface
     ? 'w-11 h-11 rounded-xl text-white hover:bg-white/10'
-    : 'w-11 h-11 hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10 rounded-xl';
+    : 'w-11 h-11 rounded-xl text-[#0B1C2D] hover:bg-emerald-50/70 hover:text-[#0B1C2D] dark:text-white dark:hover:bg-emerald-500/10 dark:hover:text-white';
 
   if (earlyAccessEnabled) {
     return (
@@ -461,7 +475,7 @@ export function Header() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
-            {user && (
+            {canUseRealtimeControls && user && (
               <>
                 {/* Notifications */}
                 <NotificationBell
@@ -506,16 +520,16 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard">{dashboardText}</Link>
                   </DropdownMenuItem>
-                  <Can roles={['provider']}>
+                  {roleSlugs.includes('provider') ? (
                     <DropdownMenuItem asChild>
                       <Link href="/provider/profile">{editProfileText}</Link>
                     </DropdownMenuItem>
-                  </Can>
-                  <Can roles={['admin']}>
+                  ) : null}
+                  {isAdminUser ? (
                     <DropdownMenuItem asChild>
                       <Link href="/admin">{adminPanelText}</Link>
                     </DropdownMenuItem>
-                  </Can>
+                  ) : null}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -523,6 +537,8 @@ export function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : loading ? (
+              authActionsPlaceholder
             ) : (
               <div className="hidden md:flex items-center space-x-3">
                 <Button variant="outline" aria-label="Deschide meniul principal" className={authOutlineClass} asChild>
@@ -561,9 +577,9 @@ export function Header() {
                       {item.name}
                     </Link>
                   ))}
-                  {!user && (
+                  {!user && !loading && (
                     <div className="flex flex-col space-y-4 pt-6">
-                      <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 rounded-xl py-3 font-semibold" asChild>
+                      <Button variant="outline" aria-label="Butonul de conectare" className="w-full border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50/70 hover:text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200 rounded-xl py-3 font-semibold" asChild>
                         <Link href="/auth/signin">{loginText}</Link>
                       </Button>
                       <Button aria-label="Buton de inregistrare" className="w-full bg-gradient-to-r from-[#1BC47D] to-[#21D19F] hover:from-[#17b672] hover:to-[#1bbd8c] text-white dark:text-white rounded-xl py-3 font-semibold shadow-lg" asChild>

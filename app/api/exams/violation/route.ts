@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   API_BASE_URL,
   appendSetCookie,
-  buildProxyHeaders,
-  type ProxyHeaderOptions,
+  buildAuthenticatedProxyHeaders,
   ProxySecurityError,
 } from '@/lib/server/laravel-proxy';
 
@@ -76,52 +75,15 @@ const safeParseJson = (value: string) => {
   }
 };
 
-const getCookieValue = (cookieHeader: string | null | undefined, name: string) => {
-  if (!cookieHeader) {
-    return null;
-  }
-
-  const cookies = cookieHeader.split(/;\s*/);
-  for (const entry of cookies) {
-    const separatorIndex = entry.indexOf('=');
-    const key = separatorIndex >= 0 ? entry.slice(0, separatorIndex) : entry;
-    if (key !== name) {
-      continue;
-    }
-
-    const rawValue = separatorIndex >= 0 ? entry.slice(separatorIndex + 1) : '';
-    try {
-      return decodeURIComponent(rawValue);
-    } catch {
-      return rawValue;
-    }
-  }
-
-  return null;
-};
-
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID().slice(0, 8);
   const startedAt = Date.now();
   const contentType = req.headers.get('content-type') ?? 'application/json';
   const rawBody = await req.text();
-  const cookieXsrfToken = getCookieValue(req.headers.get('cookie'), 'XSRF-TOKEN');
   const parsedBody =
     contentType.includes('application/json') && rawBody
       ? safeParseJson(rawBody)
       : null;
-  const explicitXsrfToken =
-    parsedBody && typeof parsedBody.xsrf_token === 'string'
-      ? parsedBody.xsrf_token
-      : cookieXsrfToken;
-  const forwardedBody =
-    parsedBody && 'xsrf_token' in parsedBody
-      ? JSON.stringify(
-          Object.fromEntries(
-            Object.entries(parsedBody).filter(([key]) => key !== 'xsrf_token')
-          )
-        )
-      : rawBody;
 
   console.info(`[exam-violation-proxy:${requestId}] incoming`, {
     method: req.method,
@@ -129,31 +91,18 @@ export async function POST(req: Request) {
     contentType,
     origin: req.headers.get('origin'),
     referer: req.headers.get('referer'),
-    incomingXsrfHeader: maskValue(req.headers.get('x-xsrf-token')),
     incomingCookies: summarizeCookies(req.headers.get('cookie')),
-    cookieXsrfToken: maskValue(cookieXsrfToken),
-    bodyXsrfToken: maskValue(
-      parsedBody && typeof parsedBody.xsrf_token === 'string'
-        ? parsedBody.xsrf_token
-        : null
-    ),
     rawBody,
     parsedBody,
   });
 
   let headers: Headers;
   try {
-    const proxyHeaderOptions: ProxyHeaderOptions = {
-      explicitXsrfToken,
-      skipCsrfCheck: true,
-    };
-
-    headers = buildProxyHeaders(
+    headers = await buildAuthenticatedProxyHeaders(
       req,
       {
         'Content-Type': contentType,
-      },
-      proxyHeaderOptions
+      }
     );
   } catch (error) {
     const status =
@@ -180,18 +129,17 @@ export async function POST(req: Request) {
 
   console.info(`[exam-violation-proxy:${requestId}] forwarding`, {
     targetUrl: `${API_BASE_URL}/exam/violations`,
-    outgoingXsrfHeader: maskValue(headers.get('x-xsrf-token')),
     outgoingOrigin: headers.get('origin'),
     outgoingReferer: headers.get('referer'),
     outgoingCookies: summarizeCookies(headers.get('cookie')),
-    forwardedBody,
+    forwardedBody: rawBody,
   });
 
   try {
     const response = await fetch(`${API_BASE_URL}/exam/violations`, {
       method: 'POST',
       headers,
-      body: forwardedBody || undefined,
+      body: rawBody || undefined,
       cache: 'no-store',
     });
 

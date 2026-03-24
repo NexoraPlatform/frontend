@@ -2,6 +2,16 @@
   "newsletter": {
     "title": "Newsletter",
     "subtitle": "Trimite emailuri către abonați folosind template-uri predefinite.",
+    "composer_title": "Composer Campanie",
+    "composer_description": "Alege un template, rafinează audiența și pregătește campania direct din dashboard.",
+    "summary": {
+      "cards": {
+        "templates": "Template-uri",
+        "active_subscribers": "Abonați activi",
+        "clients": "Clienți",
+        "recipients": "Destinatari expliciți"
+      }
+    },
     "template_label": "Template",
     "template_placeholder": "Selectează template",
     "template_loading": "Se încarcă template-urile...",
@@ -23,6 +33,8 @@
     "preview_loading": "Se încarcă preview-ul...",
     "preview_empty": "Selectează un template pentru preview.",
     "preview_error": "Nu am putut încărca preview-ul.",
+    "preview_frame_title": "Preview newsletter",
+    "preview_default_message": "Acesta este un mesaj demonstrativ pentru newsletter.",
     "preview_note": "Variabilele sunt înlocuite cu valori de test în preview.",
     "custom_only_note": "Subiectul și mesajul pot fi editate doar pentru template-ul custom.",
     "recipients_label": "Destinatari specifici (opțional)",
@@ -35,9 +47,19 @@
     "list_description": "Lista abonaților din newsletter.",
     "list_loading": "Se încarcă abonații...",
     "list_empty": "Nu există abonați disponibili.",
+    "list_empty_description": "Încearcă să modifici filtrele pentru abonați sau așteaptă abonați noi.",
     "list_error": "Nu am putut încărca abonații.",
+    "subscriber_search_placeholder": "Caută abonați după email, nume sau companie...",
     "per_page_label": "Rezultate per pagină",
     "only_active_label": "Doar activi",
+    "sidebar_title": "Setări Campanie",
+    "sidebar_description": "Privire rapidă asupra audienței și configurației de livrare curente.",
+    "sidebar": {
+      "template": "Template",
+      "audience": "Audiență",
+      "language": "Limbă",
+      "explicit_recipients": "Destinatari expliciți"
+    },
     "columns": {
       "email": "Email",
       "name": "Nume",

@@ -14,11 +14,6 @@ vi.mock('@/lib/navigation', () => ({
   useRouter: () => ({ push: routerPush }),
 }));
 
-vi.mock('@/lib/csrf', () => ({
-  ensureCsrfCookie: () => Promise.resolve(),
-  getXsrfToken: () => 'test-xsrf-token',
-}));
-
 describe('ExamGuard reporting', () => {
   beforeEach(() => {
     vi.useFakeTimers();

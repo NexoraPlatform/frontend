@@ -73,20 +73,20 @@ function CookieContentRo({ className, headingClassName }: Omit<CookieContentProp
                 </thead>
                 <tbody className="text-slate-600 dark:text-slate-300">
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">laravel_session</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">authjs.session-token / __Secure-authjs.session-token</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
-                      Gestionează sesiunea de autentificare securizată (Laravel Sanctum). Vă menține logat.
+                      Gestionează sesiunea securizată NextAuth JWT și vă menține autentificat în aplicație.
                     </td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">Sesiune</td>
                   </tr>
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">XSRF-TOKEN</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">trustora-remember / trustora-browser-session</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
-                      Protecție împotriva atacurilor de tip Cross-Site Request Forgery (CSRF).
+                      Memorează preferința de autentificare: 30 de zile sau doar până la închiderea browserului.
                     </td>
-                    <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">Sesiune</td>
+                    <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">30 zile / sesiune</td>
                   </tr>
                   <tr>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">__stripe_mid</td>
@@ -287,20 +287,20 @@ function CookieContentEn({ className, headingClassName }: Omit<CookieContentProp
                 </thead>
                 <tbody className="text-slate-600 dark:text-slate-300">
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">laravel_session</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">authjs.session-token / __Secure-authjs.session-token</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
-                      Manages the secure authentication session (Laravel Sanctum). Keeps you signed in.
+                      Manages the secure NextAuth JWT session and keeps you signed in to the app.
                     </td>
                     <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">Session</td>
                   </tr>
                   <tr>
-                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">XSRF-TOKEN</td>
+                    <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">trustora-remember / trustora-browser-session</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">Trustora</td>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">
-                      Protection against Cross-Site Request Forgery (CSRF) attacks.
+                      Stores whether your sign-in should persist for 30 days or end when the browser closes.
                     </td>
-                    <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">Session</td>
+                    <td className="border-b border-slate-200/60 py-2 dark:border-slate-700">30 days / session</td>
                   </tr>
                   <tr>
                     <td className="border-b border-slate-200/60 py-2 pr-4 dark:border-slate-700">__stripe_mid</td>

@@ -1,4 +1,3 @@
-import {TabsContent} from "@/components/ui/tabs";
 import {Card, CardHeader, CardTitle, CardContent} from "@/components/ui/card";
 import {
     Bell,
@@ -14,7 +13,6 @@ import {useAuth} from "@/contexts/auth-context";
 import {useTranslations} from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import React, {useEffect, useMemo, useState} from "react";
-import { toast } from "sonner";
 import {Button} from "@/components/ui/button";
 import Link from "next/link";
 import CompanyManagersSettingsDialog from "@/components/dashboard/settings/company-managers-settings-dialog";
@@ -67,7 +65,7 @@ export default function SettingsComponent({ onOpenCompanyInformationsDialog }: S
 
     return (
         <>
-            <TabsContent value="settings" className="space-y-6">
+            <div className="space-y-6">
                 <div className="grid xs:grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Profile Settings */}
                     <Card className="glass-card">
@@ -169,7 +167,7 @@ export default function SettingsComponent({ onOpenCompanyInformationsDialog }: S
                         </CardContent>
                     </Card>
                 </div>
-            </TabsContent>
+            </div>
             {isProvider ? (
                 <CompanyManagersSettingsDialog
                     openCompanyManagersDialog={openCompanyManagersDialog}

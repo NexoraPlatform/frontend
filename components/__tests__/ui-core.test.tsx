@@ -2,9 +2,11 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import { PriceDisplay } from '@/components/PriceDisplay';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { ProjectFilters } from '@/components/ProjectFilters';
-import { useAuth } from '@/contexts/auth-context';
+import { useOptionalAuth } from '@/contexts/auth-context';
+import { usePublicAuth } from '@/hooks/use-public-auth';
 
 let locale = 'en';
 
@@ -36,25 +38,45 @@ vi.mock('next-intl', () => ({
     values?.count != null ? `${key}:${values.count}` : key,
 }));
 
+const setCurrency = vi.fn();
 vi.mock('@/hooks/useCurrency', () => ({
-  useCurrency: () => ({ currency: 'USD' }),
+  useCurrency: () => ({ currency: 'USD', setCurrency }),
 }));
 
 const routerReplace = vi.fn();
+const routerRefresh = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: routerRefresh }),
+}));
+
 vi.mock('@/lib/navigation', () => ({
   locales: ['en', 'ro'],
   localePrefix: 'always',
   usePathname: () => '/ro/services',
-  useRouter: () => ({ replace: routerReplace }),
+  useRouter: () => ({ replace: routerReplace, refresh: routerRefresh }),
 }));
 
 vi.mock('@/contexts/auth-context', () => ({
-  useAuth: vi.fn(),
+  useOptionalAuth: vi.fn(),
+}));
+
+vi.mock('@/hooks/use-public-auth', () => ({
+  usePublicAuth: vi.fn(),
 }));
 
 describe('UI core components', () => {
   beforeEach(() => {
     routerReplace.mockReset();
+    routerRefresh.mockReset();
+    setCurrency.mockReset();
+    (useOptionalAuth as unknown as vi.Mock).mockReturnValue({
+      user: { id: '1' },
+      setUserLanguage: vi.fn().mockResolvedValue({ id: '1' }),
+    });
+    (usePublicAuth as unknown as vi.Mock).mockReturnValue({
+      user: null,
+      setUserLanguage: vi.fn(),
+    });
   });
 
   it('PriceDisplay uses currency from context when not provided', () => {
@@ -72,7 +94,7 @@ describe('UI core components', () => {
   it('LocaleSwitcher calls setUserLanguage and router.replace', async () => {
     locale = 'ro';
     const setUserLanguage = vi.fn().mockResolvedValue({ id: '1' });
-    (useAuth as unknown as vi.Mock).mockReturnValue({
+    (useOptionalAuth as unknown as vi.Mock).mockReturnValue({
       user: { id: '1' },
       setUserLanguage,
     });
@@ -91,6 +113,30 @@ describe('UI core components', () => {
     });
 
     expect(routerReplace).toHaveBeenCalledWith('/services', { locale: 'en' });
+  });
+
+  it('LocaleSwitcher and CurrencySwitcher keep readable hover text classes in light mode', async () => {
+    locale = 'en';
+
+    render(
+      <>
+        <LocaleSwitcher />
+        <CurrencySwitcher />
+      </>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /schimbă limba/i }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('button', { name: /schimbă valuta/i }).length).toBeGreaterThan(0);
+    });
+
+    const localeButton = screen.getAllByRole('button', { name: /schimbă limba/i }).at(-1)!;
+    const currencyButton = screen.getAllByRole('button', { name: /schimbă valuta/i }).at(-1)!;
+
+    expect(localeButton.className).toContain('text-foreground');
+    expect(localeButton.className).toContain('hover:text-foreground');
+    expect(currencyButton.className).toContain('text-foreground');
+    expect(currencyButton.className).toContain('hover:text-foreground');
   });
 
   it('ProjectFilters triggers callbacks on interactions', () => {

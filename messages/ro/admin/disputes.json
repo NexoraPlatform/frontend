@@ -2,8 +2,51 @@
   "disputes": {
     "manage_title": "Gestionare Dispute",
     "manage_subtitle": "Rezolvă disputele între utilizatori",
+    "search_placeholder": "Caută dispute după caz, comandă sau parte...",
+    "status_filter_placeholder": "Filtru status",
+    "priority_filter_placeholder": "Filtru prioritate",
+    "summary": {
+      "cards": {
+        "total": "Total cazuri",
+        "open": "Cazuri deschise",
+        "escalated": "Escalate",
+        "value_at_risk": "Valoare în risc"
+      }
+    },
+    "statuses": {
+      "all": "Toate disputele",
+      "open": "Deschis",
+      "under_review": "În analiză",
+      "escalated": "Escaladat",
+      "resolved": "Rezolvat"
+    },
+    "priorities": {
+      "all": "Toate prioritățile",
+      "low": "Mică",
+      "medium": "Medie",
+      "high": "Ridicată",
+      "critical": "Critică"
+    },
+    "roles": {
+      "client": "Client",
+      "provider": "Prestator"
+    },
     "list_title": "Lista Dispute",
-    "list_description": "Toate disputele și reclamațiile platformei",
+    "list_description": "{count} dispute găsite",
+    "table": {
+      "case": "Caz",
+      "order": "Comandă asociată",
+      "parties": "Părți",
+      "priority": "Prioritate",
+      "value": "Valoare",
+      "status": "Status",
+      "actions": "Acțiuni",
+      "opened_at": "Deschisă {date}",
+      "updated_at": "Actualizată {date}",
+      "against": "Împotriva",
+      "evidence_count": "{count} dovezi"
+    },
+    "view_related_order": "Vezi comanda asociată",
     "empty_title": "Nu există dispute active",
     "empty_description": "Toate disputele au fost rezolvate cu succes"
   }

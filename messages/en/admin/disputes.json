@@ -2,8 +2,51 @@
   "disputes": {
     "manage_title": "Manage Disputes",
     "manage_subtitle": "Resolve user disputes",
+    "search_placeholder": "Search disputes by case, order or party...",
+    "status_filter_placeholder": "Status filter",
+    "priority_filter_placeholder": "Priority filter",
+    "summary": {
+      "cards": {
+        "total": "Total Cases",
+        "open": "Open Cases",
+        "escalated": "Escalated",
+        "value_at_risk": "Value At Risk"
+      }
+    },
+    "statuses": {
+      "all": "All disputes",
+      "open": "Open",
+      "under_review": "Under review",
+      "escalated": "Escalated",
+      "resolved": "Resolved"
+    },
+    "priorities": {
+      "all": "All priorities",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "roles": {
+      "client": "Client",
+      "provider": "Provider"
+    },
     "list_title": "Disputes List",
-    "list_description": "All platform disputes and claims",
+    "list_description": "{count} disputes found",
+    "table": {
+      "case": "Case",
+      "order": "Related Order",
+      "parties": "Parties",
+      "priority": "Priority",
+      "value": "Value",
+      "status": "Status",
+      "actions": "Actions",
+      "opened_at": "Opened {date}",
+      "updated_at": "Updated {date}",
+      "against": "Against",
+      "evidence_count": "{count} evidence items"
+    },
+    "view_related_order": "View related order",
     "empty_title": "No active disputes",
     "empty_description": "All disputes have been successfully resolved"
   }

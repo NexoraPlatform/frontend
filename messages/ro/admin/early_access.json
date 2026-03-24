@@ -2,6 +2,17 @@
   "early_access": {
     "manage_title": "Înscrieri Early Access",
     "manage_subtitle": "Vizualizează toate aplicațiile din pre-early stage",
+    "search_placeholder": "Caută după nume, companie, email sau ID aplicație...",
+    "summary": {
+      "title": "Privire Generală Aplicații",
+      "description": "Verifică prestatorii și clienții în același flux de dashboard folosit în toată zona de admin.",
+      "cards": {
+        "total": "Total Aplicații",
+        "verified": "Emailuri Verificate",
+        "pending": "Confirmări în Așteptare",
+        "average_score": "Scor Mediu"
+      }
+    },
     "providers": {
       "title": "Prestatori înscriși",
       "description": "{count} prestatori înregistrați",

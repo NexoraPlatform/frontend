@@ -85,7 +85,7 @@ html {
 body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -95,11 +95,30 @@ body {
     padding: 0;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-space-grotesk), var(--font-manrope), system-ui, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
 /* Typography - Critical for hero section */
 .font-black { font-weight: 900; }
 .font-bold { font-weight: 700; }
 .font-semibold { font-weight: 600; }
 .font-medium { font-weight: 500; }
+.font-sans {
+    font-family: var(--font-manrope), system-ui, sans-serif;
+}
 
 .text-6xl { font-size: 3.75rem; line-height: 1; }
 .text-8xl { font-size: 6rem; line-height: 1; }

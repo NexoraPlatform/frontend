@@ -2,6 +2,17 @@
   "early_access": {
     "manage_title": "Early Access Applications",
     "manage_subtitle": "View all pre-early stage applications",
+    "search_placeholder": "Search by name, company, email or application ID...",
+    "summary": {
+      "title": "Applications Overview",
+      "description": "Review providers and clients with the same dashboard workflow used across the admin area.",
+      "cards": {
+        "total": "Total Applications",
+        "verified": "Verified Emails",
+        "pending": "Pending Confirmations",
+        "average_score": "Average Score"
+      }
+    },
     "providers": {
       "title": "Signed-up Providers",
       "description": "{count} providers registered",

@@ -13,10 +13,14 @@ export function TrustoraThemeStyles() {
                 --text-near-black: #0F172A;
             }
             body {
-                font-family: 'Inter', sans-serif;
+                font-family: var(--font-manrope), system-ui, sans-serif;
                 background-color: white;
                 color: var(--text-near-black);
                 scroll-behavior: smooth;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                font-family: var(--font-space-grotesk), var(--font-manrope), system-ui, sans-serif;
+                letter-spacing: -0.03em;
             }
             .dark body {
                 background-color: #070C14;

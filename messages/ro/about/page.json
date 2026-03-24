@@ -37,7 +37,11 @@
   "vision": {
     "kicker": "Viziunea 2030",
     "title": "Să devenim platforma de referință",
-    "description": "pentru servicii IT în Europa de Est, cu focus pe încredere, transparență și colaborare sustenabilă."
+    "description": "pentru servicii IT în Europa de Est, cu focus pe încredere, transparență și colaborare sustenabilă.",
+    "highlights": {
+      "trustora_body": "Un produs construit pentru incredere, claritate si ritm mai bun intre companii si experti.",
+      "future_body": "Mai mult decat matching: infrastructura digitala pentru colaborari sigure si scalabile."
+    }
   },
   "values": {
     "kicker": "Valorile noastre",
@@ -65,6 +69,15 @@
   "timeline": {
     "title": "Povestea noastră",
     "description": "De la o idee simplă la platforma de încredere pentru mii de antreprenori români.",
+    "panel": {
+      "title": "Construim incredere ca infrastructura, nu doar ca promisiune.",
+      "description": "Fiecare etapa a produsului a fost ghidata de aceeasi intrebare: cum facem colaborarile digitale mai clare, mai sigure si mai usor de dus la capat?",
+      "points": [
+        "Matching mai bun intre nevoie si expertiza",
+        "Procese mai simple pentru echipe si furnizori",
+        "Mai multa incredere in livrare si colaborare"
+      ]
+    },
     "items": [
       {
         "title": "Înființarea Trustora",

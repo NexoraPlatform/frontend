@@ -170,7 +170,6 @@ const getPathname = (req: RequestLike): string => {
 };
 
 const SESSION_COOKIE_NAMES = [
-  'laravel_session',
   '__Secure-authjs.session-token',
   'authjs.session-token',
   '__Secure-next-auth.session-token',

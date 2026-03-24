@@ -1,0 +1,118 @@
+{
+  "legal_clauses": {
+    "manage_title": "Legal Clauses",
+    "manage_subtitle": "Manage the legal clause library, translations, and contract-ready text blocks.",
+    "create_title": "Create Legal Clause",
+    "create_subtitle": "Add a new clause identifier, category, and one or more translations for the legal engine.",
+    "edit_title": "Edit Legal Clause",
+    "edit_subtitle": "Update metadata and translations for this clause without leaving the dashboard workflow.",
+    "add_clause": "Add Clause",
+    "summary": {
+      "cards": {
+        "total": "Total Clauses",
+        "categories": "Categories",
+        "translations": "Translations",
+        "recently_updated": "Updated 30d"
+      }
+    },
+    "filters": {
+      "title": "Filters",
+      "description": "Search by identifier, category, translation, or refine the library by language and sorting.",
+      "search": "Search",
+      "category": "Category",
+      "all_categories": "All categories",
+      "identifier": "Identifier",
+      "sort_by": "Sort by",
+      "direction": "Direction",
+      "language": "Language",
+      "per_page": "Per page",
+      "apply": "Refresh"
+    },
+    "sort": {
+      "created_at": "Created at",
+      "updated_at": "Updated at",
+      "identifier": "Identifier",
+      "category": "Category"
+    },
+    "direction": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "languages": {
+      "all": "All languages",
+      "en": "English",
+      "ro": "Romanian",
+      "de": "German",
+      "it": "Italian",
+      "fr": "French",
+      "es": "Spanish",
+      "pl": "Polish",
+      "nl": "Dutch",
+      "ch": "Chinese",
+      "ie": "Irish"
+    },
+    "list_title": "Clause Library",
+    "list_description": "{count} clauses found",
+    "table": {
+      "identifier": "Identifier",
+      "category": "Category",
+      "preview": "Preview",
+      "languages": "Languages",
+      "updated": "Updated",
+      "actions": "Actions",
+      "updated_label": "Updated {date}",
+      "page_label": "Page {current} of {total}"
+    },
+    "translations_count": "{count} translations",
+    "empty_title": "No clauses found",
+    "empty_description": "Adjust the filters or create a new legal clause.",
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "create": "Create Clause",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "previous": "Previous",
+      "next": "Next",
+      "back": "Back to clauses"
+    },
+    "form": {
+      "details_title": "Clause Details",
+      "details_description": "Identifier and category control how the legal engine references this clause.",
+      "identifier": "Identifier",
+      "identifier_placeholder": "custom_clause",
+      "category": "Category",
+      "category_placeholder": "scope",
+      "translations_title": "Translations",
+      "translations_description": "Add as many translations as you have available. Empty fields are ignored.",
+      "translation_title": "Translation",
+      "translation_description": "Update the selected translation while preserving the rest of the clause library.",
+      "language": "Language",
+      "text_label": "Text ({language})",
+      "text_placeholder": "Clause text"
+    },
+    "sidebar": {
+      "create_title": "Publishing Notes",
+      "create_description": "Keep clause identifiers stable and use categories that match your contract engine groups.",
+      "edit_title": "Clause Overview",
+      "edit_description": "Quick metadata about the selected clause and its translation coverage.",
+      "selected_language": "Selected language",
+      "available_translations": "Available translations",
+      "created_at": "Created",
+      "updated_at": "Updated"
+    },
+    "errors": {
+      "load_list": "Unable to load legal clauses.",
+      "load_categories": "Failed to load legal clause categories.",
+      "delete_confirm": "Delete this legal clause? This action cannot be undone.",
+      "delete_failed": "Failed to delete the legal clause.",
+      "create_required": "Identifier, category, and at least one translation are required.",
+      "create_failed": "Failed to create the legal clause.",
+      "load_detail": "Failed to load the legal clause.",
+      "update_required_identifier": "Identifier and category are required.",
+      "update_required_content": "Clause content is required for the selected language.",
+      "update_failed": "Failed to update the legal clause."
+    }
+  }
+}

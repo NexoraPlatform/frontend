@@ -11,6 +11,14 @@
     "filter_admins": "Administratori",
     "list_title": "Lista Utilizatori",
     "list_description": "{count} utilizatori găsiți",
+    "table": {
+      "user": "Utilizator",
+      "email": "Email",
+      "role": "Rol",
+      "status": "Status",
+      "registered": "Înregistrat",
+      "actions": "Acțiuni"
+    },
     "statuses": {
       "ACTIVE": "Activ",
       "SUSPENDED": "Suspendat",
@@ -55,6 +63,18 @@
       "creating": "Se creează...",
       "create_user": "Creează Utilizator",
       "cancel": "Anulează",
+      "overview": {
+        "title": "Rezumat Cont",
+        "description": "Verifică nivelul de acces înainte să creezi contul.",
+        "role": "Rol Selectat",
+        "email": "Email Login",
+        "phone": "Număr Telefon",
+        "empty": "Necompletat"
+      },
+      "actions": {
+        "title": "Creează Cont",
+        "description": "Salvează contul și fă-l disponibil în lista de utilizatori din admin."
+      },
       "roles": {
         "CLIENT": "Client",
         "PROVIDER": "Prestator",
@@ -88,7 +108,16 @@
         "select_permissions": "Selectează Permisiunile",
         "no_permission_selected": "Nicio permisiune selectată.",
         "allow": "Permite",
-        "deny": "Respinge"
+        "deny": "Respinge",
+        "overview_title": "Rezumat Cont",
+        "overview_description": "Verifică datele active ale profilului înainte să salvezi modificările.",
+        "selected_role": "Rol Selectat",
+        "email_short": "Email",
+        "verification_status": "Verificare",
+        "verification_complete": "Verificat complet",
+        "verification_pending": "Necesită verificare",
+        "permission_overrides": "Suprascrieri Permisiuni",
+        "permissions_description": "Activează reguli personalizate de allow sau deny pentru acest utilizator."
       }
     },
     "detail_card": {

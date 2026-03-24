@@ -66,6 +66,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/trustora/final_cta.json"),
             () => import("@/locales/ro/trustora/early_access.json"),
             () => import("@/locales/ro/trustora/open_soon.json"),
+            () => import("@/locales/ro/trustora/landing.json"),
         ],
         errors: [() => import("@/locales/ro/errors/page.json")],
         admin: [
@@ -80,9 +81,12 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/ro/admin/roles.json"),
             () => import("@/locales/ro/admin/services.json"),
             () => import("@/locales/ro/admin/settings.json"),
+            () => import("@/locales/ro/admin/legal_clauses.json"),
             () => import("@/locales/ro/admin/tests.json"),
             () => import("@/locales/ro/admin/users.json"),
             () => import("@/locales/ro/admin/newsletter.json"),
+            () => import("@/locales/ro/admin/activity.json"),
+            () => import("@/locales/ro/admin/audit_logs.json"),
         ],
         auth: [
             () => import("@/locales/ro/auth/signin.json"),
@@ -138,6 +142,7 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/trustora/final_cta.json"),
             () => import("@/locales/en/trustora/early_access.json"),
             () => import("@/locales/en/trustora/open_soon.json"),
+            () => import("@/locales/en/trustora/landing.json"),
         ],
         errors: [() => import("@/locales/en/errors/page.json")],
         admin: [
@@ -152,9 +157,12 @@ export const translations: Record<Locale, Record<string, NamespaceLoader | Names
             () => import("@/locales/en/admin/roles.json"),
             () => import("@/locales/en/admin/services.json"),
             () => import("@/locales/en/admin/settings.json"),
+            () => import("@/locales/en/admin/legal_clauses.json"),
             () => import("@/locales/en/admin/tests.json"),
             () => import("@/locales/en/admin/users.json"),
             () => import("@/locales/en/admin/newsletter.json"),
+            () => import("@/locales/en/admin/activity.json"),
+            () => import("@/locales/en/admin/audit_logs.json"),
         ],
         auth: [
             () => import("@/locales/en/auth/signin.json"),
